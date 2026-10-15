@@ -1,0 +1,89 @@
+{
+  "step": "key \"Enter\"",
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "greet someone",
+    "sections": [
+      {
+        "title": "Commands",
+        "items": [
+          {
+            "id": "cmd:greet",
+            "title": "Greet Someone",
+            "subtitle": "Form Test",
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "greet"
+                }
+              }
+            ],
+            "arguments": [
+              {
+                "name": "name",
+                "type": "text",
+                "placeholder": "Name",
+                "required": true
+              },
+              {
+                "name": "greeting",
+                "type": "dropdown",
+                "placeholder": "Greeting",
+                "options": [
+                  {
+                    "value": "hello",
+                    "title": "Hello"
+                  },
+                  {
+                    "value": "hi",
+                    "title": "Hi"
+                  }
+                ]
+              }
+            ],
+            "plugin": "test.form",
+            "key": "test.form/cmd:greet",
+            "rank": 0.7
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "arguments": {
+      "entry": "test.form/cmd:greet",
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "placeholder": "Name",
+          "required": true,
+          "value": ""
+        },
+        {
+          "name": "greeting",
+          "type": "dropdown",
+          "placeholder": "Greeting",
+          "options": [
+            {
+              "value": "hello",
+              "title": "Hello"
+            },
+            {
+              "value": "hi",
+              "title": "Hi"
+            }
+          ],
+          "value": ""
+        }
+      ],
+      "focused": "name"
+    }
+  }
+}

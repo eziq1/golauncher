@@ -1,0 +1,50 @@
+{
+  "step": "key \"Ctrl+Enter\"",
+  "outcome": {
+    "hide": true,
+    "toast": {
+      "style": "success",
+      "title": "send",
+      "message": "{\"rating\":5,\"subject\":\"Great launcher\",\"subscribe\":true}"
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Feedback",
+    "placeholder": "Search…",
+    "text": "",
+    "sections": [],
+    "selected": -1,
+    "emptyText": "No results",
+    "form": {
+      "fields": [
+        {
+          "id": "subject",
+          "type": "text",
+          "title": "Subject",
+          "required": true,
+          "value": "Great launcher"
+        },
+        {
+          "id": "rating",
+          "type": "number",
+          "title": "Rating",
+          "value": "5"
+        },
+        {
+          "id": "subscribe",
+          "type": "checkbox",
+          "title": "Subscribe",
+          "value": "true"
+        }
+      ],
+      "focused": "subscribe",
+      "submit": "Send"
+    },
+    "toast": {
+      "style": "success",
+      "title": "send",
+      "message": "{\"rating\":5,\"subject\":\"Great launcher\",\"subscribe\":true}"
+    }
+  }
+}

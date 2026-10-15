@@ -305,7 +305,11 @@ func TestInvalidateRoot(t *testing.T) {
 		t.Fatalf("root = %v, selected %q", got, selectedTitle(s))
 	}
 	// Typing selects the best match again.
-	s = func() core.Snapshot { env.Controller.SetText(t.Context(), "item "); env.Controller.Wait(); return env.Controller.Snapshot() }()
+	s = func() core.Snapshot {
+		env.Controller.SetText(t.Context(), "item ")
+		env.Controller.Wait()
+		return env.Controller.Snapshot()
+	}()
 	if s.Selected != 0 {
 		t.Fatalf("selected %d after typing", s.Selected)
 	}
