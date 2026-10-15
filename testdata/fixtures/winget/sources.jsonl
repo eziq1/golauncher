@@ -1,0 +1,3 @@
+{"Arg":"https://storeedgefd.dsx.mp.microsoft.com/v9.0","Data":"","Explicit":false,"Identifier":"StoreEdgeFD","Name":"msstore","TrustLevel":["Trusted"],"Type":"Microsoft.Rest"}
+{"Arg":"https://cdn.winget.microsoft.com/cache","Data":"Microsoft.Winget.Source_8wekyb3d8bbwe","Explicit":false,"Identifier":"Microsoft.Winget.Source_8wekyb3d8bbwe","Name":"winget","TrustLevel":["Trusted","StoreOrigin"],"Type":"Microsoft.PreIndexed.Package"}
+{"Arg":"https://cdn.winget.microsoft.com/fonts","Data":"Microsoft.Winget.Fonts.Source_8wekyb3d8bbwe","Explicit":true,"Identifier":"Microsoft.Winget.Fonts.Source_8wekyb3d8bbwe","Name":"winget-font","TrustLevel":["Trusted","StoreOrigin"],"Type":"Microsoft.PreIndexed.Package"}

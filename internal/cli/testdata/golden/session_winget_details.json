@@ -1,0 +1,273 @@
+{
+  "step": "key \"Ctrl+D\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.winget",
+      "request": {
+        "id": "show",
+        "payload": {
+          "id": "Contoso.TextPad",
+          "source": "winget",
+          "name": "Contoso TextPad"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 2,
+    "title": "Contoso TextPad",
+    "placeholder": "Search…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "show/winget/Contoso.TextPad",
+            "title": "Contoso TextPad",
+            "subtitle": "Contoso.TextPad",
+            "icon": {
+              "name": "package"
+            },
+            "accessory": "1.4.1",
+            "actions": [
+              {
+                "id": "upgrade",
+                "title": "Upgrade",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://contoso.example/textpad"
+                }
+              },
+              {
+                "id": "open-publisher-url",
+                "title": "Open Publisher Url",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://contoso.example/"
+                }
+              },
+              {
+                "id": "open-license-url",
+                "title": "Open License Url",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://contoso.example/textpad/license"
+                }
+              },
+              {
+                "id": "open-release-notes-url",
+                "title": "Open Release Notes Url",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://contoso.example/textpad/releases/1.4.1"
+                }
+              },
+              {
+                "id": "upgrade-admin",
+                "title": "Upgrade as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "upgrade --id Contoso.TextPad --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "pin",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/Contoso/TextPad"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Contoso.TextPad"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Contoso.TextPad --exact --source winget"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## Contoso TextPad\n\n### Description\n\nA small, fast text editor with tabs, syntax highlighting and a distraction-free mode.\n\nOpens files of any size without freezing.\n\n### Release Notes\n\nNew Features\n\n- Split view\n- Faster search in large files\n\n### Tags\n\neditor\n\ntext\n\n### Installer\n\nInstaller Type: inno\n\nInstaller Url: https://contoso.example/download/textpad-1.4.1.exe\n\nRelease Date: 2026-09-01",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Contoso.TextPad"
+                },
+                {
+                  "label": "Installed",
+                  "value": "1.2.0"
+                },
+                {
+                  "label": "Version",
+                  "value": "1.4.1"
+                },
+                {
+                  "label": "Publisher",
+                  "value": "Contoso Ltd."
+                },
+                {
+                  "label": "Publisher Url",
+                  "value": "https://contoso.example/"
+                },
+                {
+                  "label": "Moniker",
+                  "value": "textpad"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://contoso.example/textpad"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "License Url",
+                  "value": "https://contoso.example/textpad/license"
+                },
+                {
+                  "label": "Release Notes Url",
+                  "value": "https://contoso.example/textpad/releases/1.4.1"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/show/winget/Contoso.TextPad"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## Contoso TextPad\n\n### Description\n\nA small, fast text editor with tabs, syntax highlighting and a distraction-free mode.\n\nOpens files of any size without freezing.\n\n### Release Notes\n\nNew Features\n\n- Split view\n- Faster search in large files\n\n### Tags\n\neditor\n\ntext\n\n### Installer\n\nInstaller Type: inno\n\nInstaller Url: https://contoso.example/download/textpad-1.4.1.exe\n\nRelease Date: 2026-09-01",
+      "metadata": [
+        {
+          "label": "ID",
+          "value": "Contoso.TextPad"
+        },
+        {
+          "label": "Installed",
+          "value": "1.2.0"
+        },
+        {
+          "label": "Version",
+          "value": "1.4.1"
+        },
+        {
+          "label": "Publisher",
+          "value": "Contoso Ltd."
+        },
+        {
+          "label": "Publisher Url",
+          "value": "https://contoso.example/"
+        },
+        {
+          "label": "Moniker",
+          "value": "textpad"
+        },
+        {
+          "label": "Homepage",
+          "value": "https://contoso.example/textpad"
+        },
+        {
+          "label": "License",
+          "value": "MIT"
+        },
+        {
+          "label": "License Url",
+          "value": "https://contoso.example/textpad/license"
+        },
+        {
+          "label": "Release Notes Url",
+          "value": "https://contoso.example/textpad/releases/1.4.1"
+        },
+        {
+          "label": "Source",
+          "value": "winget"
+        }
+      ]
+    },
+    "emptyText": "No results"
+  }
+}

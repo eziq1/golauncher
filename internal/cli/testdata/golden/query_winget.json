@@ -1,0 +1,112 @@
+{
+  "query": "winget gitty",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "WinGet",
+      "items": [
+        {
+          "id": "pkg/winget/Fabrikam.Gitty",
+          "title": "Gitty",
+          "subtitle": "Fabrikam.Gitty",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "gitty",
+            "gitty"
+          ],
+          "accessory": "Installed 2.0.0",
+          "group": "WinGet",
+          "score": 0.9,
+          "actions": [
+            {
+              "id": "details",
+              "title": "Show Details",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "show",
+                "payload": {
+                  "id": "Fabrikam.Gitty",
+                  "source": "winget",
+                  "name": "Gitty"
+                }
+              }
+            },
+            {
+              "id": "pin",
+              "title": "Pin Version",
+              "shortcut": "Ctrl+Shift+H",
+              "do": {
+                "kind": "Callback",
+                "target": "op",
+                "payload": {
+                  "kind": "pin",
+                  "id": "Fabrikam.Gitty",
+                  "name": "Gitty",
+                  "source": "winget"
+                }
+              }
+            },
+            {
+              "id": "manifest",
+              "title": "Open Manifest on GitHub",
+              "shortcut": "Ctrl+Shift+M",
+              "do": {
+                "kind": "Open",
+                "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/f/Fabrikam/Gitty"
+              }
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy Package ID",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "Fabrikam.Gitty"
+              }
+            },
+            {
+              "id": "copy-install",
+              "title": "Copy Install Command",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "winget install --id Fabrikam.Gitty --exact --source winget"
+              }
+            },
+            {
+              "id": "refresh",
+              "title": "Refresh List",
+              "shortcut": "Ctrl+R",
+              "do": {
+                "kind": "Callback",
+                "target": "refresh"
+              }
+            },
+            {
+              "id": "uninstall",
+              "title": "Uninstall",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "do": {
+                "kind": "Callback",
+                "target": "op",
+                "payload": {
+                  "kind": "uninstall",
+                  "id": "Fabrikam.Gitty",
+                  "name": "Gitty",
+                  "source": "winget"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.winget",
+          "key": "builtin.winget/pkg/winget/Fabrikam.Gitty",
+          "rank": 1.63
+        }
+      ]
+    }
+  ]
+}

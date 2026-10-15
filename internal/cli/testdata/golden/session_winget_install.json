@@ -1,0 +1,168 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "toast": {
+      "style": "info",
+      "title": "Install Tailspin Toolbox: running in the background",
+      "message": "You can keep working. Press Ctrl+J to see the output."
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search WinGet Packages",
+    "placeholder": "Search packages by name, ID, command or tag…",
+    "text": "tailspin",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "pkg/winget/Tailspin.Toolbox",
+            "title": "Tailspin Toolbox",
+            "subtitle": "Tailspin.Toolbox",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "tt"
+            ],
+            "accessory": "0.9.4",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "id": "Tailspin.Toolbox",
+                    "name": "Tailspin Toolbox",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "details",
+                "title": "Show Details",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "show",
+                  "payload": {
+                    "id": "Tailspin.Toolbox",
+                    "source": "winget",
+                    "name": "Tailspin Toolbox"
+                  }
+                }
+              },
+              {
+                "id": "install-admin",
+                "title": "Install as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "install --id Tailspin.Toolbox --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/t/Tailspin/Toolbox"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Tailspin.Toolbox"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Tailspin.Toolbox --exact --source winget"
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## Tailspin Toolbox\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Tailspin.Toolbox"
+                },
+                {
+                  "label": "Version",
+                  "value": "0.9.4"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                },
+                {
+                  "label": "Commands",
+                  "value": "tt"
+                },
+                {
+                  "label": "Tags",
+                  "value": "cli"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/pkg/winget/Tailspin.Toolbox"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## Tailspin Toolbox\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+      "metadata": [
+        {
+          "label": "ID",
+          "value": "Tailspin.Toolbox"
+        },
+        {
+          "label": "Version",
+          "value": "0.9.4"
+        },
+        {
+          "label": "Source",
+          "value": "winget"
+        },
+        {
+          "label": "Commands",
+          "value": "tt"
+        },
+        {
+          "label": "Tags",
+          "value": "cli"
+        }
+      ]
+    },
+    "emptyText": "No matching packages. Update the sources to find newer ones.",
+    "toast": {
+      "style": "info",
+      "title": "Install Tailspin Toolbox: running in the background",
+      "message": "You can keep working. Press Ctrl+J to see the output."
+    },
+    "tasks": {
+      "active": 1,
+      "label": "1 background task running"
+    }
+  }
+}

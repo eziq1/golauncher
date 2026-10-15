@@ -8,10 +8,21 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **WinGet**: search, install, upgrade and uninstall packages with the
+  Windows Package Manager. Search reads the local index of the `winget`
+  source, so it is instant; installed and upgradable packages come from
+  `winget list` in the background (cached); details from `winget show`.
+  Also *Upgrade All*, pin/unpin, sources and source updates, install or
+  upgrade as administrator, and `winget <name>` in the main search.
+  Operations run one at a time as background tasks. Disabled when winget is
+  not installed.
+
 ### Fixed
 
 - Apps registered under one name only can be found by their name in another
-  language (R40, `docs/app-names.md`): typing `微信` (or `weixin`, `wx`)
+  language (R40, `docs/app-names.md`): typing `微信` (or `weixin`)
   now finds an app listed as *WeChat*. Apps get extra keywords: the shortcut's
   file name when the Start menu shows a localized name, the Chinese (or other
   non-Latin) names in the executable's version information, and the other

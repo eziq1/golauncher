@@ -37,6 +37,8 @@
     is installed.
   - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)
     packages, when Scoop is installed.
+  - **WinGet**: search, install, upgrade and remove packages with the Windows
+    Package Manager (`winget`), when it is installed.
   - **System**: Lock, Sleep, Hibernate, Restart, Shut Down, Sign Out, Empty
     Recycle Bin, Toggle Dark Mode, volume, Turn Off Display and Show Desktop,
     plus about 150 Windows Settings pages and the classic tools (Device
@@ -217,6 +219,30 @@ notification tells when they finished.
 Turn on *Search packages from the main search* to type `scoop <name>` or
 `sc <name>` in the main search. Apps installed for all users (`-g`) are shown
 read-only.
+
+## WinGet
+
+When the Windows Package Manager (`winget`, part of App Installer) is
+installed, these commands appear:
+
+| Command | What it does |
+|---------|--------------|
+| Search WinGet Packages | Search the `winget` source by name, ID, moniker, command or tag as you type. `Enter` installs; `Ctrl+D` shows the details (publisher, description, license, homepage, release notes); installed packages offer upgrade, pin/unpin and uninstall (`Ctrl+X`). |
+| Installed WinGet Packages | Everything `winget list` reports, including software installed without winget (which can only be uninstalled); packages with a newer version first. |
+| WinGet Updates | Packages with a newer version, with *Upgrade All* (pinned packages are skipped). |
+| Upgrade All WinGet Packages | `winget upgrade --all`, after a confirmation. |
+| WinGet Sources / Update WinGet Sources | The configured sources; `winget source update`. |
+
+Searching reads the local index of the `winget` source (about 15,000
+packages, a couple of milliseconds per query), so typing never starts winget.
+The installed packages come from `winget list`, which takes seconds: it runs
+in the background, the last result is cached, and the views refresh when it is
+done. Changes run `winget` as background tasks, one at a time, without prompts
+(`--disable-interactivity`, agreements accepted); installers that need
+administrator rights show the UAC prompt, and *Install/Upgrade as
+Administrator* (`Ctrl+Shift+A`) runs the command in an elevated console for
+packages that need winget itself elevated. Type `winget <name>` or `wg <name>`
+in the main search to list matching packages. See [docs/winget.md](docs/winget.md).
 
 ## Writing plugins
 

@@ -271,6 +271,32 @@
             "key": "builtin.scoop/cmd:installed"
           },
           {
+            "id": "cmd:installed",
+            "title": "Installed WinGet Packages",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "winget",
+              "uninstall"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "installed"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:installed"
+          },
+          {
             "id": "cmd:open-folder",
             "title": "Open Scripts Folder",
             "subtitle": "Script Commands",
@@ -583,6 +609,33 @@
             "key": "builtin.scoop/cmd:search"
           },
           {
+            "id": "cmd:search",
+            "title": "Search WinGet Packages",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "winget",
+              "install",
+              "package"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "search"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:search"
+          },
+          {
             "id": "cmd:tracert",
             "title": "Trace Route",
             "subtitle": "Network Tools",
@@ -669,6 +722,111 @@
             ],
             "plugin": "builtin.scoop",
             "key": "builtin.scoop/cmd:update-buckets"
+          },
+          {
+            "id": "cmd:update-sources",
+            "title": "Update WinGet Sources",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "rotate-cw"
+            },
+            "keywords": [
+              "winget",
+              "source"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "update-sources"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:update-sources"
+          },
+          {
+            "id": "cmd:upgrade-all",
+            "title": "Upgrade All WinGet Packages",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "winget",
+              "upgrade"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "style": "destructive",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "upgrade-all"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:upgrade-all"
+          },
+          {
+            "id": "cmd:sources",
+            "title": "WinGet Sources",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "globe"
+            },
+            "keywords": [
+              "winget",
+              "source"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "sources"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:sources"
+          },
+          {
+            "id": "cmd:updates",
+            "title": "WinGet Updates",
+            "subtitle": "WinGet",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "winget",
+              "upgrade"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "updates"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/cmd:updates"
           },
           {
             "id": "cmd:world-clock",

@@ -20,6 +20,7 @@
   - **文件操作**：上面说的环境感知操作（`builtin.files`）。
   - **文件搜索**：基于 [Everything](https://www.voidtools.com/)，需要系统里已经安装 Everything。
   - **Scoop**：搜索、安装、升级、卸载 [Scoop](https://scoop.sh) 软件包，需要系统里已经安装 Scoop。
+  - **WinGet**：用 Windows 程序包管理器（`winget`）搜索、安装、升级、卸载软件包，需要系统里已经安装 winget。
   - **系统命令与设置**：锁屏、睡眠、休眠、重启、关机、注销、清空回收站、切换深浅色、调节音量、关闭显示器、显示桌面；还能直达约 150 个 Windows 设置页和设备管理器、服务、注册表编辑器等经典工具。支持中英文和拼音搜索，比如 `蓝牙`、`wifi`、`关机`、`gj`。重启、关机、注销和清空回收站会先确认。
   - **终端与 WSL**：列出 Windows Terminal 的配置（包括 Git Bash 等动态配置片段）和 WSL 发行版及其运行状态；可以在新窗口或新标签页中打开、以管理员身份打开、在当前文件夹打开，设置默认发行版、停止发行版、关闭或更新 WSL。
   - **世界时钟**：输入 `time` 查看本地时间和主要城市的时间；`time tokyo`、`time bj`、`time 北京`、`time utc+8`、`time pst` 可以搜索城市。时间实时跳动，收藏的城市排在前面。
@@ -139,6 +140,20 @@ ipconfig /flushdns | Select-Object -Last 1
 | Clean Up Scoop | 先显示旧版本和下载缓存占了多少空间，再执行 `scoop cleanup *` 和 `scoop cache rm *` |
 
 搜索直接读 Scoop 的本地文件（约 6000 个清单，每次搜索不到 1 毫秒），不启动 PowerShell。安装、升级等操作调用 `scoop` 命令行，作为后台任务一次执行一个：启动器不用等，按 `Ctrl+J`（或点底栏的转圈图标）打开 Background Tasks 查看实时输出，可以停止、复制输出，结束时会弹出通知。打开"Search packages from the main search"后，可以在主搜索里输入 `scoop <名称>` 或 `sc <名称>` 直接搜索。全局安装（`-g`）的软件只读显示。
+
+## WinGet
+
+装有 Windows 程序包管理器（`winget`，随“应用安装程序”提供）时，会出现以下命令：
+
+| 命令 | 作用 |
+|------|------|
+| Search WinGet Packages | 边输入边按名称、ID、别名、命令名、标签搜索 `winget` 源。`Enter` 安装；`Ctrl+D` 查看详情（发布者、简介、许可证、主页、发行说明）；已安装的软件包可以升级、固定/取消固定、卸载（`Ctrl+X`） |
+| Installed WinGet Packages | `winget list` 列出的全部软件，包括不是用 winget 安装的（这些只能卸载）；有新版本的排在前面 |
+| WinGet Updates | 有新版本的软件包，可以“全部升级”（跳过已固定版本的） |
+| Upgrade All WinGet Packages | 确认后执行 `winget upgrade --all` |
+| WinGet Sources / Update WinGet Sources | 已配置的源；`winget source update` |
+
+搜索读 `winget` 源的本地索引（约 1.5 万个软件包，每次搜索几毫秒），输入时不会启动 winget。已安装的软件包来自 `winget list`，要几秒钟：它在后台运行，上次的结果会缓存下来，运行完自动刷新视图。安装、升级等操作作为后台任务一次执行一个，不会弹出提问（`--disable-interactivity`，自动接受协议）；需要管理员权限的安装程序会弹出 UAC，少数要求 winget 本身以管理员身份运行的软件包可以用“以管理员身份安装/升级”（`Ctrl+Shift+A`），在提升权限的控制台窗口里执行。在主搜索里输入 `winget <名称>` 或 `wg <名称>` 可以直接搜索。详见 [docs/winget.md](docs/winget.md)。
 
 ## 编写插件
 

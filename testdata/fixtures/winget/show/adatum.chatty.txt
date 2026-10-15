@@ -1,0 +1,10 @@
+Found 微聊 [Adatum.Chatty]
+Version: 5.1.0
+Publisher: Adatum Corporation
+Moniker: chatty
+Description: 跨平台的即时聊天工具，支持文字、语音和文件传输。
+Homepage: https://adatum.example/chatty
+License: Proprietary
+Installer:
+  Installer Type: msi
+  Installer Url: https://adatum.example/download/chatty-5.1.0.msi

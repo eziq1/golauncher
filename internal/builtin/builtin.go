@@ -24,6 +24,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/scripts"
 	"github.com/eziq1/golauncher/plugins/system"
 	"github.com/eziq1/golauncher/plugins/terminal"
+	"github.com/eziq1/golauncher/plugins/winget"
 )
 
 // HostVersion is sent to external plugins in initialize and in the User-Agent
@@ -44,6 +45,7 @@ func All() []plugin.Plugin {
 		everything.New(),
 		scripts.New(),
 		realScoop(),
+		winget.New(),
 		system.New(),
 		terminal.New(),
 		network.New(),
@@ -77,8 +79,10 @@ func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugi
 // ("" for none): apps.json (installed applications) and files.json
 // (Everything's file index), scripts/ (script commands) and scoop/ (a Scoop
 // root; Scoop is unavailable without it), terminal/ (Windows Terminal and WSL,
-// see terminal.FixtureOptions). No icons are extracted and nothing
-// is opened; programs (Scoop commands) run as background tasks, which the
+// see terminal.FixtureOptions), winget/ (winget's index, installed packages
+// and sources, see winget.FixtureOptions; WinGet is unavailable without it).
+// No icons are extracted and nothing
+// is opened; programs (Scoop and winget commands) run as background tasks, which the
 // fake environment's task runner only records.
 //
 // External plugins are loaded from pluginRoots and GOLAUNCHER_PLUGIN_PATH
@@ -98,6 +102,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 		fakeScoop(dir),
+		winget.NewWithOptions(winget.FixtureOptions(dir)),
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 		network.NewFake(fixture(dir, "network.json")),
