@@ -23,3 +23,7 @@ Desktop.ini
 
 # Note: cmd/*/rsrc_windows_*.syso are generated but committed on purpose
 # (scripts/winres.ps1), so that "go build" embeds the icon and manifest.
+
+# Agent worktrees
+/.claude/
+
