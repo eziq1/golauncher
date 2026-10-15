@@ -72,6 +72,22 @@ go test ./internal/cli -update                 # 输出格式有意变更后，�
 
 会碰真实剪贴板、资源管理器窗口或正在运行的 Everything 的测试默认跳过，分别设置 `GOLAUNCHER_CLIPBOARD_TESTS=1`、`GOLAUNCHER_CONTEXT_TESTS=1`、`GOLAUNCHER_EVERYTHING_TESTS=1` 才运行。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
 
+### 调试界面
+
+正式发布版（`scripts/build.ps1` 和 GitHub Releases）不包含 MyGo 的开发者工具。要看元素和性能面板，需要构建一个开发版：不注入版本号，版本就是 `dev`，开发者工具默认开启，也不会弹出安装界面。
+
+```powershell
+go build -ldflags "-H windowsgui" -o golauncher-dev.exe ./cmd/golauncher
+.\golauncher.exe --quit   # golauncher 只允许运行一个实例
+.\golauncher-dev.exe
+```
+
+然后在启动器或设置窗口里按 **F12** 或 **Ctrl+Shift+I** 打开开发者工具，**Ctrl+Shift+C** 用来点选元素。
+
+另外两个开关：
+
+- 注入了版本号、但构建时没加 `mygo_noinspector` 的版本，设置 `GOLAUNCHER_DEVTOOLS=1` 也能打开开发者工具；
+- `MYGO_FRAME_STATS=1` 不打开面板，只把慢帧记进日志。
 ## glctl：无头 CLI
 
 ```powershell

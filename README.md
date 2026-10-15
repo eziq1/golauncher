@@ -109,6 +109,24 @@ $env:GOLAUNCHER_CONTROL=1; .\golauncher.exe --portable
 $env:GOLAUNCHER_E2E=1; go test ./internal/shell -run RunningInstance
 ```
 
+### Debugging the UI
+
+Release builds (`scripts/build.ps1`, GitHub releases) leave MyGo's developer
+tools out. For the inspector and the Performance panel, build a dev binary
+(no version stamp, so the version is `dev`, the tools are on and the
+installer is skipped):
+
+```powershell
+go build -ldflags "-H windowsgui" -o golauncher-dev.exe ./cmd/golauncher
+.\golauncher.exe --quit   # only one instance runs at a time
+.\golauncher-dev.exe
+```
+
+Then press **F12** or **Ctrl+Shift+I** in the launcher or Settings (pick an
+element with **Ctrl+Shift+C**). A version-stamped build without the
+`mygo_noinspector` tag shows them with `GOLAUNCHER_DEVTOOLS=1`;
+`MYGO_FRAME_STATS=1` logs slow frames without the panel.
+
 ## glctl: the headless CLI
 
 ```powershell
