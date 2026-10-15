@@ -23,13 +23,6 @@ const ID = "builtin.calc"
 var locales embed.FS
 
 // Message keys.
-const (
-	msgGroup          = "group"
-	msgCopy           = "action.copy"
-	msgCopyExpression = "action.copyExpression"
-	msgPaste          = "action.paste"
-)
-
 // Plugin is the calculator plugin.
 type Plugin struct {
 	h plugin.Host
@@ -94,23 +87,23 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 		Title:    title,
 		Subtitle: c.expr,
 		Icon:     icon,
-		Group:    l.T(msgGroup),
+		Group:    l.T("group"),
 		Score:    1,
 		Actions: []plugin.Action{
 			{
 				ID:    "copy",
-				Title: l.T(msgCopy),
+				Title: l.T("action.copy"),
 				Do:    plugin.ActionDo{Kind: plugin.ActionCopyText, Target: c.raw},
 			},
 			{
 				ID:       "copy-expression",
-				Title:    l.T(msgCopyExpression),
+				Title:    l.T("action.copyExpression"),
 				Shortcut: "Ctrl+Shift+C",
 				Do:       plugin.ActionDo{Kind: plugin.ActionCopyText, Target: c.expr + " = " + c.raw},
 			},
 			{
 				ID:       "paste",
-				Title:    l.T(msgPaste),
+				Title:    l.T("action.paste"),
 				Shortcut: "Ctrl+Shift+V",
 				Do:       plugin.ActionDo{Kind: plugin.ActionPaste, Target: c.raw},
 			},

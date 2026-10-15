@@ -1,0 +1,187 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "hide": true
+  },
+  "effects": [
+    {
+      "kind": "Paste",
+      "target": "https://github.com/egoist/mygo"
+    }
+  ],
+  "snapshot": {
+    "depth": 1,
+    "title": "Clipboard History",
+    "placeholder": "Search clipboard history…",
+    "text": "git",
+    "sections": [
+      {
+        "title": "Recent",
+        "items": [
+          {
+            "id": "4",
+            "title": "https://github.com/egoist/mygo",
+            "icon": {
+              "name": "text"
+            },
+            "accessory": "5 minutes ago",
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste",
+                "do": {
+                  "kind": "Paste",
+                  "target": "https://github.com/egoist/mygo"
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy to Clipboard",
+                "shortcut": "Ctrl+Enter",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://github.com/egoist/mygo"
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "Ctrl+Shift+P",
+                "do": {
+                  "kind": "Callback",
+                  "target": "pin",
+                  "payload": {
+                    "id": 4
+                  }
+                }
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "delete",
+                  "payload": {
+                    "id": 4
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "```\nhttps://github.com/egoist/mygo\n```",
+              "metadata": [
+                {
+                  "label": "Source",
+                  "value": "chrome.exe"
+                },
+                {
+                  "label": "Copied",
+                  "value": "5 minutes ago"
+                },
+                {
+                  "label": "Characters",
+                  "value": "30"
+                }
+              ]
+            },
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/4"
+          },
+          {
+            "id": "1",
+            "title": "git status --short",
+            "icon": {
+              "name": "text"
+            },
+            "accessory": "2 hours ago",
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste",
+                "do": {
+                  "kind": "Paste",
+                  "target": "git status --short"
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy to Clipboard",
+                "shortcut": "Ctrl+Enter",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "git status --short"
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "Ctrl+Shift+P",
+                "do": {
+                  "kind": "Callback",
+                  "target": "pin",
+                  "payload": {
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "delete",
+                  "payload": {
+                    "id": 1
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "```\ngit status --short\n```",
+              "metadata": [
+                {
+                  "label": "Source",
+                  "value": "WindowsTerminal.exe"
+                },
+                {
+                  "label": "Copied",
+                  "value": "2 hours ago"
+                },
+                {
+                  "label": "Characters",
+                  "value": "18"
+                }
+              ]
+            },
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/1"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "```\nhttps://github.com/egoist/mygo\n```",
+      "metadata": [
+        {
+          "label": "Source",
+          "value": "chrome.exe"
+        },
+        {
+          "label": "Copied",
+          "value": "5 minutes ago"
+        },
+        {
+          "label": "Characters",
+          "value": "30"
+        }
+      ]
+    },
+    "emptyText": "No matching items"
+  }
+}

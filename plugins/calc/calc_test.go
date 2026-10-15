@@ -51,7 +51,7 @@ func TestManifest(t *testing.T) {
 func TestMessageKeysExist(t *testing.T) {
 	_, h := newPlugin(t)
 	l := h.I18n()
-	for _, key := range []string{"plugin.name", "plugin.description", msgGroup, msgCopy, msgCopyExpression, msgPaste} {
+	for _, key := range []string{"plugin.name", "plugin.description", "group", "action.copy", "action.copyExpression", "action.paste"} {
 		if got := l.T(key); got == key || got == "" {
 			t.Errorf("T(%q) = %q: missing from en.json", key, got)
 		}

@@ -1,0 +1,104 @@
+[
+  {
+    "id": "builtin.apps",
+    "name": "Applications",
+    "description": "Search and launch installed applications",
+    "version": "1.0.0",
+    "icon": {
+      "name": "app"
+    },
+    "enabled": true,
+    "permissions": [
+      "exec",
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "reload",
+        "title": "Reload Applications",
+        "mode": "no-view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "hiddenApps",
+        "type": "stringList",
+        "title": "Hidden Applications",
+        "description": "IDs of applications that are not shown in search"
+      }
+    ]
+  },
+  {
+    "id": "builtin.calc",
+    "name": "Calculator",
+    "description": "Evaluate math expressions right in the search bar",
+    "version": "1.0.0",
+    "icon": {
+      "name": "calculator"
+    },
+    "enabled": true
+  },
+  {
+    "id": "builtin.clipboard",
+    "name": "Clipboard History",
+    "description": "Search and paste everything you copied.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "clipboard"
+    },
+    "enabled": true,
+    "permissions": [
+      "clipboard",
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "history",
+        "title": "Search Clipboard History",
+        "mode": "view",
+        "defaultHotkey": "Ctrl+Shift+V",
+        "hotkey": "Ctrl+Shift+V"
+      },
+      {
+        "name": "clear",
+        "title": "Clear Clipboard History",
+        "mode": "no-view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "maxItems",
+        "type": "number",
+        "title": "Maximum items",
+        "description": "Older unpinned items are removed. 0 keeps everything.",
+        "default": 1000
+      },
+      {
+        "name": "maxDays",
+        "type": "number",
+        "title": "Keep items for (days)",
+        "description": "Unpinned items not used for this many days are removed. 0 keeps them forever.",
+        "default": 90
+      },
+      {
+        "name": "recordImages",
+        "type": "bool",
+        "title": "Record images",
+        "description": "Save copied images in the history.",
+        "default": true
+      },
+      {
+        "name": "ignoreApps",
+        "type": "stringList",
+        "title": "Ignored applications",
+        "description": "Executable names whose copies are never recorded, e.g. KeePassXC.exe.",
+        "default": [
+          "KeePassXC.exe",
+          "1Password.exe",
+          "Bitwarden.exe",
+          "KeePass.exe"
+        ]
+      }
+    ]
+  }
+]

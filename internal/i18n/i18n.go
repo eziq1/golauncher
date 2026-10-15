@@ -215,6 +215,28 @@ func (m *Manager) Keys(ns, loc string) []string {
 	return slices.Sorted(maps.Keys(m.namespaces[ns][loc]))
 }
 
+// Locales returns the locales that have a catalog in namespace ns, sorted.
+func (m *Manager) Locales(ns string) []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return slices.Sorted(maps.Keys(m.namespaces[ns]))
+}
+
+// Texts returns the template texts of a message (one per plural form), or
+// nil if it does not exist.
+func (m *Manager) Texts(ns, loc, id string) []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.namespaces[ns][loc][id]
+	if !ok {
+		return nil
+	}
+	if e.plural == nil {
+		return []string{e.text}
+	}
+	return slices.Collect(maps.Values(e.plural))
+}
+
 // Namespaces returns the registered namespaces, sorted.
 func (m *Manager) Namespaces() []string {
 	m.mu.RLock()

@@ -10,6 +10,10 @@
   "action.openCommand": "Open Command",
   "toast.copied": "Copied to clipboard",
   "toast.actionFailed": "Action failed",
+  "confirm.title": "{{.action}} “{{.item}}”?",
+  "confirm.titleCommand": "{{.item}}?",
+  "confirm.message": "This cannot be undone.",
+  "confirm.cancel": "Cancel",
 
   "time.justNow": "Just now",
   "time.minutesAgo": { "one": "{{.Count}} minute ago", "other": "{{.Count}} minutes ago" },

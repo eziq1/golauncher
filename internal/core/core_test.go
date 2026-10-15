@@ -24,6 +24,7 @@ func (p *testPlugin) Manifest() plugin.Manifest {
 		Commands: []plugin.Command{
 			{Name: "list", Title: "Browse Fruits", Mode: plugin.ModeView, Keywords: []string{"fruit"}, DefaultHotkey: "Ctrl+Shift+F"},
 			{Name: "ping", Title: "Ping Server", Mode: plugin.ModeNoView},
+			{Name: "nuke", Title: "Ping Server Reset", Mode: plugin.ModeNoView, Destructive: true},
 		},
 	}
 }
@@ -131,7 +132,7 @@ func TestRootEmptyShowsCommands(t *testing.T) {
 	if len(s.Sections) != 1 || s.Sections[0].Title != "Commands" {
 		t.Fatalf("sections = %+v", s.Sections)
 	}
-	if got := titles(s); strings.Join(got, ",") != "Browse Fruits,Ping Server" {
+	if got := titles(s); strings.Join(got, ",") != "Browse Fruits,Ping Server,Ping Server Reset" {
 		t.Fatalf("titles = %v", got)
 	}
 }
@@ -299,6 +300,30 @@ func TestNoViewCommandAndAliasAndHotkeys(t *testing.T) {
 	hk := e.Engine.CommandHotkeys()
 	if len(hk) != 1 || hk[0].Command != "ping" || hk[0].Hotkey != "Alt+P" {
 		t.Fatalf("hotkeys = %+v", hk)
+	}
+}
+
+func TestDestructiveNeedsConfirmation(t *testing.T) {
+	e := newEnv(t)
+	s := e.typeText(t, "ping server")
+	if got := titles(s); len(got) != 2 || got[0] != "Ping Server" {
+		t.Fatalf("destructive command should rank last: %v", got)
+	}
+	e.Controller.Select(1)
+	e.key(t, "Enter")
+	s = e.Controller.Snapshot()
+	if s.Confirm == nil || s.Confirm.Title != "Ping Server Reset?" || len(e.tp.handled) != 0 {
+		t.Fatalf("confirm = %+v, handled = %v", s.Confirm, e.tp.handled)
+	}
+	e.key(t, "Down") // ignored while confirming
+	e.key(t, "Escape")
+	if s := e.Controller.Snapshot(); s.Confirm != nil || len(e.tp.handled) != 0 {
+		t.Fatal("Escape should cancel without running")
+	}
+	e.key(t, "Enter")
+	e.key(t, "Enter")
+	if len(e.tp.handled) != 1 || e.tp.handled[0].Target != "nuke" {
+		t.Fatalf("handled = %+v", e.tp.handled)
 	}
 }
 

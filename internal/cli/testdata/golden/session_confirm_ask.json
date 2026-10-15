@@ -1,0 +1,47 @@
+{
+  "step": "key \"Enter\"",
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "clear clipboard",
+    "sections": [
+      {
+        "title": "Commands",
+        "items": [
+          {
+            "id": "cmd:clear",
+            "title": "Clear Clipboard History",
+            "subtitle": "Clipboard History",
+            "icon": {
+              "name": "trash"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "style": "destructive",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "clear"
+                }
+              }
+            ],
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/cmd:clear",
+            "rank": 0.6028260869565217
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "confirm": {
+      "title": "Clear Clipboard History?",
+      "message": "This cannot be undone.",
+      "confirm": "Clear Clipboard History",
+      "cancel": "Cancel"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "query": "12*3+4",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "result",
+          "title": "40",
+          "subtitle": "12*3+4",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Result",
+              "do": {
+                "kind": "CopyText",
+                "target": "40"
+              }
+            },
+            {
+              "id": "copy-expression",
+              "title": "Copy Expression",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "12*3+4 = 40"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Result",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "40"
+              }
+            }
+          ],
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/result",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

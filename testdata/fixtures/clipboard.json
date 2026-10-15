@@ -1,0 +1,8 @@
+[
+  { "text": "git status --short", "sourceApp": "WindowsTerminal.exe", "at": "2026-10-14T08:00:00Z" },
+  { "text": "hunter2", "sourceApp": "KeePassXC.exe", "at": "2026-10-14T08:30:00Z" },
+  { "text": "secret from password manager", "exclude": true, "at": "2026-10-14T08:40:00Z" },
+  { "text": "Hello, 世界! The quick brown fox.", "sourceApp": "Code.exe", "at": "2026-10-14T09:00:00Z" },
+  { "files": ["C:\\Users\\Public\\report.pdf", "C:\\Users\\Public\\数据.xlsx"], "sourceApp": "explorer.exe", "at": "2026-10-14T09:30:00Z" },
+  { "text": "https://github.com/egoist/mygo", "sourceApp": "chrome.exe", "at": "2026-10-14T09:55:00Z" }
+]

@@ -1,0 +1,80 @@
+{
+  "query": "wx",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Applications",
+      "items": [
+        {
+          "id": "Tencent.WeChat",
+          "title": "微信",
+          "icon": {
+            "name": "app"
+          },
+          "keywords": [
+            "Weixin"
+          ],
+          "accessory": "Application",
+          "group": "Applications",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\微信\\微信.lnk"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\微信\\微信.lnk",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Tencent\\Weixin\\Weixin.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Tencent\\Weixin\\Weixin.exe"
+              }
+            },
+            {
+              "id": "hide",
+              "title": "Hide Application",
+              "do": {
+                "kind": "Callback",
+                "target": "hide",
+                "payload": {
+                  "id": "Tencent.WeChat"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/Tencent.WeChat",
+          "rank": 0.5599999999999999
+        }
+      ]
+    }
+  ]
+}

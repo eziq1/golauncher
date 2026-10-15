@@ -1,0 +1,52 @@
+{
+  "query": "255 in hex",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "result",
+          "title": "0xFF",
+          "subtitle": "255 in hex",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Result",
+              "do": {
+                "kind": "CopyText",
+                "target": "0xFF"
+              }
+            },
+            {
+              "id": "copy-expression",
+              "title": "Copy Expression",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "255 in hex = 0xFF"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Result",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "0xFF"
+              }
+            }
+          ],
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/result",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

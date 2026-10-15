@@ -1,0 +1,118 @@
+{
+  "step": "run builtin.clipboard/history",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.clipboard",
+      "request": {
+        "id": "history",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Clipboard History",
+    "placeholder": "Search clipboard history…",
+    "text": "世界",
+    "sections": [
+      {
+        "title": "Recent",
+        "items": [
+          {
+            "id": "2",
+            "title": "Hello, 世界! The quick brown fox.",
+            "icon": {
+              "name": "text"
+            },
+            "accessory": "1 hour ago",
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste",
+                "do": {
+                  "kind": "Paste",
+                  "target": "Hello, 世界! The quick brown fox."
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy to Clipboard",
+                "shortcut": "Ctrl+Enter",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Hello, 世界! The quick brown fox."
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "Ctrl+Shift+P",
+                "do": {
+                  "kind": "Callback",
+                  "target": "pin",
+                  "payload": {
+                    "id": 2
+                  }
+                }
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "delete",
+                  "payload": {
+                    "id": 2
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "```\nHello, 世界! The quick brown fox.\n```",
+              "metadata": [
+                {
+                  "label": "Source",
+                  "value": "Code.exe"
+                },
+                {
+                  "label": "Copied",
+                  "value": "1 hour ago"
+                },
+                {
+                  "label": "Characters",
+                  "value": "31"
+                }
+              ]
+            },
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/2"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "```\nHello, 世界! The quick brown fox.\n```",
+      "metadata": [
+        {
+          "label": "Source",
+          "value": "Code.exe"
+        },
+        {
+          "label": "Copied",
+          "value": "1 hour ago"
+        },
+        {
+          "label": "Characters",
+          "value": "31"
+        }
+      ]
+    },
+    "emptyText": "No matching items"
+  }
+}

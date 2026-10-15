@@ -61,6 +61,8 @@ type Command struct {
 	Icon          Icon        `json:"icon,omitzero"`
 	Keywords      []string    `json:"keywords,omitempty"`
 	DefaultHotkey string      `json:"defaultHotkey,omitempty"`
+	// Destructive commands ask for confirmation before running.
+	Destructive bool `json:"destructive,omitzero"`
 }
 
 // PrefType is the editor used for a preference in the settings window.
@@ -137,7 +139,8 @@ type Metadata struct {
 type ActionStyle string
 
 const (
-	StyleDefault     ActionStyle = ""
+	StyleDefault ActionStyle = ""
+	// StyleDestructive actions are shown in red and ask for confirmation.
 	StyleDestructive ActionStyle = "destructive"
 )
 

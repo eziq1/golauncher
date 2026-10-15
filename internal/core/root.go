@@ -18,6 +18,8 @@ const (
 	weightMatch    = 0.7
 	weightFrecency = 0.3
 	aliasBonus     = 1.0
+	// destructivePenalty orders destructive entries after equal matches.
+	destructivePenalty = 0.05
 	// frecencyHalf is the use count at which frecency contributes half its weight.
 	frecencyHalf = 2.0
 	maxRootItems = 50
@@ -55,6 +57,10 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 		}
 		if a := aliasOf(cfg, c); a != "" && strings.EqualFold(a, text) {
 			c.Rank += aliasBonus
+		}
+		if len(c.Actions) > 0 && c.Actions[0].Style == plugin.StyleDestructive {
+			// Never let a destructive primary action win a tie.
+			c.Rank -= destructivePenalty
 		}
 		ranked = append(ranked, c)
 	}
@@ -231,6 +237,10 @@ func (e *Engine) commandEntry(cfg config.Config, pluginID, name string) (Entry, 
 	if c.Mode == plugin.ModeNoView {
 		do = plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: c.Name}
 	}
+	style := plugin.StyleDefault
+	if c.Destructive {
+		style = plugin.StyleDestructive
+	}
 	it := plugin.Item{
 		ID:        cmdPrefix + c.Name,
 		Title:     l.loc.Resolve(c.Title),
@@ -239,7 +249,7 @@ func (e *Engine) commandEntry(cfg config.Config, pluginID, name string) (Entry, 
 		Keywords:  keywords,
 		Accessory: e.core.T("accessory.command"),
 		Group:     e.core.T("section.commands"),
-		Actions:   []plugin.Action{{ID: "run", Title: e.core.T("action.openCommand"), Do: do}},
+		Actions:   []plugin.Action{{ID: "run", Title: e.core.T("action.openCommand"), Style: style, Do: do}},
 	}
 	return newEntry(pluginID, it), true
 }

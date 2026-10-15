@@ -1,0 +1,83 @@
+{
+  "query": "",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:clear",
+          "title": "Clear Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "trash"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "clear"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:clear"
+        },
+        {
+          "id": "cmd:reload",
+          "title": "Reload Applications",
+          "subtitle": "Applications",
+          "icon": {
+            "name": "app"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "reload"
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/cmd:reload"
+        },
+        {
+          "id": "cmd:history",
+          "title": "Search Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history"
+        }
+      ]
+    }
+  ]
+}

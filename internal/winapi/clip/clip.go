@@ -1,0 +1,68 @@
+// Package clip reads and writes the Windows clipboard, watches it for
+// changes and pastes into other windows. It needs no GUI framework and may be
+// used from any goroutine. On other platforms every function returns
+// errors.ErrUnsupported.
+//
+// Parts of the Win32 clipboard handling (retrying OpenClipboard, the
+// registered "PNG" format, DIB decoding) are adapted from MyGo
+// (github.com/egoist/mygo, MIT License).
+package clip
+
+import (
+	"errors"
+	"sync"
+	"time"
+)
+
+// ErrBusy is returned when another program keeps the clipboard open.
+var ErrBusy = errors.New("clip: clipboard is busy")
+
+// ErrNotForeground is returned by PasteTo when the target window could not
+// be brought to the foreground.
+var ErrNotForeground = errors.New("clip: target window did not become the foreground window")
+
+// debounceDelay is how long Watch waits for the clipboard to settle; some
+// programs update it several times in a row for a single copy.
+const debounceDelay = 50 * time.Millisecond
+
+// debouncer calls fn once triggers stop arriving for delay.
+type debouncer struct {
+	delay time.Duration
+	fn    func()
+
+	mu      sync.Mutex
+	t       *time.Timer
+	stopped bool
+}
+
+func (d *debouncer) trigger() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.stopped {
+		return
+	}
+	if d.t == nil {
+		d.t = time.AfterFunc(d.delay, d.fire)
+		return
+	}
+	d.t.Reset(d.delay)
+}
+
+func (d *debouncer) fire() {
+	d.mu.Lock()
+	stopped := d.stopped
+	d.mu.Unlock()
+	if !stopped {
+		d.fn()
+	}
+}
+
+// stop cancels a pending call and ignores later triggers.
+func (d *debouncer) stop() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.stopped = true
+	if d.t != nil {
+		d.t.Stop()
+	}
+}

@@ -22,6 +22,7 @@ type Controller struct {
 	mu       sync.Mutex
 	stack    []*frame // stack[0] is the root search
 	panel    *panel
+	confirm  *pending // a destructive action waiting for confirmation
 	toast    *plugin.Toast
 	onChange func()
 
@@ -48,6 +49,12 @@ type panel struct {
 	sel   int
 }
 
+// pending is an action awaiting confirmation.
+type pending struct {
+	entry  Entry
+	action plugin.Action
+}
+
 // NewController returns a Controller showing the root search.
 func NewController(eng *Engine) *Controller {
 	return &Controller{eng: eng, stack: []*frame{{}}}
@@ -72,6 +79,7 @@ func (c *Controller) Reset(ctx context.Context) {
 	c.mu.Lock()
 	c.stack = []*frame{{}}
 	c.panel = nil
+	c.confirm = nil
 	c.toast = nil
 	c.mu.Unlock()
 	c.refresh(ctx)
@@ -254,6 +262,19 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		c.Wait()
 	}
 	c.mu.Lock()
+	if p := c.confirm; p != nil {
+		// While confirming, only Enter (confirm) and Escape (cancel) count.
+		switch key {
+		case "Enter":
+			c.confirm = nil
+			c.mu.Unlock()
+			return c.exec(ctx, p.entry, p.action)
+		case "Escape":
+			c.confirm = nil
+		}
+		c.mu.Unlock()
+		return Outcome{}, nil
+	}
 	if c.panel != nil {
 		return c.panelKey(ctx, key) // unlocks
 	}
@@ -402,6 +423,7 @@ func (c *Controller) OpenCommand(ctx context.Context, pluginID, name string) (Ou
 	c.mu.Lock()
 	c.stack = []*frame{{}}
 	c.panel = nil
+	c.confirm = nil
 	c.mu.Unlock()
 	entry, ok := c.eng.commandEntry(c.eng.cfg.Get(), pluginID, name)
 	if !ok {
@@ -410,8 +432,19 @@ func (c *Controller) OpenCommand(ctx context.Context, pluginID, name string) (Ou
 	return c.run(ctx, entry, entry.Actions[0])
 }
 
-// run executes an action and applies its outcome to the navigation state.
+// run executes an action, first asking for confirmation if it is destructive.
 func (c *Controller) run(ctx context.Context, entry Entry, action plugin.Action) (Outcome, error) {
+	if action.Style == plugin.StyleDestructive {
+		c.mu.Lock()
+		c.confirm = &pending{entry: entry, action: action}
+		c.mu.Unlock()
+		return Outcome{}, nil
+	}
+	return c.exec(ctx, entry, action)
+}
+
+// exec executes an action and applies its outcome to the navigation state.
+func (c *Controller) exec(ctx context.Context, entry Entry, action plugin.Action) (Outcome, error) {
 	c.mu.Lock()
 	fromRoot := len(c.stack) == 1
 	c.mu.Unlock()
@@ -469,7 +502,18 @@ type Snapshot struct {
 	Detail     *plugin.Detail `json:"detail,omitempty"`
 	EmptyText  string         `json:"emptyText,omitempty"`
 	Panel      *PanelSnapshot `json:"panel,omitempty"`
-	Toast      *plugin.Toast  `json:"toast,omitempty"`
+	// Confirm is set while a destructive action awaits confirmation:
+	// Enter confirms, Escape cancels.
+	Confirm *ConfirmSnapshot `json:"confirm,omitempty"`
+	Toast   *plugin.Toast    `json:"toast,omitempty"`
+}
+
+// ConfirmSnapshot is a confirmation dialog.
+type ConfirmSnapshot struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+	Confirm string `json:"confirm"` // confirm button label
+	Cancel  string `json:"cancel"`  // cancel button label
 }
 
 // PanelSnapshot is the open action panel.
@@ -514,6 +558,19 @@ func (c *Controller) Snapshot() Snapshot {
 		s.Selected = clamp(f.sel, n)
 		if e, ok := itemAt(sections, s.Selected); ok && s.ShowDetail && e.Detail != nil {
 			s.Detail = e.Detail
+		}
+	}
+	if p := c.confirm; p != nil {
+		s.Confirm = &ConfirmSnapshot{
+			Title:   core.T("confirm.title", "action", p.action.Title, "item", p.entry.Title),
+			Message: core.T("confirm.message"),
+			Confirm: p.action.Title,
+			Cancel:  core.T("confirm.cancel"),
+		}
+		if strings.HasPrefix(p.entry.ID, cmdPrefix) {
+			// For a command the entry title already names the action.
+			s.Confirm.Title = core.T("confirm.titleCommand", "item", p.entry.Title)
+			s.Confirm.Confirm = p.entry.Title
 		}
 	}
 	if c.panel != nil {
