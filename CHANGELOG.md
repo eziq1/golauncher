@@ -35,6 +35,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **World Clock**: type `time` (or `tz`) for your local time and major cities;
   `time bj`, `time 北京` or `time utc+8` find a city. The clocks tick every
   second; favorite cities stay on top. 185 cities, time zone data built in.
+- **Context awareness**: golauncher notices where you were when you opened it.
+  From File Explorer (including the active Windows 11 tab), the desktop, or a
+  window whose title shows a path, the launcher offers actions for that
+  folder and the selected files: open Terminal, PowerShell, cmd or VS Code
+  there, new folder or text file, copy paths, compress to ZIP, SHA-256, run as
+  administrator, and search the folder with Everything. Plugins can add their
+  own actions (`ContextProvider`). Can be turned off in Settings.
 - **Plugin settings**: buttons (e.g. "Sign in"), options loaded at runtime,
   groups and preferences shown only when another one has a certain value.
 
