@@ -71,6 +71,9 @@ type PreferenceOptionsProvider interface {
 // Query is the search text typed by the user.
 type Query struct {
 	Text string `json:"text"`
+	// Context is what the user was doing when the launcher opened (root
+	// search only; nil when unknown or turned off). See ContextProvider.
+	Context *Context `json:"context,omitempty"`
 }
 
 // ViewRequest identifies a view of a plugin.

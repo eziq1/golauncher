@@ -33,6 +33,9 @@ type Config struct {
 	HideOnBlur    bool   `json:"hideOnBlur"`
 	LaunchAtLogin bool   `json:"launchAtLogin"`
 	LogLevel      string `json:"logLevel,omitempty"` // "debug", "info" (default), "warn", "error"
+	// ContextAware lets the launcher look at the window that was active when
+	// it opened (docs/context-awareness.md). Off, no other window is read.
+	ContextAware bool `json:"contextAware"`
 	// Plugins holds per-plugin settings keyed by plugin ID.
 	Plugins map[string]PluginConfig `json:"plugins,omitempty"`
 }
@@ -60,6 +63,7 @@ func Default() Config {
 		Theme:         "system",
 		Language:      "system",
 		HideOnBlur:    true,
+		ContextAware:  true,
 	}
 }
 

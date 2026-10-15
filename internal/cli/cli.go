@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
@@ -19,6 +20,7 @@ import (
 	"github.com/eziq1/golauncher/internal/app"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Main runs glctl with args (without the program name) and returns the
@@ -75,6 +77,10 @@ Environment flags (query, run, session new, plugin, bench):
                    is also read. The real user plugin folder is used only with --real
   --now RFC3339    fix the clock (default 2026-10-14T10:00:00Z in fake mode)
   --locale TAG     UI locale (default "en"; "en-XA" is the pseudo-locale)
+  --context-folder DIR   inject a context instead of detecting one: the folder
+                   open in File Explorer (context-aware items appear in the root)
+  --context-select FILE  a selected file of that context (repeatable)
+  --context-app NAME     the foreground app of that context (default explorer.exe)
   --format json|text
 `
 
@@ -91,6 +97,10 @@ type envFlags struct {
 	Plugins  []string `json:"plugins,omitempty"`
 	Now      string   `json:"now,omitempty"`
 	Locale   string   `json:"locale,omitempty"`
+	// A context injected instead of detecting one (docs/context-awareness.md §5).
+	ContextFolder string   `json:"contextFolder,omitempty"`
+	ContextSelect []string `json:"contextSelect,omitempty"`
+	ContextApp    string   `json:"contextApp,omitempty"`
 }
 
 func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
@@ -109,6 +119,17 @@ func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
 			ef.Plugins = append(ef.Plugins, abs)
 			return err
 		})
+		fs.Func("context-folder", "inject a context: the folder open in File Explorer", func(s string) error {
+			abs, err := filepath.Abs(s)
+			ef.ContextFolder = abs
+			return err
+		})
+		fs.Func("context-select", "inject a context: a selected file (repeatable)", func(s string) error {
+			abs, err := filepath.Abs(s)
+			ef.ContextSelect = append(ef.ContextSelect, abs)
+			return err
+		})
+		fs.StringVar(&ef.ContextApp, "context-app", "", "inject a context: the foreground app (e.g. explorer.exe)")
 	}
 	return fs
 }
@@ -216,7 +237,28 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 			return nil, err
 		}
 	}
+	if c := ef.context(); c != nil {
+		e.Engine.SetContext(c)
+	}
 	return e, nil
+}
+
+// context is the context the flags inject, or nil. A folder or selection
+// makes it a File Explorer context; the folder defaults to the first
+// selected file's.
+func (ef envFlags) context() *plugin.Context {
+	if ef.ContextFolder == "" && len(ef.ContextSelect) == 0 && ef.ContextApp == "" {
+		return nil
+	}
+	c := &plugin.Context{App: plugin.AppInfo{Name: ef.ContextApp}, Folder: ef.ContextFolder, Selected: ef.ContextSelect}
+	if c.Folder == "" && len(c.Selected) > 0 {
+		c.Folder = filepath.Dir(c.Selected[0])
+	}
+	if c.Folder != "" {
+		c.Kind = plugin.ContextExplorer
+		c.App.Name = cmp.Or(c.App.Name, "explorer.exe")
+	}
+	return c
 }
 
 // output writes v as JSON, or with text when --format text.

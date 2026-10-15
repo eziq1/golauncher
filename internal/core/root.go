@@ -30,15 +30,17 @@ const (
 func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error) {
 	cfg := e.cfg.Get()
 	text = strings.TrimSpace(text)
+	cur := e.pullContext()
 	if text == "" {
-		return e.rootEmpty(cfg)
+		return e.rootEmpty(ctx, cfg, cur)
 	}
 	freq, err := e.svc.DB.Frecency(e.svc.Now())
 	if err != nil {
 		return nil, err
 	}
 	candidates := e.commandEntries(cfg)
-	candidates = append(candidates, e.pluginRootItems(ctx, cfg, text)...)
+	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Context: cur})...)
+	candidates = append(candidates, e.contextEntries(ctx, cfg, cur)...)
 
 	var ranked []Entry
 	for _, c := range candidates {
@@ -51,6 +53,10 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 		}
 		f := freq[c.Key]
 		c.Rank = weightMatch*m + weightFrecency*f/(f+frecencyHalf)
+		if c.Context {
+			// Context items are never recorded, so they get a fixed lift instead.
+			c.Rank = weightMatch*m + contextBonus
+		}
 		if c.Score > 0 {
 			// Pre-matched results (e.g. a calculation) answer the query directly.
 			c.Rank += aliasBonus
@@ -110,7 +116,7 @@ func entryMatch(text string, it Entry) float64 {
 
 // pluginRootItems collects RootItems from all enabled plugins concurrently,
 // dropping plugins that exceed the root timeout.
-func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, text string) []Entry {
+func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, q plugin.Query) []Entry {
 	ctx, cancel := context.WithTimeout(ctx, e.rootTimeout)
 	defer cancel()
 	var (
@@ -126,7 +132,14 @@ func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, text st
 		wg.Go(func() {
 			done := make(chan []plugin.Item, 1)
 			go func() {
-				items, err := guard(e, l.m.ID, func() ([]plugin.Item, error) { return rp.RootItems(ctx, plugin.Query{Text: text}) })
+				items, err := guard(e, l.m.ID, func() ([]plugin.Item, error) {
+					pq := q
+					if pq.Context != nil {
+						c := pq.Context.Clone() // each plugin gets its own copy
+						pq.Context = &c
+					}
+					return rp.RootItems(ctx, pq)
+				})
 				if err != nil {
 					e.log.Warn("root items", "plugin", l.m.ID, "err", err)
 				}
@@ -148,10 +161,13 @@ func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, text st
 	return out
 }
 
-// rootEmpty is the root list before anything is typed: recently used items
-// and all commands.
-func (e *Engine) rootEmpty(cfg config.Config) ([]Section, error) {
+// rootEmpty is the root list before anything is typed: the items for the
+// current context, recently used items and all commands.
+func (e *Engine) rootEmpty(ctx context.Context, cfg config.Config, cur *plugin.Context) ([]Section, error) {
 	var out []Section
+	if items := e.contextEntries(ctx, cfg, cur); len(items) > 0 {
+		out = append(out, Section{Title: items[0].Group, Items: items})
+	}
 	recent, err := e.svc.DB.Recent(maxRecent * 2)
 	if err != nil {
 		return nil, err

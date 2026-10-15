@@ -17,6 +17,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/clipboard"
 	"github.com/eziq1/golauncher/plugins/clock"
 	"github.com/eziq1/golauncher/plugins/everything"
+	"github.com/eziq1/golauncher/plugins/files"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
 )
@@ -39,6 +40,7 @@ func All() []plugin.Plugin {
 		calc.New(),
 		clipboard.New(),
 		clock.New(),
+		files.New(),
 		everything.New(),
 		scripts.New(),
 		realScoop(),
@@ -80,6 +82,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		calc.New(),
 		clipboard.New(),
 		clock.New(),
+		files.NewWithOptions(files.Options{Which: fakeWhich}),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 		fakeScoop(dir),
@@ -110,6 +113,18 @@ func fixtureDirs(dir, name string) []string {
 		return nil
 	}
 	return []string{p}
+}
+
+// fakeWhich stands in for finding programs in fake mode: Windows Terminal
+// and VS Code are installed.
+func fakeWhich(name string) string {
+	switch name {
+	case "wt":
+		return "wt.exe"
+	case "code":
+		return `C:\Program Files\Microsoft VS Code\Code.exe`
+	}
+	return ""
 }
 
 // noOpen stands in for opening files in fake mode.

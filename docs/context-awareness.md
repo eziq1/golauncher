@@ -145,3 +145,55 @@ type Detector interface {
 |------|------|
 | 第一阶段（本次） | SDK 和协议扩展；资源管理器、桌面、标题路径三个识别器；`builtin.files` 的 §4.1 和 §4.2；根列表分组和底栏标签；`glctl` 注入 |
 | 第二阶段 | 文件对话框识别器；按应用的识别器（OneCommander、Total Commander、Files 应用）；外部插件提供识别器；浏览器 URL；选中文字（复制到剪贴板再还原，需要单独评估） |
+
+## 7. 实现记录（第一阶段，2026-10-15）
+
+### 7.1 做了什么
+
+- **SDK / 协议**：`pkg/plugin/context.go` 定义 `Context`、`AppInfo`、`ContextProvider` 和 Kind 常量（`explorer`、`desktop`、`path-in-title`、`file-dialog`）；`Query.Context`。协议：`rootItems` 参数带 `context`，新方法 `contextItems`，新能力位 `capabilities.contextItems`；`extproc.Proxy` 与 `rpcserve` 都已实现，文档见 `plugin-protocol.md`。
+- **宿主**：`core/context.go`。`Engine.DetectContext(detector)` 每次呼出调用一次：先清空上一次的环境（代数 +1），再在 `host.Go` 里以 300ms 预算运行识别器；结果到达时如果根列表已经拉取过，就对根做一次 invalidate（`Controller.contextChanged`），否则下一次根搜索直接带上。过期代数的结果直接丢弃。`contextAware` 关闭时识别器根本不会被调用；在设置里关掉时当前环境也立即清空。`Engine.SetContext` 给 glctl 注入用。
+- **shell**：`showLauncher` 里原来记录 `prevForeground` 的地方，紧接着调用 `DetectContext(wincontext.Detect(fg))`，在 `launcher.Shown`（Reset）之前，保证顺序。
+- **识别器**：`internal/winapi/context`（包名 `wincontext`），注册表 `Register` / `RegisterFirst`，默认顺序：资源管理器 → 桌面 → 标题路径；都不命中时只填 `App`、`Title`（`Kind` 为空）。自己进程的窗口不识别。
+- **根列表**：空输入时第一个分组是“In <目录名>”（`section.context`）；有输入时上下文条目参与模糊匹配，排名 = 0.7×匹配分 + 0.1（固定加分，取代 frecency）。条目带 `Entry.Context=true`，执行时**不写入“最近使用”**（否则动作里的路径会落盘）。
+- **底栏**：应用名后面一个小标签（文件夹图标 + 目录名），只在识别出 Kind 时出现；点击通过 `Controller.CopyContextPath` 复制路径（走 `System.CopyText`，glctl 可观察）。标签后面是 `Grow(1)` 的占位，R24 的任务指示器放在左侧不冲突。
+- **设置**：General 页新增“Context awareness”开关（`config.Config.ContextAware`，默认 true，旧配置文件缺这个字段时也是 true）。
+- **`builtin.files`**：§4.1、§4.2 全部条目；选中项相关的条目排在目录条目前面。
+- **glctl**：`--context-folder`、`--context-select`（可重复）、`--context-app`，所有环境命令和 `session new` 都支持（写进 session 文件，回放时注入）。注入时不做任何识别。
+
+### 7.2 与设计的出入
+
+1. **识别器接口**：`Detect(ctx, w Window, c *plugin.Context) bool`，`Window` 里带 `HWND`、窗口类、标题和“WorkerW 是否承载桌面”，免得每个识别器重复取窗口信息，也方便在任何平台上测试分派逻辑。包名用 `wincontext`，避免和标准库 `context` 冲突。
+2. **“在 Everything 中搜索此目录”由 `builtin.everything` 提供**，而不是 `builtin.files`：插件之间不能 Push 对方的视图。Everything 插件自己实现 `ContextProvider`，条目 Push 自己的 `search` 视图，Payload 为 `{"scope": dir}`；视图把输入改写成 `"<dir>\" <输入>`（Everything 对含反斜杠的词匹配完整路径），标题变为“Search in <目录名>”。Everything 不可用时插件本来就不加载，条目自然不出现。
+3. **压缩 / 哈希**：在 `HandleAction` 里通过 `Host.Go` 运行并等待（受 30s 动作超时约束），完成后用 Result 的 toast 报告；超时则提示“仍在后台进行”。代码里留了 `TODO(R24)`，后台任务合入后改成任务。
+4. **标题路径**：只接受真实存在的路径（不退回到最长存在的前缀，那样误报太多）；路径等于该进程自己的 exe 时忽略（`cmd.exe` 的标题是 `C:\Windows\system32\cmd.exe`，没有意义）；如果是文件，`Folder` 取其目录，文件本身放在 `Extra["file"]`，不放进 `Selected`。最多做 48 次 `stat`。
+5. **以管理员身份运行**：除 `.exe`、`.bat` 外也接受 `.cmd`、`.msi`。管理员终端在没有 Windows Terminal 时用 PowerShell `-NoExit -Command Set-Location -LiteralPath '<dir>'`，因为提权后的进程不继承工作目录。
+6. **新建文本文件**：输入的名字没有扩展名时自动加 `.txt`；重名按资源管理器的规则编号（`New folder (2)`、`todo (2).txt`）；非法名字（`<>:"/\|?*`、结尾的点或空格、`CON` 等设备名）给出失败 toast。
+7. **外部插件**：初始化之前不知道它有没有 `contextItems` 能力，所以带环境的第一次呼出会启动一次外部插件；之后没有该能力的插件不再被调用（与 `rootItems` 的策略一致）。
+8. **底栏标签**只在识别出 Kind 时显示（只有 App/Title 的兜底环境不显示）。
+
+### 7.3 Windows 11 标签页
+
+`CabinetWClass` 窗口里每个标签页是一个 `ShellTabWindowClass` 子窗口，`IShellWindows` 里每个标签页各是一项。做法：
+
+1. 用 `FindWindowEx` 依次找 `ShellTabWindowClass` 子窗口，取**第一个可见的**——非活动标签页是隐藏的。
+2. 枚举 `IShellWindows`（用 `_NewEnum` + `IEnumVARIANT`，避免按值传 VARIANT 的 ABI 问题），对每一项 `IServiceProvider::QueryService(SID_STopLevelBrowser, IID_IShellBrowser)`，再 `IShellBrowser::GetWindow` 得到它的标签页窗口；等于活动标签页的那一项就是要找的。
+3. 没有标签页（Windows 10）或没匹配上时，退回到 `GetAncestor(GA_ROOT)` 等于该窗口的第一项。
+4. 之后 `QueryActiveShellView` → `IFolderView`：`GetFolder(IID_IPersistFolder2)` + `GetCurFolder` + `SHGetPathFromIDListEx` 得到路径（虚拟文件夹失败 → `Folder` 为空，仍是 `explorer`）；`Items(SVGIO_SELECTION, IID_IShellItemArray)` + `GetDisplayName(SIGDN_FILESYSPATH)` 得到选中项（最多 500 个）。
+
+桌面：`IShellWindows::FindWindowSW(CSIDL_DESKTOP, SWC_DESKTOP, SWFO_NEEDDISPATCH)` 拿到桌面的 dispatch，后面同上取选中的图标；目录用 `FOLDERID_Desktop`。
+
+COM 在锁定的 OS 线程上以 STA 初始化，用完即释放，和 `internal/winapi/shell` 一样是纯 Go vtable 调用。
+
+验证：显式开启的测试 `TestExplorerActiveTabReal` 在自己打开的窗口里发 `WM_COMMAND 0xA21B`（Ctrl+T 的命令）新开一个标签页（“主文件夹”，虚拟），断言识别结果不是原来那个标签页的目录——通过。注意：`IWebBrowser2::Quit` 关不掉“曾经有多个标签页的窗口”的最后一个标签页，所以这个测试最后对**自己打开的**窗口发 `WM_CLOSE`；如果文件夹被系统开成了用户已有窗口里的一个标签页，测试直接跳过，绝不碰用户的窗口。
+
+### 7.4 测试与测量
+
+- 单元测试：标题路径解析（引号、`- 应用名` 后缀、`*` 未保存标记、中文路径、UNC、`~`、`/` 分隔、`[1]` 这类文件名、不存在的路径、`stat` 次数上限）、窗口类分派、`RegisterFirst`；`builtin.files` 的条目生成规则、终端回退、命令行转义（`quoteArg`）、新建文件夹/文件的编号与非法名、ZIP（内容与失败时不留残档）、SHA-256（写入 hostfake 剪贴板）；Everything 的范围搜索；核心：环境异步到达后刷新根、先于根到达、超时丢弃、新一次呼出丢弃旧结果、关闭后识别器不被调用、上下文条目不进“最近使用”、带环境的搜索与 `Query.Context`、复制路径；协议：rpcserve 的 `contextItems` 和带 context 的 `rootItems`，extproc 对无此能力的插件不发请求。
+- glctl golden：`query_context`（空根 + 注入的目录和选中文件）、`session_context_new_folder`（带参数新建文件夹，真实创建在临时目录里，输出中的临时路径替换为 `<DIR>`）。
+- 真实资源管理器（`GOLAUNCHER_CONTEXT_TESTS=1 go test ./internal/winapi/context`）：自己用 `explorer.exe <临时目录>` 打开窗口、用 `IFolderView::SelectItem` 选中文件、识别、再只关闭自己的窗口/标签页。本机（Windows 11）测得一次完整识别（窗口信息 + 进程信息 + COM 枚举 + 目录 + 选中项）**中位数 27–39ms，最快 14–26ms，最慢约 150ms**（每轮第一次，含 COM 初始化），远低于 300ms 预算。
+
+### 7.5 合并注意
+
+- `internal/cli/testdata/golden/plugin_list.json` 多了 `builtin.files`；和 R24 合并后需要 `go test ./internal/cli -update` 重新生成。
+- `internal/ui/icons.go` 新增 `terminal`、`code`、`folder-plus`、`file-plus`、`archive`、`hash`、`shield` 图标；`internal/ui/launcher.go` 底栏改为“标签不 Grow + 上下文标签 + Grow 占位”。
+- `plugins/files` 的压缩/哈希在 R24 合入后应改用后台任务（见 `TODO(R24)`）。

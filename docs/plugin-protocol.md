@@ -79,7 +79,7 @@ it, and `glctl query … --plugins <dir>` runs it in an isolated environment.
    version and capabilities. A different protocol version makes the plugin
    unavailable.
 3. Requests follow. The host gives up on a request after the time the user
-   waits for it: **150 ms** for `rootItems`, **10 s** for `view`, **30 s**
+   waits for it: **150 ms** for `rootItems` and `contextItems`, **10 s** for `view`, **30 s**
    for `handleAction`, and sends `$/cancelRequest`.
 4. After **5 minutes** without calls and with no open views, the host sends
    `shutdown`, closes stdin, and kills the process if it has not exited
@@ -103,8 +103,9 @@ they are created without a console window.
 
 | Method | Params | Result |
 |--------|--------|--------|
-| `initialize` | `{protocol, hostVersion, pluginId, locale, dataDir, cacheDir, preferences}` | `{protocol: 1, capabilities: {rootItems, views, actions, preferenceOptions, render}}` |
-| `rootItems` | `{query}` | `Item[]` |
+| `initialize` | `{protocol, hostVersion, pluginId, locale, dataDir, cacheDir, preferences}` | `{protocol: 1, capabilities: {rootItems, views, actions, preferenceOptions, render, contextItems}}` |
+| `rootItems` | `{query, context?}` | `Item[]` |
+| `contextItems` | `{context: Context}` | `Item[]` |
 | `view` | `{request: ViewRequest}` | `View` |
 | `handleAction` | `{action: ActionDo}` | `Result` |
 | `preferenceOptions` | `{name}` | `Option[]` |
@@ -117,7 +118,20 @@ they are created without a console window.
   capability is false or missing. A plugin without `rootItems` is not
   started by typing in the root search.
 - `rootItems` is called for every keystroke in the root search and must be
-  fast. Items without a `score` are fuzzy-matched by the host.
+  fast. Items without a `score` are fuzzy-matched by the host. `context` is
+  the context of the current show (see below), left out when there is none.
+- `contextItems` is called for every root search while the launcher shows
+  with a context: what the user was doing in the window that was active when
+  it opened. `Context` is `{app: {name, path?, pid?, package?}, kind?, folder?,
+  selected?, title?, extra?}`; `kind` is `explorer`, `desktop` or
+  `path-in-title` (`folder` and `selected` are absolute paths), or missing
+  when only the app and the title are known. Return the items to show in the
+  "In <folder>" section at the top of the root (`[]` when nothing applies);
+  they are also searchable. It must be fast (150 ms, like `rootItems`). Until
+  a plugin has been initialized once the host does not know its
+  capabilities, so the first show with a context starts it; afterwards a
+  plugin without `contextItems` is not called. The context is never stored;
+  put what an action needs into the action.
 - `view` is called when a view opens and again for every change of the
   search text, unless the view sets `filterLocally`.
   `request.instance` identifies the open view for `ui/render`.

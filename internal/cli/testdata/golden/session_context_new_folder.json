@@ -1,0 +1,360 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "hide": true,
+    "toast": {
+      "style": "success",
+      "title": "Created “Drafts”"
+    }
+  },
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "new folder",
+    "sections": [
+      {
+        "title": "In Project 项目",
+        "items": [
+          {
+            "id": "new-folder",
+            "title": "New Folder",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "folder-plus"
+            },
+            "keywords": [
+              "mkdir",
+              "create folder",
+              "directory",
+              "新建文件夹"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "create",
+                "title": "Create",
+                "do": {
+                  "kind": "Callback",
+                  "target": "newFolder",
+                  "payload": {
+                    "dir": "<DIR>"
+                  }
+                }
+              }
+            ],
+            "arguments": [
+              {
+                "name": "name",
+                "type": "text",
+                "placeholder": "New folder"
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/new-folder",
+            "rank": 0.7999999999999999,
+            "context": true
+          },
+          {
+            "id": "copy-path",
+            "title": "Copy Folder Path",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "clipboard"
+            },
+            "keywords": [
+              "path",
+              "copy path",
+              "clipboard",
+              "复制路径"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "<DIR>"
+                }
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/copy-path",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "new-file",
+            "title": "New Text File",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "file-plus"
+            },
+            "keywords": [
+              "touch",
+              "create file",
+              "text",
+              "txt",
+              "新建文件"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "create",
+                "title": "Create",
+                "do": {
+                  "kind": "Callback",
+                  "target": "newFile",
+                  "payload": {
+                    "dir": "<DIR>"
+                  }
+                }
+              }
+            ],
+            "arguments": [
+              {
+                "name": "name",
+                "type": "text",
+                "placeholder": "New Text Document.txt"
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/new-file",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "cmd",
+            "title": "Open Command Prompt Here",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "terminal"
+            },
+            "keywords": [
+              "cmd",
+              "command prompt",
+              "console",
+              "dos",
+              "命令提示符"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "cmd.exe",
+                  "payload": {
+                    "dir": "<DIR>"
+                  }
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Folder Path",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "<DIR>"
+                }
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/cmd",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "vscode",
+            "title": "Open Folder in VS Code",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "code"
+            },
+            "keywords": [
+              "code",
+              "vscode",
+              "visual studio code",
+              "editor",
+              "编辑器"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+                  "payload": {
+                    "args": "\"<DIR>\"",
+                    "dir": "<DIR>"
+                  }
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Folder Path",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "<DIR>"
+                }
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/vscode",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "terminal",
+            "title": "Open Terminal Here",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "terminal"
+            },
+            "keywords": [
+              "terminal",
+              "powershell",
+              "shell",
+              "console",
+              "wt",
+              "终端",
+              "命令行"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "wt.exe",
+                  "payload": {
+                    "args": "-d \"<DIR>\"",
+                    "dir": "<DIR>"
+                  }
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Folder Path",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "<DIR>"
+                }
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/terminal",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "search-folder",
+            "title": "Search This Folder with Everything",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "find",
+              "search",
+              "files",
+              "everything",
+              "搜索"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search",
+                "do": {
+                  "kind": "Push",
+                  "target": "search",
+                  "payload": {
+                    "scope": "<DIR>"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.everything",
+            "key": "builtin.everything/search-folder",
+            "rank": 0.4213,
+            "context": true
+          },
+          {
+            "id": "terminal-admin",
+            "title": "Open Terminal Here as Administrator",
+            "subtitle": "<DIR>",
+            "icon": {
+              "name": "shield"
+            },
+            "keywords": [
+              "terminal",
+              "powershell",
+              "shell",
+              "console",
+              "wt",
+              "终端",
+              "命令行",
+              "admin",
+              "administrator",
+              "elevated",
+              "sudo",
+              "runas",
+              "管理员"
+            ],
+            "group": "In Project 项目",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open as Administrator",
+                "style": "destructive",
+                "do": {
+                  "kind": "Open",
+                  "target": "wt.exe",
+                  "payload": {
+                    "args": "-d \"<DIR>\"",
+                    "dir": "<DIR>",
+                    "verb": "runas"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.files",
+            "key": "builtin.files/terminal-admin",
+            "rank": 0.3713,
+            "context": true
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "arguments": {
+      "entry": "builtin.files/new-folder",
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "placeholder": "New folder",
+          "value": "Drafts"
+        }
+      ]
+    },
+    "toast": {
+      "style": "success",
+      "title": "Created “Drafts”"
+    },
+    "context": {
+      "kind": "explorer",
+      "name": "Project 项目",
+      "folder": "<DIR>",
+      "app": "explorer.exe"
+    }
+  }
+}

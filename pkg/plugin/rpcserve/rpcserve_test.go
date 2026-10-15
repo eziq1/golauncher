@@ -37,7 +37,15 @@ func (p *testPlugin) RootItems(_ context.Context, q plugin.Query) ([]plugin.Item
 	if q.Text == "panic" {
 		panic("boom")
 	}
-	return []plugin.Item{{ID: "1", Title: p.h.Preferences().String("greeting") + " " + q.Text}}, nil
+	title := p.h.Preferences().String("greeting") + " " + q.Text
+	if q.Context != nil {
+		title += " in " + q.Context.Folder
+	}
+	return []plugin.Item{{ID: "1", Title: title}}, nil
+}
+
+func (p *testPlugin) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Item, error) {
+	return []plugin.Item{{ID: "here", Title: c.Kind + ":" + c.Folder + ":" + strings.Join(c.Selected, ",")}}, nil
 }
 
 func (p *testPlugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
@@ -112,12 +120,19 @@ func TestServe(t *testing.T) {
 	if err := c.Call(ctx, protocol.MethodInitialize, protocol.InitializeParams{Protocol: 1, Locale: "en", DataDir: t.TempDir(), CacheDir: t.TempDir()}, &init); err != nil {
 		t.Fatal(err)
 	}
-	want := protocol.Capabilities{RootItems: true, Actions: true, Render: true}
+	want := protocol.Capabilities{RootItems: true, Actions: true, Render: true, ContextItems: true}
 	if init.Protocol != protocol.Version || init.Capabilities != want {
 		t.Fatalf("initialize = %+v", init)
 	}
 	if err := c.Call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: "x"}, &items); err != nil || items[0].Title != "hi x" {
 		t.Fatalf("rootItems = %+v, %v", items, err)
+	}
+	cur := plugin.Context{Kind: plugin.ContextExplorer, Folder: `C:\tmp`, Selected: []string{`C:\tmp\a`, `C:\tmp\b`}}
+	if err := c.Call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: "x", Context: &cur}, &items); err != nil || items[0].Title != `hi x in C:\tmp` {
+		t.Fatalf("rootItems with context = %+v, %v", items, err)
+	}
+	if err := c.Call(ctx, protocol.MethodContextItems, protocol.ContextItemsParams{Context: cur}, &items); err != nil || items[0].Title != `explorer:C:\tmp:C:\tmp\a,C:\tmp\b` {
+		t.Fatalf("contextItems = %+v, %v", items, err)
 	}
 	if err := c.Call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: "panic"}, &items); err == nil || !strings.Contains(err.Error(), "boom") {
 		t.Fatalf("panic: %v", err)

@@ -8,6 +8,12 @@ A Raycast-style launcher for Windows, written in Go with the
 - Press **Alt+Space** anywhere to search apps, commands, files and math.
 - Everything is a plugin. The built-in features use the same
   [plugin SDK](pkg/plugin/) that third-party plugins use.
+- **Context aware**: open it from File Explorer or the desktop and the top of
+  the list offers actions for that folder and the selected files: open a
+  terminal or VS Code there, create a folder or text file, copy paths,
+  compress to ZIP, copy a SHA-256, search the folder with Everything. Works
+  with Windows 11 tabs, and with any window whose title shows a path. Nothing
+  is stored, and it can be turned off in Settings.
 - **Built-in plugins**
   - **Applications**: Start menu apps, including Store apps, with pinyin
     matching (`wx` finds 微信).
@@ -15,6 +21,7 @@ A Raycast-style launcher for Windows, written in Go with the
     (`255 in hex`).
   - **Clipboard History** (`Alt+Shift+V`): text, images and files, with full-text
     search. Copies from password managers are skipped.
+  - **Files**: the context actions above (`builtin.files`).
   - **File Search**: powered by [Everything](https://www.voidtools.com/), when it
     is installed.
   - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)

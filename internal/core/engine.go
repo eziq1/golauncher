@@ -63,6 +63,9 @@ type Engine struct {
 	subMu       sync.Mutex
 	controllers []*Controller
 	closedHooks []func(pluginID, instance string)
+
+	// ctx is the context of the current show (context.go).
+	ctx contextState
 }
 
 // unavailable is a plugin that could not be initialized.
@@ -152,6 +155,7 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 			l.host.Prefs().SetValues(c.Plugin(l.m.ID).Preferences)
 		}
 		e.svc.Bus.Publish(plugin.EventConfigChanged)
+		e.clearContextIfOff(c)
 	})
 	return e, nil
 }
@@ -254,6 +258,9 @@ type Entry struct {
 	Key string `json:"key"`
 	// Rank is the final ranking score in the root search.
 	Rank float64 `json:"rank,omitzero"`
+	// Context marks an item of a plugin.ContextProvider: it belongs to this
+	// show's context and is never recorded as recently used.
+	Context bool `json:"context,omitzero"`
 }
 
 // Section is a titled group of entries.
@@ -299,7 +306,7 @@ type Outcome struct {
 
 // Run executes action a of entry. fromRoot records the use for ranking.
 func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot bool) (Outcome, error) {
-	if fromRoot {
+	if fromRoot && !entry.Context {
 		if b, err := json.Marshal(entry); err == nil {
 			if err := e.svc.DB.RecordUse(entry.Key, b, e.svc.Now()); err != nil {
 				e.log.Warn("record use", "err", err)

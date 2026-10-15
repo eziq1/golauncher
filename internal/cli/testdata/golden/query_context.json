@@ -1,0 +1,638 @@
+{
+  "query": "",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "In Project 项目",
+      "items": [
+        {
+          "id": "copy-selected",
+          "title": "Copy Path",
+          "subtitle": "notes.txt",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "path",
+            "copy path",
+            "clipboard",
+            "复制路径"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy",
+              "do": {
+                "kind": "CopyText",
+                "target": "<DIR>\\notes.txt"
+              }
+            },
+            {
+              "id": "copy-files",
+              "title": "Copy Files",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyFiles",
+                "payload": [
+                  "<DIR>\\notes.txt"
+                ]
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/copy-selected",
+          "context": true
+        },
+        {
+          "id": "vscode-selected",
+          "title": "Open Selection in VS Code",
+          "subtitle": "notes.txt",
+          "icon": {
+            "name": "code"
+          },
+          "keywords": [
+            "code",
+            "vscode",
+            "visual studio code",
+            "editor",
+            "编辑器"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+                "payload": {
+                  "args": "\"<DIR>\\notes.txt\"",
+                  "dir": "<DIR>"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/vscode-selected",
+          "context": true
+        },
+        {
+          "id": "zip",
+          "title": "Compress to ZIP",
+          "subtitle": "notes.txt",
+          "icon": {
+            "name": "archive"
+          },
+          "keywords": [
+            "zip",
+            "archive",
+            "compress",
+            "压缩"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "compress",
+              "title": "Compress",
+              "do": {
+                "kind": "Callback",
+                "target": "zip",
+                "payload": {
+                  "dir": "<DIR>",
+                  "paths": [
+                    "<DIR>\\notes.txt"
+                  ]
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/zip",
+          "context": true
+        },
+        {
+          "id": "sha256",
+          "title": "Copy SHA-256 Checksum",
+          "subtitle": "notes.txt",
+          "icon": {
+            "name": "hash"
+          },
+          "keywords": [
+            "hash",
+            "checksum",
+            "sha256",
+            "sha-256",
+            "校验"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "hash",
+              "title": "Copy",
+              "do": {
+                "kind": "Callback",
+                "target": "sha256",
+                "payload": {
+                  "paths": [
+                    "<DIR>\\notes.txt"
+                  ]
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/sha256",
+          "context": true
+        },
+        {
+          "id": "terminal",
+          "title": "Open Terminal Here",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "powershell",
+            "shell",
+            "console",
+            "wt",
+            "终端",
+            "命令行"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-d \"<DIR>\"",
+                  "dir": "<DIR>"
+                }
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Folder Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "<DIR>"
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/terminal",
+          "context": true
+        },
+        {
+          "id": "cmd",
+          "title": "Open Command Prompt Here",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "cmd",
+            "command prompt",
+            "console",
+            "dos",
+            "命令提示符"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "cmd.exe",
+                "payload": {
+                  "dir": "<DIR>"
+                }
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Folder Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "<DIR>"
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/cmd",
+          "context": true
+        },
+        {
+          "id": "vscode",
+          "title": "Open Folder in VS Code",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "code"
+          },
+          "keywords": [
+            "code",
+            "vscode",
+            "visual studio code",
+            "editor",
+            "编辑器"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+                "payload": {
+                  "args": "\"<DIR>\"",
+                  "dir": "<DIR>"
+                }
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Folder Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "<DIR>"
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/vscode",
+          "context": true
+        },
+        {
+          "id": "new-folder",
+          "title": "New Folder",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "folder-plus"
+          },
+          "keywords": [
+            "mkdir",
+            "create folder",
+            "directory",
+            "新建文件夹"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "create",
+              "title": "Create",
+              "do": {
+                "kind": "Callback",
+                "target": "newFolder",
+                "payload": {
+                  "dir": "<DIR>"
+                }
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "name",
+              "type": "text",
+              "placeholder": "New folder"
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/new-folder",
+          "context": true
+        },
+        {
+          "id": "new-file",
+          "title": "New Text File",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "file-plus"
+          },
+          "keywords": [
+            "touch",
+            "create file",
+            "text",
+            "txt",
+            "新建文件"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "create",
+              "title": "Create",
+              "do": {
+                "kind": "Callback",
+                "target": "newFile",
+                "payload": {
+                  "dir": "<DIR>"
+                }
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "name",
+              "type": "text",
+              "placeholder": "New Text Document.txt"
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/new-file",
+          "context": true
+        },
+        {
+          "id": "copy-path",
+          "title": "Copy Folder Path",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "path",
+            "copy path",
+            "clipboard",
+            "复制路径"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy",
+              "do": {
+                "kind": "CopyText",
+                "target": "<DIR>"
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/copy-path",
+          "context": true
+        },
+        {
+          "id": "terminal-admin",
+          "title": "Open Terminal Here as Administrator",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "shield"
+          },
+          "keywords": [
+            "terminal",
+            "powershell",
+            "shell",
+            "console",
+            "wt",
+            "终端",
+            "命令行",
+            "admin",
+            "administrator",
+            "elevated",
+            "sudo",
+            "runas",
+            "管理员"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open as Administrator",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-d \"<DIR>\"",
+                  "dir": "<DIR>",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.files",
+          "key": "builtin.files/terminal-admin",
+          "context": true
+        },
+        {
+          "id": "search-folder",
+          "title": "Search This Folder with Everything",
+          "subtitle": "<DIR>",
+          "icon": {
+            "name": "search"
+          },
+          "keywords": [
+            "find",
+            "search",
+            "files",
+            "everything",
+            "搜索"
+          ],
+          "group": "In Project 项目",
+          "actions": [
+            {
+              "id": "search",
+              "title": "Search",
+              "do": {
+                "kind": "Push",
+                "target": "search",
+                "payload": {
+                  "scope": "<DIR>"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.everything",
+          "key": "builtin.everything/search-folder",
+          "context": true
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:clear",
+          "title": "Clear Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "trash"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "clear"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:clear"
+        },
+        {
+          "id": "cmd:new",
+          "title": "Create Script Command",
+          "subtitle": "Script Commands",
+          "icon": {
+            "name": "command"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "new"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:new"
+        },
+        {
+          "id": "cmd:open-folder",
+          "title": "Open Scripts Folder",
+          "subtitle": "Script Commands",
+          "icon": {
+            "name": "folder"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "open-folder"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:open-folder"
+        },
+        {
+          "id": "cmd:reload",
+          "title": "Reload Applications",
+          "subtitle": "Applications",
+          "icon": {
+            "name": "app"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "reload"
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/cmd:reload"
+        },
+        {
+          "id": "cmd:history",
+          "title": "Search Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history"
+        },
+        {
+          "id": "cmd:search",
+          "title": "Search Files",
+          "subtitle": "File Search (Everything)",
+          "icon": {
+            "name": "file"
+          },
+          "keywords": [
+            "files",
+            "find",
+            "everything",
+            "文件"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "search"
+              }
+            }
+          ],
+          "plugin": "builtin.everything",
+          "key": "builtin.everything/cmd:search"
+        },
+        {
+          "id": "cmd:world-clock",
+          "title": "World Clock",
+          "subtitle": "World Clock",
+          "icon": {
+            "name": "clock"
+          },
+          "keywords": [
+            "time",
+            "clock",
+            "time zone",
+            "world time",
+            "时间",
+            "时区",
+            "世界时间"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/cmd:world-clock"
+        }
+      ]
+    }
+  ]
+}

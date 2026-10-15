@@ -20,6 +20,7 @@ const (
 	MethodView              = "view"
 	MethodHandleAction      = "handleAction"
 	MethodPreferenceOptions = "preferenceOptions"
+	MethodContextItems      = "contextItems"
 	MethodShutdown          = "shutdown"
 )
 
@@ -78,11 +79,20 @@ type Capabilities struct {
 	Actions           bool `json:"actions,omitzero"`
 	PreferenceOptions bool `json:"preferenceOptions,omitzero"`
 	Render            bool `json:"render,omitzero"`
+	ContextItems      bool `json:"contextItems,omitzero"`
 }
 
 // RootItemsParams are the parameters of rootItems; the result is []plugin.Item.
 type RootItemsParams struct {
 	Query string `json:"query"`
+	// Context is the context of the current show, if any.
+	Context *plugin.Context `json:"context,omitempty"`
+}
+
+// ContextItemsParams are the parameters of contextItems; the result is
+// []plugin.Item.
+type ContextItemsParams struct {
+	Context plugin.Context `json:"context"`
 }
 
 // ViewParams are the parameters of view; the result is a plugin.View.

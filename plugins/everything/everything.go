@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -85,11 +86,12 @@ type Plugin struct {
 }
 
 var (
-	_ plugin.Plugin         = (*Plugin)(nil)
-	_ plugin.RootProvider   = (*Plugin)(nil)
-	_ plugin.ViewProvider   = (*Plugin)(nil)
-	_ plugin.ActionHandler  = (*Plugin)(nil)
-	_ plugin.LocaleProvider = (*Plugin)(nil)
+	_ plugin.Plugin          = (*Plugin)(nil)
+	_ plugin.RootProvider    = (*Plugin)(nil)
+	_ plugin.ViewProvider    = (*Plugin)(nil)
+	_ plugin.ActionHandler   = (*Plugin)(nil)
+	_ plugin.LocaleProvider  = (*Plugin)(nil)
+	_ plugin.ContextProvider = (*Plugin)(nil)
 )
 
 // New returns the plugin searching with the Everything of this machine.
@@ -242,7 +244,44 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	return items, nil
 }
 
-// View implements plugin.ViewProvider for the "search" view.
+// searchScope is the Payload of a search view limited to a folder.
+type searchScope struct {
+	Scope string `json:"scope,omitempty"`
+}
+
+// ContextItems implements plugin.ContextProvider: when a folder is known,
+// search it with Everything (docs/context-awareness.md §4.1). The item
+// opens the search view limited to that folder.
+func (p *Plugin) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Item, error) {
+	if c.Folder == "" {
+		return nil, nil
+	}
+	l := p.h.I18n()
+	var kw []string
+	for w := range strings.SplitSeq(l.T("context.keywords"), ",") {
+		if w = strings.TrimSpace(w); w != "" {
+			kw = append(kw, w)
+		}
+	}
+	return []plugin.Item{{
+		ID:       "search-folder",
+		Title:    l.T("context.title"),
+		Subtitle: c.Folder,
+		Icon:     plugin.Icon{Name: "search"},
+		Keywords: kw,
+		Actions: []plugin.Action{{ID: "search", Title: l.T("context.action"),
+			Do: plugin.ActionDo{Kind: plugin.ActionPush, Target: cmdSearch, Payload: plugin.MustPayload(searchScope{Scope: c.Folder})}}},
+	}}, nil
+}
+
+// scopeTerm is the Everything search term matching everything under dir:
+// a quoted path ending in a backslash, matched against full paths.
+func scopeTerm(dir string) string {
+	return `"` + strings.TrimRight(dir, `\/`) + `\"`
+}
+
+// View implements plugin.ViewProvider for the "search" view. A Payload with
+// a scope limits the search to that folder.
 func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View, error) {
 	if req.ID != cmdSearch {
 		return plugin.View{}, fmt.Errorf("everything: unknown view %q", req.ID)
@@ -255,7 +294,25 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 		ShowDetail:  true,
 		EmptyText:   l.T("view.hint"),
 	}
+	var scope searchScope
+	if len(req.Payload) > 0 {
+		if err := json.Unmarshal(req.Payload, &scope); err != nil {
+			return plugin.View{}, fmt.Errorf("everything: %w", err)
+		}
+	}
+	if scope.Scope != "" {
+		name := filepath.Base(strings.TrimRight(scope.Scope, `\/`))
+		if name == "." || name == `\` || name == "" || strings.HasSuffix(name, ":") {
+			name = scope.Scope
+		}
+		v.Title = l.T("view.titleIn", "folder", name)
+		v.Placeholder = l.T("view.placeholderIn", "folder", name)
+		v.EmptyText = l.T("view.hintIn", "path", scope.Scope)
+	}
 	text := strings.TrimSpace(req.Query.Text)
+	if text != "" && scope.Scope != "" {
+		text = scopeTerm(scope.Scope) + " " + text
+	}
 	if text == "" {
 		if !p.b.Running() {
 			v.Sections = []plugin.Section{{Items: []plugin.Item{p.notRunningItem(l)}}}

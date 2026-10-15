@@ -173,6 +173,21 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.files",
+    "name": "Files",
+    "description": "Actions for the folder you are working in when the launcher opens: open a terminal or VS Code there, create folders and text files, copy paths, compress and hash files.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "folder"
+    },
+    "enabled": true,
+    "permissions": [
+      "clipboard",
+      "exec"
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.everything",
     "name": "File Search (Everything)",
     "description": "Find files and folders on this computer instantly with voidtools Everything.",
