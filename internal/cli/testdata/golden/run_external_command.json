@@ -1,0 +1,21 @@
+{
+  "step": "run example.go-hello/count",
+  "outcome": {
+    "toast": {
+      "style": "success",
+      "title": "Said hello 1 time"
+    }
+  },
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "",
+    "sections": [],
+    "selected": -1,
+    "emptyText": "No results",
+    "toast": {
+      "style": "success",
+      "title": "Said hello 1 time"
+    }
+  }
+}

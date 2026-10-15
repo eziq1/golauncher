@@ -50,7 +50,7 @@ func (p *Proxy) launch() (*process, protocol.Capabilities, error) {
 	var caps protocol.Capabilities
 	path, err := resolveCommand(p.dir, p.man.Run.Command)
 	if err != nil {
-		return nil, caps, &CallError{ErrUnavailable, p.t("extproc.commandNotFound", "command", p.man.Run.Command)}
+		return nil, caps, &CallError{ErrUnavailable, p.tr().T("extproc.commandNotFound", "command", p.man.Run.Command)}
 	}
 	cmd := exec.Command(path, p.man.Run.Args...)
 	cmd.Dir = p.dir
@@ -75,7 +75,7 @@ func (p *Proxy) launch() (*process, protocol.Capabilities, error) {
 		return nil, caps, err
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, caps, &CallError{ErrCrashed, p.t("extproc.startFailed", "err", err)}
+		return nil, caps, &CallError{ErrCrashed, p.tr().T("extproc.startFailed", "err", err)}
 	}
 	proc := &process{cmd: cmd, stdin: stdin, done: make(chan struct{}), subs: map[string]func(){}}
 	if proc.job, err = newJob(cmd.Process.Pid); err != nil {
@@ -114,7 +114,7 @@ func (p *Proxy) launch() (*process, protocol.Capabilities, error) {
 	var res protocol.InitializeResult
 	err = proc.conn.Call(ctx, protocol.MethodInitialize, params, &res)
 	if err == nil && res.Protocol != protocol.Version {
-		err = &CallError{ErrUnavailable, p.t("extproc.protocol", "version", res.Protocol, "supported", protocol.Version)}
+		err = &CallError{ErrUnavailable, p.tr().T("extproc.protocol", "version", res.Protocol, "supported", protocol.Version)}
 	}
 	if e, ok := errors.AsType[*jsonrpc.Error](err); ok && e.Code == jsonrpc.CodeUnavailable {
 		err = &CallError{ErrUnavailable, e.Message}

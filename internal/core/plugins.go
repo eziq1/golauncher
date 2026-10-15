@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/eziq1/golauncher/internal/config"
@@ -22,6 +23,52 @@ type PluginInfo struct {
 	Permissions []plugin.Permission `json:"permissions,omitempty"`
 	Commands    []CommandInfo       `json:"commands,omitempty"`
 	Preferences []plugin.Preference `json:"preferences,omitempty"`
+	// Origin is OriginBuiltin or OriginExternal (a plugin in its own process).
+	Origin string `json:"origin"`
+	// State is an external plugin's process state: running, stopped,
+	// crashed, disabled (by the crash breaker) or unavailable; StateReason
+	// explains the last three. Empty for built-in plugins.
+	State       string `json:"state,omitempty"`
+	StateReason string `json:"stateReason,omitempty"`
+}
+
+// Plugin origins.
+const (
+	OriginBuiltin  = "builtin"
+	OriginExternal = "external"
+)
+
+// ProcessPlugin is implemented by plugins that run in their own process
+// (internal/extproc.Proxy).
+type ProcessPlugin interface {
+	// ProcessState returns the state and a localized reason.
+	ProcessState() (state, reason string)
+	// Reset turns a plugin disabled by the crash breaker on again.
+	Reset()
+}
+
+// origin fills in the origin and process state of info.
+func origin(info *PluginInfo, p plugin.Plugin) {
+	info.Origin = OriginBuiltin
+	if pp, ok := p.(ProcessPlugin); ok {
+		info.Origin = OriginExternal
+		info.State, info.StateReason = pp.ProcessState()
+	}
+}
+
+// ResetPlugin turns an external plugin that crashed too often on again
+// (the settings page's "Turn on again").
+func (e *Engine) ResetPlugin(id string) error {
+	l, ok := e.byID[id]
+	if !ok {
+		return fmt.Errorf("core: unknown plugin %q", id)
+	}
+	pp, ok := l.p.(ProcessPlugin)
+	if !ok {
+		return fmt.Errorf("core: plugin %q does not run in its own process", id)
+	}
+	pp.Reset()
+	return nil
 }
 
 // CommandInfo describes a command and its effective settings.
@@ -72,10 +119,11 @@ func (e *Engine) Plugins() []PluginInfo {
 			}
 			info.Preferences = append(info.Preferences, p)
 		}
+		origin(&info, l.p)
 		out = append(out, info)
 	}
 	for _, u := range e.unavailable {
-		out = append(out, PluginInfo{
+		info := PluginInfo{
 			ID:          u.m.ID,
 			Name:        u.loc.Resolve(u.m.Name),
 			Description: u.loc.Resolve(u.m.Description),
@@ -83,7 +131,9 @@ func (e *Engine) Plugins() []PluginInfo {
 			Icon:        u.m.Icon,
 			Unavailable: u.reason,
 			Permissions: u.m.Permissions,
-		})
+		}
+		origin(&info, u.p)
+		out = append(out, info)
 	}
 	return out
 }

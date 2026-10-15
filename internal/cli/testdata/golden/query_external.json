@@ -1,0 +1,42 @@
+{
+  "query": "say hello",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Hello",
+      "items": [
+        {
+          "id": "hello",
+          "title": "Say Hello from Go",
+          "subtitle": "Said hello 0 times",
+          "keywords": [
+            "hello",
+            "go"
+          ],
+          "group": "Hello",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Greetings",
+              "do": {
+                "kind": "Push",
+                "target": "greetings"
+              }
+            },
+            {
+              "id": "count",
+              "title": "Count as Said",
+              "do": {
+                "kind": "Callback",
+                "target": "count"
+              }
+            }
+          ],
+          "plugin": "example.go-hello",
+          "key": "example.go-hello/hello",
+          "rank": 0.6485294117647059
+        }
+      ]
+    }
+  ]
+}

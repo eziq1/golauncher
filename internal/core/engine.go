@@ -59,6 +59,7 @@ type Engine struct {
 
 // unavailable is a plugin that could not be initialized.
 type unavailable struct {
+	p      plugin.Plugin
 	m      plugin.Manifest
 	loc    *i18n.Localizer
 	reason string
@@ -113,10 +114,10 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 			loc := o.Services.I18n.Localizer(m.ID)
 			if errors.Is(err, plugin.ErrUnavailable) {
 				e.log.Info("plugin unavailable", "plugin", m.ID, "reason", err)
-				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: unavailableReason(err)})
+				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: unavailableReason(err)})
 			} else {
 				e.log.Error("plugin init failed", "plugin", m.ID, "err", err)
-				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: err.Error()})
+				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: err.Error()})
 			}
 			continue
 		}

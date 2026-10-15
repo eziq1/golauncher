@@ -158,12 +158,22 @@ func (p *Proxy) Manifest() plugin.Manifest { return p.man.Manifest }
 // <dir>/locales.
 func (p *Proxy) Locales() fs.FS { return p.locales }
 
-// t translates a core message.
-func (p *Proxy) t(id string, kv ...any) string {
+// translator is the part of plugin.Localizer the proxy uses.
+type translator interface {
+	T(id string, kv ...any) string
+}
+
+type keys struct{}
+
+func (keys) T(id string, _ ...any) string { return id }
+
+// tr returns the localizer of the host's messages (before Init, one that
+// returns message IDs).
+func (p *Proxy) tr() translator {
 	if p.h == nil {
-		return id
+		return keys{}
 	}
-	return p.h.I18n().T(id, kv...)
+	return p.h.I18n()
 }
 
 // Init implements plugin.Plugin. It does not start the process (unless
@@ -172,12 +182,12 @@ func (p *Proxy) Init(ctx context.Context, h plugin.Host) error {
 	p.h = h
 	p.log = h.Logger()
 	if p.man.Protocol != protocol.Version {
-		reason := p.t("extproc.protocol", "version", p.man.Protocol, "supported", protocol.Version)
+		reason := p.tr().T("extproc.protocol", "version", p.man.Protocol, "supported", protocol.Version)
 		p.setUnavailable(reason)
 		return fmt.Errorf("%s: %w", reason, plugin.ErrUnavailable)
 	}
 	if _, err := resolveCommand(p.dir, p.man.Run.Command); err != nil {
-		reason := p.t("extproc.commandNotFound", "command", p.man.Run.Command)
+		reason := p.tr().T("extproc.commandNotFound", "command", p.man.Run.Command)
 		p.setUnavailable(reason)
 		return fmt.Errorf("%s: %w", reason, plugin.ErrUnavailable)
 	}
@@ -373,7 +383,7 @@ func (p *Proxy) ensure(ctx context.Context) (*process, error) {
 		switch {
 		case p.closed:
 			p.mu.Unlock()
-			return nil, &CallError{ErrClosed, p.t("extproc.closed")}
+			return nil, &CallError{ErrClosed, p.tr().T("extproc.closed")}
 		case p.state == StateDisabled:
 			defer p.mu.Unlock()
 			return nil, &CallError{ErrDisabled, p.reason}
@@ -414,9 +424,9 @@ func (p *Proxy) crashedErr() error {
 	defer p.mu.Unlock()
 	wait := time.Until(p.nextStart).Round(time.Second)
 	if wait > 0 {
-		return &CallError{ErrCrashed, p.t("extproc.restarting", "seconds", int(wait/time.Second))}
+		return &CallError{ErrCrashed, p.tr().T("extproc.restarting", "seconds", int(wait/time.Second))}
 	}
-	return &CallError{ErrCrashed, p.t("extproc.crashed")}
+	return &CallError{ErrCrashed, p.tr().T("extproc.crashed")}
 }
 
 // start launches the process; it runs on its own goroutine so a caller
@@ -462,14 +472,14 @@ func (p *Proxy) recordCrashLocked() {
 	p.crashRun++
 	p.timeouts = 0
 	if len(p.crashes) >= p.opts.BreakerCrashes {
-		p.state, p.reason = StateDisabled, p.t("extproc.breaker")
+		p.state, p.reason = StateDisabled, p.tr().T("extproc.breaker")
 		p.log.Error("external plugin turned off after repeated crashes", "crashes", len(p.crashes))
 		return
 	}
 	backoff := p.opts.BackoffMin << min(p.crashRun-1, 16)
 	backoff = min(backoff, p.opts.BackoffMax)
 	p.nextStart = now.Add(backoff)
-	p.state, p.reason = StateCrashed, p.t("extproc.crashed")
+	p.state, p.reason = StateCrashed, p.tr().T("extproc.crashed")
 }
 
 // call sends a request to the process, starting it if needed, and keeps
@@ -502,7 +512,7 @@ func (p *Proxy) call(ctx context.Context, method string, params, result any) err
 			p.timeouts = 0
 		}
 	case errors.Is(err, jsonrpc.ErrClosed):
-		err = &CallError{ErrCrashed, p.t("extproc.crashed")}
+		err = &CallError{ErrCrashed, p.tr().T("extproc.crashed")}
 	}
 	p.mu.Unlock()
 	if hung {

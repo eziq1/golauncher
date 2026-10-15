@@ -1,0 +1,54 @@
+{
+  "step": "run example.go-hello/greetings",
+  "outcome": {
+    "push": {
+      "plugin": "example.go-hello",
+      "request": {
+        "id": "greetings",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Greetings",
+    "placeholder": "Filter greetings…",
+    "text": "bon",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "fr",
+            "title": "Bonjour",
+            "accessory": "fr",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Greeting",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Bonjour"
+                }
+              },
+              {
+                "id": "count",
+                "title": "Count as Said",
+                "do": {
+                  "kind": "Callback",
+                  "target": "count"
+                }
+              }
+            ],
+            "plugin": "example.go-hello",
+            "key": "example.go-hello/fr",
+            "rank": 0.9214285714285715
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results"
+  }
+}

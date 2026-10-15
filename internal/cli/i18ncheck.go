@@ -132,7 +132,9 @@ func checkReferences(m *i18n.Manager, root string, rep *i18nReport) error {
 			return err
 		}
 		if d.IsDir() {
-			if name := d.Name(); name == "testdata" || name == ".git" || (strings.HasPrefix(name, ".") && path != root) {
+			if name := d.Name(); name == "testdata" || name == ".git" || (strings.HasPrefix(name, ".") && path != root) ||
+				path == filepath.Join(root, "examples") {
+				// Example plugins use their own catalogs (glctl plugin validate).
 				return filepath.SkipDir
 			}
 			return nil
