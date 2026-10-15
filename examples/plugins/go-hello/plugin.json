@@ -1,0 +1,14 @@
+{
+  "id": "example.go-hello",
+  "name": "%plugin.name%",
+  "description": "%plugin.description%",
+  "version": "0.1.0",
+  "icon": { "name": "command" },
+  "protocol": 1,
+  "run": { "command": "go-hello.exe" },
+  "permissions": ["storage"],
+  "commands": [
+    { "name": "greetings", "title": "%command.greetings.title%", "mode": "view", "keywords": ["%command.greetings.keywords%"] },
+    { "name": "count", "title": "%command.count.title%", "mode": "no-view" }
+  ]
+}

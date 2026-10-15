@@ -1,0 +1,17 @@
+{
+  "plugin.name": "你好（Python）",
+  "plugin.description": "只用 Python 标准库编写的外部插件示例",
+  "command.greet.title": "向某人问好",
+  "group": "你好",
+  "root.title": "用 Python 打个招呼",
+  "root.subtitleLast": "上次问候：{name}",
+  "action.open": "打开表单",
+  "form.title": "向某人问好",
+  "form.name": "名字",
+  "form.namePlaceholder": "要问候谁？",
+  "form.nameRequired": "请输入名字。",
+  "form.excited": "热情一点",
+  "form.submit": "复制问候语",
+  "greeting": "你好，{name}。",
+  "toast.copied": "已复制问候语"
+}

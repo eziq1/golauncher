@@ -152,6 +152,14 @@
   "tray.settings": "Settings…",
   "tray.quit": "Quit",
 
+  "extproc.crashed": "The plugin crashed. It restarts when you use it again.",
+  "extproc.restarting": "The plugin crashed. It restarts in {{.seconds}} s.",
+  "extproc.breaker": "The plugin crashed too often and was turned off. Turn it on again in Settings.",
+  "extproc.commandNotFound": "Cannot find “{{.command}}”, which the plugin needs to run.",
+  "extproc.protocol": "The plugin uses protocol version {{.version}}, but golauncher supports version {{.supported}}.",
+  "extproc.startFailed": "The plugin could not be started: {{.err}}",
+  "extproc.closed": "The plugin was shut down.",
+
   "notify.configRecovered.title": "Settings were reset",
   "notify.configRecovered.body": "Your settings file could not be read, so the defaults are in use. The old file was kept as {{.path}}.",
   "notify.hotkeyFailed.title": "Hotkey unavailable",

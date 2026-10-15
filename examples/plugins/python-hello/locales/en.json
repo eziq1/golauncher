@@ -1,0 +1,17 @@
+{
+  "plugin.name": "Hello (Python)",
+  "plugin.description": "An example external plugin written in Python with the standard library only",
+  "command.greet.title": "Greet Someone",
+  "group": "Hello",
+  "root.title": "Say Hello from Python",
+  "root.subtitleLast": "Last greeted: {name}",
+  "action.open": "Open Form",
+  "form.title": "Greet Someone",
+  "form.name": "Name",
+  "form.namePlaceholder": "Who should be greeted?",
+  "form.nameRequired": "Enter a name.",
+  "form.excited": "Excited",
+  "form.submit": "Copy Greeting",
+  "greeting": "Hello, {name}.",
+  "toast.copied": "Greeting copied"
+}
