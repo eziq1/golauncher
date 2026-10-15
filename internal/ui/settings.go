@@ -2,6 +2,7 @@ package ui
 
 import (
 	"cmp"
+	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -72,6 +74,30 @@ type Settings struct {
 	noticeErr bool               // the notice reports a failure
 	saveErr   string
 	hotkeyErr string
+
+	// Plugin calls of the plugin page run in the background: the dynamic
+	// options of preferences, loaded when the page opens, and the buttons.
+	// Their results are kept under asyncMu until a frame shows them.
+	wg        sync.WaitGroup
+	asyncMu   sync.Mutex
+	options   map[string]optionsResult // by preference field key
+	buttons   map[string]buttonResult
+	loadedFor string       // the plugin whose options were loaded
+	services  mui.Services // redraws the window when a call finishes
+}
+
+// optionsResult is the outcome of loading the dynamic options of a preference.
+type optionsResult struct {
+	loading bool
+	options []plugin.Option
+	err     string
+}
+
+// buttonResult is the outcome of the last click on a button preference.
+type buttonResult struct {
+	running bool
+	toast   *plugin.Toast
+	err     string
 }
 
 // NewSettings returns the settings view of env.
@@ -86,8 +112,71 @@ func NewSettings(env *app.Env, host SettingsHost, version string) *Settings {
 		bufs:    map[string]*string{},
 		errs:    map[string]string{},
 		stored:  map[string]bool{},
+		options: map[string]optionsResult{},
+		buttons: map[string]buttonResult{},
 	}
 }
+
+// Wait blocks until the plugin calls started by the settings have finished.
+func (s *Settings) Wait() { s.wg.Wait() }
+
+// async runs fn in the background and redraws the window when it is done.
+func (s *Settings) async(fn func()) {
+	s.wg.Go(func() {
+		fn()
+		s.asyncMu.Lock()
+		svc := s.services
+		s.asyncMu.Unlock()
+		svc.Invalidate()
+	})
+}
+
+// loadOptions asks the plugin p for the dynamic options of its preferences.
+func (s *Settings) loadOptions(p core.PluginInfo) {
+	s.asyncMu.Lock()
+	defer s.asyncMu.Unlock()
+	s.loadedFor = p.ID
+	clear(s.options)
+	for _, pref := range p.Preferences {
+		if !pref.DynamicOptions {
+			continue
+		}
+		key, id, name := prefKey(p.ID, pref.Name), p.ID, pref.Name
+		s.options[key] = optionsResult{loading: true}
+		s.async(func() {
+			opts, err := s.env.Engine.PreferenceOptions(context.Background(), id, name)
+			r := optionsResult{options: opts}
+			if err != nil {
+				r.err = err.Error()
+			}
+			s.asyncMu.Lock()
+			if s.loadedFor == id {
+				s.options[key] = r
+			}
+			s.asyncMu.Unlock()
+		})
+	}
+}
+
+// runButton runs the action of a button preference.
+func (s *Settings) runButton(id, name string) {
+	key := prefKey(id, name)
+	s.asyncMu.Lock()
+	s.buttons[key] = buttonResult{running: true}
+	s.asyncMu.Unlock()
+	s.async(func() {
+		out, err := s.env.Engine.RunPreferenceAction(context.Background(), id, name)
+		r := buttonResult{toast: out.Toast}
+		if err != nil {
+			r.err = err.Error()
+		}
+		s.asyncMu.Lock()
+		s.buttons[key] = r
+		s.asyncMu.Unlock()
+	})
+}
+
+func prefKey(id, name string) string { return "pref/" + id + "/" + name }
 
 // ShowPage switches to page (PageGeneral, …). UI thread only.
 func (s *Settings) ShowPage(page string) {
@@ -165,6 +254,9 @@ func (s *Settings) buf(key, init string) *string {
 // View builds the settings window.
 func (s *Settings) View(c *mui.Context) {
 	cfg := s.env.Config.Get()
+	s.asyncMu.Lock()
+	s.services = c.Services()
+	s.asyncMu.Unlock()
 	applyTheme(c, cfg.Theme)
 	t := c.Theme()
 	c.Root().Background(t.Background)
@@ -319,6 +411,9 @@ func (s *Settings) pluginsPage(c *mui.Context) {
 			}
 			if button(c, s.loc.T("settings.plugins.configure")) {
 				s.plugin = p.ID
+				s.asyncMu.Lock()
+				s.loadedFor = ""
+				s.asyncMu.Unlock()
 				s.setNotice("", false)
 				clear(s.bufs)
 				clear(s.errs)
@@ -388,10 +483,34 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 	}
 
 	if len(p.Preferences) > 0 {
+		s.asyncMu.Lock()
+		load := s.loadedFor != p.ID
+		s.asyncMu.Unlock()
+		if load {
+			s.loadOptions(p)
+		}
 		s.subheading(c, s.loc.T("settings.plugins.preferences"))
 		values := cfg.Plugin(p.ID).Preferences
+		// Ungrouped preferences first, then each group under its heading, in
+		// the order the groups first appear.
+		var groups []string
 		for _, pref := range p.Preferences {
-			s.preference(c, p.ID, pref, values)
+			if !slices.Contains(groups, pref.Group) {
+				groups = append(groups, pref.Group)
+			}
+		}
+		slices.SortStableFunc(groups, func(a, b string) int {
+			return cmp.Compare(min(len(a), 1), min(len(b), 1))
+		})
+		for _, g := range groups {
+			if g != "" {
+				mui.Text(c, g).FontSize(13).Bold().TextColor(t.TextMuted).MarginY(6).Level(3)
+			}
+			for _, pref := range p.Preferences {
+				if pref.Group == g && core.PrefVisible(p.Preferences, values, pref) {
+					s.preference(c, p.ID, pref, values)
+				}
+			}
 		}
 	}
 }
@@ -477,6 +596,20 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 		s.password(c, id, pref)
 		return
 	}
+	if pref.Type == plugin.PrefButton {
+		s.prefButton(c, id, pref)
+		return
+	}
+	options, optionsErr := pref.Options, ""
+	if pref.DynamicOptions {
+		s.asyncMu.Lock()
+		r := s.options[key]
+		s.asyncMu.Unlock()
+		options = r.options
+		if r.err != "" {
+			optionsErr = s.loc.T("settings.plugins.optionsFailed", "err", r.err)
+		}
+	}
 	field := mui.Field(c.Key(key), pref.Title, func() {
 		switch pref.Type {
 		case plugin.PrefNumber:
@@ -496,9 +629,9 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 			}
 		case plugin.PrefSelect:
 			current := decodePref[string](raw)
-			titles := make([]string, len(pref.Options))
+			titles := make([]string, len(options))
 			chosen := ""
-			for i, o := range pref.Options {
+			for i, o := range options {
 				titles[i] = cmp.Or(o.Title, o.Value)
 				if o.Value == current {
 					chosen = titles[i]
@@ -506,7 +639,7 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 			}
 			if mui.Select(c, &chosen, titles).Changed() {
 				if i := slices.Index(titles, chosen); i >= 0 {
-					s.setPref(id, pref.Name, pref.Options[i].Value)
+					s.setPref(id, pref.Name, options[i].Value)
 				}
 			}
 		case plugin.PrefStringList:
@@ -534,9 +667,48 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 	if desc != "" {
 		field.Description(desc)
 	}
-	if msg := s.errs[key]; msg != "" {
+	if msg := cmp.Or(s.errs[key], optionsErr); msg != "" {
 		field.Error(msg)
 	}
+}
+
+// prefButton builds a button preference: its description, the button and
+// the toast of its last run.
+func (s *Settings) prefButton(c *mui.Context, id string, pref plugin.Preference) {
+	t := c.Theme()
+	key := prefKey(id, pref.Name)
+	s.asyncMu.Lock()
+	r := s.buttons[key]
+	s.asyncMu.Unlock()
+	mui.Row(c.Key(key)).Gap(16).Padding(10, 0).AlignItems(mui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Children(func() {
+		mui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
+			if pref.Description != "" {
+				mui.Text(c, pref.Description)
+			}
+			switch {
+			case r.err != "":
+				mui.Text(c, s.loc.T("settings.plugins.buttonFailed", "err", r.err)).FontSize(12).TextColor(t.Danger)
+			case r.toast != nil:
+				color := t.TextMuted
+				switch r.toast.Style {
+				case plugin.ToastSuccess:
+					color = t.Success
+				case plugin.ToastFailure:
+					color = t.Danger
+				}
+				mui.Text(c, r.toast.Title).FontSize(12).TextColor(color)
+				if r.toast.Message != "" {
+					mui.Text(c, r.toast.Message).FontSize(12).TextColor(t.TextMuted)
+				}
+			}
+		})
+		if r.running {
+			mui.Spinner(c).Size(16, 16).Label(s.loc.T("ui.loading"))
+		}
+		if mui.Button(c, pref.Title).Disabled(r.running).Clicked() {
+			s.runButton(id, pref.Name)
+		}
+	})
 }
 
 // password builds the editor of a password preference. Its value lives in

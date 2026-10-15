@@ -113,26 +113,26 @@ func (s *formState) jsonValues() map[string]jsontext.Value {
 // validate checks the values before the form is submitted: required fields,
 // numbers, dates and dropdown choices. It returns the messages by field ID.
 func (c *Controller) validate(s *formState) map[string]string {
-	t := c.eng.core.T
+	loc := c.eng.core
 	errs := map[string]string{}
 	for _, fl := range s.fields {
 		v := strings.TrimSpace(s.values[fl.ID])
 		empty := v == "" || fl.Type == plugin.FieldCheckbox && v != "true"
 		switch {
 		case fl.Required && empty:
-			errs[fl.ID] = t("form.required")
+			errs[fl.ID] = loc.T("form.required")
 		case v == "":
 		case fl.Type == plugin.FieldNumber:
 			if _, err := strconv.ParseFloat(v, 64); err != nil {
-				errs[fl.ID] = t("form.invalidNumber")
+				errs[fl.ID] = loc.T("form.invalidNumber")
 			}
 		case fl.Type == plugin.FieldDate:
 			if _, err := time.Parse(time.DateOnly, v); err != nil {
-				errs[fl.ID] = t("form.invalidDate")
+				errs[fl.ID] = loc.T("form.invalidDate")
 			}
 		case fl.Type == plugin.FieldDropdown:
 			if !slices.ContainsFunc(fl.Options, func(o plugin.Option) bool { return o.Value == v }) {
-				errs[fl.ID] = t("form.invalidOption")
+				errs[fl.ID] = loc.T("form.invalidOption")
 			}
 		}
 	}
