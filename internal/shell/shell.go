@@ -17,15 +17,15 @@ import (
 	"github.com/egoist/mygo"
 	mui "github.com/egoist/mygo/ui"
 
-	"golauncher/internal/app"
-	"golauncher/internal/builtin"
-	"golauncher/internal/config"
-	"golauncher/internal/control"
-	"golauncher/internal/i18n"
-	"golauncher/internal/ui"
-	"golauncher/internal/winapi/clip"
-	wshell "golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/builtin"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/control"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/ui"
+	"github.com/eziq1/golauncher/internal/winapi/clip"
+	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // AppName names the app to the system: its single-instance lock, its

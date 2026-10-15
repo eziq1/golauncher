@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 const (

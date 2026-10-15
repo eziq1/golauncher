@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/core"
 )
 
 // sessionFile is a multi-step session. Each glctl session invocation

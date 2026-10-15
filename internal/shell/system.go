@@ -4,10 +4,10 @@ import (
 	"errors"
 	"os"
 
-	"golauncher/internal/core"
-	"golauncher/internal/winapi/clip"
-	wshell "golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/winapi/clip"
+	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // errNoTarget is returned by Paste when no window was active before the

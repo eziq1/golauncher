@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"golauncher/internal/cli"
+	"github.com/eziq1/golauncher/internal/cli"
 )
 
 func main() {

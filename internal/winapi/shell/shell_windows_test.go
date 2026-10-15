@@ -5,7 +5,7 @@ import (
 	"image/png"
 	"testing"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 func TestInstalledAppsAndIcon(t *testing.T) {

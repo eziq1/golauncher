@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/i18n"
 )
 
 // i18nReport is the result of glctl i18n check.

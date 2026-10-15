@@ -7,9 +7,9 @@ import (
 	"slices"
 	"testing"
 
-	"golauncher/internal/host/hostfake"
-	"golauncher/internal/i18n"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 func newPlugin(t *testing.T) (*Plugin, *hostfake.Host) {

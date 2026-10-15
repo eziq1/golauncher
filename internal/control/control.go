@@ -17,7 +17,7 @@ import (
 	"os"
 	"time"
 
-	"golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/core"
 )
 
 // Window is the launcher window as seen by the control channel.

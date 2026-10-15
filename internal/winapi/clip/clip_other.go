@@ -5,7 +5,7 @@ package clip
 import (
 	"errors"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Read returns the current clipboard content.

@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"golauncher/internal/host/hostfake"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 type env struct {

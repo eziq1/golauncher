@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"golauncher/internal/config"
-	"golauncher/internal/host"
-	"golauncher/internal/i18n"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/host"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // System performs the side effects of the built-in action kinds. glctl

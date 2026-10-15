@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"golauncher/internal/app"
-	"golauncher/internal/control"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/control"
 )
 
 // TestRunningInstance drives a running golauncher through its control

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"golauncher/internal/config"
-	"golauncher/internal/match"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/match"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Ranking weights; see docs/design.md §5.6.

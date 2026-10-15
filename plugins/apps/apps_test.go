@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"golauncher/internal/host/hostfake"
-	"golauncher/internal/i18n"
-	"golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 const fixture = "testdata/apps.json"

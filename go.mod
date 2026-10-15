@@ -1,4 +1,4 @@
-module golauncher
+module github.com/eziq1/golauncher
 
 go 1.27.2
 

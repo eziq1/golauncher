@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"golauncher/internal/match"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/match"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Controller is the launcher's interaction state machine: search text,

@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"golauncher/internal/app"
-	"golauncher/internal/core"
-	"golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
 )
 
 // Main runs glctl with args (without the program name) and returns the

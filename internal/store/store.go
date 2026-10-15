@@ -11,7 +11,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // DB wraps the host database.

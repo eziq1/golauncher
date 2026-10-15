@@ -7,7 +7,7 @@ import (
 	"encoding/json/v2"
 	"sync"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Prefs implements plugin.Preferences from user values with fallback to the

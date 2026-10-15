@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"golauncher/internal/host"
-	"golauncher/internal/i18n"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/host"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Host is a fake plugin.Host. Its exported fields may be changed by tests.

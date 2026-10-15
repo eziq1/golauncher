@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"golauncher/internal/builtin"
-	"golauncher/internal/core"
-	"golauncher/internal/winapi/clip"
-	"golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/builtin"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/winapi/clip"
+	"github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // realPlatform holds the real clipboard and system for --real.

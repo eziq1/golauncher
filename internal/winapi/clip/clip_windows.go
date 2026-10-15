@@ -18,7 +18,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 var (

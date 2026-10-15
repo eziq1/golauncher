@@ -13,12 +13,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"golauncher/internal/config"
-	"golauncher/internal/core"
-	"golauncher/internal/host"
-	"golauncher/internal/i18n"
-	"golauncher/internal/store"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/host"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/store"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Options configure Build.

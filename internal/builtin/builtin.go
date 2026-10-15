@@ -4,11 +4,11 @@ package builtin
 import (
 	"context"
 
-	"golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
-	"golauncher/plugins/apps"
-	"golauncher/plugins/calc"
-	"golauncher/plugins/clipboard"
+	"github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/apps"
+	"github.com/eziq1/golauncher/plugins/calc"
+	"github.com/eziq1/golauncher/plugins/clipboard"
 )
 
 // All returns new instances of the built-in plugins for the real system.

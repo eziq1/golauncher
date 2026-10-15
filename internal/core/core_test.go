@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"golauncher/internal/app"
-	"golauncher/internal/config"
-	"golauncher/internal/core"
-	"golauncher/internal/host/hostfake"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // testPlugin offers a few root items, a view command and a no-view command.

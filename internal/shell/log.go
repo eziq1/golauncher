@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/app"
 )
 
 // maxLogSize is the size past which the log is moved to golauncher.log.old

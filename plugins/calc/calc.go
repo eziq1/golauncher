@@ -13,7 +13,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // ID is the plugin's manifest ID.

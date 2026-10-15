@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"golauncher/internal/app"
-	"golauncher/internal/control"
-	"golauncher/internal/host/hostfake"
-	"golauncher/pkg/plugin"
-	"golauncher/plugins/calc"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/control"
+	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/calc"
 )
 
 type fakeWindow struct{ visible atomic.Bool }

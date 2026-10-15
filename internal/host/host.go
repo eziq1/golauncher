@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"golauncher/internal/i18n"
-	"golauncher/internal/store"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/store"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Services are the shared host services that per-plugin Hosts are built on.

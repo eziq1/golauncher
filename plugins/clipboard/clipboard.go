@@ -23,7 +23,7 @@ import (
 	"strings"
 	"sync"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // ID is the plugin id.

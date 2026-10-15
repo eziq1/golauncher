@@ -11,11 +11,11 @@ import (
 
 	mui "github.com/egoist/mygo/ui"
 
-	"golauncher/internal/app"
-	"golauncher/internal/config"
-	"golauncher/internal/core"
-	"golauncher/internal/i18n"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Settings window size, in DIPs.

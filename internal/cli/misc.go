@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"golauncher/internal/app"
-	"golauncher/internal/config"
-	"golauncher/internal/control"
+	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/control"
 )
 
 func configPath() (string, error) {

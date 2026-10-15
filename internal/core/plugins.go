@@ -3,8 +3,8 @@ package core
 import (
 	"slices"
 
-	"golauncher/internal/config"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // PluginInfo describes a plugin with its strings localized, for the

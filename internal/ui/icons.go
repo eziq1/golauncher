@@ -8,7 +8,7 @@ import (
 
 	mui "github.com/egoist/mygo/ui"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // iconPaths are the bodies of the built-in icons, lucide-style strokes on a

@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // InstalledApps lists the Start menu's "All apps". It is only supported on Windows.

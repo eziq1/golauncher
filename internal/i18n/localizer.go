@@ -9,7 +9,7 @@ import (
 	"golang.org/x/text/message"
 	"golang.org/x/text/number"
 
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Localizer translates messages of one namespace. It implements

@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"os"
 
-	"golauncher/internal/shell"
+	"github.com/eziq1/golauncher/internal/shell"
 )
 
 // version is set at build time with -ldflags "-X main.version=1.2.3".

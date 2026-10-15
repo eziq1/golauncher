@@ -4,8 +4,8 @@ import (
 	"slices"
 	"sync"
 
-	"golauncher/internal/core"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // Effect is a recorded side effect.

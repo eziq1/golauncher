@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"golauncher/internal/winapi/shell"
-	"golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/internal/winapi/shell"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // ID is the plugin ID.
