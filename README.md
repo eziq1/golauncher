@@ -19,6 +19,9 @@ A Raycast-style launcher for Windows, written in Go with the
     is installed.
   - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)
     packages, when Scoop is installed.
+  - **World Clock**: type `time` for your local time and major cities, or
+    `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find a
+    city. The clocks tick; favorite cities stay on top.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences and
   the theme.
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent

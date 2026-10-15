@@ -210,6 +210,9 @@ func (s *Shell) ready(action string) {
 			s.panel.Hide()
 		}
 	})
+	// Every way of hiding the panel ends in Window.Hide, which fires OnHide
+	// once per hide; plugins stop their refresh timers on this event.
+	s.panel.OnHide(func() { s.env.Services.Bus.Publish(plugin.EventWindowHidden) })
 	s.env.Controller.OnChange(s.panel.Invalidate)
 
 	s.env.Config.OnChange(func(c config.Config) {

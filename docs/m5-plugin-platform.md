@@ -485,3 +485,4 @@ func main() { rpcserve.Serve(hello.New()) }
 | Scoop（R22） | 长时间操作在动作返回后才完成，插件没法在完成时弹出提示 | 新增 `Host.Toast(t Toast)`：插件在后台任务里也能调用；宿主显示在启动器底栏，窗口隐藏时改用系统通知 |
 | Scoop、Script Commands | `Result` 不能携带让宿主执行的动作（比如"打开文件"），插件只好自己调用 `shell.Open` | `Result.Do *ActionDo`：处理完回调后，宿主再执行这个动作 |
 | Scoop | 宿主的确认对话框只能显示固定文案，没法带上"可以释放 8.3 GB"这类动态信息 | `Action.Confirm *ConfirmText`：由插件提供确认对话框的标题和说明 |
+| 世界时钟（R23） | "最近使用"保存的是条目快照，时钟条目在那里会一直显示被使用那一刻的时间（动作本身是正确的） | 允许插件声明条目不进入最近使用（`Item.NoRecent`），或者显示最近使用时由插件刷新条目内容 |

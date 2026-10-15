@@ -367,6 +367,37 @@
             ],
             "plugin": "builtin.scoop",
             "key": "builtin.scoop/cmd:update-buckets"
+          },
+          {
+            "id": "cmd:world-clock",
+            "title": "World Clock",
+            "subtitle": "World Clock",
+            "icon": {
+              "name": "clock"
+            },
+            "keywords": [
+              "time",
+              "clock",
+              "time zone",
+              "world time",
+              "时间",
+              "时区",
+              "世界时间"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "world-clock"
+                }
+              }
+            ],
+            "plugin": "builtin.clock",
+            "key": "builtin.clock/cmd:world-clock"
           }
         ]
       }

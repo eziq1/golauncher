@@ -1,0 +1,1285 @@
+{
+  "query": "time",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "World Clock",
+      "items": [
+        {
+          "id": "local",
+          "title": "Local Time  10:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "local"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "local",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 10:00:00\n\nLocal Time · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "10:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Time zone",
+                "value": "UTC"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "UTC"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/local",
+          "rank": 1.7
+        },
+        {
+          "id": "city:beijing",
+          "title": "Beijing  18:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.549,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBeijing · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:beijing",
+          "rank": 1.3843
+        },
+        {
+          "id": "city:tokyo",
+          "title": "Tokyo  19:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+9 · +9h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.548,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "tokyo"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "tokyo",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "tokyo"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 19:00:00\n\nTokyo · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "19:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Japan"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Tokyo"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+9"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "JST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:tokyo",
+          "rank": 1.3836
+        },
+        {
+          "id": "city:singapore",
+          "title": "Singapore  18:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.547,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "singapore"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "singapore",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "singapore"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nSingapore · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Singapore"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Singapore"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:singapore",
+          "rank": 1.3829
+        },
+        {
+          "id": "city:mumbai",
+          "title": "Mumbai  15:30:00",
+          "subtitle": "Thursday, Oct 15 · UTC+5:30 · +5h 30m",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.546,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "mumbai"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "mumbai",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "mumbai"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 15:30:00\n\nMumbai · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "15:30:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "India"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Kolkata"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+5:30"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "IST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:mumbai",
+          "rank": 1.3822
+        },
+        {
+          "id": "city:dubai",
+          "title": "Dubai  14:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+4 · +4h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.545,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "dubai"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "dubai",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "dubai"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 14:00:00\n\nDubai · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "14:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "United Arab Emirates"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Dubai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+4"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:dubai",
+          "rank": 1.3815
+        },
+        {
+          "id": "city:moscow",
+          "title": "Moscow  13:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+3 · +3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.544,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "moscow"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "moscow",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "moscow"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 13:00:00\n\nMoscow · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "13:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Russia"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Moscow"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+3"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "MSK"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:moscow",
+          "rank": 1.3808
+        },
+        {
+          "id": "city:london",
+          "title": "London  11:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+1 · +1h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.543,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "london"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "london",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "london"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 11:00:00\n\nLondon · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "11:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "United Kingdom"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/London"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+1"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "BST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 02:00 → UTC"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:london",
+          "rank": 1.3801
+        },
+        {
+          "id": "city:paris",
+          "title": "Paris  12:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.542,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "paris"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "paris",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "paris"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nParis · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "France"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Paris"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 03:00 → UTC+1"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:paris",
+          "rank": 1.3794
+        },
+        {
+          "id": "city:berlin",
+          "title": "Berlin  12:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.541,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "berlin"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "berlin",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "berlin"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nBerlin · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Germany"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Berlin"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 03:00 → UTC+1"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:berlin",
+          "rank": 1.3787
+        },
+        {
+          "id": "city:new-york",
+          "title": "New York  06:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC-4 · -4h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.54,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "new-york"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "new-york",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "new-york"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 06:00:00\n\nNew York · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "06:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "United States"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/New_York"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-4"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "EDT"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, November 1, 2026 02:00 → UTC-5"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:new-york",
+          "rank": 1.3780000000000001
+        },
+        {
+          "id": "city:san-francisco",
+          "title": "San Francisco  03:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC-7 · -7h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☾",
+          "group": "World Clock",
+          "score": 0.539,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "san-francisco"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "san-francisco",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "san-francisco"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 03:00:00\n\nSan Francisco · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "03:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "United States"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Los_Angeles"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-7"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "PDT"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, November 1, 2026 02:00 → UTC-8"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:san-francisco",
+          "rank": 1.3773
+        },
+        {
+          "id": "city:sydney",
+          "title": "Sydney  21:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+11 · +11h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☾",
+          "group": "World Clock",
+          "score": 0.538,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "sydney"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "sydney",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "sydney"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 21:00:00\n\nSydney · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "21:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Australia"
+              },
+              {
+                "label": "Time zone",
+                "value": "Australia/Sydney"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+11"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "AEDT"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Friday, January 1, 2027 11:00 → UTC+11"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:sydney",
+          "rank": 1.3766
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:world-clock",
+          "title": "World Clock",
+          "subtitle": "World Clock",
+          "icon": {
+            "name": "clock"
+          },
+          "keywords": [
+            "time",
+            "clock",
+            "time zone",
+            "world time",
+            "时间",
+            "时区",
+            "世界时间"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/cmd:world-clock",
+          "rank": 0.6649999999999999
+        }
+      ]
+    }
+  ]
+}

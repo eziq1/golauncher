@@ -12,6 +12,7 @@
   - **剪贴板历史**（`Alt+Shift+V`）：记录文字、图片和文件，支持全文搜索；不记录密码管理器复制的内容。
   - **文件搜索**：基于 [Everything](https://www.voidtools.com/)，需要系统里已经安装 Everything。
   - **Scoop**：搜索、安装、升级、卸载 [Scoop](https://scoop.sh) 软件包，需要系统里已经安装 Scoop。
+  - **世界时钟**：输入 `time` 查看本地时间和主要城市的时间；`time tokyo`、`time bj`、`time 北京`、`time utc+8`、`time pst` 可以搜索城市。时间实时跳动，收藏的城市排在前面。
 - **设置窗口**（`Ctrl+,`）：快捷键、别名、插件偏好、主题。
 - **`glctl`**：无头 CLI，驱动的是同一个引擎，你或 AI Agent 不打开界面也能测试所有交互流程。
 

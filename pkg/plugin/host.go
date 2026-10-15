@@ -78,6 +78,7 @@ type Clipboard interface {
 const (
 	EventClipboardChanged = "clipboard-changed" // payload: nil
 	EventWindowShown      = "window-shown"
+	EventWindowHidden     = "window-hidden" // the launcher panel was hidden
 	EventLocaleChanged    = "locale-changed"
 	EventConfigChanged    = "config-changed"
 )

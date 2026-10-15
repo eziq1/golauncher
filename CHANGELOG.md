@@ -32,6 +32,9 @@ Before 1.0.0, minor versions may contain breaking changes.
   and outdated lists, update all, bucket management, hold/unhold and clean-up.
   Reads Scoop's files directly, so search is instant; operations run one at a
   time with live output. Disabled when Scoop is not installed.
+- **World Clock**: type `time` (or `tz`) for your local time and major cities;
+  `time bj`, `time 北京` or `time utc+8` find a city. The clocks tick every
+  second; favorite cities stay on top. 185 cities, time zone data built in.
 - **Plugin settings**: buttons (e.g. "Sign in"), options loaded at runtime,
   groups and preferences shown only when another one has a certain value.
 

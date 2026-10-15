@@ -137,11 +137,12 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		e.plugins = append(e.plugins, l)
 		e.byID[m.ID] = l
 	}
-	// Tell plugins that track open views (out-of-process ones) when a view
-	// closes, so they can free its state and an idle process can stop.
+	// Tell plugins that track open views (plugin.ViewCloser: external plugin
+	// proxies, timers of in-process ones) when a view closes, so they can
+	// free its state and an idle process can stop.
 	e.OnViewClosed(func(pluginID, instance string) {
 		if l, ok := e.byID[pluginID]; ok {
-			if vc, ok := l.p.(interface{ ViewClosed(instance string) }); ok {
+			if vc, ok := l.p.(plugin.ViewCloser); ok {
 				vc.ViewClosed(instance)
 			}
 		}

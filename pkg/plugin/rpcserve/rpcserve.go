@@ -181,6 +181,10 @@ func (s *server) handle(ctx context.Context, method string, params jsontext.Valu
 		}
 		return nil, nil
 	case protocol.NotifyViewClosed:
+		a, err := decode[protocol.ViewClosedParams](params)
+		if vc, ok := s.p.(plugin.ViewCloser); ok && err == nil {
+			s.guard("ViewClosed", func() error { vc.ViewClosed(a.Instance); return nil })
+		}
 		return nil, nil
 	}
 	if notify {

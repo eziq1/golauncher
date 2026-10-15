@@ -105,6 +105,74 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.clock",
+    "name": "World Clock",
+    "description": "The time around the world. Type “time” and a city, country or time zone in the main search.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "clock"
+    },
+    "enabled": true,
+    "permissions": [
+      "clipboard",
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "world-clock",
+        "title": "World Clock",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "prefixes",
+        "type": "stringList",
+        "title": "Search prefixes",
+        "description": "Words that start a world clock search in the main search, as in “time tokyo”.",
+        "default": [
+          "time",
+          "tz"
+        ]
+      },
+      {
+        "name": "cities",
+        "type": "stringList",
+        "title": "Cities",
+        "description": "Cities listed after your favorites: English or Chinese names, abbreviations (nyc) or IANA time zones (Asia/Tokyo).",
+        "default": [
+          "Beijing",
+          "Tokyo",
+          "Singapore",
+          "Mumbai",
+          "Dubai",
+          "Moscow",
+          "London",
+          "Paris",
+          "Berlin",
+          "New York",
+          "San Francisco",
+          "Sydney"
+        ]
+      },
+      {
+        "name": "hour24",
+        "type": "bool",
+        "title": "24-hour clock",
+        "description": "Show times as 14:30 instead of 2:30 PM.",
+        "default": true
+      },
+      {
+        "name": "showSeconds",
+        "type": "bool",
+        "title": "Show seconds",
+        "description": "Show the seconds, so the clocks visibly tick.",
+        "default": true
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.everything",
     "name": "File Search (Everything)",
     "description": "Find files and folders on this computer instantly with voidtools Everything.",

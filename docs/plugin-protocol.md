@@ -152,7 +152,7 @@ they are created without a console window.
 - Storage is a private key/value store. Text values travel in `value`;
   values that are not valid UTF-8 travel base64-encoded in `base64`.
 - `image` in a clipboard read is a base64 PNG.
-- Events: `clipboard-changed`, `window-shown`, `locale-changed`,
+- Events: `clipboard-changed`, `window-shown`, `window-hidden`, `locale-changed`,
   `config-changed` (the last two also arrive as `localeChanged` and
   `preferencesChanged`).
 - `level` is `debug`, `info`, `warn` or `error`. `host/log` may also be

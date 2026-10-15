@@ -16,6 +16,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`clipboard`](../plugins/clipboard/) | build a command with its own searchable view, a detail pane and callbacks |
 | [`everything`](../plugins/everything/) | depend on external software and report when it is unavailable |
 | [`scripts`](../plugins/scripts/) | run processes, stream output into a view with `Invalidate`, take arguments |
+| [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
 
 ## The model
 
@@ -229,6 +230,10 @@ is opened. Push a complete new `View` for it with
 - The selection is kept by item ID, as with Invalidate.
 - The next pull (the user typing) replaces the content again, so `View`
   should return the same current state.
+- Implement `plugin.ViewCloser` to hear when an instance closes, so a timer
+  pushing to it can stop. Also stop on the `window-hidden` event: while the
+  launcher is hidden nothing is shown, and showing it again resets it to the
+  root search (closing open views).
 
 Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
 stay simple, testable and deterministic.
@@ -262,7 +267,7 @@ error.
 | `Storage()` | A private key/value store. |
 | `DataDir()`, `CacheDir()` | Private directories. |
 | `Clipboard()` | Clipboard access. |
-| `Events()` | Host events: `clipboard-changed`, `window-shown`, `locale-changed`, `config-changed`. |
+| `Events()` | Host events: `clipboard-changed`, `window-shown`, `window-hidden`, `locale-changed`, `config-changed`. |
 | `I18n()` | Your translations plus number and relative-time formatting. |
 | `Now()` | The current time. Use it rather than `time.Now()` so tests can fix the clock. |
 | `Logger()` | A logger. |

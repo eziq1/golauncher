@@ -48,6 +48,13 @@ type ActionHandler interface {
 	HandleAction(ctx context.Context, a ActionDo) (Result, error)
 }
 
+// ViewCloser is implemented by plugins that keep state per open view, such as
+// a timer pushing Host.Render. The host calls ViewClosed (on a background
+// goroutine) when the view instance (ViewRequest.Instance) is closed.
+type ViewCloser interface {
+	ViewClosed(instance string)
+}
+
 // LocaleProvider exposes the plugin's message catalogs: a filesystem holding
 // "<lang>.json" files (for example "en.json"). Manifest strings written as
 // "%key%" and Localizer lookups resolve against these catalogs.
