@@ -43,6 +43,11 @@ WebView2).
 - **Data locations**: `config.json` in `%APPDATA%\golauncher`; databases and
   clipboard history in `%LOCALAPPDATA%\golauncher\data` so they never roam.
   A corrupt `config.json` is set aside and the defaults are used.
+- **Robustness**: plugins cannot take the launcher down. Panics in plugin
+  calls, `Init`/`Close`, event handlers and plugin goroutines (started with
+  the new `Host.Go`) are contained and logged; hung plugin calls time out
+  (10 s for views, 30 s for actions). Fatal crashes write their traceback to
+  `%LOCALAPPDATA%\golauncher\logs\golauncher.log`.
 - **Destructive-action confirmation**: commands and actions marked
   destructive ask for confirmation in the GUI and in `glctl` sessions.
 - **`glctl`**, a headless CLI for agents and tests: `query`, `run`,
