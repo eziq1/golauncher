@@ -19,6 +19,6 @@
 | R11 | 2026-10-15 | 本机运行时，文件搜索导致程序崩溃 | [reliability.md §1](reliability.md)：视图返回空分组时选中下标为 -1，底栏越界。已修复，并加了回归测试 | ✅ |
 | R12 | 2026-10-15 | 问：怎么才能逮住这种崩溃？ | [reliability.md §2](reliability.md)：`debug.SetCrashOutput` 把崩溃调用栈写进日志 | ✅ |
 | R13 | 2026-10-15 | 用子 Agent 调研 Raycast 扩展仓库（raycast/extensions），看能否直接集成它们的扩展 | [raycast-extensions-research.md](raycast-extensions-research.md) | 🚧 调研中 |
-| R14 | 2026-10-15 | 在主程序和插件之间加一层防护：插件崩溃时主程序不能崩 | [reliability.md §3](reliability.md)：进程内防护（recover、`Host.Go`、事件分发、超时）；彻底隔离靠 M5 外部插件 | 🚧 进程内防护已完成，待提交 |
+| R14 | 2026-10-15 | 在主程序和插件之间加一层防护：插件崩溃时主程序不能崩 | [reliability.md §3](reliability.md)：进程内防护（recover、`Host.Go`、事件分发、超时）；彻底隔离靠 M5 外部插件 | ✅ 进程内防护已完成；进程隔离随 M5 外部插件 📋 |
 | R15 | 2026-10-15 | 自安装：第一次打开时弹出安装界面，默认装到用户程序目录；已安装时比较版本，不一致就提示升级或降级，一致就跳过 | [self-install.md](self-install.md) | 🚧 子代理实现中 |
 | R16 | 2026-10-15 | 每个新需求和每个方案都要落到 docs 里 | 本台账，以及每项对应的方案文档 | ✅ 持续执行 |
