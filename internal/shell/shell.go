@@ -139,6 +139,7 @@ func Run(o Options) error {
 	defer cancel()
 	s := &Shell{log: log, level: level, version: o.Version, ctx: ctx, cancel: cancel, keepLoginItem: o.keepLoginItem}
 	builtin.HostVersion = o.Version
+	devToolsVersion = o.Version
 	plugins := builtin.All
 	if o.Plugins != nil {
 		plugins = o.Plugins
@@ -184,6 +185,7 @@ const ControlEnv = "GOLAUNCHER_CONTROL"
 // ready creates the windows, the tray icon and the hotkeys.
 func (s *Shell) ready(action string) {
 	s.panel = mygo.NewWindow(mygo.WindowOptions{
+		Page:          mygo.PageOptions{DevTools: devTools()},
 		Title:         s.loc.T("app.name"),
 		Width:         ui.LauncherWidth,
 		Height:        ui.LauncherHeight,
@@ -320,6 +322,7 @@ func (s *Shell) showSettings(page string) {
 	s.hideLauncher()
 	if s.settingsWin == nil {
 		s.settingsWin = mygo.NewWindow(mygo.WindowOptions{
+			Page:      mygo.PageOptions{DevTools: devTools()},
 			Title:     s.loc.T("settings.title"),
 			Width:     ui.SettingsWidth,
 			Height:    ui.SettingsHeight,

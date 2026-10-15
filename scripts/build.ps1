@@ -70,7 +70,8 @@ try {
     $ldflags = "-s -w -X main.version=$Version"
     Push-Location $root
     try {
-        go build -trimpath -ldflags "-H windowsgui $ldflags" -o (Join-Path $OutDir 'golauncher.exe') ./cmd/golauncher
+        # mygo_noinspector leaves MyGo's developer tools out of release binaries.
+        go build -trimpath -tags mygo_noinspector -ldflags "-H windowsgui $ldflags" -o (Join-Path $OutDir 'golauncher.exe') ./cmd/golauncher
         if ($LASTEXITCODE -ne 0) { throw 'go build ./cmd/golauncher failed' }
         go build -trimpath -ldflags $ldflags -o (Join-Path $OutDir 'glctl.exe') ./cmd/glctl
         if ($LASTEXITCODE -ne 0) { throw 'go build ./cmd/glctl failed' }

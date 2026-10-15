@@ -106,6 +106,7 @@ func runInstaller(in *install.Installer, st install.State, args []string) error 
 	view := ui.NewInstaller(loc, h, ui.InstallerInfo{Version: in.Version, State: st, Dir: in.Paths.DefaultDir})
 	mygo.App.WhenReady(func() {
 		h.win = mygo.NewWindow(mygo.WindowOptions{
+			Page:            mygo.PageOptions{DevTools: devTools()},
 			Title:           loc.T("install.windowTitle"),
 			Width:           ui.InstallerWidth,
 			Height:          ui.InstallerHeight,

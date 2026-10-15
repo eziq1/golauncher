@@ -31,6 +31,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **Plugin settings**: buttons (e.g. "Sign in"), options loaded at runtime,
   groups and preferences shown only when another one has a certain value.
 
+### Fixed
+
+- MyGo's developer tools (inspector) were enabled in release builds: F12,
+  Ctrl+Shift+I and Ctrl+Shift+C opened them, and Ctrl+Shift+C ("Copy Path")
+  did not reach the launcher. They are now left out of release builds; set
+  `GOLAUNCHER_DEVTOOLS=1` to enable them for debugging.
+
 ### Changed
 
 - **File search** ranks your own files first and system, cache and program

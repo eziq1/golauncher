@@ -53,3 +53,12 @@
 - 同时你报告了文件搜索崩溃（R11），我**在生成 Release 之前取消了这次发布运行**。GitHub 上没有发布出任何版本。
 - 2026-10-15：经你同意，删除了指向旧提交的远端和本地 `v0.1.0` tag。等 R15（自安装）合入、CHANGELOG 更新后，在新的提交上重新打 `v0.1.0` 发布。
 - 2026-10-15：在提交 `7e3262d`（包含自安装、崩溃修复和插件防护）上重新打了 `v0.1.0`。发布工作流全部通过，Release 已发布：<https://github.com/eziq1/golauncher/releases/tag/v0.1.0>。产物是 amd64 和 arm64 两个 zip 加 `checksums.txt`，标记为预发布。
+
+## 5. v0.1.0 的已知问题
+
+- **开发者工具没有关闭**（R21）：MyGo 只有在用 `mygo build` 以生产模式构建时才关闭它的开发者工具。我们用的是 `go build`，所以 v0.1.0 里按 F12、Ctrl+Shift+I、Ctrl+Shift+C 会打开 Inspector 面板。其中 Ctrl+Shift+C 还会抢走"复制路径"这个快捷键。
+- 已在 main 上修复：
+  - 所有窗口显式设置 `PageOptions.DevTools`：只有版本号为 `dev`（本地未打版本号的构建）或设置了环境变量 `GOLAUNCHER_DEVTOOLS=1` 时才开启。
+  - `scripts/build.ps1` 加了 `-tags mygo_noinspector`，发布包里不再包含开发者工具的代码。
+- 修复随 v0.2.0 发布。
+- **以后升级 MyGo 时要检查**：是否有新的、只在 `mygo build` 下才生效的生产模式行为。
