@@ -121,6 +121,15 @@ func (p *Plugin) use() {
 	p.wg.Add(1)
 	p.h.Go(func() {
 		defer p.wg.Done()
+		p.mu.Lock()
+		closed := p.closed
+		p.mu.Unlock()
+		if closed {
+			p.mu.Lock()
+			p.loading = false
+			p.mu.Unlock()
+			return
+		}
 		_, err := p.index()
 		p.mu.Lock()
 		p.loading = false

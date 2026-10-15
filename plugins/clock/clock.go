@@ -188,13 +188,18 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 func (p *Plugin) Close() error {
 	p.mu.Lock()
 	p.closed = true
-	p.releaseOnCloseLocked()
+	p.disarmIdleLocked()
 	p.mu.Unlock()
 	p.stopAll()
 	if p.unsub != nil {
 		p.unsub()
 	}
+	// Release only after a background load has ended: a load still to start
+	// would otherwise build the index again after it was dropped.
 	p.wg.Wait()
+	p.mu.Lock()
+	p.releaseOnCloseLocked()
+	p.mu.Unlock()
 	return nil
 }
 
