@@ -103,3 +103,20 @@
   - 用 MCP 让 Claude 应用反过来使用启动器的插件。
 
   三者都不需要 API Key，可以和 §4 的 API 方式并存，在设置里选一个"默认 AI"。
+### 6.1 CLI 方式下保留会话
+
+两个 CLI 都能接着之前的会话继续（按本机安装的版本的 `--help` 核对过）：
+
+- **Claude Code**：
+  - 新会话用 `claude -p "…" --session-id <uuid>`，ID 由启动器生成；
+  - 追问用 `claude -p "…" --resume <uuid>`；
+  - 也可以从 `--output-format json` 或 `stream-json` 的输出里读 `session_id`；
+  - `--fork-session` 可以从某个历史点分出新会话；
+  - 不想留记录时用 `--no-session-persistence`。
+- **Codex**：`codex exec resume <SESSION_ID> "…"`，或用 `--last` 接最近的一个；`--json` 输出事件流。
+- **怎么接进启动器**：
+  - 每个 AI 对话视图对应一个会话 ID，保存在插件存储里，所以关掉启动器、重启电脑后还能在"AI 对话历史"里打开接着聊；
+  - 每次追问都是一次新的 CLI 进程加 `--resume`，上下文由 CLI 从本地会话记录里恢复；
+  - 每次要重新启动进程（几秒），所以适合"问一句、看一段"的节奏，不适合逐字实时对话。
+- **工作目录要单独用一个**：Claude Code 的会话按工作目录归档（`~/.claude/projects/<目录>`），`--continue` 也是按目录找"最近的会话"。启动器固定在 `%LOCALAPPDATA%\golauncher\ai\` 下运行 CLI，这样不会和你平时写代码的会话混在一起；也只用显式的 `--resume <id>`，不用 `--continue`。
+- **只问答，不动电脑**：用 `--tools ""`（不给任何工具）或只给只读的工具，权限模式不跳过确认；Codex 用 `--sandbox read-only`。
