@@ -462,9 +462,33 @@ func (p *Plugin) bucketsView(t plugin.Localizer, ix *Index) plugin.View {
 
 // ---- cleanup ----
 
-func (p *Plugin) cleanupView(ctx context.Context, t plugin.Localizer, ix *Index) (plugin.View, error) {
+// reclaimTTL is how long a measured cleanup size is reused: measuring
+// walks every old version folder, which takes seconds on a large install.
+const reclaimTTL = time.Minute
+
+// reclaimFor returns what cleanup would free, measured at most once per
+// reclaimTTL for the same index and between operations.
+func (p *Plugin) reclaimFor(ctx context.Context, ix *Index) (Reclaim, error) {
+	p.mu.Lock()
+	if p.reclaimIx == ix && time.Since(p.reclaimAt) < reclaimTTL {
+		r := p.reclaim
+		p.mu.Unlock()
+		return r, nil
+	}
+	p.mu.Unlock()
 	r := computeReclaim(ctx, ix.Root, ix.Apps)
 	if err := ctx.Err(); err != nil {
+		return Reclaim{}, err
+	}
+	p.mu.Lock()
+	p.reclaim, p.reclaimIx, p.reclaimAt = r, ix, time.Now()
+	p.mu.Unlock()
+	return r, nil
+}
+
+func (p *Plugin) cleanupView(ctx context.Context, t plugin.Localizer, ix *Index) (plugin.View, error) {
+	r, err := p.reclaimFor(ctx, ix)
+	if err != nil {
 		return plugin.View{}, err
 	}
 	v := plugin.View{

@@ -107,6 +107,10 @@ type Plugin struct {
 	queue      []*op
 	working    bool
 	opSeq      int
+	// The last cleanup measurement (see reclaimFor).
+	reclaim   Reclaim
+	reclaimIx *Index
+	reclaimAt time.Time
 }
 
 var (

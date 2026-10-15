@@ -1,5 +1,7 @@
 package scoop
 
+// Copied from plugins/scripts (plugins may not import each other).
+
 import (
 	"bytes"
 	"regexp"

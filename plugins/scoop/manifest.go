@@ -27,13 +27,13 @@ type Package struct {
 // rawManifest is the part of a Scoop manifest the plugin reads. Fields with
 // several forms are decoded by hand.
 type rawManifest struct {
-	Version      jsontext.Value         `json:"version"`
-	Description  jsontext.Value         `json:"description"`
-	Homepage     jsontext.Value         `json:"homepage"`
-	License      jsontext.Value         `json:"license"`
-	Bin          jsontext.Value         `json:"bin"`
-	Notes        jsontext.Value         `json:"notes"`
-	Architecture map[string]rawArchPart `json:"architecture"`
+	Version      jsontext.Value `json:"version"`
+	Description  jsontext.Value `json:"description"`
+	Homepage     jsontext.Value `json:"homepage"`
+	License      jsontext.Value `json:"license"`
+	Bin          jsontext.Value `json:"bin"`
+	Notes        jsontext.Value `json:"notes"`
+	Architecture jsontext.Value `json:"architecture"`
 }
 
 type rawArchPart struct {
@@ -63,8 +63,12 @@ func ParseManifest(name string, data []byte) (Package, error) {
 	p.Bin = binNames(m.Bin, nil)
 	// Architecture-specific bins: 64bit first, as that is what is installed
 	// on almost every machine.
+	var archs map[string]rawArchPart
+	if m.Architecture.Kind() == '{' {
+		_ = json.Unmarshal(m.Architecture, &archs, lenient)
+	}
 	for _, arch := range []string{"64bit", "arm64", "32bit"} {
-		if a, ok := m.Architecture[arch]; ok {
+		if a, ok := archs[arch]; ok {
 			p.Bin = binNames(a.Bin, p.Bin)
 		}
 	}

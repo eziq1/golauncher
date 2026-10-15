@@ -273,6 +273,9 @@ func (p *Plugin) run(o *op) {
 	o.status, o.ended, o.exitCode, o.err = opDone, p.h.Now(), code, err
 	stopped := o.stopped
 	o.mu.Unlock()
+	p.mu.Lock()
+	p.reclaimIx = nil // folders and the cache may have changed
+	p.mu.Unlock()
 	close(stopRefresh)
 	close(o.done)
 	if (code != 0 || err != nil) && !stopped {
