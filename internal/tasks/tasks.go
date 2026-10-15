@@ -173,13 +173,18 @@ func New(o Options) *Manager {
 	return m
 }
 
-// t localizes a host message.
-func (m *Manager) t(id string, kv ...any) string {
+// loc is the localizer of the host's messages (one returning the message
+// IDs without Options.Loc).
+func (m *Manager) loc() interface{ T(string, ...any) string } {
 	if m.o.Loc == nil {
-		return id
+		return keys{}
 	}
-	return m.o.Loc.T(id, kv...)
+	return m.o.Loc
 }
+
+type keys struct{}
+
+func (keys) T(id string, _ ...any) string { return id }
 
 // OnChange registers fn, called after a change: with state true when a
 // task was added, removed, started or ended (the indicator may change),
@@ -231,9 +236,9 @@ func (m *Manager) RunProcess(pluginID string, spec plugin.TaskSpec, cmd plugin.P
 	var err error
 	switch {
 	case m.o.Allowed != nil && !m.o.Allowed(pluginID):
-		err = errors.New(m.t("tasks.error.permission", "plugin", pluginID))
+		err = errors.New(m.loc().T("tasks.error.permission", "plugin", pluginID))
 	case len(cmd.Argv) == 0 || cmd.Argv[0] == "":
-		err = errors.New(m.t("tasks.error.noCommand"))
+		err = errors.New(m.loc().T("tasks.error.noCommand"))
 	}
 	return m.add(t, err)
 }
@@ -244,7 +249,7 @@ func (m *Manager) RunTask(pluginID string, spec plugin.TaskSpec, fn plugin.TaskF
 	t.fn = fn
 	var err error
 	if fn == nil {
-		err = errors.New(m.t("tasks.error.noCommand"))
+		err = errors.New(m.loc().T("tasks.error.noCommand"))
 	}
 	return m.add(t, err)
 }
@@ -271,7 +276,7 @@ func (m *Manager) add(t *task, err error) string {
 		t.info.LogPath = filepath.Join(m.o.Dir, t.info.ID+".log")
 	}
 	if m.closed && err == nil {
-		err = errors.New(m.t("tasks.error.closed"))
+		err = errors.New(m.loc().T("tasks.error.closed"))
 	}
 	m.tasks = append(m.tasks, t)
 	m.inflight++

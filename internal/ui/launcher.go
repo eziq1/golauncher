@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -116,6 +117,12 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 		l.theme.Store(c.Theme)
 		host.Invalidate()
 	})
+	// The footer's task indicator follows the background tasks.
+	env.Tasks.OnChange(func(state bool) {
+		if state {
+			host.Invalidate()
+		}
+	})
 	return l
 }
 
@@ -150,6 +157,15 @@ func (l *Launcher) Key(key string) {
 func (l *Launcher) OpenCommand(pluginID, name string) {
 	l.work.Do(func(ctx context.Context) {
 		out, err := l.ctrl.OpenCommand(ctx, pluginID, name)
+		l.apply(out, err)
+	})
+}
+
+// OpenTasks queues opening Background Tasks at task id ("" for all tasks),
+// as a notification about a task does.
+func (l *Launcher) OpenTasks(id string) {
+	l.work.Do(func(ctx context.Context) {
+		out, err := l.ctrl.OpenTasks(ctx, id)
 		l.apply(out, err)
 	})
 }
@@ -245,7 +261,7 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 	case mods == mui.Shift && key == mui.KeyTab:
 		l.Key(name)
 		return true
-	case mods == mui.Ctrl && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP):
+	case mods == mui.Ctrl && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP || key == mui.KeyJ):
 		l.Key(name)
 		return true
 	}
@@ -553,6 +569,9 @@ func (l *Launcher) detail(c *mui.Context, d *plugin.Detail) {
 func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 	t := c.Theme()
 	mui.Row(c).Height(40).Padding(0, 12, 0, 16).Gap(10).AlignItems(mui.Center).Children(func() {
+		if s.Tasks != nil {
+			l.tasksIndicator(c, s.Tasks)
+		}
 		if s.Toast != nil {
 			color, icon := t.Text, "info"
 			switch s.Toast.Style {
@@ -593,6 +612,31 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 		mui.Box(c).Size(1, 16).Background(t.Border)
 		if l.footerButton(c, l.loc.T("ui.footer.actions"), "Ctrl+K") {
 			l.Key("Ctrl+K")
+		}
+	})
+}
+
+// tasksIndicator shows the background tasks in the footer: a spinner and
+// the number of queued and running tasks, or a red dot for failures not
+// seen yet. Clicking it (like Ctrl+J) opens Background Tasks.
+func (l *Launcher) tasksIndicator(c *mui.Context, ts *core.TasksSnapshot) {
+	t := c.Theme()
+	b := mui.Row(c.Key("tasks-indicator")).Gap(5).Padding(3, 6).Radius(6).AlignItems(mui.Center).
+		Label(ts.Label).Tooltip(ts.Label)
+	if b.Hovered() {
+		b.Background(t.Text.Alpha(0.08))
+	}
+	if b.Clicked() {
+		l.Key(core.KeyTasks)
+		l.input.Focus()
+	}
+	b.Children(func() {
+		if ts.Active > 0 {
+			mui.Spinner(c).Size(12, 12)
+			mui.Text(c, strconv.Itoa(ts.Active)).FontSize(12).TextColor(t.TextMuted).SingleLine()
+		}
+		if ts.Failed > 0 {
+			mui.Box(c).Size(8, 8).Radius(4).Background(t.Danger)
 		}
 	})
 }

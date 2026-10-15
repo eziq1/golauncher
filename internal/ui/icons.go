@@ -27,6 +27,7 @@ var iconPaths = map[string]string{
 	"search":       `<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`,
 	"pin":          `<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>`,
 	"trash":        `<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>`,
+	"activity":     `<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>`,
 	"chevron-left": `<path d="m15 18-6-6 6-6"/>`,
 	"info":         `<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>`,
 	"wrench":       `<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>`,
@@ -125,7 +126,25 @@ func (l *Launcher) icon(c *mui.Context, ic plugin.Icon, size float32, fg mui.Col
 		name = "app"
 	}
 	t := c.Theme()
+	if fg != t.AccentText { // on the selected row the icon keeps the row's color
+		fg = tint(t, ic.Tint, fg)
+	}
 	mui.Box(c).Size(size, size).Center().Radius(size / 4).Background(t.Text.Alpha(0.08)).Children(func() {
 		mui.Icon(c, builtinIcon(name)).FontSize(size * 0.6).TextColor(fg)
 	})
+}
+
+// tint is the color of a built-in icon with plugin.Icon.Tint, or fg.
+func tint(t *mui.Theme, tint plugin.IconTint, fg mui.Color) mui.Color {
+	switch tint {
+	case plugin.TintSuccess:
+		return t.Success
+	case plugin.TintDanger:
+		return t.Danger
+	case plugin.TintAccent:
+		return t.Accent
+	case plugin.TintMuted:
+		return t.TextMuted
+	}
+	return fg
 }
