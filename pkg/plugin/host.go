@@ -35,6 +35,19 @@ type Host interface {
 	// ViewRequest.Instance). Pushes for closed or unknown instances are
 	// dropped. Safe from any goroutine.
 	Render(instance string, v View)
+
+	// RunProcess queues a command line as a background task and returns its
+	// ID at once. It needs PermExec; without it the task fails at once. The
+	// host shows the task in Background Tasks, keeps its output and notifies
+	// when it ends (TaskSpec.Notify). See docs/background-tasks.md.
+	RunProcess(spec TaskSpec, cmd ProcessSpec) string
+	// RunTask queues fn as a background task (work done in Go) and returns
+	// its ID. fn must return when its context is cancelled (Stop or quit).
+	// A panic in fn fails the task instead of crashing the launcher.
+	RunTask(spec TaskSpec, fn TaskFunc) string
+	// Toast shows a short message: in the launcher's footer when it is
+	// visible, otherwise as a Windows notification. Safe from any goroutine.
+	Toast(t Toast)
 }
 
 // KV is a small persistent key/value store.

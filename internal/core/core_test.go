@@ -139,7 +139,7 @@ func TestRootEmptyShowsCommands(t *testing.T) {
 	if len(s.Sections) != 1 || s.Sections[0].Title != "Commands" {
 		t.Fatalf("sections = %+v", s.Sections)
 	}
-	if got := titles(s); strings.Join(got, ",") != "Browse Fruits,Ping Server,Ping Server Reset" {
+	if got := titles(s); strings.Join(got, ",") != "Background Tasks,Browse Fruits,Ping Server,Ping Server Reset" {
 		t.Fatalf("titles = %v", got)
 	}
 }
@@ -356,7 +356,7 @@ func TestUnavailablePlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer env.Close()
-	infos := env.Engine.Plugins()
+	infos := withoutTasks(env.Engine.Plugins())
 	if len(infos) != 1 || infos[0].Unavailable != "Dep Tool is not installed" || infos[0].Enabled {
 		t.Fatalf("infos = %+v", infos)
 	}
@@ -524,7 +524,7 @@ func TestHungPluginTimesOut(t *testing.T) {
 
 func TestInitPanicMakesPluginUnavailable(t *testing.T) {
 	env := buildWith(t, hangs{panicInit: true})
-	infos := env.Engine.Plugins()
+	infos := withoutTasks(env.Engine.Plugins())
 	if len(infos) != 1 || !strings.Contains(infos[0].Unavailable, "crashed") {
 		t.Fatalf("infos = %+v", infos)
 	}

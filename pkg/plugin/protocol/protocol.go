@@ -29,6 +29,9 @@ const (
 	NotifyPreferencesChanged = "preferencesChanged"
 	NotifyEvent              = "event"
 	NotifyViewClosed         = "viewClosed"
+	// NotifyTaskFinished tells the plugin that a task it started with
+	// host/task.runProcess ended.
+	NotifyTaskFinished = "taskFinished"
 )
 
 // Methods the plugin calls on the host (requests).
@@ -43,6 +46,12 @@ const (
 	HostSubscribe           = "host/subscribe"
 	// HostLog may be sent as a request or as a notification.
 	HostLog = "host/log"
+	// HostTaskRunProcess queues a background task (needs the exec
+	// permission).
+	HostTaskRunProcess = "host/task.runProcess"
+	// HostToast shows a toast or notification; it may be sent as a request
+	// or as a notification.
+	HostToast = "host/toast"
 )
 
 // Notifications the plugin sends to the host.
@@ -181,6 +190,29 @@ type SubscribeParams struct {
 type LogParams struct {
 	Level   string `json:"level"`
 	Message string `json:"message"`
+}
+
+// RunProcessParams are the parameters of host/task.runProcess.
+// Spec.OnDone is not sent: the plugin learns the outcome from the
+// taskFinished notification.
+type RunProcessParams struct {
+	Spec plugin.TaskSpec    `json:"spec"`
+	Cmd  plugin.ProcessSpec `json:"cmd"`
+}
+
+// RunProcessResult is the result of host/task.runProcess.
+type RunProcessResult struct {
+	ID string `json:"id"`
+}
+
+// TaskFinishedParams are the parameters of taskFinished.
+type TaskFinishedParams struct {
+	Result plugin.TaskResult `json:"result"`
+}
+
+// ToastParams are the parameters of host/toast.
+type ToastParams struct {
+	Toast plugin.Toast `json:"toast"`
 }
 
 // InvalidateParams are the parameters of host/invalidate.

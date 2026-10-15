@@ -182,6 +182,12 @@ func (s *server) handle(ctx context.Context, method string, params jsontext.Valu
 		return nil, nil
 	case protocol.NotifyViewClosed:
 		return nil, nil
+	case protocol.NotifyTaskFinished:
+		a, err := decode[protocol.TaskFinishedParams](params)
+		if err == nil {
+			h.taskFinished(a.Result)
+		}
+		return nil, nil
 	}
 	if notify {
 		return nil, nil
@@ -269,6 +275,96 @@ type host struct {
 	dataDir  string
 	cacheDir string
 	version  atomic.Int64
+
+	// OnDone callbacks of running tasks by ID, and results that arrived
+	// before the ID was known (the task ended before host/task.runProcess
+	// returned).
+	taskMu sync.Mutex
+	onDone map[string]func(plugin.TaskResult)
+	early  map[string]plugin.TaskResult
+}
+
+// maxEarly bounds the results kept for tasks without OnDone.
+const maxEarly = 64
+
+// RunProcess implements plugin.Host with host/task.runProcess. It returns
+// "" if the launcher refused (e.g. without the exec permission).
+func (h *host) RunProcess(spec plugin.TaskSpec, cmd plugin.ProcessSpec) string {
+	var r protocol.RunProcessResult
+	if err := h.call(protocol.HostTaskRunProcess, protocol.RunProcessParams{Spec: spec, Cmd: cmd}, &r); err != nil {
+		h.s.log.Warn("runProcess", "err", err)
+		return ""
+	}
+	if spec.OnDone != nil && r.ID != "" {
+		h.taskMu.Lock()
+		res, done := h.early[r.ID]
+		if done {
+			delete(h.early, r.ID)
+		} else {
+			if h.onDone == nil {
+				h.onDone = map[string]func(plugin.TaskResult){}
+			}
+			h.onDone[r.ID] = spec.OnDone
+		}
+		h.taskMu.Unlock()
+		if done {
+			h.Go(func() { spec.OnDone(res) })
+		}
+	}
+	return r.ID
+}
+
+// taskFinished runs the OnDone of a task, or keeps the result until
+// RunProcess learned the task's ID.
+func (h *host) taskFinished(res plugin.TaskResult) {
+	h.taskMu.Lock()
+	fn, ok := h.onDone[res.ID]
+	if ok {
+		delete(h.onDone, res.ID)
+	} else {
+		if h.early == nil {
+			h.early = map[string]plugin.TaskResult{}
+		}
+		if len(h.early) >= maxEarly {
+			clear(h.early)
+		}
+		h.early[res.ID] = res
+	}
+	h.taskMu.Unlock()
+	if ok {
+		h.Go(func() { fn(res) })
+	}
+}
+
+// RunTask implements plugin.Host. The protocol has no Go tasks: fn runs in
+// the plugin process, is not shown in the launcher's Background Tasks and
+// cannot be stopped from there. It returns "".
+func (h *host) RunTask(spec plugin.TaskSpec, fn plugin.TaskFunc) string {
+	h.s.log.Warn("RunTask is not supported by external plugins; running it in the plugin process", "title", spec.Title)
+	h.Go(func() {
+		err := fn(context.Background(), discardTask{})
+		if spec.OnDone != nil {
+			res := plugin.TaskResult{State: plugin.TaskSucceeded}
+			if err != nil {
+				res.State, res.Error, res.ExitCode = plugin.TaskFailed, err.Error(), -1
+			}
+			spec.OnDone(res)
+		}
+	})
+	return ""
+}
+
+type discardTask struct{}
+
+func (discardTask) Write(p []byte) (int, error) { return len(p), nil }
+func (discardTask) SetStatus(string)            {}
+func (discardTask) SetProgress(float64)         {}
+
+// Toast implements plugin.Host with host/toast.
+func (h *host) Toast(t plugin.Toast) {
+	if err := h.s.conn.Notify(protocol.HostToast, protocol.ToastParams{Toast: t}); err != nil {
+		h.s.log.Warn("toast", "err", err)
+	}
 }
 
 var _ plugin.Host = (*host)(nil)

@@ -3,6 +3,7 @@
 package hostfake
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/eziq1/golauncher/internal/host"
 	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -25,12 +27,18 @@ type Host struct {
 	Clip  *Clipboard
 	Bus   *host.Bus
 	I18N  *i18n.Manager
-	ns    string
-	dir   string
+	// Tasks runs RunProcess and RunTask; Runner is its fake process runner,
+	// whose commands end at once (see SetTaskRunner).
+	Tasks  *tasks.Manager
+	Runner *tasks.FakeRunner
+	ns     string
+	dir    string
+	perms  []plugin.Permission
 
 	mu          sync.Mutex
 	invalidated []string
 	rendered    []Rendered
+	toasts      []plugin.Toast
 }
 
 var _ plugin.Host = (*Host)(nil)
@@ -58,7 +66,7 @@ func New(p plugin.Plugin, dir string) (*Host, error) {
 			return nil, err
 		}
 	}
-	return &Host{
+	h := &Host{
 		Log:   slog.New(slog.NewTextHandler(io.Discard, nil)),
 		Clock: func() time.Time { return Fixed },
 		KV:    &KV{m: map[string][]byte{}},
@@ -68,7 +76,64 @@ func New(p plugin.Plugin, dir string) (*Host, error) {
 		I18N:  mgr,
 		ns:    m.ID,
 		dir:   dir,
-	}, nil
+		perms: m.Permissions,
+	}
+	h.Runner = &tasks.FakeRunner{}
+	h.SetTaskRunner(h.Runner)
+	return h, nil
+}
+
+// SetTaskRunner replaces the task manager by one whose processes r runs
+// (e.g. tasks.ProcessRunner{} to run real programs). Call it before the
+// plugin starts tasks. The log directory is dir/tasks. As in the real
+// host, a plugin without the exec permission cannot run processes, and
+// plugin.EventTaskFinished is published on Bus after each task.
+func (h *Host) SetTaskRunner(r tasks.Runner) {
+	if h.Tasks != nil {
+		h.Tasks.Close()
+	}
+	h.Tasks = tasks.New(tasks.Options{
+		Dir:     filepath.Join(h.dir, "tasks"),
+		Runner:  r,
+		Now:     func() time.Time { return h.Clock() },
+		Log:     h.Log,
+		Loc:     h.I18N.Localizer(i18n.CoreNamespace),
+		Allowed: func(string) bool { return slices.Contains(h.perms, plugin.PermExec) },
+		OnFinished: func(tasks.Info) {
+			h.Bus.Publish(plugin.EventTaskFinished)
+		},
+	})
+}
+
+// RunProcess implements plugin.Host with Tasks.
+func (h *Host) RunProcess(spec plugin.TaskSpec, cmd plugin.ProcessSpec) string {
+	return h.Tasks.RunProcess(h.ns, spec, cmd)
+}
+
+// RunTask implements plugin.Host with Tasks.
+func (h *Host) RunTask(spec plugin.TaskSpec, fn plugin.TaskFunc) string {
+	return h.Tasks.RunTask(h.ns, spec, fn)
+}
+
+// WaitTasks waits until every task ended and its OnDone returned.
+func (h *Host) WaitTasks() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	_ = h.Tasks.Wait(ctx)
+}
+
+// Toast implements plugin.Host and records the toast.
+func (h *Host) Toast(t plugin.Toast) {
+	h.mu.Lock()
+	h.toasts = append(h.toasts, t)
+	h.mu.Unlock()
+}
+
+// Toasts returns the toasts shown with Toast so far.
+func (h *Host) Toasts() []plugin.Toast {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return slices.Clone(h.toasts)
 }
 
 func (h *Host) Logger() *slog.Logger            { return h.Log }

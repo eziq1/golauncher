@@ -187,6 +187,27 @@ func (p *Proxy) hostHandler(proc *process) jsonrpc.Handler {
 				p.log.Info(a.Message)
 			}
 			return nil, nil
+		case protocol.HostTaskRunProcess:
+			if !p.has(plugin.PermExec) {
+				return nil, permissionDenied(plugin.PermExec)
+			}
+			a, err := decode[protocol.RunProcessParams](params)
+			if err != nil {
+				return nil, err
+			}
+			// The outcome goes back to the process running then (a restarted
+			// process has forgotten the task; an idle-stopped one misses it).
+			a.Spec.OnDone = func(r plugin.TaskResult) {
+				p.notify(protocol.NotifyTaskFinished, protocol.TaskFinishedParams{Result: r})
+			}
+			return protocol.RunProcessResult{ID: p.h.RunProcess(a.Spec, a.Cmd)}, nil
+		case protocol.HostToast:
+			a, err := decode[protocol.ToastParams](params)
+			if err != nil {
+				return nil, err
+			}
+			p.h.Toast(a.Toast)
+			return nil, nil
 		case protocol.NotifyInvalidate:
 			a, err := decode[protocol.InvalidateParams](params)
 			if err == nil {
