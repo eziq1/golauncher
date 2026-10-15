@@ -106,6 +106,7 @@ A plugin implements `plugin.Plugin` plus any of the optional interfaces below.
 | `ViewProvider` | Views opened by a `ModeView` command (the view ID is the command name) or by an `ActionPush`. It is called again on every keystroke, unless the view sets `FilterLocally`. |
 | `ActionHandler` | `ModeNoView` commands (`ActionRunCommand`) and your own callbacks (`ActionCallback`). It returns a `Result`, which can push a view, show a toast, hide the window, pop to the root or refresh. |
 | `LocaleProvider` | Your message catalogs. |
+| `PreferenceOptionsProvider` | The options of preferences declared with `DynamicOptions`. |
 
 ### Commands
 
@@ -122,6 +123,114 @@ Declare preferences in the manifest and Settings renders a form for them.
 Read them with `Host.Preferences()`; values fall back to the declared
 `Default`. `password` preferences are stored in Windows Credential Manager,
 not in `config.json`.
+
+Preferences can also be:
+
+- **Grouped**: preferences with the same `Group` (may be a `%key%`) are shown
+  under one heading, after the ungrouped ones.
+- **Conditional**: `VisibleWhen: &plugin.Condition{Pref: "mode", Equals: plugin.MustPayload("advanced")}`
+  shows the preference only while another one has that value (compared as
+  JSON values; the default counts when nothing is set).
+- **Buttons**: a `PrefButton` with an `Action` (usually an `ActionCallback`
+  handled by your `HandleAction`), for "Sign in" or "Test connection". The
+  `Toast` of the result is shown next to the button.
+- **Dynamic selects**: a `PrefSelect` with `DynamicOptions: true` gets its
+  options from your `PreferenceOptionsProvider.PreferenceOptions(ctx, name)`
+  each time its plugin page opens. Errors are shown under the field; the
+  call has the same time limit as a view.
+
+### Command arguments
+
+A command (or any `Item`) can declare up to three `Arguments`, which are
+typed inline next to the search field, as in Raycast:
+
+```go
+plugin.Command{Name: "greet", Title: "%command.greet.title%", Mode: plugin.ModeView,
+	Arguments: []plugin.Argument{
+		{Name: "name", Type: plugin.ArgText, Placeholder: "%arg.name%", Required: true},
+		{Name: "tone", Type: plugin.ArgDropdown, Placeholder: "%arg.tone%",
+			Options: []plugin.Option{{Value: "warm", Title: "%tone.warm%"}}},
+	}}
+```
+
+- With the entry selected, `Tab` moves from the search field into the
+  arguments and between them; `Shift+Tab` goes back.
+- `Enter` runs the primary action only when every required argument has a
+  value; otherwise the first empty one gets the focus.
+- The values reach your plugin as strings: in `ViewRequest.Arguments` for a
+  view command or an `ActionPush`, and in `ActionDo.Values` (JSON strings)
+  for no-view commands and callbacks.
+- A global hotkey of a command with required arguments shows the command in
+  the root search with its first argument focused instead of running it.
+- In `glctl`: `glctl session arg -s s.json name Ada`.
+
+### Form views
+
+Return a view of kind `ViewForm` to collect structured input. The host keeps
+the values, the focus and the errors, like the navigation stack:
+
+```go
+return plugin.View{Kind: plugin.ViewForm, Title: l.T("form.title"), Form: &plugin.Form{
+	Fields: []plugin.Field{
+		{ID: "subject", Type: plugin.FieldText, Title: l.T("form.subject"), Required: true},
+		{ID: "count", Type: plugin.FieldNumber, Title: l.T("form.count"), Default: plugin.MustPayload(3)},
+		{ID: "urgent", Type: plugin.FieldCheckbox, Title: l.T("form.urgent")},
+	},
+	Submit: plugin.Action{ID: "send", Title: l.T("form.send"),
+		Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "send"}},
+}}, nil
+```
+
+- Field types: `text`, `password`, `textarea`, `number`, `checkbox`,
+  `dropdown` (with `Options`), `date` (`"YYYY-MM-DD"`) and `file` (a path).
+  `Info` is shown under the field.
+- Keys: `Tab`/`Shift+Tab` move between fields, `Enter` moves to the next
+  field and submits from the last one (it breaks the line in a textarea),
+  `Ctrl+Enter` submits from anywhere, `Escape` goes back.
+- Before calling you, the host checks `Required` fields, numbers, dates and
+  dropdown choices and shows its own messages.
+- `Submit` runs with `ActionDo.Values`: numbers as JSON numbers (`null` when
+  empty), checkboxes as booleans and everything else as strings. If `Submit`
+  is an `ActionPush`, the values also arrive as `ViewRequest.Arguments`.
+- To reject the values, return `Result{FieldErrors: map[string]string{"subject": l.T("err.tooShort")}}`:
+  the form stays open with the messages under the fields. Return
+  `PopToRoot`, `Push` or a `Toast` on success.
+- Values typed survive when the form is pulled again (same field IDs).
+- In `glctl`: `glctl session field -s s.json subject "Hello"`, then
+  `glctl session key -s s.json Ctrl+Enter`.
+
+### Updating what is shown: Invalidate
+
+Views and root results are pulled: the host calls `View` / `RootItems` when
+the user types or navigates. When your data changes on its own (a new
+clipboard entry, an index that finished refreshing), call
+`Host.Invalidate(viewID)` from any goroutine:
+
+- If one of your views with that ID is on top (`""` means any of your
+  views), the host pulls it again.
+- If the root search is on top and you are a `RootProvider`, the host pulls
+  the root results again.
+- Bursts are coalesced (one refresh per 50ms), a refresh never cancels a
+  search in flight, and the selected row is kept by item ID. So it is fine
+  to call it often, but call it only when something changed.
+
+### Pushing views: Render
+
+For content that changes continuously (progress, streaming output), a view
+can also be pushed. Every opened view gets an instance ID in
+`ViewRequest.Instance` (for example `"v17"`); it changes each time the view
+is opened. Push a complete new `View` for it with
+`Host.Render(req.Instance, v)` from any goroutine:
+
+- Pushes for instances that are no longer open are dropped.
+- The host applies at most one push per 16ms per instance and keeps only the
+  latest; pushes are ordered by arrival.
+- The selection is kept by item ID, as with Invalidate.
+- The next pull (the user typing) replaces the content again, so `View`
+  should return the same current state.
+
+Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
+stay simple, testable and deterministic.
 
 ### Robustness
 
@@ -156,6 +265,8 @@ error.
 | `I18n()` | Your translations plus number and relative-time formatting. |
 | `Now()` | The current time. Use it rather than `time.Now()` so tests can fix the clock. |
 | `Logger()` | A logger. |
+| `Invalidate(viewID)` | Asks the host to pull your open view (or the root results) again; see "Updating what is shown". |
+| `Render(instance, view)` | Pushes new content for an open view instance; see "Pushing views". |
 | `Go(fn)` | Runs background work on a goroutine. A panic in `fn` is logged and contained, so it cannot crash the launcher. Always use it instead of `go`; to wait for the work, call `wg.Add(1)` first and `defer wg.Done()` inside `fn`. |
 
 ## Rules enforced by tests
