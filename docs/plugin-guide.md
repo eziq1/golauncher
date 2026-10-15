@@ -15,6 +15,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`apps`](../plugins/apps/) | supply many candidates, run background work, offer several actions |
 | [`clipboard`](../plugins/clipboard/) | build a command with its own searchable view, a detail pane and callbacks |
 | [`everything`](../plugins/everything/) | depend on external software and report when it is unavailable |
+| [`scripts`](../plugins/scripts/) | run processes, stream output into a view with `Invalidate`, take arguments |
 
 ## The model
 
@@ -196,3 +197,48 @@ glctl session new -s s.json
 glctl session type -s s.json "say hello"
 glctl session key  -s s.json Enter   # prints the recorded effect: CopyText "Hello, world!"
 ```
+
+## Script Commands
+
+The quickest way to add a command is not a plugin at all: a script with
+[Raycast Script Commands](https://github.com/raycast/script-commands)
+metadata. The built-in `builtin.scripts` plugin scans the folders of its
+**Script directories** setting (default `%APPDATA%\golauncher\scripts`, `%VAR%`
+is expanded) whenever the window is shown, and lists every script that has a
+`@raycast.title` in the root search under *Script Commands*.
+
+```powershell
+# @raycast.schemaVersion 1
+# @raycast.title Greet
+# @raycast.mode compact
+# @raycast.packageName Examples
+# @raycast.argument1 { "type": "text", "placeholder": "Name", "optional": true }
+param([string]$Name = "World")
+Write-Output "Hello, $Name!"
+```
+
+- **Metadata** is read from comments (`#`, `//`, `--`, `REM`, `::`) in the
+  first 40 lines: `title` (required), `mode`, `packageName` (subtitle; defaults
+  to the folder name), `icon`, `argument1..3`, `needsConfirmation`,
+  `currentDirectoryPath`, `description`, `author`, `authorURL`. `schemaVersion`,
+  `iconDark` and `refreshTime` are accepted and ignored. Files named
+  `*.template.*` are skipped, as in Raycast.
+- **Interpreters**: `.ps1` → `pwsh` if installed, else Windows PowerShell
+  (`-NoProfile -ExecutionPolicy Bypass -File`); `.py` → `python` (or `py`);
+  `.js` → `node`; `.bat`/`.cmd` → `cmd /c`; `.sh` → Git Bash (WSL's `bash.exe`
+  is not used). A `#!` first line wins (`#!/usr/bin/env node`). A missing
+  interpreter is reported when the script runs.
+- **Arguments** (up to 3; `text`, `password`, `dropdown` with `data`) are typed
+  next to the search field and passed as positional arguments, empty when an
+  optional one is left out. `percentEncoded` arguments are URL-encoded.
+- **Modes**: `silent` hides the window and runs in the background (failures
+  are only logged); `compact` waits up to 25 s and shows the last output line
+  as a toast (red on a non-zero exit code); `fullOutput` opens a view that
+  streams stdout and stderr, shows the exit code and can stop the script;
+  `inline` is treated as `compact`.
+- **Environment**: scripts run in their own folder (or
+  `currentDirectoryPath`) without a console window, with `GOLAUNCHER=1`
+  set. Stopping a script ends everything it started. Output that is not
+  UTF-8 is decoded from the OEM code page; ANSI colors are removed.
+- **Icons**: PNG and SVG files (relative to the script) are shown; emoji and
+  URLs fall back to a generic icon.
