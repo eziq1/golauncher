@@ -112,7 +112,9 @@ func newEnv(t *testing.T) *env {
 		}
 	})
 	// Let the cities finish loading, so tests count only their own
-	// invalidations (a search during loading asks for one more).
+	// invalidations (a search during loading asks for one more). They are
+	// loaded on first use.
+	p.use()
 	eventually(t, "cities loaded", p.loaded.Load)
 	return &env{p, h, clock, ticks}
 }
@@ -168,7 +170,7 @@ func TestCities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(idx.cities); n < 30000 {
+	if n := idx.len(); n < 30000 {
 		t.Errorf("%d cities, want 30,000 or more", n)
 	}
 	for _, name := range defaultCities {
@@ -177,7 +179,8 @@ func TestCities(t *testing.T) {
 		}
 	}
 	curated := 0
-	for _, c := range idx.cities {
+	for ord := range int32(idx.len()) {
+		c := idx.at(ord)
 		if c.Name == "" || c.Country == "" {
 			t.Errorf("city %s lacks a name or country", c.ID)
 		}

@@ -11,66 +11,99 @@ import (
 // nameIndex finds the cities whose name keys a query can match strongly
 // (exactly, as a prefix, a word prefix or initials): a sorted list of the
 // keys' compact forms, their words after the first and their initials.
+// Entries are 8 bytes: the string is a slice of the index's blob.
 type nameIndex struct {
+	blob    string
 	entries []nameEntry
 }
 
+// nameEntry is a string at off in the blob with its length (the top
+// nameLenBits bits of lc) and a city's ord (the rest).
 type nameEntry struct {
-	s    string
-	city int32 // ord
+	off uint32
+	lc  uint32
 }
 
-func newNameIndex(cities []*city) nameIndex {
+const (
+	nameLenBits = 10
+	nameOrdBits = 32 - nameLenBits
+	maxNameLen  = 1<<nameLenBits - 1
+	nameOrdMask = 1<<nameOrdBits - 1
+)
+
+func (n *nameIndex) str(i int) string {
+	e := n.entries[i]
+	return n.blob[e.off : e.off+e.lc>>nameOrdBits]
+}
+
+func (n *nameIndex) city(i int) int32 { return int32(n.entries[i].lc & nameOrdMask) }
+
+func newNameIndex(idx *index) nameIndex {
+	if idx.len() > nameOrdMask {
+		panic("clock: too many cities for the name index")
+	}
 	var es []nameEntry
-	for _, c := range cities {
-		ord := int32(c.ord)
-		for i := range c.keys {
-			k := &c.keys[i]
-			if k.exact {
-				es = append(es, nameEntry{k.s, ord})
+	add := func(off uint32, n int, ord int32) {
+		es = append(es, nameEntry{off, uint32(n)<<nameOrdBits | uint32(ord)})
+	}
+	for ord := range int32(idx.len()) {
+		keys := idx.cityKeyRecs(ord)
+		for i := range keys {
+			k := &keys[i]
+			add(k.off, int(k.clen), ord) // exact keys: s
+			if k.kind&kindExact != 0 {
 				continue
 			}
-			es = append(es, nameEntry{k.compact, ord})
-			laterWords(k.s, func(rest string) bool {
+			s, soff := idx.s(k)
+			laterWords(s, func(rest string) bool {
+				n := len(rest)
 				if i := strings.IndexAny(rest, " /"); i >= 0 {
-					rest = rest[:i]
+					n = i
 				}
-				es = append(es, nameEntry{rest, ord})
+				add(soff+uint32(len(s)-len(rest)), n, ord)
 				return false
 			})
-			if k.initials != "" {
-				es = append(es, nameEntry{k.initials, ord})
+			if k.ilen > 0 {
+				add(soff+uint32(len(s)), int(k.ilen), ord)
 			}
 		}
 	}
+	n := nameIndex{blob: idx.blob}
+	str := func(e nameEntry) string { return n.blob[e.off : e.off+e.lc>>nameOrdBits] }
 	slices.SortFunc(es, func(a, b nameEntry) int {
-		return cmp.Or(strings.Compare(a.s, b.s), cmp.Compare(a.city, b.city))
+		return cmp.Or(strings.Compare(str(a), str(b)), cmp.Compare(a.lc&nameOrdMask, b.lc&nameOrdMask))
 	})
-	es = slices.Compact(es)
-	return nameIndex{es}
+	es = slices.CompactFunc(es, func(a, b nameEntry) bool {
+		return a.lc&nameOrdMask == b.lc&nameOrdMask && str(a) == str(b)
+	})
+	n.entries = trim(es)
+	return n
+}
+
+// search returns the first entry not less than s.
+func (n *nameIndex) search(s string) int {
+	return sort.Search(len(n.entries), func(i int) bool { return n.str(i) >= s })
 }
 
 // withPrefix calls fn with the cities of the entries starting with p.
-func (n nameIndex) withPrefix(p string, fn func(ord int32)) {
-	i := sort.Search(len(n.entries), func(i int) bool { return n.entries[i].s >= p })
-	for ; i < len(n.entries) && strings.HasPrefix(n.entries[i].s, p); i++ {
-		fn(n.entries[i].city)
+func (n *nameIndex) withPrefix(p string, fn func(ord int32)) {
+	for i := n.search(p); i < len(n.entries) && strings.HasPrefix(n.str(i), p); i++ {
+		fn(n.city(i))
 	}
 }
 
 // exactly returns the cities of the entries equal to s, in ord order.
-func (n nameIndex) exactly(s string) []int32 {
+func (n *nameIndex) exactly(s string) []int32 {
 	var out []int32
-	i := sort.Search(len(n.entries), func(i int) bool { return n.entries[i].s >= s })
-	for ; i < len(n.entries) && n.entries[i].s == s; i++ {
-		out = append(out, n.entries[i].city)
+	for i := n.search(s); i < len(n.entries) && n.str(i) == s; i++ {
+		out = append(out, n.city(i))
 	}
 	return out
 }
 
 // hit is a city matching a search with its score.
 type hit struct {
-	c     *city
+	ord   int32
 	score float64
 }
 
@@ -90,7 +123,7 @@ func (idx *index) find(q string, now time.Time, rank map[int]int, limit int) []h
 	// Offsets are parsed before normalizing, which turns "-" into a space.
 	off, abbr := parseOffset(strings.ToLower(strings.TrimSpace(q))), zonesOf(nq)
 
-	scores := make([]float64, len(idx.cities))
+	scores := make([]float64, idx.len())
 	var touched []int32
 	set := func(ord int32, s float64) {
 		if s <= 0 {
@@ -106,7 +139,7 @@ func (idx *index) find(q string, now time.Time, rank map[int]int, limit int) []h
 	// (small tables) by their keys, offsets and abbreviations.
 	idx.names.withPrefix(qc, func(ord int32) {
 		if scores[ord] == 0 {
-			set(ord, bestKey(nq, qc, idx.cities[ord].keys))
+			set(ord, idx.bestKey(nq, qc, ord))
 		}
 	})
 	type group struct {
@@ -155,13 +188,22 @@ func (idx *index) find(q string, now time.Time, rank map[int]int, limit int) []h
 	}
 	if better < limit {
 		qr := []rune(qc)
-		for _, c := range idx.cities {
+		for ord := range idx.rows {
+			r := &idx.rows[ord]
 			best := 0.0
-			for i := range c.keys {
-				k := &c.keys[i]
-				best = max(best, k.w*weakScoreKey(qc, qr, k))
+			for _, k := range idx.keyRecs[r.keys : r.keys+uint32(r.n)] {
+				// A key shorter than the query neither contains it nor has
+				// its runes in order.
+				if int(k.clen) < len(qc) || k.kind&kindExact != 0 {
+					continue
+				}
+				w := weightName
+				if k.kind&kindCountry != 0 {
+					w = weightCountry
+				}
+				best = max(best, w*weakScoreKey(qc, qr, idx.blob[k.off:k.off+uint32(k.clen)]))
 			}
-			set(int32(c.ord), best)
+			set(int32(ord), best)
 		}
 		for _, g := range weak {
 			for _, ord := range g.cities {
@@ -172,11 +214,6 @@ func (idx *index) find(q string, now time.Time, rank map[int]int, limit int) []h
 
 	// Sort keys are computed once: the map lookups in a comparison function
 	// cost more than the sort itself.
-	type cand struct {
-		score float64
-		key   int // rank, else ord
-		ord   int32
-	}
 	cands := make([]cand, len(touched))
 	for i, ord := range touched {
 		cands[i] = cand{scores[ord], int(ord), ord}
@@ -188,28 +225,64 @@ func (idx *index) find(q string, now time.Time, rank map[int]int, limit int) []h
 			}
 		}
 	}
-	slices.SortFunc(cands, func(a, b cand) int {
-		if c := cmp.Compare(b.score, a.score); c != 0 {
-			return c
-		}
-		return cmp.Compare(a.key, b.key)
-	})
-	cands = cands[:min(len(cands), limit)]
+	cands = first(cands, limit)
 	hits := make([]hit, len(cands))
 	for i, c := range cands {
-		hits[i] = hit{idx.cities[c.ord], c.score}
+		hits[i] = hit{c.ord, c.score}
 	}
 	return hits
 }
 
-// weakScoreKey is the score scoreKey gives for a substring or subsequence
-// match of qc (qr are its runes), without checking for the stronger matches
-// the name index finds.
-func weakScoreKey(qc string, qr []rune, k *matchKey) float64 {
-	if k.exact {
-		return 0
+// cand is a city matching a search, with its sort key.
+type cand struct {
+	score float64
+	key   int // rank, else ord
+	ord   int32
+}
+
+// before reports whether a comes before b: a higher score, else a lower
+// key. Keys differ, so this is a total order.
+func (a cand) before(b cand) bool {
+	return a.score > b.score || a.score == b.score && a.key < b.key
+}
+
+// first returns the first limit candidates of s in order, sorted, without
+// sorting all of s (a search can touch thousands of cities). The result is
+// that of sorting s and cutting it.
+func first(s []cand, limit int) []cand {
+	if limit <= 0 {
+		return s[:0]
 	}
-	kc := k.compact
+	if len(s) <= 2*limit {
+		slices.SortFunc(s, func(a, b cand) int {
+			if c := cmp.Compare(b.score, a.score); c != 0 {
+				return c
+			}
+			return cmp.Compare(a.key, b.key)
+		})
+		return s[:min(len(s), limit)]
+	}
+	top := make([]cand, 0, limit)
+	for _, e := range s {
+		n := len(top)
+		if n == limit && !e.before(top[n-1]) {
+			continue
+		}
+		i := sort.Search(n, func(i int) bool { return e.before(top[i]) })
+		if n < limit {
+			top = top[:n+1]
+			n++
+		}
+		copy(top[i+1:n], top[i:n-1])
+		top[i] = e
+	}
+	return top
+}
+
+// weakScoreKey is the score scoreKey gives for a substring or subsequence
+// match of qc (qr are its runes) on a key with compact form kc, without
+// checking for the stronger matches the name index finds.
+func weakScoreKey(qc string, qr []rune, kc string) float64 {
 	if len(qr) >= 2 && strings.Contains(kc, qc) {
 		return 0.6
 	}

@@ -98,6 +98,7 @@ func (p *Plugin) viewPulled(instance string) *viewLoop {
 	if p.closed {
 		return nil
 	}
+	p.open[instance] = true
 	if vl, ok := p.views[instance]; ok {
 		return vl
 	}
@@ -126,12 +127,18 @@ func (p *Plugin) viewTick(instance string, vl *viewLoop) bool {
 }
 
 // ViewClosed implements plugin.ViewCloser: it stops the pushes to instance.
+// When the launcher is hidden and no view is left open, the idle release of
+// the city index can start.
 func (p *Plugin) ViewClosed(instance string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if vl, ok := p.views[instance]; ok {
 		close(vl.stop)
 		delete(p.views, instance)
+	}
+	delete(p.open, instance)
+	if p.hidden && p.held && p.idle == nil && len(p.open) == 0 {
+		p.armIdleLocked()
 	}
 }
 

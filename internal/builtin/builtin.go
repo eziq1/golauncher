@@ -97,7 +97,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		apps.NewWithSource(appsSrc, nil),
 		fakeCalc(dir),
 		clipboard.New(),
-		clock.New(),
+		clock.NewWithOptions(clock.Options{Sync: true}), // deterministic loading
 		files.NewWithOptions(files.Options{Which: fakeWhich}),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
