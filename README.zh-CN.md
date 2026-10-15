@@ -81,6 +81,19 @@ glctl attach type vsc           # 驱动以 GOLAUNCHER_CONTROL=1 启动的 GUI
 
 `glctl` 默认在隔离的内存环境中运行，时钟固定，动作只记录、不执行。要用真实的配置和数据，加 `--real`；要真正执行动作，再加 `--exec`。
 
+## 脚本命令
+
+带有 [Raycast Script Commands](https://github.com/raycast/script-commands) 元数据注释的脚本会自动成为命令。把 `.ps1`、`.py`、`.js`、`.bat`/`.cmd` 或 `.sh` 放进 `%APPDATA%\golauncher\scripts`（设置里可以再添加目录），或者运行 **Create Script Command** 从模板开始：
+
+```powershell
+# @raycast.schemaVersion 1
+# @raycast.title Flush DNS
+# @raycast.mode compact
+# @raycast.argument1 { "type": "text", "placeholder": "host", "optional": true }
+ipconfig /flushdns | Select-Object -Last 1
+```
+
+支持 `silent`、`compact`、`fullOutput` 三种模式（`inline` 按 `compact` 处理）。详见[插件开发指南](docs/plugin-guide.md#script-commands)。
 ## 编写插件
 
 见[插件开发指南](docs/plugin-guide.md)（英文）。

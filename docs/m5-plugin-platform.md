@@ -316,6 +316,23 @@ func main() { rpcserve.Serve(hello.New()) }
 - **命令**：`New Script Command`，在脚本目录里按模板生成一个 `.ps1` 并打开；`Open Scripts Folder`。
 - 实测约 47% 的 Raycast 脚本依赖 macOS，仓库里的 `.ps1` 只有 3 个。所以这项的价值主要在于让用户能用自己写的脚本扩展 golauncher，导入 Raycast 现成的脚本只是顺带的好处。
 
+### 6.1 实现记录（W1-C）
+
+代码在 `plugins/scripts`，测试全部基于 hostfake，运行类测试用临时目录里真实的 `cmd` 和 `powershell` 脚本。
+
+- **文件**：`metadata.go`（元数据解析）、`interp.go`（解释器选择，`System` 可注入以模拟找不到解释器）、`run.go`（运行、模式、输出视图）、`output.go`（输出收集）、`proc_windows.go`（无窗口启动、Job Object、OEM 代码页解码）、`scripts.go`（清单、扫描、根条目、命令）。
+- **元数据**：读前 40 行，注释前缀支持 `#`、`//`、`--`、`::`、`REM`/`@REM`（`.bat`/`.cmd` 不读 shebang）。没有 `@raycast.title` 的文件不算脚本命令。`mode` 缺失或无法识别时按 `compact`；`inline` 按 `compact`（`refreshTime` 解析但忽略）。`packageName` 缺省为所在目录名（与 Raycast 一致）。`argumentN` 的 JSON 解析失败时，整个脚本跳过并记日志。已废弃的 `secure: true` 视为 `password`。和 Raycast 一样跳过 `*.template.*`。
+- **参数**：参数名为 `argument1`..`argument3`，`optional` 映射为 `Required=false`，`dropdown` 的 `data` 映射为 `Options`。运行时按序号从 `ActionDo.Values` 取值，未填的可选参数传空字符串；`percentEncoded` 用 `url.QueryEscape` 并把 `+` 换成 `%20`（与 `encodeURIComponent` 接近）。
+- **解释器**：`.ps1` 优先 `pwsh`，否则 `powershell`，参数 `-NoProfile -NonInteractive -ExecutionPolicy Bypass -File`；`.py` 依次找 `python`、`python3`、`py`；`.sh` 先找 `%ProgramFiles%\Git\bin\bash.exe` 等位置，再找 PATH 里的 `bash`，但**跳过 System32 下的 WSL bash**（它不认 Windows 路径）。shebang 优先，支持 `/usr/bin/env x` 和带参数的形式；指向 pwsh 时丢弃 Unix 侧参数。找不到解释器时条目照常显示，运行时弹失败 Toast“xxx was not found”。
+- **批处理的命令行**：`.bat`/`.cmd` 通过 `SysProcAttr.CmdLine` 自己拼 `cmd /d /s /c ""脚本" "参数"…"`，参数里的 `&`、`|` 等不会被 cmd 解释；参数里的 `"` 只能写成 `""`，`%VAR%` 仍可能被 cmd 展开，这是 cmd 本身的限制。
+- **扫描**：`Init` 里同步扫描一次（`glctl` 首次查询即可看到脚本）；`EventWindowShown` 和 `EventConfigChanged` 时在 `Host.Go` 里重新扫描。是否变化看的是目录内脚本文件的名称、大小、修改时间的哈希，而不只是目录 mtime——NTFS 上修改文件内容不会更新目录 mtime，只看目录会漏掉"改了标题"。有变化才 `Invalidate("")`。默认目录 `%APPDATA%\golauncher\scripts` 在 Init 时创建；偏好里的 `%VAR%` 会展开。
+- **运行**：`exec.Cmd` 加 `CREATE_NO_WINDOW`，stdout 与 stderr 合并到同一个有上限（1 MiB，保留尾部）的缓冲；环境变量加 `GOLAUNCHER=1`、`PYTHONUNBUFFERED=1`（否则 Python 输出不流式）、`PYTHONIOENCODING=utf-8`。Raycast 文档里没有定义任何 `RAYCAST_*` 环境变量，所以没有设置。启动后把进程放进 Job Object，Stop 和插件 Close 时 `TerminateJobObject` 结束整个进程树；**不**设置 `KILL_ON_JOB_CLOSE`，脚本正常结束后它打开的程序（如 `start notepad`）继续运行。`WaitDelay` 2 秒，防止残留子进程占着管道导致等待不返回。输出按行解码：合法 UTF-8 原样使用，否则按 OEM 代码页解码（cmd 和 Windows PowerShell 往管道写的是 OEM）；去掉 ANSI 转义，`\r` 覆盖的进度行只保留最后一段。
+- **模式**：`silent` 立即返回 `Hide`，失败只记日志（SDK 没有"稍后弹 Toast"的接口，Raycast 的"关闭窗口后用 HUD 显示最后一行"也做不到）；`compact` 同步等待，上限 25 秒（宿主的动作超时是 30 秒），超时则结束进程树并提示"took too long"，成功时 Toast 标题是最后一个非空输出行，退出码非 0 时标题是最后一行、内容是退出码；`fullOutput` 推入 `output` 视图（载荷 `{run}`）。
+- **输出视图**：一个列表视图，只有一条带 Detail 的条目：标题是状态（运行中/退出码/已停止），附件文字是耗时，Detail 是输出尾部 32 KiB 的代码块，元数据是状态、耗时、脚本路径。动作：运行中时主动作是 Stop（Ctrl+X），然后是 Copy Output、Show in File Explorer。之所以不用 `ViewDetail`，是因为它没有挂动作的位置。运行期间每 100ms 最多一次 `Invalidate("output")`，结束时再发一次。每个插件实例最多保留 10 次已结束的运行，再早的视图显示"已不可用"。
+- **命令**：`new`（Create Script Command）在第一个目录里写 `script-command[-N].ps1` 模板（带 UTF-8 BOM，Windows PowerShell 5.1 才能正确读取非 ASCII），然后打开它；`open-folder` 打开第一个目录。**偏差**：`plugin.Result` 不能携带一个由宿主执行的 `ActionDo`，所以这两个命令通过可注入的 `Options.Open`（默认 `internal/winapi/shell.Open`）自己打开文件；`builtin.Fake` 里换成空操作。以后如果 SDK 增加 `Result.Do`，改成返回 `ActionOpen` 即可。
+- **图标**：`plugin.Icon` 只有 `Name` 和 `Path`。PNG/SVG 路径（相对脚本目录）用 `Path`；emoji、URL、JPEG 一律用内置的 `command` 图标。`iconDark` 忽略。
+- **假环境**：`builtin.Fake(dir)` 在 `dir/scripts` 存在时把它作为脚本目录（`testdata/fixtures/scripts` 有 3 个示例），否则目录列表为空；所以假环境下 `directories` 的默认值是 `[]`，真实环境是 `["%APPDATA%\\golauncher\\scripts"]`。新增 golden 用例 `query_scripts`；`plugin_list`、`query_empty`、`session_confirm_done` 因多了插件和两个命令而更新。
+
 ## 7. 对现有代码的影响
 
 | 模块 | 改动 |

@@ -143,5 +143,38 @@
         "default": false
       }
     ]
+  },
+  {
+    "id": "builtin.scripts",
+    "name": "Script Commands",
+    "description": "Run your own scripts as commands (compatible with Raycast Script Commands).",
+    "version": "1.0.0",
+    "icon": {
+      "name": "command"
+    },
+    "enabled": true,
+    "permissions": [
+      "exec"
+    ],
+    "commands": [
+      {
+        "name": "new",
+        "title": "Create Script Command",
+        "mode": "no-view"
+      },
+      {
+        "name": "open-folder",
+        "title": "Open Scripts Folder",
+        "mode": "no-view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "directories",
+        "type": "stringList",
+        "title": "Script directories",
+        "description": "Folders scanned for scripts (.ps1, .py, .js, .bat, .cmd, .sh) with @raycast metadata. %VAR% is expanded."
+      }
+    ]
   }
 ]

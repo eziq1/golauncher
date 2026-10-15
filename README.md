@@ -115,6 +115,23 @@ clock. Actions are recorded and printed, not performed. To use your real
 configuration and data, pass `--real`. To actually perform actions, also pass
 `--exec`.
 
+## Script Commands
+
+Any script with [Raycast Script Commands](https://github.com/raycast/script-commands)
+metadata becomes a command. Put `.ps1`, `.py`, `.js`, `.bat`/`.cmd` or `.sh`
+files in `%APPDATA%\golauncher\scripts` (more folders can be added in the
+settings), or run **Create Script Command** to start from a template:
+
+```powershell
+# @raycast.schemaVersion 1
+# @raycast.title Flush DNS
+# @raycast.mode compact
+# @raycast.argument1 { "type": "text", "placeholder": "host", "optional": true }
+ipconfig /flushdns | Select-Object -Last 1
+```
+
+Modes `silent`, `compact` and `fullOutput` are supported (`inline` runs as
+`compact`). See the [plugin guide](docs/plugin-guide.md#script-commands).
 ## Writing plugins
 
 See the [plugin guide](docs/plugin-guide.md).
