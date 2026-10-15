@@ -640,3 +640,40 @@ type Localizer interface {
 - MyGo API 文档：https://pkg.go.dev/github.com/egoist/mygo 、https://pkg.go.dev/github.com/egoist/mygo/ui
 - MyGo 上手文章：https://azukiazusa.dev/en/blog/mygo-desktop-app/
 - Raycast 扩展 API（交互模型参考）：https://developers.raycast.com
+
+## 15. 第一版实现状态（2026-10-14）
+
+**已完成（M0–M4 的范围）**：
+
+- 插件 SDK
+- 引擎和 Controller
+- 排序：模糊匹配、拼音、frecency、别名
+- I18N 管线：伪语言 `en-XA`、`glctl i18n check`
+- 三个内置插件
+- `glctl`：query、run、session、plugin、config、i18n、attach、bench
+- GUI：Panel 启动窗、动作面板、确认对话框、设置窗口、托盘、全局和命令快捷键、单实例、开机自启
+- E2E 控制通道
+
+测试基线：
+
+- `go test ./...` 和 `-race` 全部通过。
+- 325 个真实应用时，根搜索 p95 约 1.6ms。
+
+**与设计不同的地方**（详见各节）：
+
+- Host 上没有 Open/Paste/Notify，所有副作用都通过 `ActionDo` 由宿主执行（§5.4）。
+- `glctl` 默认在假环境中运行（§7）。
+- I18N 用自研的消息目录，没有用 go-i18n（§10.2）。
+- 新增 Destructive 命令和动作的确认流程（§5.3）。
+
+**尚未实现 / 已知限制**：
+
+1. 外部插件（M5：JSON-RPC、`extproc`、`rpcserve`）。
+2. §10.5 的 lint 分析器，以及 §5.1 的 depguard 规则（禁止插件 import `internal/core`）。
+3. `password` 类型的偏好目前明文写入 config.json，未接入 Windows 凭据管理器（§6）。
+4. 设置页还没有配置的导出和导入。
+5. 计算器的 `ans`、单位和汇率换算。
+6. `Tab` 进入命令参数。
+7. 快捷键的显示名没有本地化。
+8. 打包和自动更新（M6）。
+9. Acrylic 背景只在离屏渲染里验证过，没有人眼确认真实窗口的效果。
