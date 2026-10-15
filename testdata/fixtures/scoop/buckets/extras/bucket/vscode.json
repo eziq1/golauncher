@@ -1,0 +1,8 @@
+{
+    "version": "1.95.2",
+    "description": "Lightweight but powerful source code editor",
+    "homepage": "https://code.visualstudio.com/",
+    "license": { "identifier": "Freeware", "url": "https://code.visualstudio.com/License/" },
+    "bin": [["bin\\code.cmd", "code"]],
+    "notes": "Add Visual Studio Code as a context menu option by running: reg import \"$dir\\install-context.reg\""
+}

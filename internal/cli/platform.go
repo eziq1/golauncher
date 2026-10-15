@@ -28,8 +28,10 @@ func realPlatform(bool) (platform, error) {
 }
 
 // realPlugins returns the real plugins plus the external ones in extra.
-func realPlugins(extra []string) []plugin.Plugin {
+// Without exec, plugins record the external commands they would run.
+func realPlugins(extra []string, exec bool) []plugin.Plugin {
 	builtin.HostVersion = Version
+	builtin.DryRun = !exec
 	all := builtin.All()
 	return append(all, builtin.External(extra, all, extproc.Options{})...)
 }

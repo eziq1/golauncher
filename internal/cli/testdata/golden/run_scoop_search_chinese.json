@@ -1,0 +1,135 @@
+{
+  "step": "run builtin.scoop/search",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.scoop",
+      "request": {
+        "id": "search",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search Scoop Packages",
+    "placeholder": "Search packages by name, command or description…",
+    "text": "微信",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "pkg/extras/wechat",
+            "title": "wechat",
+            "subtitle": "微信 Windows 客户端，一款跨平台的通讯工具",
+            "icon": {
+              "name": "package"
+            },
+            "accessory": "3.9.12.17 · extras",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "name": "wechat",
+                    "bucket": "extras"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://pc.weixin.qq.com/"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install extras/wechat"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\wechat.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## wechat\n\n微信 Windows 客户端，一款跨平台的通讯工具",
+              "metadata": [
+                {
+                  "label": "Version",
+                  "value": "3.9.12.17"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "extras"
+                },
+                {
+                  "label": "License",
+                  "value": "Freeware"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://pc.weixin.qq.com/"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\wechat.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/pkg/extras/wechat"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## wechat\n\n微信 Windows 客户端，一款跨平台的通讯工具",
+      "metadata": [
+        {
+          "label": "Version",
+          "value": "3.9.12.17"
+        },
+        {
+          "label": "Bucket",
+          "value": "extras"
+        },
+        {
+          "label": "License",
+          "value": "Freeware"
+        },
+        {
+          "label": "Homepage",
+          "value": "https://pc.weixin.qq.com/"
+        },
+        {
+          "label": "Manifest",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\wechat.json"
+        }
+      ]
+    },
+    "emptyText": "No matching packages. Add a bucket or update the buckets to find more."
+  }
+}

@@ -1,0 +1,7 @@
+{
+    "version": "23.1.0",
+    "description": ["As an asynchronous event driven JavaScript runtime,", "Node is designed to build scalable network applications."],
+    "homepage": "https://nodejs.org",
+    "license": "MIT",
+    "bin": ["node.exe", "npm.cmd", "npx.cmd"]
+}

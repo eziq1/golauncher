@@ -1,0 +1,7 @@
+{
+    "version": "22.0.0",
+    "description": "As an asynchronous event driven JavaScript runtime",
+    "homepage": "https://nodejs.org",
+    "license": "MIT",
+    "bin": ["node.exe"]
+}

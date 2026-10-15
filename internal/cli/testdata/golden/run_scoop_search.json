@@ -1,0 +1,465 @@
+{
+  "step": "run builtin.scoop/search",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.scoop",
+      "request": {
+        "id": "search",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search Scoop Packages",
+    "placeholder": "Search packages by name, command or description…",
+    "text": "git",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "pkg/main/git",
+            "title": "git",
+            "subtitle": "A free and open source distributed version control system.",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "sh",
+              "bash",
+              "git",
+              "vi"
+            ],
+            "accessory": "2.46.0 → 2.47.0",
+            "actions": [
+              {
+                "id": "update",
+                "title": "Update",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "update",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://gitforwindows.org"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/git"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "git"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## git\n\nA free and open source distributed version control system.\n\n### Notes\n\n```text\nTo register file associations, please execute the following command:\nreg import \"$dir\\install-associations.reg\"\n```",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "2.46.0"
+                },
+                {
+                  "label": "Latest",
+                  "value": "2.47.0"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "GPL-2.0-only"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://gitforwindows.org"
+                },
+                {
+                  "label": "Commands",
+                  "value": "sh, bash, git, vi"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/pkg/main/git"
+          },
+          {
+            "id": "pkg/extras/git-up",
+            "title": "git-up",
+            "subtitle": "Fetch and rebase all locally-tracked branches",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "git-up"
+            ],
+            "accessory": "2.2.0 · extras",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "name": "git-up",
+                    "bucket": "extras"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/msiebuhr/git-up"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install extras/git-up"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\git-up.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## git-up\n\nFetch and rebase all locally-tracked branches",
+              "metadata": [
+                {
+                  "label": "Version",
+                  "value": "2.2.0"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "extras"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://github.com/msiebuhr/git-up"
+                },
+                {
+                  "label": "Commands",
+                  "value": "git-up"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\git-up.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/pkg/extras/git-up"
+          },
+          {
+            "id": "pkg/main/lazygit",
+            "title": "lazygit",
+            "subtitle": "A simple terminal UI for git commands",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "lazygit"
+            ],
+            "accessory": "0.44.1 · main",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "name": "lazygit",
+                    "bucket": "main"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/jesseduffield/lazygit"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/lazygit"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\lazygit.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## lazygit\n\nA simple terminal UI for git commands",
+              "metadata": [
+                {
+                  "label": "Version",
+                  "value": "0.44.1"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://github.com/jesseduffield/lazygit"
+                },
+                {
+                  "label": "Commands",
+                  "value": "lazygit"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\lazygit.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/pkg/main/lazygit"
+          },
+          {
+            "id": "pkg/main/gh",
+            "title": "gh",
+            "subtitle": "GitHub's official command line tool",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "gh"
+            ],
+            "accessory": "2.60.1 · main",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "name": "gh",
+                    "bucket": "main"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://cli.github.com"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/gh"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\gh.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## gh\n\nGitHub's official command line tool",
+              "metadata": [
+                {
+                  "label": "Version",
+                  "value": "2.60.1"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://cli.github.com"
+                },
+                {
+                  "label": "Commands",
+                  "value": "gh"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\gh.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/pkg/main/gh"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## git\n\nA free and open source distributed version control system.\n\n### Notes\n\n```text\nTo register file associations, please execute the following command:\nreg import \"$dir\\install-associations.reg\"\n```",
+      "metadata": [
+        {
+          "label": "Installed",
+          "value": "2.46.0"
+        },
+        {
+          "label": "Latest",
+          "value": "2.47.0"
+        },
+        {
+          "label": "Bucket",
+          "value": "main"
+        },
+        {
+          "label": "License",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "label": "Homepage",
+          "value": "https://gitforwindows.org"
+        },
+        {
+          "label": "Commands",
+          "value": "sh, bash, git, vi"
+        },
+        {
+          "label": "Folder",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+        },
+        {
+          "label": "Manifest",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json"
+        }
+      ]
+    },
+    "emptyText": "No matching packages. Add a bucket or update the buckets to find more."
+  }
+}

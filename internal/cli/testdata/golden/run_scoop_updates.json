@@ -1,0 +1,340 @@
+{
+  "step": "run builtin.scoop/updates",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.scoop",
+      "request": {
+        "id": "updates",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Scoop Updates",
+    "placeholder": "Filter updates…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "update-all",
+            "title": "Update 1 App",
+            "subtitle": "Held apps are skipped",
+            "icon": {
+              "name": "package"
+            },
+            "actions": [
+              {
+                "id": "update-all",
+                "title": "Update All",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "update-all"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/update-all"
+          },
+          {
+            "id": "app/git",
+            "title": "git",
+            "subtitle": "A free and open source distributed version control system.",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "sh",
+              "bash",
+              "git",
+              "vi"
+            ],
+            "accessory": "2.46.0 → 2.47.0",
+            "actions": [
+              {
+                "id": "update",
+                "title": "Update",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "update",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://gitforwindows.org"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/git"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "git"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## git\n\nA free and open source distributed version control system.\n\n### Notes\n\n```text\nTo register file associations, please execute the following command:\nreg import \"$dir\\install-associations.reg\"\n```",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "2.46.0"
+                },
+                {
+                  "label": "Latest",
+                  "value": "2.47.0"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "GPL-2.0-only"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://gitforwindows.org"
+                },
+                {
+                  "label": "Commands",
+                  "value": "sh, bash, git, vi"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/git"
+          },
+          {
+            "id": "app/nodejs",
+            "title": "nodejs",
+            "subtitle": "As an asynchronous event driven JavaScript runtime, Node is designed to build scalable network appl…",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "node",
+              "npm",
+              "npx"
+            ],
+            "accessory": "22.0.0 → 23.1.0 · Held",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\nodejs\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://nodejs.org"
+                }
+              },
+              {
+                "id": "unhold",
+                "title": "Unhold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "unhold",
+                    "name": "nodejs"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/nodejs"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\nodejs.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "nodejs"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## nodejs\n\nAs an asynchronous event driven JavaScript runtime, Node is designed to build scalable network applications.",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "22.0.0"
+                },
+                {
+                  "label": "Latest",
+                  "value": "23.1.0"
+                },
+                {
+                  "label": "Status",
+                  "value": "Held (skipped by updates)"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://nodejs.org"
+                },
+                {
+                  "label": "Commands",
+                  "value": "node, npm, npx"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\nodejs\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\nodejs.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/nodejs"
+          }
+        ]
+      },
+      {
+        "title": "Buckets",
+        "items": [
+          {
+            "id": "update-buckets",
+            "title": "Update Buckets",
+            "subtitle": "Fetch the latest manifests to see newer versions",
+            "icon": {
+              "name": "folder"
+            },
+            "actions": [
+              {
+                "id": "update-buckets",
+                "title": "Update Buckets",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "update-buckets"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/update-buckets"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "emptyText": "No results"
+  }
+}

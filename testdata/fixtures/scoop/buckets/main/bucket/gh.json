@@ -1,0 +1,7 @@
+{
+    "version": "2.60.1",
+    "description": "GitHub's official command line tool",
+    "homepage": "https://cli.github.com",
+    "license": "MIT",
+    "bin": "bin\\gh.exe"
+}

@@ -190,7 +190,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		if ef.Exec {
 			opts.System = real.system
 		}
-		opts.Plugins = realPlugins(ef.Plugins)
+		opts.Plugins = realPlugins(ef.Plugins, ef.Exec)
 		if ef.Now != "" {
 			opts.Now = func() time.Time { return now }
 		}

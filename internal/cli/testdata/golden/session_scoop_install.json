@@ -1,0 +1,88 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.scoop",
+      "request": {
+        "id": "output",
+        "payload": {
+          "op": "op1"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 2,
+    "title": "Install lazygit",
+    "placeholder": "Search…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "output",
+            "title": "Done",
+            "subtitle": "Install lazygit",
+            "icon": {
+              "name": "package"
+            },
+            "accessory": "0s",
+            "actions": [
+              {
+                "id": "copy-output",
+                "title": "Copy Output",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "> scoop install main/lazygit\n[not run] scoop install main/lazygit"
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "```text\n> scoop install main/lazygit\n[not run] scoop install main/lazygit\n```",
+              "metadata": [
+                {
+                  "label": "Status",
+                  "value": "Done"
+                },
+                {
+                  "label": "Command",
+                  "value": "scoop install main/lazygit"
+                },
+                {
+                  "label": "Duration",
+                  "value": "0s"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/output"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "```text\n> scoop install main/lazygit\n[not run] scoop install main/lazygit\n```",
+      "metadata": [
+        {
+          "label": "Status",
+          "value": "Done"
+        },
+        {
+          "label": "Command",
+          "value": "scoop install main/lazygit"
+        },
+        {
+          "label": "Duration",
+          "value": "0s"
+        }
+      ]
+    },
+    "emptyText": "No results"
+  }
+}

@@ -1,0 +1,7 @@
+{
+    "version": "1.0.0",
+    "description": "A tool from a bucket that keeps its manifests at the top level",
+    "homepage": "https://example.invalid/mytool",
+    "license": "MIT",
+    "bin": "mytool.exe"
+}

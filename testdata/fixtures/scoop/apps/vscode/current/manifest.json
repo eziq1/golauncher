@@ -1,0 +1,7 @@
+{
+    "version": "1.95.2",
+    "description": "Lightweight but powerful source code editor",
+    "homepage": "https://code.visualstudio.com/",
+    "license": "Freeware",
+    "bin": [["bin\\code.cmd", "code"]]
+}

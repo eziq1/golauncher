@@ -1,0 +1,6 @@
+{
+    "main": "https://github.com/ScoopInstaller/Main",
+    "extras": "https://github.com/ScoopInstaller/Extras",
+    "versions": "https://github.com/ScoopInstaller/Versions",
+    "nerd-fonts": "https://github.com/matthewjberger/scoop-nerd-fonts"
+}

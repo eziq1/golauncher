@@ -1,0 +1,756 @@
+{
+  "step": "run builtin.scoop/installed",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.scoop",
+      "request": {
+        "id": "installed",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Installed Scoop Apps",
+    "placeholder": "Filter installed apps…",
+    "text": "",
+    "sections": [
+      {
+        "title": "Updates Available",
+        "items": [
+          {
+            "id": "app/git",
+            "title": "git",
+            "subtitle": "A free and open source distributed version control system.",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "sh",
+              "bash",
+              "git",
+              "vi"
+            ],
+            "accessory": "2.46.0 → 2.47.0",
+            "actions": [
+              {
+                "id": "update",
+                "title": "Update",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "update",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://gitforwindows.org"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "git"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/git"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "git"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## git\n\nA free and open source distributed version control system.\n\n### Notes\n\n```text\nTo register file associations, please execute the following command:\nreg import \"$dir\\install-associations.reg\"\n```",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "2.46.0"
+                },
+                {
+                  "label": "Latest",
+                  "value": "2.47.0"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "GPL-2.0-only"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://gitforwindows.org"
+                },
+                {
+                  "label": "Commands",
+                  "value": "sh, bash, git, vi"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/git"
+          },
+          {
+            "id": "app/nodejs",
+            "title": "nodejs",
+            "subtitle": "As an asynchronous event driven JavaScript runtime, Node is designed to build scalable network appl…",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "node",
+              "npm",
+              "npx"
+            ],
+            "accessory": "22.0.0 → 23.1.0 · Held",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\nodejs\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://nodejs.org"
+                }
+              },
+              {
+                "id": "unhold",
+                "title": "Unhold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "unhold",
+                    "name": "nodejs"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/nodejs"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\nodejs.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "nodejs"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## nodejs\n\nAs an asynchronous event driven JavaScript runtime, Node is designed to build scalable network applications.",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "22.0.0"
+                },
+                {
+                  "label": "Latest",
+                  "value": "23.1.0"
+                },
+                {
+                  "label": "Status",
+                  "value": "Held (skipped by updates)"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://nodejs.org"
+                },
+                {
+                  "label": "Commands",
+                  "value": "node, npm, npx"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\nodejs\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\nodejs.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/nodejs"
+          }
+        ]
+      },
+      {
+        "title": "Installed",
+        "items": [
+          {
+            "id": "app/7zip",
+            "title": "7zip",
+            "subtitle": "A multi-format file archiver with high compression ratios",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "7z"
+            ],
+            "accessory": "Installed 24.08",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\7zip\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.7-zip.org/"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "7zip"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install main/7zip"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\7zip.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "7zip"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## 7zip\n\nA multi-format file archiver with high compression ratios",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "24.08"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "main"
+                },
+                {
+                  "label": "License",
+                  "value": "LGPL-2.1-or-later"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://www.7-zip.org/"
+                },
+                {
+                  "label": "Commands",
+                  "value": "7z"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\7zip\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\7zip.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/7zip"
+          },
+          {
+            "id": "app/handmade",
+            "title": "handmade",
+            "subtitle": "Installed from a manifest URL",
+            "icon": {
+              "name": "package"
+            },
+            "accessory": "Installed 0.3",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\handmade\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://example.invalid/handmade"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "handmade"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install https://example.invalid/handmade.json"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\handmade\\current\\manifest.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "handmade"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## handmade\n\nInstalled from a manifest URL",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "0.3"
+                },
+                {
+                  "label": "Source",
+                  "value": "https://example.invalid/handmade.json"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://example.invalid/handmade"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\handmade\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\handmade\\current\\manifest.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/handmade"
+          },
+          {
+            "id": "app/vscode",
+            "title": "vscode",
+            "subtitle": "Lightweight but powerful source code editor",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "code"
+            ],
+            "accessory": "Installed 1.95.2",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\apps\\vscode\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://code.visualstudio.com/"
+                }
+              },
+              {
+                "id": "hold",
+                "title": "Hold Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "hold",
+                    "name": "vscode"
+                  }
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install extras/vscode"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\vscode.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "name": "vscode"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## vscode\n\nLightweight but powerful source code editor\n\n### Notes\n\n```text\nAdd Visual Studio Code as a context menu option by running: reg import \"$dir\\install-context.reg\"\n```",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "1.95.2"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "extras"
+                },
+                {
+                  "label": "License",
+                  "value": "Freeware"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://code.visualstudio.com/"
+                },
+                {
+                  "label": "Commands",
+                  "value": "code"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\vscode\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\extras\\bucket\\vscode.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/app/vscode"
+          }
+        ]
+      },
+      {
+        "title": "Installed for All Users",
+        "items": [
+          {
+            "id": "global/vcredist2022",
+            "title": "vcredist2022",
+            "subtitle": "Microsoft Visual C++ Redistributable for Visual Studio 2022",
+            "icon": {
+              "name": "package"
+            },
+            "accessory": "Installed 14.40.33810.0 · All users",
+            "actions": [
+              {
+                "id": "open-folder",
+                "title": "Open Folder",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\global\\apps\\vcredist2022\\current"
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://visualstudio.microsoft.com/downloads/"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "scoop install extras/vcredist2022"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\global\\apps\\vcredist2022\\current\\manifest.json",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## vcredist2022\n\nMicrosoft Visual C++ Redistributable for Visual Studio 2022",
+              "metadata": [
+                {
+                  "label": "Installed",
+                  "value": "14.40.33810.0"
+                },
+                {
+                  "label": "Scope",
+                  "value": "All users (read-only)"
+                },
+                {
+                  "label": "Bucket",
+                  "value": "extras"
+                },
+                {
+                  "label": "License",
+                  "value": "Freeware"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://visualstudio.microsoft.com/downloads/"
+                },
+                {
+                  "label": "Folder",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\global\\apps\\vcredist2022\\current"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\global\\apps\\vcredist2022\\current\\manifest.json"
+                }
+              ]
+            },
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/global/vcredist2022"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## git\n\nA free and open source distributed version control system.\n\n### Notes\n\n```text\nTo register file associations, please execute the following command:\nreg import \"$dir\\install-associations.reg\"\n```",
+      "metadata": [
+        {
+          "label": "Installed",
+          "value": "2.46.0"
+        },
+        {
+          "label": "Latest",
+          "value": "2.47.0"
+        },
+        {
+          "label": "Bucket",
+          "value": "main"
+        },
+        {
+          "label": "License",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "label": "Homepage",
+          "value": "https://gitforwindows.org"
+        },
+        {
+          "label": "Commands",
+          "value": "sh, bash, git, vi"
+        },
+        {
+          "label": "Folder",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\apps\\git\\current"
+        },
+        {
+          "label": "Manifest",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\git.json"
+        }
+      ]
+    },
+    "emptyText": "No apps are installed with Scoop"
+  }
+}

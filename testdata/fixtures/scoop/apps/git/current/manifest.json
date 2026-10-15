@@ -1,0 +1,7 @@
+{
+    "version": "2.46.0",
+    "description": "A free and open source distributed version control system.",
+    "homepage": "https://gitforwindows.org",
+    "license": "GPL-2.0-only",
+    "bin": ["cmd\\git.exe"]
+}

@@ -1,0 +1,7 @@
+{
+    "version": "14.1.1",
+    "description": "Recursively searches directories for a regex pattern",
+    "homepage": "https://github.com/BurntSushi/ripgrep",
+    "license": "MIT|Unlicense",
+    "bin": "rg.exe"
+}

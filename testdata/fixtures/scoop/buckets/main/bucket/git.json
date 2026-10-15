@@ -1,0 +1,25 @@
+{
+    "version": "2.47.0",
+    "description": "A free and open source distributed version control system.",
+    "homepage": "https://gitforwindows.org",
+    "license": {
+        "identifier": "GPL-2.0-only",
+        "url": "https://github.com/git-for-windows/git/blob/HEAD/COPYING"
+    },
+    "notes": [
+        "To register file associations, please execute the following command:",
+        "reg import \"$dir\\install-associations.reg\""
+    ],
+    "architecture": {
+        "64bit": {
+            "url": "https://example.invalid/PortableGit-64-bit.7z.exe#/dl.7z",
+            "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    },
+    "bin": [
+        "bin\\sh.exe",
+        "bin\\bash.exe",
+        "cmd\\git.exe",
+        ["usr\\bin\\vim.exe", "vi"]
+    ]
+}

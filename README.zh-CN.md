@@ -11,6 +11,7 @@
   - **计算器**：精确的十进制运算，支持函数和进制转换，比如 `255 in hex`。
   - **剪贴板历史**（`Alt+Shift+V`）：记录文字、图片和文件，支持全文搜索；不记录密码管理器复制的内容。
   - **文件搜索**：基于 [Everything](https://www.voidtools.com/)，需要系统里已经安装 Everything。
+  - **Scoop**：搜索、安装、升级、卸载 [Scoop](https://scoop.sh) 软件包，需要系统里已经安装 Scoop。
 - **设置窗口**（`Ctrl+,`）：快捷键、别名、插件偏好、主题。
 - **`glctl`**：无头 CLI，驱动的是同一个引擎，你或 AI Agent 不打开界面也能测试所有交互流程。
 
@@ -94,6 +95,22 @@ ipconfig /flushdns | Select-Object -Last 1
 ```
 
 支持 `silent`、`compact`、`fullOutput` 三种模式（`inline` 按 `compact` 处理）。详见[插件开发指南](docs/plugin-guide.md#script-commands)。
+
+## Scoop
+
+装有 [Scoop](https://scoop.sh) 时（`$SCOOP`、`%USERPROFILE%\scoop`，或在插件设置里指定的目录），会出现以下命令：
+
+| 命令 | 作用 |
+|------|------|
+| Search Scoop Packages | 边输入边按名称、可执行文件名、简介搜索所有 bucket 的清单。`Enter` 安装；已安装的软件可以升级、锁定/解锁、打开目录、卸载（`Ctrl+X`） |
+| Installed Scoop Apps | 已安装软件的版本、来源 bucket、是否锁定；有新版本的排在前面 |
+| Scoop Updates | 本地计算的 `scoop status`，可以"全部升级" |
+| Update All Scoop Apps / Update Scoop Buckets | `scoop update` 和 `scoop update *` |
+| Scoop Buckets | 已添加的和推荐的 bucket，可以添加、删除，也可以按 URL 添加自定义 bucket |
+| Clean Up Scoop | 先显示旧版本和下载缓存占了多少空间，再执行 `scoop cleanup *` 和 `scoop cache rm *` |
+
+搜索直接读 Scoop 的本地文件（约 6000 个清单，每次搜索不到 1 毫秒），不启动 PowerShell。安装、升级等操作调用 `scoop` 命令行，一次只执行一个，在输出视图里实时显示，可以停止、复制输出。打开"Search packages from the main search"后，可以在主搜索里输入 `scoop <名称>` 或 `sc <名称>` 直接搜索。全局安装（`-g`）的软件只读显示。
+
 ## 编写插件
 
 见[插件开发指南](docs/plugin-guide.md)（英文）。

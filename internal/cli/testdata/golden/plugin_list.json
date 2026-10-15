@@ -194,5 +194,20 @@
       }
     ],
     "origin": "builtin"
+  },
+  {
+    "id": "builtin.scoop",
+    "name": "Scoop",
+    "description": "Search, install, update and remove apps with the Scoop package manager.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "package"
+    },
+    "enabled": false,
+    "unavailable": "Scoop is not installed. Get it from scoop.sh.",
+    "permissions": [
+      "exec"
+    ],
+    "origin": "builtin"
   }
 ]
