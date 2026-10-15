@@ -24,3 +24,4 @@
 | R16 | 2026-10-15 | 每个新需求和每个方案都要落到 docs 里 | 本台账，以及每项对应的方案文档 | ✅ 持续执行 |
 | R17 | 2026-10-15 | 比较插件渲染的拉取式和推送式两种模型的优劣 | [plugin-render-model.md](plugin-render-model.md)：以拉取为主，加两级推送（先做 invalidate 通知，M5 再做推送快照） | ✅ 已分析；实现 📋 |
 | R18 | 2026-10-15 | 做 M5 插件平台，并为它单独写一份设计方案 | [m5-plugin-platform.md](m5-plugin-platform.md)：① Invalidate ② Form 视图和命令参数 ③ 设置项扩展 ④ 外部插件（JSON-RPC、进程隔离、推送快照）⑤ Script Commands | 🚧 W0（SDK）已完成，W1 子代理开发中 |
+| R19 | 2026-10-15 | 多分支协作改用 Git worktree | 开发流程：每个子代理在独立的 worktree 和分支（如 `m5/<子项>`）里开发并提交，主控逐个合并、跑全量测试后推送 | ✅ 从 M5 W1 开始执行 |
