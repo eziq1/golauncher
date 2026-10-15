@@ -1,0 +1,51 @@
+{
+  "plugin.name": "Files",
+  "plugin.description": "Actions for the folder you are working in when the launcher opens: open a terminal or VS Code there, create folders and text files, copy paths, compress and hash files.",
+
+  "item.terminal.title": "Open Terminal Here",
+  "item.terminalAdmin.title": "Open Terminal Here as Administrator",
+  "item.powershell.title": "Open PowerShell Here",
+  "item.powershellAdmin.title": "Open PowerShell Here as Administrator",
+  "item.cmd.title": "Open Command Prompt Here",
+  "item.vscode.title": "Open Folder in VS Code",
+  "item.newFolder.title": "New Folder",
+  "item.newFile.title": "New Text File",
+  "item.copyPath.title": "Copy Folder Path",
+  "item.copySelected.title": { "one": "Copy Path", "other": "Copy {{.Count}} Paths" },
+  "item.vscodeSelected.title": "Open Selection in VS Code",
+  "item.zip.title": "Compress to ZIP",
+  "item.sha256.title": "Copy SHA-256 Checksum",
+  "item.runAdmin.title": "Run as Administrator",
+
+  "subtitle.selected": { "one": "{{.name}}", "other": "{{.Count}} selected items" },
+
+  "action.open": "Open",
+  "action.openAdmin": "Open as Administrator",
+  "action.runAdmin": "Run as Administrator",
+  "action.create": "Create",
+  "action.copy": "Copy",
+  "action.copyPath": "Copy Folder Path",
+  "action.copyFiles": "Copy Files",
+  "action.compress": "Compress",
+
+  "default.folderName": "New folder",
+  "default.fileName": "New Text Document.txt",
+
+  "keywords.terminal": "terminal, powershell, shell, console, wt, 终端, 命令行",
+  "keywords.cmd": "cmd, command prompt, console, dos, 命令提示符",
+  "keywords.vscode": "code, vscode, visual studio code, editor, 编辑器",
+  "keywords.newFolder": "mkdir, create folder, directory, 新建文件夹",
+  "keywords.newFile": "touch, create file, text, txt, 新建文件",
+  "keywords.copyPath": "path, copy path, clipboard, 复制路径",
+  "keywords.zip": "zip, archive, compress, 压缩",
+  "keywords.sha256": "hash, checksum, sha256, sha-256, 校验",
+  "keywords.admin": "admin, administrator, elevated, sudo, runas, 管理员",
+
+  "toast.created": "Created “{{.name}}”",
+  "toast.invalidName": "“{{.name}}” is not a valid name",
+  "toast.createFailed": "Could not create “{{.name}}”",
+  "toast.zipFailed": "Could not create the ZIP file",
+  "toast.hashCopied": "SHA-256 checksum copied",
+  "toast.hashFailed": "Could not compute the checksum",
+  "toast.stillWorking": "Still working in the background"
+}

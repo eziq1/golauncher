@@ -25,6 +25,7 @@ import (
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/ui"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
+	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -295,7 +296,11 @@ func (s *Shell) showLauncher() {
 		return
 	}
 	if !s.panel.IsVisible() {
-		s.prevForeground.Store(clip.ForegroundWindow())
+		fg := clip.ForegroundWindow()
+		s.prevForeground.Store(fg)
+		// Before the root search of this show starts (Shown resets it): the
+		// context arrives in the background and refreshes the root.
+		s.env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) { return wincontext.Detect(ctx, fg) })
 		d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
 		w, h := s.panel.Size()
 		s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
