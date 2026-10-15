@@ -1,0 +1,69 @@
+package host
+
+import (
+	"encoding/json/jsontext"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"time"
+
+	"golauncher/internal/i18n"
+	"golauncher/internal/store"
+	"golauncher/pkg/plugin"
+)
+
+// Services are the shared host services that per-plugin Hosts are built on.
+type Services struct {
+	Log       *slog.Logger
+	Now       func() time.Time
+	DB        *store.DB
+	Bus       *Bus
+	I18n      *i18n.Manager
+	Clipboard plugin.Clipboard
+	// DataRoot and CacheRoot contain one subdirectory per plugin.
+	DataRoot  string
+	CacheRoot string
+}
+
+// Host is the plugin.Host given to one plugin.
+type Host struct {
+	s     *Services
+	id    string
+	prefs *Prefs
+	data  string
+	cache string
+}
+
+var _ plugin.Host = (*Host)(nil)
+
+// NewHost returns the Host for the plugin described by m, creating its data
+// and cache directories.
+func (s *Services) NewHost(m plugin.Manifest, prefs map[string]jsontext.Value) (*Host, error) {
+	h := &Host{
+		s:     s,
+		id:    m.ID,
+		prefs: NewPrefs(m.Preferences, prefs),
+		data:  filepath.Join(s.DataRoot, m.ID),
+		cache: filepath.Join(s.CacheRoot, m.ID),
+	}
+	for _, d := range []string{h.data, h.cache} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			return nil, err
+		}
+	}
+	return h, nil
+}
+
+// Prefs returns the plugin's preferences, so the host can update them when
+// the configuration changes.
+func (h *Host) Prefs() *Prefs { return h.prefs }
+
+func (h *Host) Logger() *slog.Logger            { return h.s.Log.With("plugin", h.id) }
+func (h *Host) Now() time.Time                  { return h.s.Now() }
+func (h *Host) Storage() plugin.KV              { return h.s.DB.KV(h.id) }
+func (h *Host) Preferences() plugin.Preferences { return h.prefs }
+func (h *Host) Clipboard() plugin.Clipboard     { return h.s.Clipboard }
+func (h *Host) Events() plugin.Events           { return h.s.Bus }
+func (h *Host) I18n() plugin.Localizer          { return h.s.I18n.Localizer(h.id) }
+func (h *Host) DataDir() string                 { return h.data }
+func (h *Host) CacheDir() string                { return h.cache }

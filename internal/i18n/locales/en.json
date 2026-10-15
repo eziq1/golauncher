@@ -1,4 +1,16 @@
 {
+  "app.name": "golauncher",
+
+  "search.placeholder": "Search apps, commands, and more…",
+  "search.placeholderView": "Search…",
+  "search.empty": "No results",
+  "section.recent": "Recent",
+  "section.commands": "Commands",
+  "accessory.command": "Command",
+  "action.openCommand": "Open Command",
+  "toast.copied": "Copied to clipboard",
+  "toast.actionFailed": "Action failed",
+
   "time.justNow": "Just now",
   "time.minutesAgo": { "one": "{{.Count}} minute ago", "other": "{{.Count}} minutes ago" },
   "time.hoursAgo": { "one": "{{.Count}} hour ago", "other": "{{.Count}} hours ago" },
