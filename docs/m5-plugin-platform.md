@@ -357,3 +357,39 @@ func main() { rpcserve.Serve(hello.New()) }
 | 外部插件的 stdout 混进了非协议输出（比如 Python 的 print） | 按行解析，非 JSON 的行当作日志处理并告警；文档要求插件只往 stderr 写日志 |
 | Windows 上的子进程管理（僵尸进程、控制台窗口闪一下） | Job Object；创建进程时加 `CREATE_NO_WINDOW` |
 | 推送和导航之间的竞态 | 同时用实例 ID 和版本号把关；为这种竞态写专门的测试 |
+
+## 11. 实现记录：④ 外部插件（W1-B）
+
+### 代码结构
+
+| 位置 | 内容 |
+|------|------|
+| `pkg/plugin/jsonrpc` | 双向 JSON-RPC 2.0 连接，NDJSON 帧格式。收到的请求各自在一个 goroutine 里处理，处理函数可以反过来调用对方；通知在读循环里按顺序处理。处理函数 panic 时返回 `-32603` 错误，不会终止进程。ctx 结束时自动发送 `$/cancelRequest`。非 JSON 行记一条告警后丢弃 |
+| `pkg/plugin/protocol` | 方法名、参数和结果类型、协议版本号 `Version = 1` |
+| `pkg/plugin/rpcserve` | `Serve(p)`：插件进程里的 `plugin.Host` 实现和请求分派。`os.Stdout` 被重定向到 stderr，防止误打印破坏协议流 |
+| `internal/extproc` | 发现（`Find`、`Load`、`DefaultRoots`、`EnvDirs`）、`Proxy`、进程管理、宿主侧权限检查、`Validate` |
+| `internal/extproc/extproctest` | 测试辅助：把 `examples/plugins/<name>` 编译到临时目录 |
+| `examples/plugins/{go-hello,python-hello,crashy}` | 示例插件和测试用的"捣乱"插件 |
+| `docs/plugin-protocol.md` | 给第三方实现的协议规范（英文） |
+
+### 与设计的差异和补充
+
+- **协议细节**：`initialize` 的参数多了 `pluginId`；存储的值按文本传（`value`），不是合法 UTF-8 的值用 `base64` 字段；`host/log` 既可以作为请求发，也可以作为通知发（rpcserve 用通知，不用等回复）；`Init` 返回 `ErrUnavailable` 时，`initialize` 以错误码 `-32002` 返回，消息就是原因。
+- **能力位**：`initialize` 返回的 `capabilities` 记在 Proxy 上。没有 `rootItems` 能力的插件，以后不会因为用户在根搜索里打字而被拉起来。
+- **超时与卡死**：沿用 Engine 的 `callPlugin` 超时。只有 ctx 因 deadline 结束（`DeadlineExceeded`）才计入"连续超时"，用户继续打字导致的取消（`Canceled`）不算；等待进程启动期间超时也不算。
+- **重启退避**：连续崩溃次数决定退避时间（1s、2s、4s……最长 30s），一次成功的调用会把它清零。熔断窗口 2 分钟内 5 次。启动失败（进程启动后立即退出、`initialize` 超时）也算一次崩溃。
+- **不可用的三种来源**：manifest 的 `protocol` 不对、`run.command` 找不到（`Init` 时就检查，Engine 直接把插件列为不可用）；进程在 `initialize` 中报告不可用或协议版本不对（运行时，`ProcessState` 报 `unavailable`）。
+- **glctl 的确定性**：假环境里外部插件在 `Init` 时就启动并等待初始化完成（`Options.Eager`），否则第一次查询会因为 150ms 的根搜索超时而拿不到外部插件的结果。真实环境仍是懒启动。
+- **空闲回收与打开的视图**：Proxy 记录 `ViewRequest.Instance` 出现过的实例，直到 `ViewClosed(instance)` 才移除；有打开的视图时不回收。
+- **翻译文件容错**：`locales/` 里解析失败的文件会被跳过并告警；没有 `en.json` 时补一个空的。这样一个坏的翻译文件不会让整个宿主启动失败（`i18n.Manager.Register` 遇错会让 Engine 构建失败）。
+- **重复 ID**：与内置插件或先加载的外部插件 ID 相同的，跳过并告警。
+- **示例放在主模块里**：`examples/plugins/*` 是主模块下的 `package main`，`go build ./...` 和 `go vet ./...` 会覆盖它们，测试也能直接编译。lint 的插件规则只检查 `plugins/`；`glctl i18n check` 跳过 `examples/`，示例插件的翻译键由 `glctl plugin validate` 检查（manifest 中的 `%key%`）。Python 示例只有 `.py`，不受影响。
+- **Python 辅助代码**约 130 行（含注释），比设计里估计的 80 行多，因为要处理"等待宿主回复期间收到其他请求"的排队。
+
+### 主控合并时需要接线的地方
+
+1. **`viewClosed`**：`extproc.Proxy.ViewClosed(instance string)` 已实现（发通知、清理实例状态、允许空闲回收）。A 加上 `Engine.OnViewClosed` 后，在里面对插件做类型断言：`if vc, ok := l.p.(interface{ ViewClosed(string) }); ok { vc.ViewClosed(instance) }`。
+2. **熔断后重新启用**：`core.Engine.ResetPlugin(id)`（在 `internal/core/plugins.go`）调用 `core.ProcessPlugin.Reset()`。设置页在 `PluginInfo.State == "disabled"` 时显示原因（`StateReason`）和"重新启用"按钮，按钮调用 `ResetPlugin`。
+3. **设置页**：`PluginInfo.Origin`（`builtin` / `external`）和 `State`、`StateReason` 已经有了，UI 显示"外部插件"标识和状态由 A 或主控完成。
+4. **"重新加载插件"命令**（§5.1 的 `builtin.core/reload-plugins`）没有做：Engine 目前在 `New` 时固定插件列表，需要 Engine 支持增删插件，留给主控。
+5. **`hostVersion`**：`extproc.Options.HostVersion` 默认 `dev`；`builtin.All` 还拿不到版本号，需要的话由 shell 传入。
