@@ -1,0 +1,104 @@
+{
+  "query": "10 km in mi",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:mi",
+          "title": "6.21371 mi",
+          "subtitle": "10 km = 6.21371 mi",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "6.21371"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "6.21371 mi"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "6.21371"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "10 km in mi"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**10 km**",
+            "metadata": [
+              {
+                "label": "mi",
+                "value": "6.21371"
+              },
+              {
+                "label": "m",
+                "value": "10,000"
+              },
+              {
+                "label": "km",
+                "value": "10"
+              },
+              {
+                "label": "cm",
+                "value": "1,000,000"
+              },
+              {
+                "label": "mm",
+                "value": "10,000,000"
+              },
+              {
+                "label": "ft",
+                "value": "32,808.4"
+              },
+              {
+                "label": "in",
+                "value": "393,701"
+              },
+              {
+                "label": "yd",
+                "value": "10,936.1"
+              },
+              {
+                "label": "nmi",
+                "value": "5.39957"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:mi",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

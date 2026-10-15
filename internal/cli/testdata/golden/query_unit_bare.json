@@ -1,0 +1,149 @@
+{
+  "query": "30 ℃",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:℉",
+          "title": "86 ℉",
+          "subtitle": "30 ℃ = 86 ℉",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "86"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "86 ℉"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "86"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "30 ℃"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**30 ℃**",
+            "metadata": [
+              {
+                "label": "℉",
+                "value": "86"
+              },
+              {
+                "label": "K",
+                "value": "303.15"
+              },
+              {
+                "label": "℃",
+                "value": "30"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:℉",
+          "rank": 1.7
+        },
+        {
+          "id": "convert:K",
+          "title": "303.15 K",
+          "subtitle": "30 ℃ = 303.15 K",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 0.99,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "303.15"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "303.15 K"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "303.15"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "30 ℃"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**30 ℃**",
+            "metadata": [
+              {
+                "label": "℉",
+                "value": "86"
+              },
+              {
+                "label": "K",
+                "value": "303.15"
+              },
+              {
+                "label": "℃",
+                "value": "30"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:K",
+          "rank": 1.693
+        }
+      ]
+    }
+  ]
+}

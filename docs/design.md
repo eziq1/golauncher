@@ -453,7 +453,7 @@ glctl session action -s s.json builtin.clipboard/1 pin
 ### 8.2 `builtin.calc`：计算器
 
 - **模式**：`inline`，在根搜索里直接显示结果。只有当输入"看起来像表达式"时才输出，避免干扰普通搜索。判断标准：含数字和运算符，或以 `=` 开头。
-- **实现**：自写 Pratt parser，数值用 `math/big.Float`（精度 128 bit），避免 `0.1+0.2` 这类浮点误差。
+- **实现**：自写 Pratt parser，数值用 `math/big.Float`（精度 128 bit），避免 `0.1+0.2` 这类浮点误差。带单位的值在解析时就换算成基本单位，同时记住书写时的单位用于显示。
 - **第一版支持**：
   - 四则运算、`%`、`^`、括号
   - 常量 `pi`、`e`
@@ -464,7 +464,7 @@ glctl session action -s s.json builtin.clipboard/1 pin
   - 输入语法与语言无关，固定用 `.` 作小数点、英文函数名，保证表达式在任何语言下含义不变。
   - 结果显示按当前语言格式化（千分位、小数点），由 `Localizer` 的数字格式化负责。
   - "复制结果"复制的是不带千分位的原始数字，不受语言影响。
-- **阶段 2**：单位换算（`10 km in mi`），汇率换算（需要 `network` 权限，结果缓存）。
+- **单位换算（R28，已实现）**：数字可以带单位，按量纲做类型检查（`10 km in mi`、`5 GB / 100 Mbps`、`30 ℃`），另有汇率（`network` 权限，后台刷新、离线用缓存）、时间戳、颜色、尺码。单位库在 `plugins/calc/units`。详见 [unit-conversion.md](unit-conversion.md)。
 - **动作**：
   - `Enter` 复制结果
   - `Ctrl+Enter` 复制表达式和结果

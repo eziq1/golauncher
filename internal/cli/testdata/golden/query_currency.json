@@ -1,0 +1,92 @@
+{
+  "query": "100 usd in cny",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:CNY",
+          "title": "670.65 CNY",
+          "subtitle": "100 USD = 670.65 CNY · rates from 2026-10-15",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "670.65"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "670.65 CNY"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "670.65"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "100 usd in cny"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**100 USD**\n\n[Rates by Exchange Rate API](https://www.exchangerate-api.com)",
+            "metadata": [
+              {
+                "label": "CNY",
+                "value": "670.65"
+              },
+              {
+                "label": "USD",
+                "value": "100.00"
+              },
+              {
+                "label": "EUR",
+                "value": "89.44"
+              },
+              {
+                "label": "JPY",
+                "value": "15,830.55"
+              },
+              {
+                "label": "GBP",
+                "value": "75.62"
+              },
+              {
+                "label": "HKD",
+                "value": "784.85"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:CNY",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

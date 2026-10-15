@@ -1,0 +1,92 @@
+{
+  "query": "now in unix",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:unix",
+          "title": "1792058400",
+          "subtitle": "now = 1792058400",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "1792058400"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "1792058400"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "1792058400"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "now in unix"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**now**",
+            "metadata": [
+              {
+                "label": "Unix time (seconds)",
+                "value": "1792058400"
+              },
+              {
+                "label": "Unix time (milliseconds)",
+                "value": "1792058400000"
+              },
+              {
+                "label": "Local time",
+                "value": "2026-10-15 10:00:00"
+              },
+              {
+                "label": "UTC",
+                "value": "2026-10-15 10:00:00"
+              },
+              {
+                "label": "ISO 8601",
+                "value": "2026-10-15T10:00:00Z"
+              },
+              {
+                "label": "Relative",
+                "value": "Just now"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:unix",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

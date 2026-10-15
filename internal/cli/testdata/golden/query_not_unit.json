@@ -1,0 +1,53 @@
+{
+  "query": "mi",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Applications",
+      "items": [
+        {
+          "id": "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App",
+          "title": "Terminal",
+          "icon": {
+            "name": "app"
+          },
+          "accessory": "Application",
+          "group": "Applications",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
+              }
+            },
+            {
+              "id": "hide",
+              "title": "Hide Application",
+              "do": {
+                "kind": "Callback",
+                "target": "hide",
+                "payload": {
+                  "id": "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/Microsoft.WindowsTerminal_8wekyb3d8bbwe!App",
+          "rank": 0.48999999999999994
+        }
+      ]
+    }
+  ]
+}

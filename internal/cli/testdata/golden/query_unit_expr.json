@@ -1,0 +1,108 @@
+{
+  "query": "5 GB / 100 Mbps",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:min",
+          "title": "6.66667 min",
+          "subtitle": "5 GB / 100 Mbps = 6.66667 min",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "6.66667"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "6.66667 min"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "6.66667"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "5 GB / 100 Mbps"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**5 GB / 100 Mbps**",
+            "metadata": [
+              {
+                "label": "min",
+                "value": "6.66667"
+              },
+              {
+                "label": "ns",
+                "value": "400,000,000,000"
+              },
+              {
+                "label": "µs",
+                "value": "400,000,000"
+              },
+              {
+                "label": "ms",
+                "value": "400,000"
+              },
+              {
+                "label": "s",
+                "value": "400"
+              },
+              {
+                "label": "h",
+                "value": "0.111111"
+              },
+              {
+                "label": "d",
+                "value": "0.00462963"
+              },
+              {
+                "label": "wk",
+                "value": "0.000661376"
+              },
+              {
+                "label": "mo",
+                "value": "0.000152106"
+              },
+              {
+                "label": "yr",
+                "value": "0.0000126755"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:min",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

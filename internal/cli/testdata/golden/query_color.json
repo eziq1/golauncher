@@ -1,0 +1,81 @@
+{
+  "query": "#ff8800 to rgb",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:rgb",
+          "title": "rgb(255, 136, 0)",
+          "subtitle": "#FF8800 = rgb(255, 136, 0)",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "rgb(255, 136, 0)"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "rgb(255, 136, 0)"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "rgb(255, 136, 0)"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "#ff8800 to rgb"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**#FF8800**",
+            "image": "<cache>/swatches/ff8800.png",
+            "metadata": [
+              {
+                "label": "RGB",
+                "value": "rgb(255, 136, 0)"
+              },
+              {
+                "label": "HEX",
+                "value": "#FF8800"
+              },
+              {
+                "label": "HSL",
+                "value": "hsl(32, 100%, 50%)"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:rgb",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

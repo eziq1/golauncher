@@ -1,0 +1,112 @@
+{
+  "query": "3斤换成kg",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:kg",
+          "title": "1.5 kg",
+          "subtitle": "3 斤 = 1.5 kg",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "1.5"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "1.5 kg"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "1.5"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "3斤换成kg"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**3 斤**",
+            "metadata": [
+              {
+                "label": "kg",
+                "value": "1.5"
+              },
+              {
+                "label": "g",
+                "value": "1,500"
+              },
+              {
+                "label": "t",
+                "value": "0.0015"
+              },
+              {
+                "label": "lb",
+                "value": "3.30693"
+              },
+              {
+                "label": "oz",
+                "value": "52.9109"
+              },
+              {
+                "label": "mg",
+                "value": "1,500,000"
+              },
+              {
+                "label": "st",
+                "value": "0.23621"
+              },
+              {
+                "label": "ct",
+                "value": "7,500"
+              },
+              {
+                "label": "斤",
+                "value": "3"
+              },
+              {
+                "label": "两",
+                "value": "30"
+              },
+              {
+                "label": "钱",
+                "value": "300"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:kg",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

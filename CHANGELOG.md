@@ -12,6 +12,29 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Unit conversion in the calculator** (R28, `docs/unit-conversion.md`):
+  numbers can carry units, including compound ones (`km/h`, `kW·h`, `N*m`,
+  `m/s^2`), with dimension checking: `10 km in mi`, `5 GB / 100 Mbps`,
+  `3 kg * 9.8 m/s^2`, `1 mi + 200 m`, `5 ft 10 in in cm`. Conversion keywords
+  `in`, `to`, `as`, `=>`, `换成`, `转换为`. A quantity alone (`30 ℃`, `10 km`,
+  `100 usd`) lists up to five conversions; Show All Conversions opens every
+  one with a detail pane. About 20 categories: length, area, volume, mass,
+  temperature (with `Δ` differences), data sizes (SI and IEC, bits and bytes)
+  and rates, speed, duration, pressure, energy, power, angle, frequency, fuel
+  economy (`L/100km` ↔ `mpg`), force, torque, density, screen units
+  (`px`/`pt`/`em`/`rem`/`dp` with DPI and root font size preferences),
+  cooking, and Chinese market units (斤, 两, 亩, 尺…). Units are found by
+  symbol, English name, Chinese name or pinyin (`gongli`, `gl`).
+- **Currencies**: 166 currencies with rates from open.er-api.com (or
+  Frankfurter as a fallback), no API key, refreshed in the background at most
+  every 6 hours and cached for offline use. `¥` is the yuan unless the
+  "¥ means Japanese yen" preference is on.
+- **Timestamps, colors and sizes** in the calculator: `1700000000 to date`,
+  `now in unix`, `2026-10-15 10:00 to unix` (local time or `in utc`),
+  `#ff8800 to rgb` / `hsl(32,100%,50%) to hex` with a color swatch, and
+  clothing and shoe sizes (`US 9 shoe in EU`, `鞋码 42 in us`).
+- `glctl --fixtures DIR` reads exchange rates from `DIR/rates.json`.
+
 - **External plugins** in any language, in their own process, over JSON-RPC
   2.0 on stdio (see `docs/plugin-protocol.md`). Plugins live in
   `%APPDATA%\golauncher\plugins\<id>\` (plus `GOLAUNCHER_PLUGIN_PATH`). A

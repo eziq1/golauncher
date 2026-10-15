@@ -1,0 +1,25 @@
+{
+  "query": "100 usd",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "no-rates",
+          "title": "Exchange rates are not available yet",
+          "subtitle": "Could not download exchange rates; check your internet connection",
+          "icon": {
+            "name": "calculator",
+            "tint": "muted"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/no-rates",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

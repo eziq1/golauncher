@@ -64,14 +64,18 @@ func TestPluginImports(t *testing.T) {
 	if len(files) == 0 {
 		t.Fatal("no plugin sources found")
 	}
-	for _, f := range files {
+	for path, f := range files {
+		// A plugin may import its own subpackages (plugins/calc/units).
+		rel, _ := filepath.Rel(filepath.Join(root, "plugins"), path)
+		own, _, _ := strings.Cut(filepath.ToSlash(rel), "/")
+		allowed := append(slices.Clone(allowedModule), module+"/plugins/"+own+"/")
 		for _, imp := range f.Imports {
 			p, _ := strconv.Unquote(imp.Path.Value)
 			first, _, _ := strings.Cut(p, "/")
 			switch {
 			case !strings.Contains(first, "."): // standard library
 			case strings.HasPrefix(p, module+"/"):
-				if !slices.ContainsFunc(allowedModule, func(a string) bool { return strings.HasPrefix(p, a) }) {
+				if !slices.ContainsFunc(allowed, func(a string) bool { return strings.HasPrefix(p, a) }) {
 					t.Errorf("%s: plugin imports host internals %q; use pkg/plugin", fset.Position(imp.Pos()), p)
 				}
 			default:

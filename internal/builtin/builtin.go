@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 
 	"github.com/eziq1/golauncher/internal/extproc"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
@@ -22,7 +23,8 @@ import (
 	"github.com/eziq1/golauncher/plugins/scripts"
 )
 
-// HostVersion is sent to external plugins in initialize. Front ends set it
+// HostVersion is sent to external plugins in initialize and in the User-Agent
+// of the calculator's exchange rate requests. Front ends set it
 // to their stamped version before calling All.
 var HostVersion = "dev"
 
@@ -32,7 +34,7 @@ var HostVersion = "dev"
 func All() []plugin.Plugin {
 	builtins := []plugin.Plugin{
 		apps.New(),
-		calc.New(),
+		calc.NewWithOptions(calc.Options{UserAgent: "golauncher/" + HostVersion}),
 		clipboard.New(),
 		clock.New(),
 		files.New(),
@@ -59,11 +61,13 @@ func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugi
 
 // Fake returns the built-in plugins for an isolated environment. Data that
 // would come from the system is read from fixture files in dir when present
-// ("" for none): apps.json (installed applications) and files.json
-// (Everything's file index), scripts/ (script commands) and scoop/ (a Scoop
-// root; Scoop is unavailable without it). No icons are extracted and nothing
-// is opened; programs (Scoop commands) run as background tasks, which the
-// fake environment's task runner only records.
+// ("" for none): apps.json (installed applications), files.json
+// (Everything's file index), rates.json (exchange rates in the format of
+// open.er-api.com; without it the calculator has no rates and never goes
+// online), scripts/ (script commands) and scoop/ (a Scoop root; Scoop is
+// unavailable without it). No icons are extracted and nothing is opened;
+// programs (Scoop commands) run as background tasks, which the fake
+// environment's task runner only records.
 //
 // External plugins are loaded from pluginRoots and GOLAUNCHER_PLUGIN_PATH
 // (never from the user's plugin directory). They start eagerly, so results
@@ -75,7 +79,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 	}
 	builtins := []plugin.Plugin{
 		apps.NewWithSource(appsSrc, nil),
-		calc.New(),
+		fakeCalc(dir),
 		clipboard.New(),
 		clock.New(),
 		files.NewWithOptions(files.Options{Which: fakeWhich}),
@@ -85,6 +89,19 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
 	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)
+}
+
+// fakeCalc is the calculator with the exchange rates of dir/rates.json, or
+// without rates; it never downloads any. Timestamps are shown in UTC so
+// that results do not depend on the machine's time zone.
+func fakeCalc(dir string) *calc.Plugin {
+	o := calc.Options{Offline: true, Location: time.UTC}
+	if f := fixture(dir, "rates.json"); f != "" {
+		if r, err := calc.FixtureRates(f); err == nil {
+			o.Rates = r
+		}
+	}
+	return calc.NewWithOptions(o)
 }
 
 // fixture returns dir/name if that file exists, else "".

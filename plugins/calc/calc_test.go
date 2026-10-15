@@ -5,6 +5,7 @@ import (
 	"encoding/json/v2"
 	"io/fs"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
@@ -33,13 +34,33 @@ func newPlugin(t *testing.T) (*Plugin, *hostfake.Host) {
 func TestManifest(t *testing.T) {
 	_, h := newPlugin(t)
 	m := New().Manifest()
-	if m.ID != "builtin.calc" || m.Version != "1.0.0" || m.Icon.Name != "calculator" {
+	if m.ID != "builtin.calc" || m.Version != "1.1.0" || m.Icon.Name != "calculator" {
 		t.Errorf("manifest = %+v", m)
 	}
-	if len(m.Commands) != 0 || len(m.Preferences) != 0 || len(m.Permissions) != 0 {
-		t.Errorf("manifest has commands, preferences or permissions: %+v", m)
+	if len(m.Commands) != 0 || !slices.Equal(m.Permissions, []plugin.Permission{plugin.PermNetwork}) {
+		t.Errorf("manifest commands or permissions: %+v", m)
 	}
+	var prefs []string
 	l := h.I18N.Localizer(m.ID)
+	for _, pr := range m.Preferences {
+		prefs = append(prefs, pr.Name)
+		for _, s := range []string{pr.Title, pr.Description, pr.Group} {
+			if got := l.Resolve(s); got == s || got == "" {
+				t.Errorf("preference %s: %q is not translated", pr.Name, s)
+			}
+		}
+		for _, o := range pr.Options {
+			if got := l.Resolve(o.Title); got == o.Title {
+				t.Errorf("option %s: %q is not translated", o.Value, o.Title)
+			}
+		}
+	}
+	if want := []string{"unitSystem", "chineseUnits", "significantDigits", "dpi", "remBase", "currencyProvider", "currencies", "yenMeansJPY"}; !slices.Equal(prefs, want) {
+		t.Errorf("preferences = %q, want %q", prefs, want)
+	}
+	if got := l.Resolve("%pref.currencyProvider.description%"); !strings.Contains(got, "Rates by Exchange Rate API") {
+		t.Errorf("provider description lacks the attribution: %q", got)
+	}
 	if got := l.Resolve(m.Name); got != "Calculator" {
 		t.Errorf("name = %q, want Calculator", got)
 	}
@@ -51,11 +72,22 @@ func TestManifest(t *testing.T) {
 func TestMessageKeysExist(t *testing.T) {
 	_, h := newPlugin(t)
 	l := h.I18n()
-	for _, key := range []string{"plugin.name", "plugin.description", "group", "action.copy", "action.copyExpression", "action.paste"} {
+	keys := []string{"plugin.name", "plugin.description", "group", "action.copy", "action.copyExpression", "action.paste",
+		"action.copyValue", "action.copyWithUnit", "action.pasteValue", "action.showConversions",
+		"view.conversions.title", "view.conversions.empty", "currency.ratesFrom", "currency.noRates.title",
+		"currency.noRates.subtitle", "currency.noRates.failed", "currency.attribution.erapi", "currency.attribution.frankfurter",
+		"color.hex", "color.rgb", "color.hsl", "ts.local", "ts.utc", "ts.iso", "ts.unix", "ts.unixMs", "ts.relative",
+		"size.note", "size.kind.menShoes", "size.kind.womenShoes", "size.kind.menClothing", "size.kind.womenClothing"}
+	for _, key := range keys {
 		if got := l.T(key); got == key || got == "" {
 			t.Errorf("T(%q) = %q: missing from en.json", key, got)
 		}
 	}
+	nPrefKeys := 0
+	for _, pr := range New().Manifest().Preferences {
+		nPrefKeys += 2 + len(pr.Options) // title, description, options
+	}
+	nPrefKeys += 2 // groups
 	// And no unused keys.
 	data, err := fs.ReadFile(New().Locales(), "en.json")
 	if err != nil {
@@ -65,8 +97,8 @@ func TestMessageKeysExist(t *testing.T) {
 	if err := json.Unmarshal(data, &cat); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(cat); got != 6 {
-		t.Errorf("en.json has %d keys, want 6", got)
+	if got, want := len(cat), len(keys)+nPrefKeys; got != want {
+		t.Errorf("en.json has %d keys, want %d", got, want)
 	}
 }
 

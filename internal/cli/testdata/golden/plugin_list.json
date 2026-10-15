@@ -32,12 +32,112 @@
   {
     "id": "builtin.calc",
     "name": "Calculator",
-    "description": "Evaluate math expressions right in the search bar",
-    "version": "1.0.0",
+    "description": "Evaluate math expressions and convert units, currencies, timestamps, colors and sizes right in the search bar",
+    "version": "1.1.0",
     "icon": {
       "name": "calculator"
     },
     "enabled": true,
+    "permissions": [
+      "network"
+    ],
+    "preferences": [
+      {
+        "name": "unitSystem",
+        "type": "select",
+        "title": "Unit system",
+        "description": "Which units are suggested first when you type a quantity such as “10 km”.",
+        "default": "metric",
+        "options": [
+          {
+            "value": "metric",
+            "title": "Metric"
+          },
+          {
+            "value": "imperial",
+            "title": "Imperial (US)"
+          }
+        ],
+        "group": "Units"
+      },
+      {
+        "name": "chineseUnits",
+        "type": "bool",
+        "title": "Suggest Chinese units",
+        "description": "Also suggest Chinese market units (斤, 两, 亩, 尺, 寸, 里…). They can always be typed.",
+        "default": false,
+        "group": "Units"
+      },
+      {
+        "name": "significantDigits",
+        "type": "number",
+        "title": "Significant digits",
+        "description": "How many significant digits unit conversions show (1–30).",
+        "default": 6,
+        "group": "Units"
+      },
+      {
+        "name": "dpi",
+        "type": "number",
+        "title": "Screen DPI",
+        "description": "Pixels per inch for converting px to physical units such as pt, mm and in.",
+        "default": 96,
+        "group": "Units"
+      },
+      {
+        "name": "remBase",
+        "type": "number",
+        "title": "Root font size (px)",
+        "description": "Pixels per rem and em.",
+        "default": 16,
+        "group": "Units"
+      },
+      {
+        "name": "currencyProvider",
+        "type": "select",
+        "title": "Exchange rates",
+        "description": "Where currency rates come from. They are downloaded at most every 6 hours, need no API key, and are kept for offline use. Rates by Exchange Rate API (open.er-api.com, about 160 currencies, daily) or Frankfurter (European Central Bank, about 30 currencies, working days).",
+        "default": "er-api",
+        "options": [
+          {
+            "value": "er-api",
+            "title": "Exchange Rate API (open.er-api.com)"
+          },
+          {
+            "value": "frankfurter",
+            "title": "Frankfurter (European Central Bank)"
+          },
+          {
+            "value": "off",
+            "title": "Off (no currency conversion)"
+          }
+        ],
+        "group": "Currency"
+      },
+      {
+        "name": "currencies",
+        "type": "stringList",
+        "title": "Currencies",
+        "description": "ISO codes of the currencies an amount such as “100 usd” is converted to.",
+        "default": [
+          "USD",
+          "CNY",
+          "EUR",
+          "JPY",
+          "GBP",
+          "HKD"
+        ],
+        "group": "Currency"
+      },
+      {
+        "name": "yenMeansJPY",
+        "type": "bool",
+        "title": "¥ means Japanese yen",
+        "description": "Read ¥ and ￥ as Japanese yen (JPY) instead of Chinese yuan (CNY).",
+        "default": false,
+        "group": "Currency"
+      }
+    ],
     "origin": "builtin"
   },
   {

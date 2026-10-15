@@ -29,12 +29,17 @@ func glctl(t *testing.T, args ...string) (string, int) {
 	return out.String(), code
 }
 
-var elapsedRe = regexp.MustCompile(`"elapsedMs": \d+`)
+var (
+	elapsedRe = regexp.MustCompile(`"elapsedMs": \d+`)
+	// swatchRe matches color swatches written to the temporary cache.
+	swatchRe = regexp.MustCompile(`"image": "[^"]*swatches[\\/]+([0-9a-f]{6}\.png)"`)
+)
 
 // golden compares got with testdata/golden/name.json.
 func golden(t *testing.T, name, got string) {
 	t.Helper()
 	got = elapsedRe.ReplaceAllString(got, `"elapsedMs": 0`)
+	got = swatchRe.ReplaceAllString(got, `"image": "<cache>/swatches/$1"`)
 	path := filepath.Join("testdata", "golden", name+".json")
 	if *update {
 		os.MkdirAll(filepath.Dir(path), 0o755)
@@ -75,6 +80,19 @@ func TestGolden(t *testing.T) {
 		{"query_clock", []string{"query", "time", "--now", clockNow}},
 		{"query_clock_bj", []string{"query", "time bj", "--now", clockNow}},
 		{"query_clock_zh", []string{"query", "time 北京", "--now", clockNow}},
+		// Unit conversion (docs/unit-conversion.md).
+		{"query_unit", []string{"query", "10 km in mi"}},
+		{"query_unit_bare", []string{"query", "30 ℃"}},
+		{"query_unit_expr", []string{"query", "5 GB / 100 Mbps"}},
+		{"query_unit_zh", []string{"query", "3斤换成kg"}},
+		{"query_currency", []string{"query", "100 usd in cny", "--fixtures", fixtures}},
+		{"query_currency_bare", []string{"query", "100 美元", "--fixtures", fixtures}},
+		{"query_currency_no_rates", []string{"query", "100 usd"}},
+		{"query_timestamp", []string{"query", "1700000000 to date", "--now", clockNow}},
+		{"query_now_unix", []string{"query", "now in unix", "--now", clockNow}},
+		{"query_color", []string{"query", "#ff8800 to rgb"}},
+		{"query_size", []string{"query", "US 9 shoe in EU"}},
+		{"query_not_unit", []string{"query", "mi", "--fixtures", fixtures}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

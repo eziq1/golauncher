@@ -1,0 +1,88 @@
+{
+  "query": "US 9 shoe in EU",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:EU",
+          "title": "EU 42.5",
+          "subtitle": "US 9 (men's shoes) = EU 42.5",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "42.5"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "EU 42.5"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "42.5"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "US 9 shoe in EU"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**US 9 (men's shoes)**\n\nSizes vary by brand; this is a typical chart.",
+            "metadata": [
+              {
+                "label": "EU",
+                "value": "42.5"
+              },
+              {
+                "label": "US",
+                "value": "9"
+              },
+              {
+                "label": "UK",
+                "value": "8"
+              },
+              {
+                "label": "CN",
+                "value": "270"
+              },
+              {
+                "label": "JP",
+                "value": "27"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:EU",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

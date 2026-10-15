@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"slices"
 	"strings"
+
+	"github.com/eziq1/golauncher/plugins/calc/units"
 )
 
 // prec is the precision of all arithmetic, in bits.
@@ -61,15 +63,30 @@ var constants = map[string]*big.Float{
 // calculation is an evaluated expression.
 type calculation struct {
 	expr string // normalized expression, e.g. "1234*5" or "255 in hex"
-	raw  string // machine form of the result, e.g. "6170", "0xFF"
+	raw  string // machine form of a plain result, e.g. "6170", "0xFF"
 	base string // "hex", "bin", "oct", "dec" or "" without a conversion
+
+	// val is set for results with units ("10 km in mi", "30 ℃").
+	val *value
+	// target is the unit converted to, if one was given.
+	target *uexpr
+	// listing marks a bare quantity ("10 km"), which suggests conversions.
+	listing bool
 }
 
-// calculate evaluates text if it looks like an expression: it must start
-// with "=" or apply at least one operation (operator, function call,
-// implicit multiplication or base conversion). It returns errNotExpression
-// for plain numbers and constants.
+// calculate evaluates text with the default environment (no exchange
+// rates); see calculateEnv.
 func calculate(text string) (calculation, error) {
+	return calculateEnv(text, &evalEnv{noCurrency: true})
+}
+
+// calculateEnv evaluates text if it looks like an expression: it must start
+// with "=" or apply at least one operation (operator, function call,
+// implicit multiplication or conversion), or be a number with a unit. It
+// returns errNotExpression for plain numbers and constants, and for units
+// without a number unless converted ("km in mi"), so that words such as
+// "mi" or "pt" stay ordinary searches.
+func calculateEnv(text string, env *evalEnv) (calculation, error) {
 	s := strings.TrimSpace(text)
 	if len(s) > maxInput {
 		return calculation{}, fmt.Errorf("%w: input too long", errSyntax)
@@ -84,22 +101,96 @@ func calculate(text string) (calculation, error) {
 	if err != nil {
 		return calculation{}, err
 	}
-	p := parser{toks: toks}
-	v, err := p.parse()
+	src, target, err := splitConversion(toks, env)
 	if err != nil {
 		return calculation{}, err
+	}
+	p := parser{toks: src, env: env}
+	v, err := p.parse()
+	if err != nil && target == nil && len(src) > 2 && conversionWord(src[len(src)-2]) {
+		// "10 km in" while typing "10 km in mi": the quantity so far.
+		src = append(slices.Clone(src[:len(src)-2]), token{kind: tokEOF})
+		p = parser{toks: src, env: env}
+		v, err = p.parse()
+	}
+	if err != nil {
+		return calculation{}, err
+	}
+	if target != nil {
+		if v.bare {
+			if v, err = quantity(number(newF().SetInt64(1), "1"), v.u, "1 "+v.u.text); err != nil {
+				return calculation{}, err
+			}
+		}
+		if v.u == nil {
+			return calculation{}, errDim
+		}
+		if _, _, err := inUnit(v, target); err != nil {
+			return calculation{}, err
+		}
+		return calculation{expr: v.text, val: v, target: target}, nil
+	}
+	if p.hasUnit {
+		if v.bare || !p.hasNum {
+			return calculation{}, errNotExpression
+		}
+		if base != "" || v.u == nil {
+			if !v.dim.IsZero() {
+				return calculation{}, errDim
+			}
+			c := calculation{expr: v.text, base: base, raw: formatDecimal(v.x)}
+			if base != "" {
+				c.expr += " in " + base
+				c.raw, err = formatBase(v.x, base)
+			}
+			return c, err
+		}
+		return calculation{expr: v.text, val: v, listing: p.ops == 0}, nil
 	}
 	if !explicit && p.ops == 0 && base == "" {
 		return calculation{}, errNotExpression
 	}
-	c := calculation{expr: joinTokens(toks), base: base}
+	c := calculation{expr: joinTokens(src), base: base}
 	if base != "" {
 		c.expr += " in " + base
-		c.raw, err = formatBase(v, base)
+		c.raw, err = formatBase(v.x, base)
 		return c, err
 	}
-	c.raw = formatDecimal(v)
+	c.raw = formatDecimal(v.x)
 	return c, nil
+}
+
+// splitConversion splits "source in target" at the last conversion keyword
+// (in, to, as, =>, 换成, …) outside parentheses that is followed by a
+// valid target unit. Without one it returns all tokens and a nil target.
+func splitConversion(toks []token, env *evalEnv) ([]token, *uexpr, error) {
+	depth := make([]int, len(toks))
+	d := 0
+	for i, t := range toks {
+		switch t.kind {
+		case tokLParen:
+			d++
+		case tokRParen:
+			d--
+		}
+		depth[i] = d
+	}
+	for i := len(toks) - 2; i >= 1; i-- {
+		if !conversionWord(toks[i]) || depth[i] != 0 {
+			continue
+		}
+		tp := parser{toks: toks[i+1:], env: env}
+		u, err := tp.parseTarget()
+		if err != nil {
+			if errors.Is(err, units.ErrNoRates) || errors.Is(err, units.ErrNoRate) {
+				return nil, nil, err
+			}
+			continue
+		}
+		src := append(slices.Clone(toks[:i]), token{kind: tokEOF})
+		return src, u, nil
+	}
+	return toks, nil, nil
 }
 
 // bases are the targets of "in"/"to" conversions.
@@ -130,15 +221,6 @@ func cutLastWord(s string) (rest, word string, ok bool) {
 		return s, "", false
 	}
 	return strings.TrimRight(s[:i], " \t"), s[i+1:], true
-}
-
-// joinTokens renders tokens as a normalized expression.
-func joinTokens(toks []token) string {
-	var b strings.Builder
-	for _, t := range toks {
-		b.WriteString(t.text)
-	}
-	return b.String()
 }
 
 // checkRange rejects values too large or too small to handle.

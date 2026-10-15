@@ -24,7 +24,12 @@
   - **Applications**: Start menu apps, including Store apps, with pinyin
     matching (`wx` finds 微信).
   - **Calculator**: exact decimal arithmetic, functions, and base conversion
-    (`255 in hex`).
+    (`255 in hex`), plus **unit conversion**: `10 km in mi`, `30 ℃`,
+    `5 GB / 100 Mbps`, `3 斤 to kg`, `8 L/100km in mpg`, `16 px in rem`,
+    currencies (`100 usd in cny`, free rates without an API key, cached for
+    offline use), timestamps (`1700000000 to date`, `now in unix`), colors
+    (`#ff8800 to hsl`) and clothing/shoe sizes (`US 9 shoe in EU`). Units have
+    English, Chinese and pinyin names (`10 公里 换成 英里`).
   - **Clipboard History** (`Alt+Shift+V`): text, images and files, with full-text
     search. Copies from password managers are skipped.
   - **Files**: the context actions above (`builtin.files`).

@@ -1,0 +1,92 @@
+{
+  "query": "1700000000 to date",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Calculator",
+      "items": [
+        {
+          "id": "convert:local",
+          "title": "2023-11-14 22:13:20",
+          "subtitle": "1700000000 = 2023-11-14 22:13:20 · UTC",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "Calculator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Value",
+              "do": {
+                "kind": "CopyText",
+                "target": "2023-11-14 22:13:20"
+              }
+            },
+            {
+              "id": "copy-unit",
+              "title": "Copy with Unit",
+              "do": {
+                "kind": "CopyText",
+                "target": "2023-11-14 22:13:20 UTC"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste Value",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "2023-11-14 22:13:20"
+              }
+            },
+            {
+              "id": "conversions",
+              "title": "Show All Conversions",
+              "shortcut": "Ctrl+Shift+A",
+              "do": {
+                "kind": "Push",
+                "target": "conversions",
+                "payload": {
+                  "text": "1700000000 to date"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "**1700000000**",
+            "metadata": [
+              {
+                "label": "Local time",
+                "value": "2023-11-14 22:13:20"
+              },
+              {
+                "label": "UTC",
+                "value": "2023-11-14 22:13:20"
+              },
+              {
+                "label": "ISO 8601",
+                "value": "2023-11-14T22:13:20Z"
+              },
+              {
+                "label": "Unix time (seconds)",
+                "value": "1700000000"
+              },
+              {
+                "label": "Unix time (milliseconds)",
+                "value": "1700000000000"
+              },
+              {
+                "label": "Relative",
+                "value": "Nov 14, 2023"
+              }
+            ]
+          },
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/convert:local",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

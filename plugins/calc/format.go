@@ -25,13 +25,49 @@ func formatDecimal(x *big.Float) string {
 		i, _ := x.Int(nil)
 		return i.String()
 	}
-	neg, s := x.Sign() < 0, newF().Abs(x).Text('e', sigDigits-1) // "d.dddde+xx"
+	return formatDigits(x, sigDigits, -9, 21)
+}
+
+// formatSig formats x rounded to sig significant digits, for unit
+// results: integers below 1e15 exactly, plain notation for
+// 1e-6 <= |x| < 1e15 and scientific notation otherwise.
+func formatSig(x *big.Float, sig int) string {
+	if x.Sign() == 0 {
+		return "0"
+	}
+	if x.IsInt() && newF().Abs(x).Cmp(sigLimit) < 0 {
+		i, _ := x.Int(nil)
+		return i.String()
+	}
+	return formatDigits(x, sig, -6, 15)
+}
+
+var sigLimit = mustParse("1e15")
+
+// formatMoney formats a currency amount with two decimals (sig significant
+// digits for amounts below 0.01).
+func formatMoney(x *big.Float, sig int) string {
+	if a := newF().Abs(x); a.Sign() == 0 || a.Cmp(big.NewFloat(0.01)) < 0 || a.Cmp(sigLimit) >= 0 {
+		return formatSig(x, sig)
+	}
+	s := x.Text('f', 2)
+	if s == "-0.00" {
+		s = "0.00"
+	}
+	return s
+}
+
+// formatDigits rounds x (nonzero) half-even to sig significant digits
+// without trailing zeros, in plain notation for 10^minExp <= |x| <
+// 10^maxExp and scientific notation ("1.5e+25") otherwise.
+func formatDigits(x *big.Float, sig, minExp, maxExp int) string {
+	neg, s := x.Sign() < 0, newF().Abs(x).Text('e', sig-1) // "d.dddde+xx"
 	mant, expText, _ := strings.Cut(s, "e")
 	exp, _ := strconv.Atoi(expText)
 	digits := strings.TrimRight(strings.Replace(mant, ".", "", 1), "0")
 	var out string
 	switch {
-	case exp < -9 || exp >= 21:
+	case exp < minExp || exp >= maxExp:
 		out = digits[:1]
 		if len(digits) > 1 {
 			out += "." + digits[1:]
