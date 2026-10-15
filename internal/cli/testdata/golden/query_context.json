@@ -532,6 +532,107 @@
           "key": "builtin.scripts/cmd:new"
         },
         {
+          "id": "cmd:dns",
+          "title": "DNS Lookup",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "dns",
+            "nslookup",
+            "dig",
+            "domain",
+            "records",
+            "域名",
+            "解析"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "dns"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "query",
+              "type": "text",
+              "placeholder": "Domain [@server]",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:dns"
+        },
+        {
+          "id": "cmd:flush-dns",
+          "title": "Flush DNS Cache",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "flush dns",
+            "ipconfig",
+            "dns cache",
+            "刷新",
+            "缓存"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "flush-dns"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:flush-dns"
+        },
+        {
+          "id": "cmd:ip",
+          "title": "IP Addresses",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "network",
+            "ip address",
+            "public ip",
+            "mac address",
+            "gateway",
+            "wifi",
+            "网络",
+            "公网",
+            "地址"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ip"
+        },
+        {
           "id": "cmd:open-folder",
           "title": "Open Scripts Folder",
           "subtitle": "Script Commands",
@@ -554,6 +655,80 @@
           "key": "builtin.scripts/cmd:open-folder"
         },
         {
+          "id": "cmd:ping",
+          "title": "Ping",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "ping",
+            "latency",
+            "icmp",
+            "network"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "ping"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "Host or IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ping"
+        },
+        {
+          "id": "cmd:port",
+          "title": "Port Lookup",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "hash"
+          },
+          "keywords": [
+            "port",
+            "listening",
+            "netstat",
+            "process",
+            "open port",
+            "端口",
+            "占用"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "port"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "target",
+              "type": "text",
+              "placeholder": "Port or host:port"
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:port"
+        },
+        {
           "id": "cmd:reload",
           "title": "Reload Applications",
           "subtitle": "Applications",
@@ -574,6 +749,67 @@
           ],
           "plugin": "builtin.apps",
           "key": "builtin.apps/cmd:reload"
+        },
+        {
+          "id": "cmd:renew-ip",
+          "title": "Renew IP Address",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "renew",
+            "release",
+            "dhcp",
+            "ipconfig",
+            "续租"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "renew-ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:renew-ip"
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi"
         },
         {
           "id": "cmd:history",
@@ -629,6 +865,43 @@
           ],
           "plugin": "builtin.everything",
           "key": "builtin.everything/cmd:search"
+        },
+        {
+          "id": "cmd:tracert",
+          "title": "Trace Route",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "tracert",
+            "traceroute",
+            "route",
+            "hops",
+            "路由"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "tracert"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "Host or IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:tracert"
         },
         {
           "id": "cmd:world-clock",

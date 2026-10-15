@@ -50,6 +50,13 @@
   - **World Clock**: type `time` for your local time and major cities, or
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find a
     city. The clocks tick; favorite cities stay on top.
+  - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
+    Wi-Fi network and signal, and your public IP; `ping <host>` pings live
+    with statistics; `dns <domain> [@server]` looks up records;
+    `port 8080` shows (and can end) the process listening on a port, and
+    `port host:443` checks whether a port can be reached; `wifi` copies the
+    password of a saved network; `tracert <host>`, Flush DNS Cache and
+    Renew IP Address run in the background.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences and
   the theme.
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent

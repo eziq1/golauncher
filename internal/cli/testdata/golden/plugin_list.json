@@ -390,6 +390,122 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.network",
+    "name": "Network Tools",
+    "description": "IP addresses, ping, DNS lookups, ports and saved Wi-Fi networks. Type “ip”, “ping”, “dns”, “port”, “wifi” or “tracert” in the main search.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "network"
+    },
+    "enabled": true,
+    "permissions": [
+      "network",
+      "exec",
+      "clipboard"
+    ],
+    "commands": [
+      {
+        "name": "ip",
+        "title": "IP Addresses",
+        "mode": "view"
+      },
+      {
+        "name": "ping",
+        "title": "Ping",
+        "mode": "view"
+      },
+      {
+        "name": "dns",
+        "title": "DNS Lookup",
+        "mode": "view"
+      },
+      {
+        "name": "port",
+        "title": "Port Lookup",
+        "mode": "view"
+      },
+      {
+        "name": "wifi",
+        "title": "Saved Wi-Fi Networks",
+        "mode": "view"
+      },
+      {
+        "name": "tracert",
+        "title": "Trace Route",
+        "mode": "no-view"
+      },
+      {
+        "name": "flush-dns",
+        "title": "Flush DNS Cache",
+        "mode": "no-view"
+      },
+      {
+        "name": "renew-ip",
+        "title": "Renew IP Address",
+        "mode": "no-view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "publicIP",
+        "type": "bool",
+        "title": "Show public IP address",
+        "description": "When you type “ip”, ask api.ipify.org (or ifconfig.me) for your public address. The answer is kept for 5 minutes; nothing is asked in the background.",
+        "default": true
+      },
+      {
+        "name": "pingCount",
+        "type": "number",
+        "title": "Ping count",
+        "description": "Echo requests sent by Ping, unless you ping continuously.",
+        "default": 4
+      },
+      {
+        "name": "prefix.ip",
+        "type": "text",
+        "title": "IP addresses",
+        "default": "ip",
+        "group": "Search prefixes"
+      },
+      {
+        "name": "prefix.ping",
+        "type": "text",
+        "title": "Ping",
+        "default": "ping",
+        "group": "Search prefixes"
+      },
+      {
+        "name": "prefix.dns",
+        "type": "text",
+        "title": "DNS lookup",
+        "default": "dns",
+        "group": "Search prefixes"
+      },
+      {
+        "name": "prefix.port",
+        "type": "text",
+        "title": "Ports",
+        "default": "port",
+        "group": "Search prefixes"
+      },
+      {
+        "name": "prefix.wifi",
+        "type": "text",
+        "title": "Wi-Fi",
+        "default": "wifi",
+        "group": "Search prefixes"
+      },
+      {
+        "name": "prefix.tracert",
+        "type": "text",
+        "title": "Trace route",
+        "default": "tracert",
+        "group": "Search prefixes"
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.tasks",
     "name": "Background Tasks",
     "description": "Shows the background tasks of golauncher and its plugins with their output, and lets you stop or rerun them.",

@@ -178,6 +178,8 @@ type ClipboardContent struct {
 // WriteTextParams are the parameters of host/clipboard.writeText.
 type WriteTextParams struct {
 	Text string `json:"text"`
+	// Secret asks clipboard history not to record the text (Clipboard.WriteSecret).
+	Secret bool `json:"secret,omitempty"`
 }
 
 // WriteImageParams are the parameters of host/clipboard.writeImage.

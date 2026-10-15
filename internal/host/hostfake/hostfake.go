@@ -202,6 +202,12 @@ func (c *Clipboard) WriteText(text string) error {
 	return nil
 }
 
+// WriteSecret writes text marked as excluded from clipboard history.
+func (c *Clipboard) WriteSecret(text string) error {
+	c.Set(plugin.ClipboardContent{Text: text, Exclude: true})
+	return nil
+}
+
 func (c *Clipboard) WriteImage(png []byte) error {
 	c.Set(plugin.ClipboardContent{Image: slices.Clone(png)})
 	return nil

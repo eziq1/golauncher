@@ -1,0 +1,81 @@
+{
+  "query": "port 8080",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Network",
+      "items": [
+        {
+          "id": "owner:8080:4242",
+          "title": "node.exe (PID 4242)",
+          "subtitle": "TCP 0.0.0.0:8080, TCP [::]:8080",
+          "icon": {
+            "name": "hash"
+          },
+          "accessory": "Listening",
+          "group": "Network",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "do": {
+                "kind": "CopyText",
+                "target": "4242"
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\nodejs\\node.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "kill",
+              "title": "End node.exe",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "do": {
+                "kind": "Callback",
+                "target": "kill",
+                "payload": {
+                  "pid": 4242,
+                  "name": "node.exe"
+                }
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Process",
+                "value": "node.exe"
+              },
+              {
+                "label": "PID",
+                "value": "4242"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\nodejs\\node.exe"
+              },
+              {
+                "label": "Sockets",
+                "value": "TCP 0.0.0.0:8080\nTCP [::]:8080"
+              }
+            ]
+          },
+          "plugin": "builtin.network",
+          "key": "builtin.network/owner:8080:4242",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

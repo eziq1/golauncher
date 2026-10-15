@@ -297,6 +297,9 @@ func (p *Proxy) clipboard(method string, params jsontext.Value) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if a.Secret {
+			return nil, cb.WriteSecret(a.Text)
+		}
 		return nil, cb.WriteText(a.Text)
 	case protocol.HostClipboardWriteImage:
 		a, err := decode[protocol.WriteImageParams](params)

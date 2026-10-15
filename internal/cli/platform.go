@@ -104,6 +104,7 @@ type sysClipboard struct{}
 
 func (sysClipboard) Read() (plugin.ClipboardContent, error) { return clip.Read() }
 func (sysClipboard) WriteText(s string) error               { return clip.WriteText(s) }
+func (sysClipboard) WriteSecret(s string) error             { return clip.WriteSecret(s) }
 func (sysClipboard) WriteImage(png []byte) error            { return clip.WriteImage(png) }
 func (sysClipboard) WriteFiles(paths []string) error        { return clip.WriteFiles(paths) }
 

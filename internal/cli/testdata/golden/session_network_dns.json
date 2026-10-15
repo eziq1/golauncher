@@ -1,0 +1,251 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.network",
+      "request": {
+        "id": "dns",
+        "payload": {
+          "name": "example.com"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "DNS: example.com",
+    "placeholder": "Filter records…",
+    "text": "",
+    "sections": [
+      {
+        "title": "A",
+        "items": [
+          {
+            "id": "A:93.184.215.14",
+            "title": "93.184.215.14",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "A",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "93.184.215.14"
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              },
+              {
+                "id": "ping",
+                "title": "Ping",
+                "shortcut": "Ctrl+P",
+                "do": {
+                  "kind": "Push",
+                  "target": "ping",
+                  "payload": {
+                    "host": "93.184.215.14"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/A:93.184.215.14"
+          }
+        ]
+      },
+      {
+        "title": "AAAA",
+        "items": [
+          {
+            "id": "AAAA:2606:2800:21f:cb07:6820:80da:af6b:8b2c",
+            "title": "2606:2800:21f:cb07:6820:80da:af6b:8b2c",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "AAAA",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "2606:2800:21f:cb07:6820:80da:af6b:8b2c"
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              },
+              {
+                "id": "ping",
+                "title": "Ping",
+                "shortcut": "Ctrl+P",
+                "do": {
+                  "kind": "Push",
+                  "target": "ping",
+                  "payload": {
+                    "host": "2606:2800:21f:cb07:6820:80da:af6b:8b2c"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/AAAA:2606:2800:21f:cb07:6820:80da:af6b:8b2c"
+          }
+        ]
+      },
+      {
+        "title": "MX",
+        "items": [
+          {
+            "id": "MX:mail.example.com.",
+            "title": "mail.example.com.",
+            "subtitle": "Preference 10",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "MX",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "mail.example.com."
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/MX:mail.example.com."
+          }
+        ]
+      },
+      {
+        "title": "TXT",
+        "items": [
+          {
+            "id": "TXT:v=spf1 -all",
+            "title": "v=spf1 -all",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "TXT",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "v=spf1 -all"
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/TXT:v=spf1 -all"
+          }
+        ]
+      },
+      {
+        "title": "NS",
+        "items": [
+          {
+            "id": "NS:a.iana-servers.net.",
+            "title": "a.iana-servers.net.",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "NS",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "a.iana-servers.net."
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/NS:a.iana-servers.net."
+          },
+          {
+            "id": "NS:b.iana-servers.net.",
+            "title": "b.iana-servers.net.",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "NS",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Value",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "b.iana-servers.net."
+                }
+              },
+              {
+                "id": "copy-all",
+                "title": "Copy All Records",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "A\t93.184.215.14\nAAAA\t2606:2800:21f:cb07:6820:80da:af6b:8b2c\nMX\tmail.example.com.\nTXT\tv=spf1 -all\nNS\ta.iana-servers.net.\nNS\tb.iana-servers.net."
+                }
+              }
+            ],
+            "plugin": "builtin.network",
+            "key": "builtin.network/NS:b.iana-servers.net."
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results"
+  }
+}

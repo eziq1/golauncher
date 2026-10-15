@@ -1,0 +1,87 @@
+{
+  "adapters": [
+    {
+      "name": "Ethernet 2",
+      "description": "Hyper-V Virtual Ethernet Adapter",
+      "guid": "{22222222-2222-2222-2222-222222222222}",
+      "ifType": 6,
+      "up": true,
+      "mac": "00-15-5D-00-00-02",
+      "ipv4": ["172.20.0.1/20"],
+      "ipv6": ["fe80::215:5dff:fe00:2/64"]
+    },
+    {
+      "name": "Wi-Fi",
+      "description": "Contoso Wireless Adapter",
+      "guid": "{11111111-1111-1111-1111-111111111111}",
+      "ifType": 71,
+      "up": true,
+      "mac": "AA-BB-CC-00-11-22",
+      "ipv4": ["192.168.1.23/24"],
+      "ipv6": ["2001:db8:1::23/64", "fe80::1c2b:3d4e:5f60:7182/64"],
+      "gateways": ["192.168.1.1", "fe80::1"],
+      "dns": ["192.168.1.1", "2001:db8:1::1"],
+      "dnsSuffix": "home.example",
+      "speedBps": 866700000
+    },
+    {
+      "name": "Bluetooth Network Connection",
+      "description": "Bluetooth Device (Personal Area Network)",
+      "guid": "{33333333-3333-3333-3333-333333333333}",
+      "ifType": 6,
+      "up": false,
+      "mac": "AA-BB-CC-00-11-33"
+    },
+    {
+      "name": "Loopback Pseudo-Interface 1",
+      "guid": "{44444444-4444-4444-4444-444444444444}",
+      "ifType": 24,
+      "up": true,
+      "ipv4": ["127.0.0.1/8"],
+      "ipv6": ["::1/128"]
+    }
+  ],
+  "wifi": [
+    {
+      "interfaceGuid": "{11111111-1111-1111-1111-111111111111}",
+      "profile": "HomeNet",
+      "ssid": "HomeNet",
+      "signal": 82,
+      "rxKbps": 866700,
+      "txKbps": 720600
+    }
+  ],
+  "profiles": [
+    { "interfaceGuid": "{11111111-1111-1111-1111-111111111111}", "name": "CoffeeShop", "auth": "open" },
+    { "interfaceGuid": "{11111111-1111-1111-1111-111111111111}", "name": "HomeNet", "auth": "WPA2PSK", "key": "fixture-password" },
+    { "interfaceGuid": "{11111111-1111-1111-1111-111111111111}", "name": "Office", "auth": "WPA2PSK" }
+  ],
+  "publicIPv4": "203.0.113.7",
+  "publicIPv6": "2001:db8::7",
+  "hosts": { "example.com": "93.184.215.14" },
+  "pingMs": { "93.184.215.14": 23, "127.0.0.1": 0 },
+  "dns": {
+    "example.com": [
+      { "type": "A", "value": "93.184.215.14" },
+      { "type": "AAAA", "value": "2606:2800:21f:cb07:6820:80da:af6b:8b2c" },
+      { "type": "MX", "value": "mail.example.com.", "pref": 10 },
+      { "type": "TXT", "value": "v=spf1 -all" },
+      { "type": "NS", "value": "a.iana-servers.net." },
+      { "type": "NS", "value": "b.iana-servers.net." }
+    ]
+  },
+  "open": { "example.com:443": 23 },
+  "sockets": [
+    { "proto": "tcp", "local": "0.0.0.0:8080", "pid": 4242 },
+    { "proto": "tcp", "local": "[::]:8080", "pid": 4242 },
+    { "proto": "tcp", "local": "127.0.0.1:5432", "pid": 5151 },
+    { "proto": "udp", "local": "0.0.0.0:5353", "pid": 1880 },
+    { "proto": "tcp", "local": "0.0.0.0:445", "pid": 4 }
+  ],
+  "processes": [
+    { "pid": 4242, "name": "node.exe", "path": "C:\\Program Files\\nodejs\\node.exe" },
+    { "pid": 5151, "name": "postgres.exe", "path": "C:\\Program Files\\PostgreSQL\\16\\bin\\postgres.exe" },
+    { "pid": 1880, "name": "svchost.exe", "path": "C:\\Windows\\System32\\svchost.exe" },
+    { "pid": 4, "name": "System" }
+  ]
+}

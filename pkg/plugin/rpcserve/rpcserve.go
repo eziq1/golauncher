@@ -486,6 +486,10 @@ func (c clipboard) WriteText(text string) error {
 	return c.h.call(protocol.HostClipboardWriteText, protocol.WriteTextParams{Text: text}, nil)
 }
 
+func (c clipboard) WriteSecret(text string) error {
+	return c.h.call(protocol.HostClipboardWriteText, protocol.WriteTextParams{Text: text, Secret: true}, nil)
+}
+
 func (c clipboard) WriteImage(png []byte) error {
 	return c.h.call(protocol.HostClipboardWriteImage, protocol.WriteImageParams{PNG: base64.StdEncoding.EncodeToString(png)}, nil)
 }

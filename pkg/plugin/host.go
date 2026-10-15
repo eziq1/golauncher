@@ -83,6 +83,9 @@ type ClipboardContent struct {
 type Clipboard interface {
 	Read() (ClipboardContent, error)
 	WriteText(text string) error
+	// WriteSecret writes text, such as a password, that clipboard managers
+	// and Windows clipboard history and cloud sync are asked not to record.
+	WriteSecret(text string) error
 	WriteImage(png []byte) error
 	WriteFiles(paths []string) error
 }

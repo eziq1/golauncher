@@ -19,6 +19,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/clock"
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/files"
+	"github.com/eziq1/golauncher/plugins/network"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
 	"github.com/eziq1/golauncher/plugins/system"
@@ -45,6 +46,7 @@ func All() []plugin.Plugin {
 		realScoop(),
 		system.New(),
 		terminal.New(),
+		network.New(),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
 }
@@ -98,6 +100,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		fakeScoop(dir),
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
+		network.NewFake(fixture(dir, "network.json")),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
 	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)

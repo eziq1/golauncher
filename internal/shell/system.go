@@ -61,5 +61,6 @@ var _ plugin.Clipboard = clipboard{}
 
 func (clipboard) Read() (plugin.ClipboardContent, error) { return clip.Read() }
 func (clipboard) WriteText(text string) error            { return clip.WriteText(text) }
+func (clipboard) WriteSecret(text string) error          { return clip.WriteSecret(text) }
 func (clipboard) WriteImage(png []byte) error            { return clip.WriteImage(png) }
 func (clipboard) WriteFiles(paths []string) error        { return clip.WriteFiles(paths) }

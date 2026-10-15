@@ -1,0 +1,25 @@
+{
+  "query": "ping exa..mple",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Network",
+      "items": [
+        {
+          "id": "ping-invalid",
+          "title": "“exa..mple” is not a valid host name or IP address",
+          "subtitle": "Nothing was sent. Check the input.",
+          "icon": {
+            "name": "alert",
+            "tint": "danger"
+          },
+          "group": "Network",
+          "score": 1,
+          "plugin": "builtin.network",
+          "key": "builtin.network/ping-invalid",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

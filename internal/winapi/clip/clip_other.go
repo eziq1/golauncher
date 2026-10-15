@@ -21,6 +21,9 @@ func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
 // WriteText replaces the clipboard content with text.
 func WriteText(s string) error { return errors.ErrUnsupported }
 
+// WriteSecret is WriteText for secrets.
+func WriteSecret(s string) error { return errors.ErrUnsupported }
+
 // WriteImage replaces the clipboard content with a PNG image.
 func WriteImage(png []byte) error { return errors.ErrUnsupported }
 

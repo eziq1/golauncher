@@ -96,6 +96,9 @@ func TestGolden(t *testing.T) {
 		{"query_system_lock", []string{"query", "lock"}},
 		{"query_system_shutdown_zh", []string{"query", "关机"}},
 		{"query_system_bluetooth_zh", []string{"query", "蓝牙"}},
+		{"query_network_ip", []string{"query", "ip", "--fixtures", fixtures}},
+		{"query_network_port", []string{"query", "port 8080", "--fixtures", fixtures}},
+		{"query_network_invalid", []string{"query", "ping exa..mple"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -128,6 +131,16 @@ func TestSessionPasteFromClipboardHistory(t *testing.T) {
 		}
 	}
 	golden(t, "session_paste", out)
+}
+
+// TestSessionNetworkDNS opens the DNS view from the root search; the fake
+// resolver answers from testdata/fixtures/network.json.
+func TestSessionNetworkDNS(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--fixtures", fixtures)
+	glctl(t, "session", "type", "-s", s, "dns example.com")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_network_dns", out)
 }
 
 func TestSessionConfirmClear(t *testing.T) {

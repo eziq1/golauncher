@@ -93,7 +93,7 @@ const (
 
 // registered holds the ids of registered clipboard formats.
 type registered struct {
-	png, exclude, viewerIgnore, history uintptr
+	png, exclude, viewerIgnore, history, cloud uintptr
 }
 
 var formats = sync.OnceValue(func() registered {
@@ -102,6 +102,7 @@ var formats = sync.OnceValue(func() registered {
 		exclude:      registerFormat("ExcludeClipboardContentFromMonitorProcessing"),
 		viewerIgnore: registerFormat("Clipboard Viewer Ignore"),
 		history:      registerFormat("CanIncludeInClipboardHistory"),
+		cloud:        registerFormat("CanUploadToCloudClipboard"),
 	}
 })
 
@@ -350,6 +351,21 @@ func write(items ...clipData) error {
 // WriteText replaces the clipboard content with text.
 func WriteText(s string) error {
 	return write(clipData{cfUnicodeText, utf16Bytes(s)})
+}
+
+// WriteSecret is WriteText for secrets such as passwords. The content also
+// carries the formats that ask clipboard managers (ExcludeClipboardContent-
+// FromMonitorProcessing), Windows clipboard history (Win+V) and cloud
+// clipboard sync not to record it; the last two hold a DWORD 0.
+func WriteSecret(s string) error {
+	f := formats()
+	items := []clipData{{cfUnicodeText, utf16Bytes(s)}}
+	for _, id := range []uintptr{f.exclude, f.history, f.cloud} {
+		if id != 0 {
+			items = append(items, clipData{id, []byte{0, 0, 0, 0}})
+		}
+	}
+	return write(items...)
 }
 
 // WriteImage replaces the clipboard content with a PNG image. It is offered

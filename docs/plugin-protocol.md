@@ -161,7 +161,7 @@ they are created without a console window.
 | `host/storage.set` | `{key, value}` or `{key, base64}` | `null` | `storage` |
 | `host/storage.delete` | `{key}` | `null` | `storage` |
 | `host/clipboard.read` | `{}` | `{text?, image?, files?, sourceApp?, exclude?}` | `clipboard` |
-| `host/clipboard.writeText` | `{text}` | `null` | `clipboard` |
+| `host/clipboard.writeText` | `{text, secret?}`（`secret: true` 时不记入剪贴板历史，用于密码） | `null` | `clipboard` |
 | `host/clipboard.writeImage` | `{png}` (base64) | `null` | `clipboard` |
 | `host/clipboard.writeFiles` | `{paths}` | `null` | `clipboard` |
 | `host/subscribe` | `{event}` | `null` | — |
