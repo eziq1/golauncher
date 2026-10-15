@@ -51,8 +51,26 @@ type Engine struct {
 	core        *i18n.Localizer
 	rootTimeout time.Duration
 
-	plugins []*loaded
-	byID    map[string]*loaded
+	plugins     []*loaded
+	byID        map[string]*loaded
+	unavailable []unavailable // plugins whose Init failed
+}
+
+// unavailable is a plugin that could not be initialized.
+type unavailable struct {
+	m      plugin.Manifest
+	loc    *i18n.Localizer
+	reason string
+}
+
+// unavailableReason strips the ErrUnavailable suffix from a wrapped error:
+// "Everything is not installed: plugin unavailable" -> "Everything is not installed".
+func unavailableReason(err error) string {
+	s := err.Error()
+	if r, ok := strings.CutSuffix(s, ": "+plugin.ErrUnavailable.Error()); ok {
+		return r
+	}
+	return s
 }
 
 // loaded is an initialized plugin.
@@ -64,7 +82,7 @@ type loaded struct {
 }
 
 // New registers the plugins' catalogs and initializes them. A plugin whose
-// Init fails is logged and left out.
+// Init fails is left out and reported by Plugins as unavailable.
 func New(ctx context.Context, o Options) (*Engine, error) {
 	e := &Engine{
 		svc:         o.Services,
@@ -91,7 +109,14 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 			return nil, err
 		}
 		if err := p.Init(ctx, h); err != nil {
-			e.log.Error("plugin init failed", "plugin", m.ID, "err", err)
+			loc := o.Services.I18n.Localizer(m.ID)
+			if errors.Is(err, plugin.ErrUnavailable) {
+				e.log.Info("plugin unavailable", "plugin", m.ID, "reason", err)
+				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: unavailableReason(err)})
+			} else {
+				e.log.Error("plugin init failed", "plugin", m.ID, "err", err)
+				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: err.Error()})
+			}
 			continue
 		}
 		l := &loaded{p: p, m: m, host: h, loc: o.Services.I18n.Localizer(m.ID)}

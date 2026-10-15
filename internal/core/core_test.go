@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -324,6 +325,39 @@ func TestDestructiveNeedsConfirmation(t *testing.T) {
 	e.key(t, "Enter")
 	if len(e.tp.handled) != 1 || e.tp.handled[0].Target != "nuke" {
 		t.Fatalf("handled = %+v", e.tp.handled)
+	}
+}
+
+// missingDep is a plugin whose dependency is not installed.
+type missingDep struct{}
+
+func (missingDep) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "dep", Name: "Dep", Version: "1",
+		Commands: []plugin.Command{{Name: "go", Title: "Dep Command", Mode: plugin.ModeNoView}}}
+}
+func (missingDep) Init(context.Context, plugin.Host) error {
+	return fmt.Errorf("Dep Tool is not installed: %w", plugin.ErrUnavailable)
+}
+func (missingDep) Close() error { return nil }
+
+func TestUnavailablePlugin(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{missingDep{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	infos := env.Engine.Plugins()
+	if len(infos) != 1 || infos[0].Unavailable != "Dep Tool is not installed" || infos[0].Enabled {
+		t.Fatalf("infos = %+v", infos)
+	}
+	env.Controller.SetText(t.Context(), "dep")
+	env.Controller.Wait()
+	if s := env.Controller.Snapshot(); len(s.Sections) != 0 {
+		t.Fatalf("unavailable plugin's commands are searchable: %+v", s.Sections)
 	}
 }
 

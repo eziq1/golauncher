@@ -8,16 +8,24 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 )
 
 // Plugin is implemented by every plugin.
 type Plugin interface {
 	Manifest() Manifest
-	// Init is called once before any other call. The Host stays valid until Close.
+	// Init is called once before any other call. The Host stays valid until
+	// Close. Returning an error wrapping ErrUnavailable leaves the plugin
+	// disabled without treating it as a failure; the error text is shown to
+	// the user as the reason (e.g. "Everything is not installed").
 	Init(ctx context.Context, h Host) error
 	Close() error
 }
+
+// ErrUnavailable reports that a plugin cannot run on this system, e.g.
+// because software it depends on is missing.
+var ErrUnavailable = errors.New("plugin unavailable")
 
 // RootProvider contributes items to the root search.
 //

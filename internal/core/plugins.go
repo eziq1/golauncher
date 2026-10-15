@@ -10,12 +10,15 @@ import (
 // PluginInfo describes a plugin with its strings localized, for the
 // settings window and glctl.
 type PluginInfo struct {
-	ID          string              `json:"id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description,omitempty"`
-	Version     string              `json:"version"`
-	Icon        plugin.Icon         `json:"icon,omitzero"`
-	Enabled     bool                `json:"enabled"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Version     string      `json:"version"`
+	Icon        plugin.Icon `json:"icon,omitzero"`
+	Enabled     bool        `json:"enabled"`
+	// Unavailable is set when the plugin could not start on this system;
+	// it then has no commands and cannot be enabled.
+	Unavailable string              `json:"unavailable,omitempty"`
 	Permissions []plugin.Permission `json:"permissions,omitempty"`
 	Commands    []CommandInfo       `json:"commands,omitempty"`
 	Preferences []plugin.Preference `json:"preferences,omitempty"`
@@ -70,6 +73,17 @@ func (e *Engine) Plugins() []PluginInfo {
 			info.Preferences = append(info.Preferences, p)
 		}
 		out = append(out, info)
+	}
+	for _, u := range e.unavailable {
+		out = append(out, PluginInfo{
+			ID:          u.m.ID,
+			Name:        u.loc.Resolve(u.m.Name),
+			Description: u.loc.Resolve(u.m.Description),
+			Version:     u.m.Version,
+			Icon:        u.m.Icon,
+			Unavailable: u.reason,
+			Permissions: u.m.Permissions,
+		})
 	}
 	return out
 }
