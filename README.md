@@ -1,76 +1,126 @@
 # golauncher
 
-类 Raycast 的 Windows 启动器，用 Go 和 [MyGo](https://github.com/egoist/mygo) 原生 UI 编写。设计文档见 [docs/design.md](docs/design.md)。
+A Raycast-style launcher for Windows, written in Go with the
+[MyGo](https://github.com/egoist/mygo) native UI toolkit.
 
-- 全局快捷键 `Alt+Space` 呼出，可以搜索应用、命令、计算表达式。
-- 内置插件：应用启动器、计算器、剪贴板历史（`Ctrl+Shift+V`）。
-- 所有内置功能都通过 [pkg/plugin](pkg/plugin/) 插件 SDK 实现。
-- 设置窗口：`Ctrl+,`，或者托盘菜单 › Settings…
-- 第一版界面只有英文，但所有文字都走 I18N 管线。
+[简体中文](README.zh-CN.md)
 
-## 环境要求
+- Press **Alt+Space** anywhere to search apps, commands, files and math.
+- Everything is a plugin. The built-in features use the same
+  [plugin SDK](pkg/plugin/) that third-party plugins use.
+- **Built-in plugins**
+  - **Applications**: Start menu apps, including Store apps, with pinyin
+    matching (`wx` finds 微信).
+  - **Calculator**: exact decimal arithmetic, functions, and base conversion
+    (`255 in hex`).
+  - **Clipboard History** (`Ctrl+Shift+V`): text, images and files, with full-text
+    search. Copies from password managers are skipped.
+  - **File Search**: powered by [Everything](https://www.voidtools.com/), when it
+    is installed.
+- **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences and
+  the theme.
+- **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
+  can test every flow without the GUI.
 
-- Windows 10/11
-- Go 1.27+
-- 不需要 cgo，也不需要 WebView2。
+> **Status:** v0.1 is a first public preview. Its UI is English-only, but every
+> string goes through the i18n pipeline. See the
+> [design document](docs/design.md) for the architecture and the roadmap.
 
-## 构建与运行
+## Install
+
+Download `golauncher_<version>_windows_<arch>.zip` from
+[Releases](https://github.com/eziq1/golauncher/releases), unzip it anywhere and
+run `golauncher.exe`. It lives in the system tray.
+
+Requirements:
+
+- Windows 10 or 11. The Acrylic panel background requires Windows 11.
+- The WebView2 runtime is not needed.
 
 ```powershell
+golauncher.exe --show       # show the launcher
+golauncher.exe --settings   # open Settings
+golauncher.exe --quit       # quit the running instance
+```
+
+| What | Where |
+|------|-------|
+| Configuration | `%APPDATA%\golauncher\config.json` |
+| Database | `%APPDATA%\golauncher\golauncher.db` |
+| Logs | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
+
+## Keyboard
+
+| Key | Action |
+|-----|--------|
+| `Alt+Space` | Show or hide the launcher (configurable) |
+| `↑` `↓`, `Ctrl+N` `Ctrl+P` | Move the selection |
+| `Enter` / `Ctrl+Enter` | Run the primary / secondary action |
+| `Ctrl+K` | Open all actions of the selected item |
+| `Esc` | Clear the search, go back, or hide |
+| `Ctrl+,` | Open Settings |
+
+## Build from source
+
+Requires Go 1.27 or later. No cgo is needed.
+
+```powershell
+git clone https://github.com/eziq1/golauncher
+cd golauncher
+pwsh scripts/build.ps1          # builds dist/golauncher.exe and dist/glctl.exe
+# or by hand:
 go build -ldflags "-H windowsgui" -o golauncher.exe ./cmd/golauncher
-.\golauncher.exe            # 启动后常驻托盘；再次运行时可以带参数：
-.\golauncher.exe --show     # 呼出启动器
-.\golauncher.exe --settings # 打开设置
-.\golauncher.exe --quit     # 退出正在运行的实例
+go build -o glctl.exe ./cmd/glctl
 ```
 
-数据位置：
-
-| 内容 | 路径 |
-|------|------|
-| 配置 | `%APPDATA%\golauncher\config.json` |
-| 数据库 | `%APPDATA%\golauncher\golauncher.db` |
-| 日志 | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
-
-## 测试
+## Test
 
 ```powershell
-go test ./...                       # 全部单元、集成测试和 golden 测试
-go test -race ./internal/... ./plugins/...
-go test ./internal/cli -update      # 输出格式有意变更时，更新 golden 文件
+go test ./...                                  # unit, integration, golden and lint tests
+go test -race ./internal/... ./plugins/...     # needs a C compiler for -race
+go test ./internal/cli -update                 # refresh golden files after an intended output change
 ```
 
-端到端测试要先启动 GUI，然后运行：
+The end-to-end test needs the GUI running:
 
 ```powershell
 $env:GOLAUNCHER_E2E=1; go test ./internal/shell -run RunningInstance
 ```
 
-## glctl：给 Agent 用的无头 CLI
+## glctl: the headless CLI
 
 ```powershell
-go build -o glctl.exe ./cmd/glctl
-.\glctl help
-.\glctl query vsc --fixtures testdata/fixtures --format text
-.\glctl query "12*3+4"
-.\glctl run builtin.clipboard/history --text 世界 --fixtures testdata/fixtures
-.\glctl session new -s s.json --fixtures testdata/fixtures
-.\glctl session type -s s.json "clipboard history"
-.\glctl session key  -s s.json Enter
-.\glctl i18n check
-.\glctl attach type "vsc"           # 驱动正在运行的 GUI
+glctl query vsc --fixtures testdata/fixtures --format text
+glctl query "12*3+4"
+glctl run builtin.clipboard/history --text hello --fixtures testdata/fixtures
+glctl session new  -s s.json --fixtures testdata/fixtures
+glctl session type -s s.json "clipboard history"
+glctl session key  -s s.json Enter
+glctl i18n check
+glctl attach type vsc           # drive the running GUI
 ```
 
-`glctl` 默认在隔离的假环境中运行，不会碰真实配置、数据库和剪贴板，动作的副作用也只记录不执行。要用真实环境，必须显式加 `--real`；要真正执行动作，再加 `--exec`。
+By default `glctl` runs in an isolated, in-memory environment with a fixed
+clock. Actions are recorded and printed, not performed. To use your real
+configuration and data, pass `--real`. To actually perform actions, also pass
+`--exec`.
 
-## 目录
+## Writing plugins
 
-| 路径 | 内容 |
-|------|------|
-| [pkg/plugin](pkg/plugin/) | 插件 SDK |
-| [internal/core](internal/core/) | 引擎与交互状态机（与 UI 无关） |
-| [internal/ui](internal/ui/) | 界面 |
-| [internal/shell](internal/shell/) | MyGo 窗口、托盘、热键 |
-| [internal/cli](internal/cli/) | glctl |
-| [plugins/](plugins/) | 内置插件：apps、calc、clipboard |
-| [internal/winapi](internal/winapi/) | Win32/COM 封装 |
+See the [plugin guide](docs/plugin-guide.md).
+
+## Project layout
+
+| Path | Contents |
+|------|----------|
+| [`pkg/plugin`](pkg/plugin/) | Plugin SDK |
+| [`internal/core`](internal/core/) | Engine and interaction state machine (UI-independent) |
+| [`internal/ui`](internal/ui/), [`internal/shell`](internal/shell/) | GUI: views, windows, tray, hotkeys |
+| [`internal/cli`](internal/cli/) | `glctl` |
+| [`plugins/`](plugins/) | Built-in plugins |
+| [`internal/winapi`](internal/winapi/) | Win32/COM bindings (pure Go) |
+| [`docs/`](docs/) | Design document and guides |
+
+## License
+
+[MIT](LICENSE)

@@ -22,7 +22,6 @@ const ID = "builtin.calc"
 //go:embed locales/*.json
 var locales embed.FS
 
-// Message keys.
 // Plugin is the calculator plugin.
 type Plugin struct {
 	h plugin.Host
