@@ -73,3 +73,12 @@
 - **发布经过**：发布前按 R34 做了隐私检查，并改写了 v0.1.0 之后的历史；强制推送后 CI 暴露出一个偶发失败（R36），修复后才打 tag。
 - **结果**：2026-10-15 在提交 `c677aec` 上打了 `v0.2.0`，发布工作流全部通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64、arm64 两个 zip 和 `checksums.txt`。<https://github.com/eziq1/golauncher/releases/tag/v0.2.0>
 - **没有进入 v0.2.0、留到下一版的**：单位换算（R28）、系统命令、终端与 WSL、网络工具（R31）、简体中文界面（R35）。这些分支都基于改写前的历史，要逐个重放到新的 `main` 上并先脱敏，不能直接合并。
+
+## 7. v0.3.0（2026-10-15）
+
+- **范围**（R37）：五个分支——单位换算（R28）、系统命令与设置直达、终端与 WSL、网络工具（R31）、简体中文界面（R35）。
+- **整合方式**：这些分支都基于 R34 改写前的历史，不能直接合并。每个分支只取它自己的提交（`git log <分支> --not <分叉点>`），用 `cherry-pick -n` 重放到新的 `main` 上，解决冲突后压成一个提交。冲突主要是 README 的功能列表、`builtin.go` 的插件列表、`icons.go`、`cli_test.go` 的 golden 用例表，都是两边保留。golden 重新生成后检查过：除了因结果数上限被新条目挤掉的低分项，没有删除原有结果。
+- **提交前脱敏**：终端分支的文档列出了本机真实的 Windows Terminal 配置和 WSL 发行版名称，网络分支的文档写了系统版本号、fixture 用了真实的网卡型号。都改成了只写结论或虚构的例子。
+- **整合时修的问题**：网络工具复制 Wi-Fi 密码时，密码会进入 Windows 的剪贴板历史（Win+V）和云剪贴板。SDK 加了 `Clipboard.WriteSecret`（外部插件用 `host/clipboard.writeText` 的 `secret: true`），写入时附带 `ExcludeClipboardContentFromMonitorProcessing`、`CanIncludeInClipboardHistory = 0`、`CanUploadToCloudClipboard = 0`。
+- **中文补齐**：中文分支开发时还没有后面三个插件和计算器的新词条，整合时补了计算器的新词条、系统、终端、网络插件的 `zh-CN.json`，以及核心的两条确认框文案。`glctl i18n check` 无错误。
+- **版本号**：0.3.0。新增功能，按语义化版本升次版本号。`plugin.Clipboard` 多了一个方法，自己实现这个接口的代码需要补上（0.x 允许不兼容改动，已写进 CHANGELOG）。

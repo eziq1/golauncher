@@ -8,9 +8,20 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-10-15
+## [0.3.0] - 2026-10-15
 
 ### Added
+
+- **Simplified Chinese UI** (`zh-CN`): the launcher, settings, tray,
+  notifications, installer, background tasks and every built-in plugin are
+  translated. Chinese Windows (zh-CN, zh-Hans, zh-SG) picks it
+  automatically; Traditional Chinese (zh-TW, zh-HK) stays English. Switch in
+  *Settings › General › Language*, where each language is named in itself
+  (*English*, *简体中文*); the change applies at once. In Chinese, commands
+  still match their English titles and keywords, keywords match by pinyin
+  and its initials, and the command list is sorted by pinyin.
+- Message catalogs accept exact plural forms such as `"=1"`, and
+  `glctl i18n check` reports a key missing from `zh-CN.json` as an error.
 
 - **Unit conversion in the calculator** (R28, `docs/unit-conversion.md`):
   numbers can carry units, including compound ones (`km/h`, `kW·h`, `N*m`,
@@ -34,6 +45,41 @@ Before 1.0.0, minor versions may contain breaking changes.
   `#ff8800 to rgb` / `hsl(32,100%,50%) to hex` with a color swatch, and
   clothing and shoe sizes (`US 9 shoe in EU`, `鞋码 42 in us`).
 - `glctl --fixtures DIR` reads exchange rates from `DIR/rates.json`.
+- **System commands** (R31, `docs/system-commands.md`): Lock, Sleep,
+  Hibernate, Restart, Shut Down, Sign Out, Empty Recycle Bin (shows its size),
+  Toggle Dark Mode, volume and mute, Turn Off Display and Show Desktop, found
+  in English, Chinese or pinyin (`lock`, `锁屏`, `gj`). Restart, Shut Down,
+  Sign Out and Empty Recycle Bin ask first, and warn when background tasks
+  would be interrupted.
+- **Settings shortcuts**: about 160 Windows Settings pages (`ms-settings:`)
+  and 20 classic tools (Device Manager, Services, Registry Editor, Event
+  Viewer…) open straight from the root search, filtered by Windows version
+  and edition; tools can run as administrator.
+- **Terminal & WSL** (R31, `docs/terminal-wsl.md`): your Windows Terminal
+  profiles (including fragments such as Git Bash) and WSL distributions with
+  their running state; open one in a new window or tab, as administrator or
+  in the current folder, set the default distribution, stop it, shut down or
+  update WSL.
+- **Network tools** (R31, `docs/network-tools.md`): `ip` shows adapters,
+  gateway, DNS, Wi-Fi and your public IP; `ping <host>` pings live with
+  statistics; `dns <domain> [@server]` looks up records; `port 8080` shows
+  (and can end) the process on a port and `port host:443` checks whether a
+  remote port is reachable; `wifi` copies the password of a saved network;
+  `tracert`, Flush DNS Cache and Renew IP Address run in the background.
+- SDK: `Action.EndsSession` marks actions that end the Windows session, and
+  `Clipboard.WriteSecret` (`secret: true` in `host/clipboard.writeText`)
+  copies text that clipboard managers, Windows clipboard history (Win+V) and
+  cloud clipboard are asked not to record. Wi-Fi passwords use it.
+
+### Changed
+
+- `plugin.Clipboard` has a new method, `WriteSecret`: code that implements
+  the interface (hosts, test fakes) must add it. Plugins that only use the
+  clipboard are not affected.
+
+## [0.2.0] - 2026-10-15
+
+### Added
 
 - **External plugins** in any language, in their own process, over JSON-RPC
   2.0 on stdio (see `docs/plugin-protocol.md`). Plugins live in
@@ -166,6 +212,7 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/eziq1/golauncher/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/eziq1/golauncher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eziq1/golauncher/releases/tag/v0.1.0

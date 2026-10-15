@@ -553,7 +553,7 @@ glctl session action -s s.json builtin.clipboard/1 pin
 | 部分 | 方案 |
 |------|------|
 | 消息库 | 自研的小型消息目录（`internal/i18n`）：JSON 资源，值为字符串或 CLDR 复数形式对象；`text/template` 命名参数（`{{.name}}`、`{{.Count}}`）；复数规则来自 `golang.org/x/text/feature/plural`。没有用 go-i18n，这样 key 检查和伪语言生成更容易控制 |
-| 语言匹配 | `golang.org/x/text/language` 的 `Matcher`。系统语言来自 `GetUserPreferredUILanguages`，与可用资源匹配，匹配不上时用 `en` |
+| 语言匹配 | `golang.org/x/text/language` 的 `Matcher`。系统语言来自 `GetUserPreferredUILanguages`，与可用资源匹配，匹配不上时用 `en`。置信度低于 High 的匹配（如繁体中文 zh-TW 对 zh-CN）也算匹配不上 |
 | 数字 / 日期格式化 | `golang.org/x/text/message` + `x/text/number`；相对时间用自己的小模块（CLDR 字符串放在资源文件里） |
 | 资源打包 | `//go:embed locales/*.json`，编进二进制文件；外部插件的资源从插件目录读取 |
 | key 命名 | `<作用域>.<区域>.<名称>`，例如 `core.search.placeholder`、`settings.general.hotkey.label`、`apps.action.runAsAdmin` |
@@ -579,7 +579,7 @@ type Localizer interface {
 - **运行时文字**：
   - 内置插件和用 Go 写的外部插件，调用 `Host.I18n()`，拿到限定在本插件命名空间的 `Localizer`。
   - 用其他语言写的外部插件，从 `initialize` 拿到 `locale`，自行翻译。
-- **搜索关键字**：当前语言的 keywords 和英文 keywords 同时参与匹配。即使用户切换了界面语言，原来用英文搜索命令的习惯也照样能用。
+- **搜索关键字**：当前语言的 keywords 和英文 keywords 同时参与匹配，命令的英文标题也作为关键字。即使用户切换了界面语言，原来用英文搜索命令的习惯也照样能用。中文关键字和标题一样，可以用拼音和拼音首字母匹配。
 
 ### 10.4 UI 适配
 
@@ -617,7 +617,8 @@ type Localizer interface {
 | **M4 设置界面** | 通用、插件、高级、关于；偏好表单自动生成；热键录制；凭据管理器；导入导出 | 设置修改即时生效 | ✅ |
 | **v0.1.0 发布**（原 M6 的一部分） | 发布工程（版本号、图标、CI、自动发布）、代码审查与修复、稳定性（R11、R12、R14）、自安装（R15）、文档 | CI 全绿；GitHub Release 包含 amd64 和 arm64 两个 zip | ✅ 功能齐备（含自安装，[self-install.md](self-install.md)）；发布记录见 [release.md](release.md) |
 | **M5 插件平台（v0.2）** | ① `Host.Invalidate`：通知后再拉取（[plugin-render-model.md](plugin-render-model.md) 第一级）<br>② Form 视图和命令参数输入<br>③ 设置项扩展：按钮型、动态选项、分组和条件显示（[plugin-settings.md](plugin-settings.md)）<br>④ 外部插件：JSON-RPC、`extproc`、`rpcserve`；进程隔离、崩溃重启和熔断（[reliability.md §3.3](reliability.md)）；协议预留 `ui/render` 推送快照（第二级）<br>⑤ 兼容 Raycast Script Commands（[调研方案 C](raycast-extensions-research.md)） | 用 Go 和 Python 各写一个示例外部插件并跑通；外部插件崩溃不影响宿主；剪贴板和应用视图能自动刷新 | ✅ 已在 main 上实现（[m5-plugin-platform.md](m5-plugin-platform.md) §11–§13），随 v0.2.0 发布 |
-| **M6 分发与维护（v0.3）** | 自动更新（MyGo `plugins/updater`）、代码签名、计算器补全（`ans`、单位和汇率换算）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 📋 |
+| **v0.3.0 发布**（R37） | 单位换算与汇率（R28）、系统命令与设置直达、终端与 WSL、网络工具（R31）、简体中文界面（R35）；SDK 增加 `Action.EndsSession` 和 `Clipboard.WriteSecret` | 五个分支重放到 `main`、脱敏、CI 全绿；Release 为正式版 | ✅ |
+| **M6 分发与维护（v0.4）** | 自动更新（MyGo `plugins/updater`）、代码签名、计算器补全（`ans`；单位和汇率换算已在 v0.3.0 完成）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 📋 |
 | **M7 Raycast 扩展兼容评估** | 约 2 人周的 Node sidecar 原型：自写 `@raycast/api` 子集和 React reconciler，通过 `ui/render` 推送；挑 3–5 个支持 Windows 的纯列表扩展试跑 | 根据结果决定是否投入方案 B（8–12 人周） | 📋 等你决定（R13） |
 ## 13. 风险与对策
 
@@ -688,7 +689,7 @@ type Localizer interface {
 **尚未实现 / 已知限制**：都已排入 §12 的里程碑。
 
 - **M5**：外部插件和进程隔离、Form 视图和命令参数、设置项扩展、`Host.Invalidate`、Script Commands 兼容。
-- **M6**：自动更新、代码签名、计算器补全、`Tab` 进入命令参数、快捷键显示名本地化。
+- **M6**：自动更新、代码签名、计算器补全（`ans`）、`Tab` 进入命令参数、快捷键显示名本地化。
 - **M7**：Raycast 扩展兼容评估。
 
 其他文档：
