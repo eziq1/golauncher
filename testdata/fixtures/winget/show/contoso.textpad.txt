@@ -1,0 +1,23 @@
+Found Contoso TextPad [Contoso.TextPad]
+Version: 1.4.1
+Publisher: Contoso Ltd.
+Publisher Url: https://contoso.example/
+Moniker: textpad
+Description:
+  A small, fast text editor with tabs, syntax highlighting and a distraction-free mode.
+  Opens files of any size without freezing.
+Homepage: https://contoso.example/textpad
+License: MIT
+License Url: https://contoso.example/textpad/license
+Release Notes:
+  New Features
+  - Split view
+  - Faster search in large files
+Release Notes Url: https://contoso.example/textpad/releases/1.4.1
+Tags:
+  editor
+  text
+Installer:
+  Installer Type: inno
+  Installer Url: https://contoso.example/download/textpad-1.4.1.exe
+  Release Date: 2026-09-01

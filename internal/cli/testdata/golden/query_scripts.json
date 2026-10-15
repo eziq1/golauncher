@@ -105,6 +105,39 @@
           "rank": 0.281
         }
       ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:upgrade-all",
+          "title": "Upgrade All WinGet Packages",
+          "subtitle": "WinGet",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "winget",
+            "upgrade"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "upgrade-all"
+              }
+            }
+          ],
+          "plugin": "builtin.winget",
+          "key": "builtin.winget/cmd:upgrade-all",
+          "rank": 0.20375
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,222 @@
+{
+  "step": "run builtin.winget/sources",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.winget",
+      "request": {
+        "id": "sources",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "WinGet Sources",
+    "placeholder": "Filter sources…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "source/msstore",
+            "title": "msstore",
+            "subtitle": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+            "icon": {
+              "name": "globe"
+            },
+            "actions": [
+              {
+                "id": "update-source",
+                "title": "Update Source",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update",
+                    "source": "msstore"
+                  }
+                }
+              },
+              {
+                "id": "update-sources",
+                "title": "Update All Sources",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update"
+                  }
+                }
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://storeedgefd.dsx.mp.microsoft.com/v9.0"
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "URL",
+                  "value": "https://storeedgefd.dsx.mp.microsoft.com/v9.0"
+                },
+                {
+                  "label": "Type",
+                  "value": "Microsoft.Rest"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/source/msstore"
+          },
+          {
+            "id": "source/winget",
+            "title": "winget",
+            "subtitle": "https://cdn.winget.microsoft.com/cache",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "9 packages",
+            "actions": [
+              {
+                "id": "update-source",
+                "title": "Update Source",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "update-sources",
+                "title": "Update All Sources",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update"
+                  }
+                }
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://cdn.winget.microsoft.com/cache"
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "URL",
+                  "value": "https://cdn.winget.microsoft.com/cache"
+                },
+                {
+                  "label": "Type",
+                  "value": "Microsoft.PreIndexed.Package"
+                },
+                {
+                  "label": "Packages",
+                  "value": "9 packages"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/source/winget"
+          },
+          {
+            "id": "source/winget-font",
+            "title": "winget-font",
+            "subtitle": "https://cdn.winget.microsoft.com/fonts",
+            "icon": {
+              "name": "globe"
+            },
+            "accessory": "Explicit",
+            "actions": [
+              {
+                "id": "update-source",
+                "title": "Update Source",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update",
+                    "source": "winget-font"
+                  }
+                }
+              },
+              {
+                "id": "update-sources",
+                "title": "Update All Sources",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "source-update"
+                  }
+                }
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://cdn.winget.microsoft.com/fonts"
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "URL",
+                  "value": "https://cdn.winget.microsoft.com/fonts"
+                },
+                {
+                  "label": "Type",
+                  "value": "Microsoft.PreIndexed.Package"
+                },
+                {
+                  "label": "Status",
+                  "value": "Explicit (only used when named)"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/source/winget-font"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "metadata": [
+        {
+          "label": "URL",
+          "value": "https://storeedgefd.dsx.mp.microsoft.com/v9.0"
+        },
+        {
+          "label": "Type",
+          "value": "Microsoft.Rest"
+        }
+      ]
+    },
+    "emptyText": "No sources are configured"
+  }
+}

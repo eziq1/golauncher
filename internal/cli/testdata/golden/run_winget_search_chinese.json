@@ -1,0 +1,212 @@
+{
+  "step": "run builtin.winget/search",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.winget",
+      "request": {
+        "id": "search",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search WinGet Packages",
+    "placeholder": "Search packages by name, ID, command or tag…",
+    "text": "聊天",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "pkg/winget/Adatum.Chatty",
+            "title": "微聊",
+            "subtitle": "Adatum.Chatty",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "chatty"
+            ],
+            "accessory": "5.0.2 → 5.1.0",
+            "actions": [
+              {
+                "id": "upgrade",
+                "title": "Upgrade",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "details",
+                "title": "Show Details",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "show",
+                  "payload": {
+                    "id": "Adatum.Chatty",
+                    "source": "winget",
+                    "name": "微聊"
+                  }
+                }
+              },
+              {
+                "id": "upgrade-admin",
+                "title": "Upgrade as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "upgrade --id Adatum.Chatty --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "pin",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/Adatum/Chatty"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Adatum.Chatty"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Adatum.Chatty --exact --source winget"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## 微聊\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Adatum.Chatty"
+                },
+                {
+                  "label": "Installed",
+                  "value": "5.0.2"
+                },
+                {
+                  "label": "Available",
+                  "value": "5.1.0"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                },
+                {
+                  "label": "Moniker",
+                  "value": "chatty"
+                },
+                {
+                  "label": "Tags",
+                  "value": "chat, 聊天"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/pkg/winget/Adatum.Chatty"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "## 微聊\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+      "metadata": [
+        {
+          "label": "ID",
+          "value": "Adatum.Chatty"
+        },
+        {
+          "label": "Installed",
+          "value": "5.0.2"
+        },
+        {
+          "label": "Available",
+          "value": "5.1.0"
+        },
+        {
+          "label": "Source",
+          "value": "winget"
+        },
+        {
+          "label": "Moniker",
+          "value": "chatty"
+        },
+        {
+          "label": "Tags",
+          "value": "chat, 聊天"
+        }
+      ]
+    },
+    "emptyText": "No matching packages. Update the sources to find newer ones."
+  }
+}

@@ -1,0 +1,555 @@
+{
+  "step": "run builtin.winget/updates",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.winget",
+      "request": {
+        "id": "updates",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "WinGet Updates",
+    "placeholder": "Filter updates…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "upgrade-all",
+            "title": "Upgrade All 2 Packages",
+            "subtitle": "Pinned packages are skipped",
+            "icon": {
+              "name": "package"
+            },
+            "actions": [
+              {
+                "id": "upgrade-all",
+                "title": "Upgrade All",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade-all"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/upgrade-all"
+          },
+          {
+            "id": "app/Contoso.TextPad",
+            "title": "Contoso TextPad",
+            "subtitle": "Contoso.TextPad",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "textpad",
+              "textpad"
+            ],
+            "accessory": "1.2.0 → 1.4.1",
+            "actions": [
+              {
+                "id": "upgrade",
+                "title": "Upgrade",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "details",
+                "title": "Show Details",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "show",
+                  "payload": {
+                    "id": "Contoso.TextPad",
+                    "source": "winget",
+                    "name": "Contoso TextPad"
+                  }
+                }
+              },
+              {
+                "id": "upgrade-admin",
+                "title": "Upgrade as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "upgrade --id Contoso.TextPad --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "pin",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/Contoso/TextPad"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Contoso.TextPad"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Contoso.TextPad --exact --source winget"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "id": "Contoso.TextPad",
+                    "name": "Contoso TextPad",
+                    "source": "winget"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## Contoso TextPad\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Contoso.TextPad"
+                },
+                {
+                  "label": "Installed",
+                  "value": "1.2.0"
+                },
+                {
+                  "label": "Available",
+                  "value": "1.4.1"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                },
+                {
+                  "label": "Moniker",
+                  "value": "textpad"
+                },
+                {
+                  "label": "Commands",
+                  "value": "textpad"
+                },
+                {
+                  "label": "Tags",
+                  "value": "editor, text"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/app/Contoso.TextPad"
+          },
+          {
+            "id": "app/Northwind.Player",
+            "title": "Northwind Player",
+            "subtitle": "Northwind.Player",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "nwplayer",
+              "nwplay"
+            ],
+            "accessory": "3.1.0 → 3.2.0 · Pinned",
+            "actions": [
+              {
+                "id": "upgrade",
+                "title": "Upgrade",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade",
+                    "id": "Northwind.Player",
+                    "name": "Northwind Player",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "details",
+                "title": "Show Details",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "show",
+                  "payload": {
+                    "id": "Northwind.Player",
+                    "source": "winget",
+                    "name": "Northwind Player"
+                  }
+                }
+              },
+              {
+                "id": "upgrade-admin",
+                "title": "Upgrade as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "upgrade --id Northwind.Player --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "unpin",
+                "title": "Unpin Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "unpin",
+                    "id": "Northwind.Player",
+                    "name": "Northwind Player",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/n/Northwind/Player"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Northwind.Player"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Northwind.Player --exact --source winget"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "id": "Northwind.Player",
+                    "name": "Northwind Player",
+                    "source": "winget"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## Northwind Player\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Northwind.Player"
+                },
+                {
+                  "label": "Installed",
+                  "value": "3.1.0"
+                },
+                {
+                  "label": "Available",
+                  "value": "3.2.0"
+                },
+                {
+                  "label": "Status",
+                  "value": "Pinned (skipped by Upgrade All)"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                },
+                {
+                  "label": "Moniker",
+                  "value": "nwplayer"
+                },
+                {
+                  "label": "Commands",
+                  "value": "nwplay"
+                },
+                {
+                  "label": "Tags",
+                  "value": "media, music"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/app/Northwind.Player"
+          },
+          {
+            "id": "app/Adatum.Chatty",
+            "title": "微聊",
+            "subtitle": "Adatum.Chatty",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "chatty"
+            ],
+            "accessory": "5.0.2 → 5.1.0",
+            "actions": [
+              {
+                "id": "upgrade",
+                "title": "Upgrade",
+                "shortcut": "Ctrl+U",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "upgrade",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "details",
+                "title": "Show Details",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "show",
+                  "payload": {
+                    "id": "Adatum.Chatty",
+                    "source": "winget",
+                    "name": "微聊"
+                  }
+                }
+              },
+              {
+                "id": "upgrade-admin",
+                "title": "Upgrade as Administrator",
+                "shortcut": "Ctrl+Shift+A",
+                "do": {
+                  "kind": "Open",
+                  "target": "winget.exe",
+                  "payload": {
+                    "args": "upgrade --id Adatum.Chatty --exact --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --wait",
+                    "verb": "runas"
+                  }
+                }
+              },
+              {
+                "id": "pin",
+                "title": "Pin Version",
+                "shortcut": "Ctrl+Shift+H",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "pin",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              },
+              {
+                "id": "manifest",
+                "title": "Open Manifest on GitHub",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/microsoft/winget-pkgs/tree/master/manifests/a/Adatum/Chatty"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Package ID",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "Adatum.Chatty"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "winget install --id Adatum.Chatty --exact --source winget"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              },
+              {
+                "id": "uninstall",
+                "title": "Uninstall",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "uninstall",
+                    "id": "Adatum.Chatty",
+                    "name": "微聊",
+                    "source": "winget"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "## 微聊\n\nPress Ctrl+D for the publisher, description, license and release notes.",
+              "metadata": [
+                {
+                  "label": "ID",
+                  "value": "Adatum.Chatty"
+                },
+                {
+                  "label": "Installed",
+                  "value": "5.0.2"
+                },
+                {
+                  "label": "Available",
+                  "value": "5.1.0"
+                },
+                {
+                  "label": "Source",
+                  "value": "winget"
+                },
+                {
+                  "label": "Moniker",
+                  "value": "chatty"
+                },
+                {
+                  "label": "Tags",
+                  "value": "chat, 聊天"
+                }
+              ]
+            },
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/app/Adatum.Chatty"
+          }
+        ]
+      },
+      {
+        "title": "List",
+        "items": [
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "subtitle": "Last listed: Just now",
+            "icon": {
+              "name": "rotate-cw"
+            },
+            "actions": [
+              {
+                "id": "refresh",
+                "title": "Refresh List",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              }
+            ],
+            "plugin": "builtin.winget",
+            "key": "builtin.winget/refresh"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "emptyText": "No results"
+  }
+}

@@ -1,0 +1,9 @@
+Name                   Id                                                     Version    Available Source
+----------------------------------------------------------------------------------------------------------
+Contoso Photos         MSIX\Contoso.Photos_2026.1.0.0_x64__abcd1234efgh5      2026.1.0.0           
+Contoso TextPad        Contoso.TextPad                                        1.2.0      1.4.1     winget
+Gitty                  Fabrikam.Gitty                                         2.0.0                winget
+Litware Driver Utility ARP\Machine\X64\{8C1A6F0E-0000-4000-8000-000000000001} 1.0.7                
+Northwind Player       Northwind.Player                                       3.1.0      3.2.0     winget
+Woodgrove Reader       9NWOODGROVE01                                          2.3                  msstore
+微聊                   Adatum.Chatty                                          5.0.2      5.1.0     winget
