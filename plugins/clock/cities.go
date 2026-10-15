@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -142,6 +143,11 @@ type index struct {
 	byGeonameID []int32          // ords of the GeoNames cities by GeoNames ID
 	zoneByLower map[string]*zone // lowercase zone IDs
 }
+
+// sharedIndex is the index of the embedded cities, built once per process:
+// it is read-only after it is built, so every plugin instance (tests and
+// glctl create many) shares it.
+var sharedIndex = sync.OnceValues(loadIndex)
 
 // loadIndex loads the embedded cities.
 func loadIndex() (*index, error) {

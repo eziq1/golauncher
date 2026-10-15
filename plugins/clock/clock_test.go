@@ -119,7 +119,7 @@ func newEnv(t *testing.T) *env {
 
 func eventually(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(30 * time.Second) // loading the cities is slow under -race
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("timed out waiting until %s", what)

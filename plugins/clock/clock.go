@@ -110,7 +110,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.After == nil {
 		o.After = time.After
 	}
-	return &Plugin{opts: o, index: sync.OnceValues(loadIndex), views: map[string]*viewLoop{}}
+	return &Plugin{opts: o, index: sharedIndex, views: map[string]*viewLoop{}}
 }
 
 // Manifest implements plugin.Plugin.
