@@ -17,6 +17,8 @@ A Raycast-style launcher for Windows, written in Go with the
     search. Copies from password managers are skipped.
   - **File Search**: powered by [Everything](https://www.voidtools.com/), when it
     is installed.
+  - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)
+    packages, when Scoop is installed.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences and
   the theme.
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
@@ -132,6 +134,28 @@ ipconfig /flushdns | Select-Object -Last 1
 
 Modes `silent`, `compact` and `fullOutput` are supported (`inline` runs as
 `compact`). See the [plugin guide](docs/plugin-guide.md#script-commands).
+
+## Scoop
+
+When [Scoop](https://scoop.sh) is installed (`$SCOOP`, `%USERPROFILE%\scoop`,
+or the folder set in the plugin settings), these commands appear:
+
+| Command | What it does |
+|---------|--------------|
+| Search Scoop Packages | Search all bucket manifests by name, command or description as you type. `Enter` installs; installed apps offer update, hold/unhold, open folder and uninstall (`Ctrl+X`). |
+| Installed Scoop Apps | Installed apps with their version, bucket and hold state; apps with a newer version first. |
+| Scoop Updates | What `scoop status` would report, computed locally, with *Update All*. |
+| Update All Scoop Apps / Update Scoop Buckets | `scoop update` and `scoop update *`. |
+| Scoop Buckets | Added and known buckets; add, remove, or add a custom one by URL. |
+| Clean Up Scoop | Shows how much old versions and the download cache take, then runs `scoop cleanup *` and `scoop cache rm *`. |
+
+Searching reads Scoop's files directly (about 6,000 manifests in well under a
+millisecond per query), so it does not start PowerShell. Changes run `scoop`
+one at a time, in a view with live output, a Stop action and Copy Output.
+Turn on *Search packages from the main search* to type `scoop <name>` or
+`sc <name>` in the main search. Apps installed for all users (`-g`) are shown
+read-only.
+
 ## Writing plugins
 
 See the [plugin guide](docs/plugin-guide.md).
