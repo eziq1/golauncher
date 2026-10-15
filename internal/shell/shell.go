@@ -181,6 +181,7 @@ func (s *Shell) ready(action string) {
 		DisableResize: true,
 		Content:       mui.View(s.launcher.View),
 	})
+	hideCaptionColor(s.panel.NativeHandle()) // ready runs on the main thread
 	s.panel.OnClose(func(e *mygo.CloseEvent) {
 		if s.quitting {
 			return
