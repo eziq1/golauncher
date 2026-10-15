@@ -2,8 +2,9 @@
 //
 // Typing a prefix such as "time" in the root search lists the local time and
 // the favorite or default cities; "time bj", "time 北京" or "time utc+8"
-// searches about 185 cities by name, pinyin, alias, country, IANA time zone,
-// UTC offset or time zone abbreviation. The times tick: while such a search
+// searches about 32,000 cities (GeoNames, plus a curated overlay) by name,
+// pinyin, alias, country, IANA time zone, UTC offset or time zone
+// abbreviation. The times tick: while such a search
 // is showing, the plugin calls Host.Invalidate once a second, and the World
 // Clock view pushes a new snapshot with Host.Render once a second.
 package clock

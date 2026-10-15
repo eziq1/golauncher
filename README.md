@@ -48,8 +48,9 @@
     one in a new window or tab, as administrator or in the current folder,
     set the default distribution, stop it, shut down or update WSL.
   - **World Clock**: type `time` for your local time and major cities, or
-    `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find a
-    city. The clocks tick; favorite cities stay on top.
+    `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find
+    one of about 32,000 cities (every city of 15,000 people or more, from
+    GeoNames). The clocks tick; favorite cities stay on top.
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;
@@ -233,6 +234,14 @@ See the [plugin guide](docs/plugin-guide.md).
 | [`plugins/`](plugins/) | Built-in plugins |
 | [`internal/winapi`](internal/winapi/) | Win32/COM bindings (pure Go) |
 | [`docs/`](docs/) | Design document and guides |
+
+## Acknowledgements
+
+The World Clock's city data comes from [GeoNames](https://www.geonames.org/)
+(cities with a population of 15,000 or more, their regions, countries and
+Chinese names), licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is converted by
+[`scripts/gencities`](scripts/gencities/) and embedded in the program.
 
 ## License
 

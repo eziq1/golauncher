@@ -516,7 +516,7 @@ func TestCopyActions(t *testing.T) {
 }
 
 func BenchmarkRootItems(b *testing.B) {
-	for _, q := range []string{"time", "time b", "time bj", "time utc+8"} {
+	for _, q := range []string{"time", "time b", "time bj", "time 北京", "time springfield", "time japan", "time utc+8", "time cst", "time sydny"} {
 		b.Run(q, func(b *testing.B) {
 			p := NewWithOptions(Options{After: func(time.Duration) <-chan time.Time { return nil }})
 			h, err := hostfake.New(p, b.TempDir())
