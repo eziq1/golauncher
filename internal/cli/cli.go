@@ -58,6 +58,7 @@ Commands:
   attach show|hide|type|key|select|snapshot [arg]
                                      drive the running GUI through its control socket
   bench [--n N] [queries...]         measure root search latency
+  version                            print the glctl version
 
 Environment flags (query, run, session new, plugin, bench):
   --real           use the real configuration, database, apps and clipboard
@@ -140,6 +141,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.attach(rest)
 	case "bench":
 		return c.bench(ctx, rest)
+	case "version":
+		return c.version(rest)
 	default:
 		return usagef("unknown command %q (see glctl help)", cmd)
 	}
@@ -410,6 +413,23 @@ func (c *cli) plugin(ctx context.Context, args []string) error {
 	default:
 		return usagef("plugin: want list or info <id>")
 	}
+}
+
+// Version is the glctl version, set by cmd/glctl from its build-time
+// version (-ldflags "-X main.version=...").
+var Version = "dev"
+
+func (c *cli) version(args []string) error {
+	pos, err := parse(c.flagSet("version", nil), args)
+	if err != nil {
+		return err
+	}
+	if len(pos) != 0 {
+		return usagef("version: takes no arguments")
+	}
+	return c.output(struct {
+		Version string `json:"version"`
+	}{Version}, func(w io.Writer) { fmt.Fprintln(w, Version) })
 }
 
 // exit is a hook for tests.

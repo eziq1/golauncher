@@ -1,14 +1,11 @@
 package shell
 
 import (
-	"bytes"
-	"image"
-	"image/color"
-	"image/png"
 	"log/slog"
 	"os"
 	"path/filepath"
 
+	"github.com/eziq1/golauncher/assets"
 	"github.com/eziq1/golauncher/internal/app"
 )
 
@@ -51,39 +48,6 @@ func setLevel(v *slog.LevelVar, level string) {
 	}
 }
 
-// trayIcon draws the tray icon: a magnifying glass in a rounded blue tile,
-// 32×32 pixels, legible on light and dark taskbars.
-func trayIcon() []byte {
-	const n = 32
-	img := image.NewNRGBA(image.Rect(0, 0, n, n))
-	tile := color.NRGBA{R: 59, G: 130, B: 246, A: 255}
-	ink := color.NRGBA{R: 255, G: 255, B: 255, A: 255}
-	inTile := func(x, y int) bool {
-		const r = 7 // corner radius
-		cx := min(max(x, r), n-1-r)
-		cy := min(max(y, r), n-1-r)
-		dx, dy := x-cx, y-cy
-		return dx*dx+dy*dy <= r*r
-	}
-	for y := range n {
-		for x := range n {
-			if !inTile(x, y) {
-				continue
-			}
-			img.SetNRGBA(x, y, tile)
-			dx, dy := float64(x)-13.5, float64(y)-13.5
-			if d := dx*dx + dy*dy; d >= 4.5*4.5 && d <= 7*7 {
-				img.SetNRGBA(x, y, ink)
-			}
-			// The handle, along the diagonal from the ring outwards.
-			if x >= 18 && x <= 25 && y >= 18 && y <= 25 && abs(x-y) <= 1 {
-				img.SetNRGBA(x, y, ink)
-			}
-		}
-	}
-	var b bytes.Buffer
-	_ = png.Encode(&b, img)
-	return b.Bytes()
-}
-
-func abs(v int) int { return max(v, -v) }
+// trayIcon returns the tray icon: the app icon (a magnifying glass in a
+// rounded blue tile) as a 32×32 PNG, the same image the executable carries.
+func trayIcon() []byte { return assets.Icon32 }

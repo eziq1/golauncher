@@ -1,0 +1,42 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": [
+        "../../../assets/icon-256.png",
+        "../../../assets/icon-128.png",
+        "../../../assets/icon-64.png",
+        "../../../assets/icon-48.png",
+        "../../../assets/icon-32.png",
+        "../../../assets/icon-24.png",
+        "../../../assets/icon-16.png"
+      ]
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": "golauncher.manifest"
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.1.0.0",
+          "product_version": "0.1.0.0"
+        },
+        "info": {
+          "0409": {
+            "CompanyName": "eziq1",
+            "FileDescription": "golauncher",
+            "FileVersion": "0.1.0",
+            "InternalName": "golauncher",
+            "LegalCopyright": "Copyright (c) 2026 eziq1",
+            "OriginalFilename": "golauncher.exe",
+            "ProductName": "golauncher",
+            "ProductVersion": "0.1.0"
+          }
+        }
+      }
+    }
+  }
+}

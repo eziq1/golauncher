@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: gofmt
+        run: |
+          $files = gofmt -l .
+          if ($files) {
+            Write-Output "These files need gofmt:"
+            $files
+            exit 1
+          }
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go test -race
+        # The race detector needs cgo; windows-latest ships MinGW gcc.
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./internal/... ./plugins/...
+
+      - name: Build
+        run: |
+          go build -trimpath -ldflags "-H windowsgui" -o bin/golauncher.exe ./cmd/golauncher
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -o bin/glctl.exe ./cmd/glctl
+
+      - name: glctl i18n check
+        run: ./bin/glctl.exe i18n check
+
+      - name: glctl version
+        run: ./bin/glctl.exe version

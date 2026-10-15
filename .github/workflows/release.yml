@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Version
+        id: version
+        run: |
+          if ($env:TAG -notmatch '^v(\d+)\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "tag $env:TAG is not a version (vMAJOR.MINOR.PATCH[-PRE])"
+          }
+          $version = $env:TAG.Substring(1)
+          # v0.x and -pre versions are pre-releases.
+          $prerelease = ($Matches[1] -eq '0' -or $Matches[2]) ? 'true' : 'false'
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$prerelease" >> $env:GITHUB_OUTPUT
+          Write-Output "version $version, prerelease $prerelease"
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $notes = ./scripts/changelog.ps1 -Version '${{ steps.version.outputs.version }}'
+          Set-Content -Path dist/notes.md -Value $notes -Encoding utf8NoBOM
+          Get-Content dist/notes.md
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: go test -race
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./internal/... ./plugins/...
+
+      - name: Build and package
+        run: |
+          # amd64 last, so that dist/*.exe are the runner's for the smoke test.
+          foreach ($arch in 'arm64', 'amd64') {
+            ./scripts/build.ps1 -Arch $arch -Version '${{ steps.version.outputs.version }}' -Zip
+          }
+
+      - name: Smoke test (amd64)
+        run: |
+          $v = ./dist/glctl.exe version --format text
+          if ($v -ne '${{ steps.version.outputs.version }}') { throw "glctl version = $v" }
+          ./dist/glctl.exe i18n check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $info = (Get-Item ./dist/golauncher.exe).VersionInfo
+          $info | Format-List ProductName, ProductVersion, FileVersion, LegalCopyright
+          if ($info.ProductVersion -ne '${{ steps.version.outputs.version }}') { throw "golauncher.exe ProductVersion = $($info.ProductVersion)" }
+
+      - name: Checksums
+        run: |
+          $lines = Get-ChildItem dist -Filter *.zip | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant())  $($_.Name)"
+          }
+          [System.IO.File]::WriteAllText("$PWD/dist/checksums.txt", ($lines -join "`n") + "`n")
+          Get-Content dist/checksums.txt
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = @(Get-ChildItem dist -Filter *.zip | ForEach-Object FullName) + "dist/checksums.txt"
+          $flags = @()
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
+          gh release create $env:TAG --title "golauncher $env:TAG" --notes-file dist/notes.md --verify-tag @flags @assets
