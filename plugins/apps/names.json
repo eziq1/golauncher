@@ -1,0 +1,18 @@
+[
+  {"exe": ["wechat.exe", "weixin.exe"], "names": ["微信", "WeChat", "Weixin"]},
+  {"exe": ["wxwork.exe"], "names": ["企业微信", "WeCom", "WXWork"]},
+  {"exe": ["dingtalk.exe"], "names": ["钉钉", "DingTalk"]},
+  {"exe": ["feishu.exe", "lark.exe"], "names": ["飞书", "Feishu", "Lark"]},
+  {"exe": ["wemeetapp.exe"], "names": ["腾讯会议", "Tencent Meeting", "VooV Meeting"]},
+  {"exe": ["cloudmusic.exe"], "names": ["网易云音乐", "NetEase Cloud Music"]},
+  {"exe": ["qqmusic.exe"], "names": ["QQ音乐", "QQ Music"]},
+  {"exe": ["kugou.exe"], "names": ["酷狗音乐", "KuGou"]},
+  {"exe": ["baidunetdisk.exe"], "names": ["百度网盘", "Baidu Netdisk"]},
+  {"exe": ["adrive.exe"], "names": ["阿里云盘", "Aliyun Drive"]},
+  {"exe": ["thunder.exe"], "names": ["迅雷", "Thunder", "Xunlei"]},
+  {"exe": ["qqbrowser.exe"], "names": ["QQ浏览器", "QQ Browser"]},
+  {"exe": ["youdaodict.exe"], "names": ["网易有道词典", "有道词典", "Youdao Dictionary"]},
+  {"exe": ["jianyingpro.exe"], "names": ["剪映专业版", "剪映", "Jianying"]},
+  {"exe": ["doubao.exe"], "names": ["豆包", "Doubao"]},
+  {"exe": ["quark.exe"], "names": ["夸克", "Quark"]}
+]

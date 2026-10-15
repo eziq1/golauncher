@@ -168,7 +168,47 @@ func InstalledApps(ctx context.Context) ([]App, error) {
 	if err != nil {
 		return nil, err
 	}
-	return clean(apps), nil
+	apps = clean(apps)
+	winDir, _ := windows.GetWindowsDirectory()
+	addKeywords(apps, winDir, func(exe string) []string {
+		if ctx.Err() != nil {
+			return nil
+		}
+		return versionNames(exe)
+	})
+	return apps, ctx.Err()
+}
+
+// versionNames returns the FileDescription and ProductName of every
+// language of the version information of exe.
+func versionNames(exe string) []string {
+	n, err := windows.GetFileVersionInfoSize(exe, nil)
+	if err != nil || n == 0 {
+		return nil
+	}
+	buf := make([]byte, n)
+	block := unsafe.Pointer(&buf[0])
+	if windows.GetFileVersionInfo(exe, 0, n, block) != nil {
+		return nil
+	}
+	var p unsafe.Pointer
+	var size uint32
+	if windows.VerQueryValue(block, `\VarFileInfo\Translation`, unsafe.Pointer(&p), &size) != nil || size < 4 {
+		return nil
+	}
+	langs := unsafe.Slice((*uint16)(p), size/2)
+	var names []string
+	for i := 0; i+1 < len(langs); i += 2 {
+		for _, key := range []string{"FileDescription", "ProductName"} {
+			var s unsafe.Pointer
+			var l uint32
+			sub := fmt.Sprintf(`\StringFileInfo\%04x%04x\%s`, langs[i], langs[i+1], key)
+			if windows.VerQueryValue(block, sub, unsafe.Pointer(&s), &l) == nil && l > 0 {
+				names = append(names, windows.UTF16PtrToString((*uint16)(s)))
+			}
+		}
+	}
+	return names
 }
 
 // readApp reads an item of the Applications folder.

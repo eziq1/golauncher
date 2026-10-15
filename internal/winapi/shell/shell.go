@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // AppsFolderPrefix is the shell path prefix of the Start menu's Applications
@@ -34,6 +36,10 @@ type App struct {
 	Args     string `json:"args,omitempty"`
 	// Packaged is set for UWP/MSIX apps.
 	Packaged bool `json:"packaged,omitzero"`
+	// Keywords are other names of the app: the shortcut's file name when the
+	// Start menu shows a localized name, and the non-Latin names of the
+	// executable's version information (a Chinese FileDescription, say).
+	Keywords []string `json:"keywords,omitempty"`
 }
 
 // ShellPath returns the Applications folder item of the app,
@@ -93,4 +99,63 @@ func clean(apps []App) []App {
 		return cmp.Or(cmp.Compare(strings.ToLower(x.Name), strings.ToLower(y.Name)), cmp.Compare(x.ID, y.ID))
 	})
 	return out
+}
+
+// maxNameLen bounds the length, in runes, of a version-information name
+// used as a keyword; longer strings are descriptions, not names.
+const maxNameLen = 40
+
+// addKeywords sets the Keywords of apps: the file name of the shortcut when
+// it differs from the displayed name, and the names versionNames finds in
+// the version information of the target executable. Version names are used
+// only when they contain a non-Latin letter (a Chinese or Japanese name, say:
+// English ones are mostly the displayed name again, or generic, such as
+// "Electron"), and only for executables outside winDir that no other app
+// targets, since the version information of a shared host (cmd.exe, a
+// runtime) does not describe the app. versionNames may be nil.
+func addKeywords(apps []App, winDir string, versionNames func(exe string) []string) {
+	targets := map[string]int{}
+	for _, a := range apps {
+		if !a.Packaged && a.Path != "" {
+			targets[strings.ToLower(a.Path)]++
+		}
+	}
+	winDir = strings.ToLower(filepath.Clean(winDir))
+	for i := range apps {
+		a := &apps[i]
+		if a.Packaged {
+			continue
+		}
+		add := func(name string) {
+			name = strings.TrimSpace(name)
+			if name == "" || strings.EqualFold(name, a.Name) ||
+				slices.ContainsFunc(a.Keywords, func(k string) bool { return strings.EqualFold(k, name) }) {
+				return
+			}
+			a.Keywords = append(a.Keywords, name)
+		}
+		if a.LinkPath != "" {
+			add(strings.TrimSuffix(filepath.Base(a.LinkPath), filepath.Ext(a.LinkPath)))
+		}
+		p := strings.ToLower(a.Path)
+		if versionNames == nil || !strings.HasSuffix(p, ".exe") || targets[p] > 1 ||
+			winDir != "" && winDir != "." && strings.HasPrefix(p, winDir+`\`) {
+			continue
+		}
+		for _, n := range versionNames(a.Path) {
+			if nonLatin(n) && utf8.RuneCountInString(n) <= maxNameLen {
+				add(n)
+			}
+		}
+	}
+}
+
+// nonLatin reports whether s contains a letter of a non-Latin script.
+func nonLatin(s string) bool {
+	for _, r := range s {
+		if unicode.IsLetter(r) && !unicode.Is(unicode.Latin, r) {
+			return true
+		}
+	}
+	return false
 }

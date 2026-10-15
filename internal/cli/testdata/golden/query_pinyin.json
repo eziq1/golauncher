@@ -12,7 +12,8 @@
             "name": "app"
           },
           "keywords": [
-            "Weixin"
+            "Weixin",
+            "WeChat"
           ],
           "accessory": "Application",
           "group": "Applications",

@@ -41,6 +41,9 @@ const (
 //go:embed locales/*.json
 var locales embed.FS
 
+//go:embed names.json
+var namesJSON []byte
+
 // Source lists the installed applications.
 type Source func(ctx context.Context) ([]shell.App, error)
 
@@ -396,12 +399,56 @@ func (p *Plugin) RootItems(_ context.Context, q plugin.Query) ([]plugin.Item, er
 		if ready[a.ID] {
 			it.Icon = plugin.Icon{Path: p.iconPath(a)}
 		}
-		if a.Path != "" {
-			it.Keywords = []string{strings.TrimSuffix(filepath.Base(a.Path), filepath.Ext(a.Path))}
-		}
+		it.Keywords = keywords(a)
 		items = append(items, it)
 	}
 	return items, nil
+}
+
+// knownNames maps the lower-case executable name of a well-known app to the
+// names it is known by in other languages, from names.json. It covers apps
+// whose shortcut and version information carry one name only, such as an
+// English "WeChat" that Chinese users look for as 微信.
+var knownNames = sync.OnceValue(func() map[string][]string {
+	var groups []struct {
+		Exe   []string `json:"exe"`
+		Names []string `json:"names"`
+	}
+	if err := json.Unmarshal(namesJSON, &groups); err != nil {
+		panic(fmt.Errorf("apps: names.json: %w", err))
+	}
+	m := map[string][]string{}
+	for _, g := range groups {
+		for _, exe := range g.Exe {
+			m[strings.ToLower(exe)] = append(m[strings.ToLower(exe)], g.Names...)
+		}
+	}
+	return m
+})
+
+// keywords returns the other names a matches by: its executable's name, the
+// names the shell found (shell.App.Keywords) and the known names of the
+// executable, without the title and duplicates.
+func keywords(a shell.App) []string {
+	var out []string
+	add := func(k string) {
+		if k = strings.TrimSpace(k); k != "" && !strings.EqualFold(k, a.Name) &&
+			!slices.ContainsFunc(out, func(o string) bool { return strings.EqualFold(o, k) }) {
+			out = append(out, k)
+		}
+	}
+	if a.Path != "" {
+		add(strings.TrimSuffix(filepath.Base(a.Path), filepath.Ext(a.Path)))
+	}
+	for _, k := range a.Keywords {
+		add(k)
+	}
+	if a.Path != "" {
+		for _, k := range knownNames()[strings.ToLower(filepath.Base(a.Path))] {
+			add(k)
+		}
+	}
+	return out
 }
 
 // actions returns the actions of a; the first is the primary one.
