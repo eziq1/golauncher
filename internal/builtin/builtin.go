@@ -15,6 +15,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/apps"
 	"github.com/eziq1/golauncher/plugins/calc"
 	"github.com/eziq1/golauncher/plugins/clipboard"
+	"github.com/eziq1/golauncher/plugins/clock"
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/scripts"
 )
@@ -31,6 +32,7 @@ func All() []plugin.Plugin {
 		apps.New(),
 		calc.New(),
 		clipboard.New(),
+		clock.New(),
 		everything.New(),
 		scripts.New(),
 	}
@@ -69,6 +71,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		apps.NewWithSource(appsSrc, nil),
 		calc.New(),
 		clipboard.New(),
+		clock.New(),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 	}

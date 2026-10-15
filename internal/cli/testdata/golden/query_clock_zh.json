@@ -1,0 +1,108 @@
+{
+  "query": "time 北京",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "World Clock",
+      "items": [
+        {
+          "id": "city:beijing",
+          "title": "Beijing  18:00:00",
+          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBeijing · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:beijing",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,9 @@ var update = flag.Bool("update", false, "rewrite golden files")
 
 const fixtures = "../../testdata/fixtures"
 
+// clockNow is the fixed time of the world clock goldens.
+const clockNow = "2026-10-15T10:00:00Z"
+
 // glctl runs the CLI and returns its stdout and exit code.
 func glctl(t *testing.T, args ...string) (string, int) {
 	t.Helper()
@@ -64,6 +67,9 @@ func TestGolden(t *testing.T) {
 		{"run_file_search", []string{"run", "builtin.everything/search", "--text", "工作", "--fixtures", fixtures}},
 		{"run_file_search_report", []string{"run", "builtin.everything/search", "--text", "report q3", "--fixtures", fixtures}},
 		{"query_scripts", []string{"query", "greet", "--fixtures", fixtures}},
+		{"query_clock", []string{"query", "time", "--now", clockNow}},
+		{"query_clock_bj", []string{"query", "time bj", "--now", clockNow}},
+		{"query_clock_zh", []string{"query", "time 北京", "--now", clockNow}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
