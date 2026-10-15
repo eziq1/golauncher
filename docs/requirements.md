@@ -11,8 +11,8 @@
 | R3 | 2026-10-14 | 四项决定：默认呼出键 `Alt+Space`；剪贴板历史不加密；外部插件不需要签名；第一版只做英文，但整体按可扩展的 I18N 设计 | [design.md §14](design.md)、§10 | ✅ |
 | R4 | 2026-10-14 | 按第一版开始实现 | [design.md §12、§15](design.md) | ✅ |
 | R5 | 2026-10-14 | 实现时拆分需求，用多个 Agent 并行加速 | 开发流程：先写好公共契约，再按互不重叠的目录分派子代理，最后统一集成和验证 | ✅ |
-| R6 | 2026-10-15 | 启动器顶部有一块蓝色，像是 Windows 标题栏留下的 | 原因：DWM 在延伸到客户区的框架上画了标题栏强调色。修复：设置 `DWMWA_CAPTION_COLOR = DWMWA_COLOR_NONE`，见 [reliability.md §4](reliability.md) | ⏳ 已修复，等你在真机上确认 |
-| R7 | 2026-10-15 | 好好整理，作为 0.1 版本发布到 GitHub：仓库 `eziq1/golauncher`，MIT 许可，英文 README 加中文 README，用 gh 创建 | [release.md](release.md) | 🚧 仓库已推送；v0.1.0 的发布被暂停，修完崩溃后重新发布 |
+| R6 | 2026-10-15 | 启动器顶部有一块蓝色，像是 Windows 标题栏留下的 | 原因：DWM 在延伸到客户区的框架上画了标题栏强调色。修复：设置 `DWMWA_CAPTION_COLOR = DWMWA_COLOR_NONE`，见 [reliability.md §4](reliability.md) | ✅ 已在真机上确认（2026-10-15） |
+| R7 | 2026-10-15 | 好好整理，作为 0.1 版本发布到 GitHub：仓库 `eziq1/golauncher`，MIT 许可，英文 README 加中文 README，用 gh 创建 | [release.md](release.md) | 🚧 已删除旧的 v0.1.0 tag；等 R15 合入后重新发布 |
 | R8 | 2026-10-15 | 集成 Everything 搜索电脑上的文件：作为 Windows 特有插件，依赖系统已安装的 Everything，没装就不启用 | [everything.md](everything.md) | ✅ |
 | R9 | 2026-10-15 | 问：第三方插件的配置页能集成进 golauncher 的设置页吗？怎么集成？ | [plugin-settings.md](plugin-settings.md)：声明式集成，宿主生成表单；扩展方向列入路线图 | ✅ 已答复；扩展项 📋 |
 | R10 | 2026-10-15 | 问：数据库 schema 支持迁移吗？以后怎么升级？ | [storage.md](storage.md)：三处存储都有版本化迁移；主数据库的迁移是这次补上的 | ✅ |

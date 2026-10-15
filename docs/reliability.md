@@ -93,4 +93,4 @@ Go 的 `recover` 只能接住当前 goroutine 里的 panic。下面这些情况�
 
 ## 4. 启动器顶部蓝条（R6）的修复记录
 
-MyGo 为了让 Acrylic 背景铺满窗口，调用了 `DwmExtendFrameIntoClientArea(-1)`。系统开了"在标题栏上显示强调色"时，DWM 会在原来标题栏的位置画上强调色。修复办法是在窗口创建后设置 `DWMWA_CAPTION_COLOR = DWMWA_COLOR_NONE`（`internal/shell/dwm_windows.go`）。这个属性只有 Windows 11 支持，Windows 10 上调用会失败，但没有副作用。待你在真机上确认。
+MyGo 为了让 Acrylic 背景铺满窗口，调用了 `DwmExtendFrameIntoClientArea(-1)`。系统开了"在标题栏上显示强调色"时，DWM 会在原来标题栏的位置画上强调色。修复办法是在窗口创建后设置 `DWMWA_CAPTION_COLOR = DWMWA_COLOR_NONE`（`internal/shell/dwm_windows.go`）。这个属性只有 Windows 11 支持，Windows 10 上调用会失败，但没有副作用。2026-10-15 已在真机上确认蓝条消失。
