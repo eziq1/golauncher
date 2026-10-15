@@ -111,6 +111,9 @@ func newEnv(t *testing.T) *env {
 			t.Error(err)
 		}
 	})
+	// Let the cities finish loading, so tests count only their own
+	// invalidations (a search during loading asks for one more).
+	eventually(t, "cities loaded", p.loaded.Load)
 	return &env{p, h, clock, ticks}
 }
 
@@ -448,5 +451,30 @@ func BenchmarkRootItems(b *testing.B) {
 				}
 			}
 		})
+	}
+}
+
+// TestSearchDuringLoadingInvalidates: a prefixed search that came in while
+// the cities were still loading (and may have been dropped by the host's
+// time limit) is asked for again once they are loaded.
+func TestSearchDuringLoadingInvalidates(t *testing.T) {
+	release := make(chan struct{})
+	p := New()
+	slow := p.index
+	p.index = func() (*index, error) { <-release; return slow() }
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	go p.RootItems(t.Context(), plugin.Query{Text: "time"})
+	eventually(t, "the search noticed loading", p.missed.Load)
+	close(release)
+	eventually(t, "invalidated after loading", func() bool { return len(h.Invalidated()) > 0 })
+	if got := h.Invalidated()[0]; got != "" {
+		t.Errorf("invalidated %q, want the root", got)
 	}
 }

@@ -200,11 +200,12 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 	env.Services.Tasks = env.Tasks
 	plugins := append(slices.Clone(o.Plugins), tasks.NewPlugin(env.Tasks))
 	env.Engine, err = core.New(ctx, core.Options{
-		Plugins:  plugins,
-		Services: env.Services,
-		Config:   env.Config,
-		System:   o.System,
-		Tasks:    env.Tasks,
+		Plugins:     plugins,
+		Services:    env.Services,
+		Config:      env.Config,
+		System:      o.System,
+		Tasks:       env.Tasks,
+		RootTimeout: rootTimeout(o.Fake),
 	})
 	if err != nil {
 		env.Tasks.Close()
@@ -261,4 +262,16 @@ func (e *Env) Close() error {
 		err = errors.Join(err, os.RemoveAll(e.tempDir))
 	}
 	return err
+}
+
+// rootTimeout is the time each plugin gets for root results. The real
+// launcher keeps it short so a slow plugin cannot stall typing (core's
+// default). Fake environments (glctl, tests) must give the same results on
+// any machine, so a plugin that is slow to warm up (e.g. the world clock
+// loading its time zones on a busy CI runner) is waited for.
+func rootTimeout(fake bool) time.Duration {
+	if fake {
+		return 10 * time.Second
+	}
+	return 0 // core's default
 }

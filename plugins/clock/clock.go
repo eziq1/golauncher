@@ -76,6 +76,9 @@ type Options struct {
 type Plugin struct {
 	opts  Options
 	index func() (*index, error)
+	// loaded is set once the cities are indexed; missed when a prefixed root
+	// search came in before that (the host may have dropped it).
+	loaded, missed atomic.Bool
 
 	h       plugin.Host
 	unsub   func()
@@ -158,6 +161,13 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 		defer p.wg.Done()
 		if _, err := p.index(); err != nil {
 			h.Logger().Error("clock: loading cities", "err", err)
+			return
+		}
+		p.loaded.Store(true)
+		if p.missed.Swap(false) {
+			// A root search made while the cities were loading may have
+			// been dropped by the host's time limit: ask for it again.
+			h.Invalidate("")
 		}
 	})
 	return nil
@@ -184,6 +194,9 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	if !ok {
 		p.stopRoot()
 		return nil, nil
+	}
+	if !p.loaded.Load() {
+		p.missed.Store(true)
 	}
 	p.rootPulled()
 	idx, err := p.index()
