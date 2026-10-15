@@ -470,3 +470,78 @@ func TestDisabledPluginHidden(t *testing.T) {
 		t.Fatalf("disabled plugin still returns %v", titles(s))
 	}
 }
+
+// hangs blocks in View until its context ends, and panics in Init when asked.
+type hangs struct{ panicInit bool }
+
+func (h hangs) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "hang", Name: "Hang", Version: "1",
+		Commands: []plugin.Command{{Name: "go", Title: "Hang View", Mode: plugin.ModeView}}}
+}
+func (h hangs) Init(context.Context, plugin.Host) error {
+	if h.panicInit {
+		panic("init boom")
+	}
+	return nil
+}
+func (hangs) Close() error { return nil }
+func (hangs) View(ctx context.Context, _ plugin.ViewRequest) (plugin.View, error) {
+	select {} // ignores ctx: a badly behaved plugin
+}
+
+func buildWith(t *testing.T, p ...plugin.Plugin) *app.Env {
+	t.Helper()
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: p, Fake: true, Locale: "en", System: &app.Recorder{}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { env.Close() })
+	return env
+}
+
+func TestHungPluginTimesOut(t *testing.T) {
+	defer core.SetTimeouts(100*time.Millisecond, 100*time.Millisecond)()
+	env := buildWith(t, hangs{})
+	start := time.Now()
+	if _, err := env.Controller.OpenCommand(t.Context(), "hang", "go"); err != nil {
+		t.Fatal(err)
+	}
+	env.Controller.Wait()
+	s := env.Controller.Snapshot()
+	if !strings.Contains(s.Error, "did not respond") || time.Since(start) > 5*time.Second {
+		t.Fatalf("error %q after %v", s.Error, time.Since(start))
+	}
+	// The launcher still works: Escape goes back to the root.
+	env.Controller.Key(t.Context(), "Escape")
+	env.Controller.Wait()
+	if env.Controller.Snapshot().Depth != 0 {
+		t.Fatal("controller stuck after a hung plugin")
+	}
+}
+
+func TestInitPanicMakesPluginUnavailable(t *testing.T) {
+	env := buildWith(t, hangs{panicInit: true})
+	infos := env.Engine.Plugins()
+	if len(infos) != 1 || !strings.Contains(infos[0].Unavailable, "crashed") {
+		t.Fatalf("infos = %+v", infos)
+	}
+}
+
+func TestEventAndGoroutinePanicsContained(t *testing.T) {
+	env := buildWith(t)
+	done := make(chan struct{})
+	env.Services.Bus.Subscribe("x", func() { defer close(done); panic("event boom") })
+	env.Services.Bus.Publish("x")
+	<-done
+	h, err := env.Services.NewHost(plugin.Manifest{ID: "g"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ran := make(chan struct{})
+	h.Go(func() { defer close(ran); panic("goroutine boom") })
+	<-ran
+	time.Sleep(50 * time.Millisecond) // a crash would have killed the test binary by now
+}

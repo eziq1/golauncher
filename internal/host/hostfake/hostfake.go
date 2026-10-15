@@ -77,6 +77,10 @@ func (h *Host) I18n() plugin.Localizer          { return h.I18N.Localizer(h.ns) 
 func (h *Host) DataDir() string                 { return filepath.Join(h.dir, "data") }
 func (h *Host) CacheDir() string                { return filepath.Join(h.dir, "cache") }
 
+// Go implements plugin.Host. Panics are contained and logged to Log, as in
+// the real host.
+func (h *Host) Go(fn func()) { host.Go(h.Log, "plugin "+h.ns, fn) }
+
 // KV is an in-memory plugin.KV.
 type KV struct {
 	mu sync.Mutex

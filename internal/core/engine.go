@@ -109,7 +109,7 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := p.Init(ctx, h); err != nil {
+		if _, err := guard(e, m.ID, func() (struct{}, error) { return struct{}{}, p.Init(ctx, h) }); err != nil {
 			loc := o.Services.I18n.Localizer(m.ID)
 			if errors.Is(err, plugin.ErrUnavailable) {
 				e.log.Info("plugin unavailable", "plugin", m.ID, "reason", err)
@@ -137,7 +137,8 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 func (e *Engine) Close() error {
 	var errs []error
 	for _, l := range e.plugins {
-		errs = append(errs, l.p.Close())
+		_, err := guard(e, l.m.ID, func() (struct{}, error) { return struct{}{}, l.p.Close() })
+		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
 }
@@ -191,7 +192,7 @@ func (e *Engine) View(ctx context.Context, nav Nav) (plugin.View, error) {
 	if !ok {
 		return plugin.View{}, fmt.Errorf("core: plugin %q has no views", nav.Plugin)
 	}
-	return guard(e, nav.Plugin, func() (plugin.View, error) { return vp.View(ctx, nav.Request) })
+	return callPlugin(ctx, e, nav.Plugin, viewTimeout, func(ctx context.Context) (plugin.View, error) { return vp.View(ctx, nav.Request) })
 }
 
 // Outcome tells the front end what to do after an action.
@@ -259,7 +260,7 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 	if !ok {
 		return Outcome{}, fmt.Errorf("core: plugin %q cannot handle actions", pluginID)
 	}
-	r, err := guard(e, pluginID, func() (plugin.Result, error) { return h.HandleAction(ctx, do) })
+	r, err := callPlugin(ctx, e, pluginID, actionTimeout, func(ctx context.Context) (plugin.Result, error) { return h.HandleAction(ctx, do) })
 	if err != nil {
 		return Outcome{}, err
 	}
@@ -352,4 +353,41 @@ func guard[T any](e *Engine, pluginID string, fn func() (T, error)) (v T, err er
 		}
 	}()
 	return fn()
+}
+
+// Time limits for plugin calls that the user waits on. A plugin that does not
+// answer in time is abandoned (its goroutine keeps running until it returns)
+// so the launcher stays responsive.
+var (
+	viewTimeout   = 10 * time.Second
+	actionTimeout = 30 * time.Second
+)
+
+// ErrPluginTimeout is returned when a plugin does not answer in time.
+var ErrPluginTimeout = errors.New("core: plugin did not respond in time")
+
+// callPlugin runs fn with panics contained and gives up after d.
+func callPlugin[T any](ctx context.Context, e *Engine, pluginID string, d time.Duration, fn func(context.Context) (T, error)) (T, error) {
+	ctx, cancel := context.WithTimeout(ctx, d)
+	defer cancel()
+	type result struct {
+		v   T
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		v, err := guard(e, pluginID, func() (T, error) { return fn(ctx) })
+		done <- result{v, err}
+	}()
+	select {
+	case r := <-done:
+		return r.v, r.err
+	case <-ctx.Done():
+		var zero T
+		if errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
+			e.log.Error("plugin timed out", "plugin", pluginID, "after", d)
+			return zero, fmt.Errorf("%w: %s (%v)", ErrPluginTimeout, pluginID, d)
+		}
+		return zero, ctx.Err()
+	}
 }

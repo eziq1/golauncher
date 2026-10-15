@@ -73,3 +73,6 @@ func (h *Host) Events() plugin.Events           { return h.s.Bus }
 func (h *Host) I18n() plugin.Localizer          { return h.s.I18n.Localizer(h.id) }
 func (h *Host) DataDir() string                 { return h.data }
 func (h *Host) CacheDir() string                { return h.cache }
+
+// Go implements plugin.Host: fn runs on a new goroutine with panics contained.
+func (h *Host) Go(fn func()) { Go(h.Logger(), "plugin "+h.id, fn) }

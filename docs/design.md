@@ -286,6 +286,7 @@ type Host interface {
     I18n() Localizer          // 限定在本插件命名空间的翻译与格式化（§10）
     DataDir() string
     CacheDir() string
+    Go(fn func())             // 启动后台 goroutine，panic 由宿主兜底（见 reliability.md）
 }
 ```
 

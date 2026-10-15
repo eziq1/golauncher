@@ -204,7 +204,9 @@ func (p *Plugin) spawn(fn func(ctx context.Context)) {
 		return
 	}
 	p.jobs++
-	p.wg.Go(func() {
+	p.wg.Add(1)
+	p.h.Go(func() {
+		defer p.wg.Done()
 		defer func() {
 			p.mu.Lock()
 			if p.jobs--; p.jobs == 0 {

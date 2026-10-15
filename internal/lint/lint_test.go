@@ -200,3 +200,31 @@ func allowedLines(fset *token.FileSet, f *ast.File) map[int]bool {
 	}
 	return out
 }
+
+// TestPluginGoroutines enforces that plugins start background work through
+// plugin.Host.Go, which contains panics (docs/reliability.md §3.1): no `go`
+// statements and no WaitGroup.Go in plugin code.
+func TestPluginGoroutines(t *testing.T) {
+	fset, files := goFiles(t, "plugins")
+	for _, f := range files {
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.GoStmt:
+				t.Errorf("%s: go statement in a plugin; use Host.Go so a panic cannot crash the launcher", fset.Position(n.Pos()))
+			case *ast.CallExpr:
+				sel, ok := n.Fun.(*ast.SelectorExpr)
+				if !ok || sel.Sel.Name != "Go" {
+					return true
+				}
+				recv := sel.X
+				if s, ok := recv.(*ast.SelectorExpr); ok {
+					recv = s.Sel
+				}
+				if id, ok := recv.(*ast.Ident); ok && strings.Contains(strings.ToLower(id.Name), "wg") {
+					t.Errorf("%s: %s.Go in a plugin; use wg.Add(1) and Host.Go", fset.Position(n.Pos()), id.Name)
+				}
+			}
+			return true
+		})
+	}
+}

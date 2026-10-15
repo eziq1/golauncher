@@ -22,6 +22,11 @@ type Host interface {
 	DataDir() string
 	// CacheDir is a directory for data that can be rebuilt. It exists.
 	CacheDir() string
+	// Go runs fn on a new goroutine. A panic in fn is logged and contained
+	// instead of crashing the launcher. Plugins must start all background
+	// work through Go (a test enforces this for built-in plugins); to wait
+	// for it, call wg.Add(1) before and defer wg.Done() inside fn.
+	Go(fn func())
 }
 
 // KV is a small persistent key/value store.

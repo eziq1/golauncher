@@ -147,7 +147,9 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	}
 	p.h, p.exe = h, exe
 	if !p.b.Running() {
-		p.wg.Go(func() {
+		p.wg.Add(1)
+		h.Go(func() {
+			defer p.wg.Done()
 			if err := p.b.Start(exe); err != nil {
 				h.Logger().Warn("everything: starting Everything", "exe", exe, "err", err)
 			}

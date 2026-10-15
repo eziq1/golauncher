@@ -163,6 +163,7 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 	env.I18n.SetLocale(cmp.Or(o.Locale, cfg.Language))
 
 	bus := host.NewBus()
+	bus.Log = log
 	env.Services = &host.Services{
 		Log:       log,
 		Now:       now,

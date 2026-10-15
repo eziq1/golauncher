@@ -1,9 +1,15 @@
 package host
 
-import "sync"
+import (
+	"log/slog"
+	"sync"
+)
 
 // Bus is a simple publish/subscribe event bus implementing plugin.Events.
 type Bus struct {
+	// Log receives panics of subscribers, which are contained.
+	Log *slog.Logger
+
 	mu   sync.Mutex
 	next int
 	subs map[string]map[int]func()
@@ -29,10 +35,11 @@ func (b *Bus) Subscribe(name string, fn func()) (unsubscribe func()) {
 	}
 }
 
-// Publish runs the subscribers of name on a new goroutine each.
+// Publish runs the subscribers of name on a new goroutine each. A panicking
+// subscriber is logged and does not affect the others or the launcher.
 func (b *Bus) Publish(name string) {
 	for _, fn := range b.handlers(name) {
-		go fn()
+		Go(b.Log, "event "+name, fn)
 	}
 }
 

@@ -123,6 +123,14 @@ Read them with `Host.Preferences()`; values fall back to the declared
 `Default`. `password` preferences are stored in Windows Credential Manager,
 not in `config.json`.
 
+### Robustness
+
+The host contains panics in every call into your plugin and gives up on
+calls that take too long (10s for views, 30s for actions, 150ms for root
+results). This keeps the launcher alive, but your plugin should still honor
+`ctx` cancellation and return quickly. See
+[reliability.md](reliability.md) (Chinese) for details.
+
 ### When a dependency is missing
 
 If your plugin needs software that is not installed, return an error that
@@ -148,15 +156,17 @@ error.
 | `I18n()` | Your translations plus number and relative-time formatting. |
 | `Now()` | The current time. Use it rather than `time.Now()` so tests can fix the clock. |
 | `Logger()` | A logger. |
+| `Go(fn)` | Runs background work on a goroutine. A panic in `fn` is logged and contained, so it cannot crash the launcher. Always use it instead of `go`; to wait for the work, call `wg.Add(1)` first and `defer wg.Done()` inside `fn`. |
 
 ## Rules enforced by tests
 
 - Plugins import only `pkg/plugin`, `internal/winapi/...`, the standard
   library and an allowlist of modules. Host internals are off limits.
+- No `go` statements or `WaitGroup.Go` in plugins; start goroutines with `Host.Go`.
 - No user-visible string literals. Use the Localizer, and use `%key%` in
   manifests. `glctl i18n check` verifies that every key exists.
 
-Both checks run as part of `go test ./...` (see `internal/lint`).
+These checks run as part of `go test ./...` (see `internal/lint`).
 
 ## Testing
 
