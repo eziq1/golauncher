@@ -8,6 +8,17 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **WinGet**: search, install, upgrade and uninstall packages with the
+  Windows Package Manager. Search reads the local index of the `winget`
+  source, so it is instant; installed and upgradable packages come from
+  `winget list` in the background (cached); details from `winget show`.
+  Also *Upgrade All*, pin/unpin, sources and source updates, install or
+  upgrade as administrator, and `winget <name>` in the main search.
+  Operations run one at a time as background tasks. Disabled when winget is
+  not installed.
+
 ## [0.3.0] - 2026-10-15
 
 ### Added

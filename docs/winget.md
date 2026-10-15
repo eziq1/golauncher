@@ -105,4 +105,58 @@
 
 ## 9. 实现记录（R39）
 
-见下方，实现后补充。
+> 在独立分支上实现，等待主控合并。
+
+### 代码结构（`plugins/winget`）
+
+| 文件 | 内容 |
+|------|------|
+| `winget.go` | 插件、`Options`、清单（6 个命令、3 个偏好项）、`Init`/`Close`、源列表和索引的刷新、`winget list` 的后台刷新和缓存、根搜索直达、`HandleAction` |
+| `catalog.go` | 读 schema 2.x 的 `index.db`（`packages`、`tags2`、`commands2`）、`Index`、搜索打分 |
+| `table.go` | 不依赖语言的表格解析（显示宽度、候选列起点的验证、表格结束的判断） |
+| `data.go` | `winget list`、`winget show`、`winget source export`、`pinning.db` 的解析 |
+| `ops.go` | 操作的规划（参数校验、命令行）、启动后台任务、`OnDone`、以管理员身份运行的动作 |
+| `views.go` | 搜索、已安装、可升级、源、详情五个视图，条目、动作和详情面板 |
+| `runner.go` | 只读命令的执行器（`internal/winapi/proc`，无窗口，`ctx` 取消时结束进程）、找 `winget.exe`、`pinning.db` 的位置 |
+| `locate_windows.go` | `GetPackagesByPackageFamily` / `GetPackagePathByFullName` 找索引包的目录 |
+| `fixture.go` | `FixtureOptions`：假环境用 `testdata/fixtures/winget` |
+
+### 与设计的差异和补充
+
+1. **源列表视图去掉了"在浏览器中打开"**：源的地址是 CDN 或 REST 接口，在浏览器里打开没有意义，只保留"复制地址"。
+2. **"刷新"**：已安装和可升级视图末尾有一条 "Refresh"（副标题是上次列出的相对时间，或失败原因），已安装软件包的条目上也有 `Ctrl+R`，立即在后台重新运行 `winget list`。
+3. **`winget list` 的退出码**：有的源更新失败时 winget 以非 0 退出，但表格照常输出；只要能解析出行就采用结果，只记一条警告。解析不出来时保留上次的列表，视图显示失败原因。
+4. **搜索打分**：在 §3.2 的基础上，多个词按顺序连续出现在名称里（"visual studio code"）时额外加分，避免 "Visual Studio / Code for …" 这类名称排在真正的软件前面。
+5. **详情视图**是只有一个条目的列表视图（右侧显示详情），因为宿主的详情视图不带动作。动作顺序：主动作（安装或升级）、打开主页（`Ctrl+O`）、其他网址字段（"Open Publisher Url" 等，标签用 winget 自己的）、其余动作。`winget show` 的结果按 源/ID/索引版本 缓存，最多 100 条；更新源后清空。
+6. **固定类型**：`pinning.db` 的 `type` 按 winget 源码的 `PinType` 解释（1 清单要求、2 固定、3 限定版本范围、4 阻止），分别显示"已固定""已固定到 x""已阻止升级"。"全部升级"的计数不含任何已固定的软件包。
+7. **假环境**：`index.sql` 和 `pinning.sql` 是建表语句加虚构数据，`FixtureOptions` 每次打开时导入一个内存 SQLite（`SetMaxOpenConns(1)`），所以 glctl 走的是和真实环境相同的读取代码。其余只读命令由 `FixtureRunner` 按参数从文件回答（`show` 找不到文件时模拟 winget 的 "No package found" 和非 0 退出码）。
+8. **`glctl --real`**：只读命令（`source export`、`list`、`show`）照常真实运行；操作仍由假任务执行器记录（`[not run] winget …`），和 Scoop 一样。
+9. **Microsoft Store 的软件包**（源 `msstore`）出现在已安装列表里，可以升级、卸载、固定、查看详情，但搜索里没有（§8）。
+
+### 测试
+
+- `plugins/winget/winget_test.go`（hostfake + fixture）：没有 winget 时不可用；`winget list` 解析（含 `ARP\`、`MSIX\`、中文名）；虚构的本地化表头（多词表头、宽字符、表格前的进度输出、表格后的汇总行）、4 列的两种情况、没有表格、空输出；`winget show` 解析（多行值、嵌套、全角冒号）；`source export`；读索引和不支持的 schema；搜索排序（名称、ID、moniker、命令、中文名和标签、多词、按顺序的短语、`maxResults`）；搜索视图标出已安装；已安装/可升级视图的分组、固定、只能卸载的本地软件、"全部升级"的计数和 Destructive；源视图和更新源；每个动作生成的命令行（含 `installMode`）、任务的队列/通知/标题、`Argv` 原样传参；以管理员身份运行的动作；11 种非法请求不产生任务；详情视图（字段、主页、缓存、找不到的软件包、非法 ID）；根搜索前缀和偏好项；非 Sync 时先显示缓存、过期才在后台刷新、同时只有一个 `winget list`、刷新后 `Invalidate`；`winget list` 失败；没有索引、索引格式不支持时搜索给出提示而已安装列表照常；索引包更新后重新读取。`-race` 下通过。
+- `real_test.go`：只有 `GOLAUNCHER_WINGET_TESTS=1` 才运行，只读（索引、`pinning.db`、`source export`、`list`、`show`），并断言没有创建任何任务。
+- `internal/cli`：golden `run_winget_search`、`run_winget_search_chinese`、`run_winget_installed`、`run_winget_updates`、`run_winget_sources`、`query_winget`、`zh_run_winget_updates`、`session_winget_install`、`session_winget_details`；`TestSessionWingetUninstallConfirms` 验证卸载和"全部升级"都先确认。`plugin_list`、`session_confirm_done`、`query_network_ip`、`query_scripts` 多了 WinGet 的命令（只有新增）。
+
+### 实测（本机，2026-10-15）
+
+只记录数量和耗时：
+
+| 项目 | 结果 |
+|------|------|
+| `winget` 源索引 | 约 1.56 万个软件包，读进内存 52 ms |
+| 搜索延迟 | 平均 1.7 ms/次（7 个查询各 20 次，含 `x` 这种匹配很多的） |
+| `winget source export` | 约 130 ms |
+| `winget list` | 约 300 行（其中约 200 行没有源），1.5–4.4 秒；可升级的行数和 `winget upgrade` 一致 |
+| `winget show` | 0.2–0.3 秒 |
+| 对照：`winget search` / `winget upgrade` / `winget export` | 2.3 秒 / 1.5–2.2 秒 / 8.1 秒 |
+| `Init`（Sync，含 `source export`、读索引、`winget list`、读 `pinning.db`） | 2.7 秒；真实环境里 `Init` 只在后台读索引，不运行 `winget list` |
+
+真实环境测试和 `glctl --real` 的搜索、可升级视图都核对过，期间只运行了只读命令。
+
+### 待确认 / 以后
+
+- `PinType` 的数值是按 winget 源码理解的，本机没有固定任何软件包，没能实测（测试按约定，从不在本机修改固定）。
+- 非英文的 Windows 上表格解析和 `show` 的通用解析只用虚构的本地化输出测试过，没有在真实的中文 Windows 上验证。
+- `winget list` 可能顺带自动更新源（winget 自己的行为），这时会访问网络、耗时更长。

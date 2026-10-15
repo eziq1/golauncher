@@ -113,10 +113,13 @@
 | Hold / Unhold / Held | 锁定版本 / 解除版本锁定 / 已锁定 | |
 | Clean Up | 清理 | |
 | Download cache | 下载缓存 | |
+| Source (WinGet) | 源 | “更新源”“WinGet 源” |
+| Moniker (WinGet) | 别名 | |
+| Pin Version (WinGet) | 固定版本 / 取消固定版本 | 和剪贴板的“固定”一致 |
 
 ### 4.3 不翻译
 
-- 产品名：golauncher、Windows Terminal、PowerShell、VS Code、Everything、Scoop、WSL、MyGo、Raycast；
+- 产品名：golauncher、Windows Terminal、PowerShell、VS Code、Everything、Scoop、WinGet、WSL、MyGo、Raycast；
 - 键名：Ctrl、Shift、Alt、Enter、Space；
 - 单位和代码：KB、MB、GB、UTC、ISO 8601、SHA-256、ZIP、JSON、IANA、`YYYY-MM-DD`、URL 里的协议；
 - 命令行：`scoop update *` 这类命令原样保留。
