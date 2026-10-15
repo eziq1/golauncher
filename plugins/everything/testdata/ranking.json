@@ -1,0 +1,16 @@
+[
+  {"name": "amd64_microsoft-windows-notepad", "path": "C:\\Windows\\WinSxS\\amd64_microsoft-windows-notepad", "isFolder": true, "size": -1},
+  {"name": "notepad.exe", "path": "C:\\Windows\\System32\\notepad.exe", "size": 360448, "modified": "2026-10-14T09:00:00Z"},
+  {"name": "notepad.exe", "path": "C:\\ProgramData\\Microsoft\\Windows\\Containers\\Layers\\8cfc\\Files\\Windows\\notepad.exe", "size": 360448},
+  {"name": "Notepad tips.md", "path": "C:\\Users\\demo\\Desktop\\Notepad tips.md", "size": 2048, "modified": "2025-01-10T09:00:00Z"},
+  {"name": "notepad++.exe", "path": "C:\\Program Files\\Notepad++\\notepad++.exe", "size": 6291456, "modified": "2026-10-01T09:00:00Z"},
+  {"name": "my notepad notes.txt", "path": "D:\\Docs\\my notepad notes.txt", "size": 512, "modified": "2024-03-01T09:00:00Z"},
+  {"name": "index.js", "path": "C:\\Users\\demo\\Sources\\app\\node_modules\\report\\index.js", "size": 100},
+  {"name": "report", "path": "C:\\Users\\demo\\Sources\\app\\node_modules\\report", "isFolder": true, "size": -1},
+  {"name": "report", "path": "C:\\Python312\\Lib\\site-packages\\report", "isFolder": true, "size": -1},
+  {"name": "report.tmp", "path": "C:\\Users\\demo\\AppData\\Local\\Temp\\report.tmp", "size": 10, "modified": "2026-10-15T09:00:00Z"},
+  {"name": "report.exe", "path": "C:\\Tools\\report.exe", "size": 4096},
+  {"name": "report.go", "path": "C:\\Users\\demo\\Sources\\app\\report.go", "size": 900, "modified": "2026-10-14T09:00:00Z"},
+  {"name": "annual report 2026.docx", "path": "C:\\Users\\demo\\OneDrive\\Reports\\annual report 2026.docx", "size": 40960, "modified": "2026-06-01T09:00:00Z"},
+  {"name": "reporting.dll", "path": "C:\\Program Files\\App\\reporting.dll", "size": 40960}
+]

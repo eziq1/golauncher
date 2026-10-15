@@ -141,6 +141,19 @@
         "title": "Show files in the main search",
         "description": "List up to 5 matching files below apps and commands for searches of 3 or more characters.",
         "default": false
+      },
+      {
+        "name": "hideSystemFiles",
+        "type": "bool",
+        "title": "Hide system files",
+        "description": "Leave out files in Windows, program data, caches and package folders (node_modules, site-packages, …). When off they are listed after your own files.",
+        "default": false
+      },
+      {
+        "name": "extraLowPriorityPaths",
+        "type": "stringList",
+        "title": "Low-priority locations",
+        "description": "Folders listed after your own files, like system files: a full path (D:\\VMs) or a folder name matched anywhere (vendor, build)."
       }
     ]
   },

@@ -5,6 +5,7 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -89,6 +90,7 @@ func start(t *testing.T, b Backend) (*Plugin, *hostfake.Host) {
 	t.Helper()
 	p := NewWithBackend(b)
 	p.home = `C:\Users\demo`
+	p.base = newRules(testEnv)
 	h, err := hostfake.New(p, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -243,7 +245,7 @@ func TestViewResults(t *testing.T) {
 	f := &fake{installed: true, running: true, results: sample()}
 	p, _ := start(t, f)
 	v := view(t, p, " report ")
-	if q := f.queries[0]; q.Text != "report" || q.Max != defaultMax || q.MatchPath {
+	if q := f.queries[0]; !strings.HasPrefix(q.Text, `report !"c:\windows\" `) || q.Max != poolMax || q.MatchPath {
 		t.Fatalf("query = %+v", q)
 	}
 	if v.EmptyText != "No matching files" || v.Placeholder != "Search files and folders…" {
@@ -319,7 +321,7 @@ func TestViewPreferences(t *testing.T) {
 	if its := items(view(t, p, "report")); len(its) != 10 {
 		t.Fatalf("got %d items, want 10", len(its))
 	}
-	if q := f.queries[0]; q.Max != 10 || !q.MatchPath {
+	if q := f.queries[0]; q.Max != poolMax || !q.MatchPath {
 		t.Fatalf("query = %+v", q)
 	}
 	for v, want := range map[string]int{"0": defaultMax, "-5": defaultMax, "5000": limitMax} {
@@ -372,7 +374,7 @@ func TestRootItems(t *testing.T) {
 		t.Fatalf("searched for short queries: %v", f.queries)
 	}
 	its := root("rep")
-	if len(its) != rootMax || f.queries[0].Max != rootMax {
+	if len(its) != rootMax || f.queries[0].Max != rootPool || !strings.Contains(f.queries[0].Text, `!"\node_modules\"`) {
 		t.Fatalf("got %d items, query %+v", len(its), f.queries[0])
 	}
 	for _, it := range its {
@@ -470,6 +472,49 @@ func TestRealEverything(t *testing.T) {
 		t.Fatalf("items = %+v", its)
 	}
 	t.Logf("%d results, first %q in %q", len(its), its[0].Title, its[0].Subtitle)
+
+	// R20: system files rank last.
+	its = items(view(t, p, "notepad"))
+	if len(its) == 0 || strings.Contains(strings.ToLower(its[0].ID), `\winsxs\`) {
+		t.Fatalf("first result for notepad: %+v", its)
+	}
+	t.Logf("notepad: first %s", its[0].ID)
+
+	// Latency of the view, typing as a user would and searching whole words.
+	// Typed one character at a time, and whole words (pasted). The baseline
+	// is the single plain query used before R20.
+	words := []string{"report", "notepad", "文档", "readme", "main.go", "setup", "invoice", "简历"}
+	var typed, pasted, base []time.Duration
+	measure := func(q string) time.Duration {
+		start := time.Now()
+		view(t, p, q)
+		return time.Since(start)
+	}
+	for range 3 {
+		for _, w := range words {
+			r := []rune(w)
+			for i := range r {
+				typed = append(typed, measure(string(r[:i+1])))
+				start := time.Now()
+				if _, err := everything.Search(t.Context(), everything.Query{Text: string(r[:i+1]), Max: defaultMax}); err != nil {
+					t.Fatal(err)
+				}
+				base = append(base, time.Since(start))
+			}
+		}
+		for _, w := range words {
+			view(t, p, "zz") // forget the previous query
+			pasted = append(pasted, measure(w))
+		}
+	}
+	pct := func(ds []time.Duration) string {
+		slices.Sort(ds)
+		return fmt.Sprintf("p50 %v, p95 %v (n=%d)", ds[len(ds)/2].Round(100*time.Microsecond), ds[len(ds)*95/100].Round(100*time.Microsecond), len(ds))
+	}
+	t.Logf("view latency typing: %s; pasted words: %s; one plain query (before R20): %s", pct(typed), pct(pasted), pct(base))
+	if typed[len(typed)*95/100] > time.Second {
+		t.Errorf("typing p95 %v", typed[len(typed)*95/100])
+	}
 }
 
 func TestHelpers(t *testing.T) {
@@ -522,7 +567,7 @@ func TestManifest(t *testing.T) {
 	for _, pr := range m.Preferences {
 		prefs = append(prefs, pr.Name+"="+string(pr.Default))
 	}
-	if !slices.Equal(prefs, []string{"maxResults=100", "matchPath=false", "showInRoot=false"}) {
+	if !slices.Equal(prefs, []string{"maxResults=100", "matchPath=false", "showInRoot=false", "hideSystemFiles=false", "extraLowPriorityPaths=[]"}) {
 		t.Errorf("preferences = %v", prefs)
 	}
 }

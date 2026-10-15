@@ -33,6 +33,10 @@ const (
 	prefMaxResults = "maxResults"
 	prefMatchPath  = "matchPath"
 	prefShowInRoot = "showInRoot"
+	// prefHideSystem leaves out the system tier (docs/everything.md §2.2).
+	prefHideSystem = "hideSystemFiles"
+	// prefExtraLowPriority adds paths or folder names to the system tier.
+	prefExtraLowPriority = "extraLowPriorityPaths"
 
 	defaultMax   = 100
 	limitMax     = 1000
@@ -71,6 +75,8 @@ func (system) Search(ctx context.Context, q everything.Query) ([]everything.Resu
 type Plugin struct {
 	b    Backend
 	home string // user profile, shown as "~"
+	base *rules // path tiers, before the extraLowPriorityPaths preference
+	pred predictor
 
 	h   plugin.Host
 	exe string
@@ -90,8 +96,8 @@ func New() *Plugin { return NewWithBackend(system{}) }
 
 // NewWithBackend returns the plugin searching with b.
 func NewWithBackend(b Backend) *Plugin {
-	home, _ := os.UserHomeDir()
-	return &Plugin{b: b, home: home}
+	env := defaultEnv()
+	return &Plugin{b: b, home: env.Home, base: newRules(env)}
 }
 
 // Manifest implements plugin.Plugin.
@@ -124,6 +130,10 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				Description: "%pref.matchPath.description%", Default: plugin.MustPayload(false)},
 			{Name: prefShowInRoot, Type: plugin.PrefBool, Title: "%pref.showInRoot.title%",
 				Description: "%pref.showInRoot.description%", Default: plugin.MustPayload(false)},
+			{Name: prefHideSystem, Type: plugin.PrefBool, Title: "%pref.hideSystemFiles.title%",
+				Description: "%pref.hideSystemFiles.description%", Default: plugin.MustPayload(false)},
+			{Name: prefExtraLowPriority, Type: plugin.PrefStringList, Title: "%pref.extraLowPriorityPaths.title%",
+				Description: "%pref.extraLowPriorityPaths.description%", Default: plugin.MustPayload([]string{})},
 		},
 	}
 }
@@ -173,27 +183,16 @@ func (p *Plugin) maxResults() int {
 	return min(n, limitMax)
 }
 
-func (p *Plugin) search(ctx context.Context, text string, n int) ([]everything.Result, error) {
-	res, err := p.b.Search(ctx, everything.Query{
-		Text:      text,
-		Max:       n,
-		MatchPath: p.h.Preferences().Bool(prefMatchPath),
-	})
-	if len(res) > n {
-		res = res[:n]
-	}
-	return res, err
-}
-
 // RootItems implements plugin.RootProvider. Unless the showInRoot preference
 // is set it returns nothing; otherwise a few files for queries of at least
-// three characters, scored below apps and commands.
+// three characters, scored below apps and commands. Only the user and normal
+// tiers are offered here.
 func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, error) {
 	text := strings.TrimSpace(q.Text)
 	if !p.h.Preferences().Bool(prefShowInRoot) || utf8.RuneCountInString(text) < rootMinRunes {
 		return nil, nil
 	}
-	res, err := p.search(ctx, text, rootMax)
+	res, err := p.fetchRoot(ctx, text, p.options(rootMax))
 	if errors.Is(err, everything.ErrNotRunning) {
 		return nil, nil
 	}
@@ -204,7 +203,7 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	group := l.T("group")
 	items := make([]plugin.Item, len(res))
 	for i, r := range res {
-		items[i] = p.item(l, r)
+		items[i] = p.item(l, r.Result)
 		items[i].Score = rootScore
 		items[i].Group = group
 		items[i].Detail = nil
@@ -232,7 +231,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 		}
 		return v, nil
 	}
-	res, err := p.search(ctx, text, p.maxResults())
+	res, err := p.fetch(ctx, text, p.options(p.maxResults()))
 	switch {
 	case errors.Is(err, everything.ErrNotRunning):
 		v.Sections = []plugin.Section{{Items: []plugin.Item{p.notRunningItem(l)}}}
@@ -247,7 +246,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 	v.EmptyText = l.T("view.noResults")
 	items := make([]plugin.Item, len(res))
 	for i, r := range res {
-		items[i] = p.item(l, r)
+		items[i] = p.item(l, r.Result)
 	}
 	v.Sections = []plugin.Section{{Items: items}}
 	return v, nil
@@ -409,21 +408,10 @@ func (f fixture) Search(ctx context.Context, q everything.Query) ([]everything.R
 	if err := json.Unmarshal(b, &all); err != nil {
 		return nil, fmt.Errorf("everything: fixture %s: %w", f.path, err)
 	}
-	terms := strings.Fields(strings.ToLower(q.Text))
+	terms := splitTerms(strings.ToLower(q.Text), ' ')
 	var out []everything.Result
 	for _, r := range all {
-		hay := strings.ToLower(r.Name)
-		if q.MatchPath {
-			hay = strings.ToLower(r.Path)
-		}
-		match := true
-		for _, t := range terms {
-			if !strings.Contains(hay, t) {
-				match = false
-				break
-			}
-		}
-		if match {
+		if matchAll(r, terms, q.MatchPath) {
 			out = append(out, r)
 		}
 	}
@@ -432,4 +420,67 @@ func (f fixture) Search(ctx context.Context, q everything.Query) ([]everything.R
 		out = out[:n]
 	}
 	return out, ctx.Err()
+}
+
+// matchAll reports whether r matches every term of the fixture syntax, a
+// subset of Everything's: "!" negates a term, <a|b> matches either, quotes
+// group, and a term with a backslash matches the full path.
+func matchAll(r everything.Result, terms []string, matchPath bool) bool {
+	for _, t := range terms {
+		neg := strings.HasPrefix(t, "!")
+		t = strings.TrimPrefix(t, "!")
+		var ok bool
+		if strings.HasPrefix(t, "<") && strings.HasSuffix(t, ">") {
+			for _, alt := range splitTerms(t[1:len(t)-1], '|') {
+				if matchTerm(r, alt, matchPath) {
+					ok = true
+					break
+				}
+			}
+		} else {
+			ok = matchTerm(r, t, matchPath)
+		}
+		if ok == neg {
+			return false
+		}
+	}
+	return true
+}
+
+func matchTerm(r everything.Result, t string, matchPath bool) bool {
+	t = strings.ReplaceAll(t, `"`, "")
+	hay := r.Name
+	if matchPath || strings.Contains(t, `\`) {
+		hay = r.Path
+	}
+	return strings.Contains(strings.ToLower(hay), t)
+}
+
+// splitTerms splits s at sep outside quotes and <> groups, dropping empty
+// terms.
+func splitTerms(s string, sep rune) []string {
+	var out []string
+	var cur strings.Builder
+	quoted, depth := false, 0
+	for _, c := range s {
+		switch {
+		case c == '"':
+			quoted = !quoted
+		case c == '<' && !quoted:
+			depth++
+		case c == '>' && !quoted && depth > 0:
+			depth--
+		case c == sep && !quoted && depth == 0:
+			if cur.Len() > 0 {
+				out = append(out, cur.String())
+			}
+			cur.Reset()
+			continue
+		}
+		cur.WriteRune(c)
+	}
+	if cur.Len() > 0 {
+		out = append(out, cur.String())
+	}
+	return out
 }
