@@ -23,6 +23,10 @@ type Services struct {
 	// Secrets holds the values of password preferences; nil keeps them in
 	// memory only.
 	Secrets Secrets
+	// OnInvalidate and OnRender receive Host.Invalidate and Host.Render calls
+	// (set by the engine; nil drops them).
+	OnInvalidate func(pluginID, viewID string)
+	OnRender     func(pluginID, instance string, v plugin.View)
 	// DataRoot and CacheRoot contain one subdirectory per plugin.
 	DataRoot  string
 	CacheRoot string
@@ -76,3 +80,17 @@ func (h *Host) CacheDir() string                { return h.cache }
 
 // Go implements plugin.Host: fn runs on a new goroutine with panics contained.
 func (h *Host) Go(fn func()) { Go(h.Logger(), "plugin "+h.id, fn) }
+
+// Invalidate implements plugin.Host.
+func (h *Host) Invalidate(viewID string) {
+	if fn := h.s.OnInvalidate; fn != nil {
+		fn(h.id, viewID)
+	}
+}
+
+// Render implements plugin.Host.
+func (h *Host) Render(instance string, v plugin.View) {
+	if fn := h.s.OnRender; fn != nil {
+		fn(h.id, instance, v)
+	}
+}

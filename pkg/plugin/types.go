@@ -63,6 +63,27 @@ type Command struct {
 	DefaultHotkey string      `json:"defaultHotkey,omitempty"`
 	// Destructive commands ask for confirmation before running.
 	Destructive bool `json:"destructive,omitzero"`
+	// Arguments are typed inline next to the search field (at most 3).
+	Arguments []Argument `json:"arguments,omitempty"`
+}
+
+// ArgumentType is the input used for an Argument.
+type ArgumentType string
+
+const (
+	ArgText     ArgumentType = "text"
+	ArgPassword ArgumentType = "password"
+	ArgDropdown ArgumentType = "dropdown"
+)
+
+// Argument is an inline input of a command or item. Values reach the plugin
+// in ViewRequest.Arguments or ActionDo.Values.
+type Argument struct {
+	Name        string       `json:"name"`
+	Type        ArgumentType `json:"type"`
+	Placeholder string       `json:"placeholder"`
+	Required    bool         `json:"required,omitzero"`
+	Options     []Option     `json:"options,omitempty"` // ArgDropdown
 }
 
 // PrefType is the editor used for a preference in the settings window.
@@ -77,6 +98,8 @@ const (
 	PrefStringList PrefType = "stringList"
 	PrefPath       PrefType = "path"
 	PrefHotkey     PrefType = "hotkey"
+	// PrefButton is a button that runs Preference.Action (e.g. "Sign in").
+	PrefButton PrefType = "button"
 )
 
 // Preference is a user setting declared by a plugin.
@@ -87,6 +110,21 @@ type Preference struct {
 	Description string         `json:"description,omitempty"`
 	Default     jsontext.Value `json:"default,omitempty"`
 	Options     []Option       `json:"options,omitempty"`
+	// DynamicOptions asks the plugin for the options of a PrefSelect through
+	// PreferenceOptionsProvider when the settings page opens.
+	DynamicOptions bool `json:"dynamicOptions,omitzero"`
+	// Group puts preferences with the same group under one heading.
+	Group string `json:"group,omitempty"`
+	// VisibleWhen shows the preference only when another one has a value.
+	VisibleWhen *Condition `json:"visibleWhen,omitempty"`
+	// Action is run when a PrefButton is clicked (usually ActionCallback).
+	Action *ActionDo `json:"action,omitempty"`
+}
+
+// Condition compares the value of another preference.
+type Condition struct {
+	Pref   string         `json:"pref"`
+	Equals jsontext.Value `json:"equals"`
 }
 
 // Option is a choice of a PrefSelect preference.
@@ -120,6 +158,8 @@ type Item struct {
 	// secondary one (Ctrl+Enter).
 	Actions []Action `json:"actions,omitempty"`
 	Detail  *Detail  `json:"detail,omitempty"`
+	// Arguments are typed inline before the primary action runs.
+	Arguments []Argument `json:"arguments,omitempty"`
 }
 
 // Detail is a preview shown next to the list.
@@ -174,6 +214,9 @@ type ActionDo struct {
 	Kind    ActionKind `json:"kind"`
 	Target  string     `json:"target,omitempty"`
 	Payload Payload    `json:"payload,omitempty"`
+	// Values holds the form field values (form submit) or the argument
+	// values (items with arguments), filled in by the host.
+	Values map[string]jsontext.Value `json:"values,omitempty"`
 }
 
 // OpenOptions is the Payload of ActionOpen.
@@ -197,6 +240,7 @@ type ViewKind string
 const (
 	ViewList   ViewKind = "list"
 	ViewDetail ViewKind = "detail"
+	ViewForm   ViewKind = "form"
 )
 
 // View is the content of a pushed view.
@@ -213,6 +257,41 @@ type View struct {
 	Detail     *Detail `json:"detail,omitempty"`
 	// EmptyText is shown when there are no items.
 	EmptyText string `json:"emptyText,omitempty"`
+	// Form is the content of a ViewForm.
+	Form *Form `json:"form,omitempty"`
+}
+
+// Form is an input form. The host keeps the field values and passes them in
+// ActionDo.Values when Submit runs.
+type Form struct {
+	Fields []Field `json:"fields"`
+	Submit Action  `json:"submit"`
+}
+
+// FieldType is the input of a form Field.
+type FieldType string
+
+const (
+	FieldText     FieldType = "text"
+	FieldPassword FieldType = "password"
+	FieldTextArea FieldType = "textarea"
+	FieldNumber   FieldType = "number"
+	FieldCheckbox FieldType = "checkbox"
+	FieldDropdown FieldType = "dropdown"
+	FieldDate     FieldType = "date" // value "2006-01-02"
+	FieldFile     FieldType = "file" // value: a path
+)
+
+// Field is one input of a Form.
+type Field struct {
+	ID          string         `json:"id"`
+	Type        FieldType      `json:"type"`
+	Title       string         `json:"title"`
+	Placeholder string         `json:"placeholder,omitempty"`
+	Info        string         `json:"info,omitempty"`
+	Default     jsontext.Value `json:"default,omitempty"`
+	Options     []Option       `json:"options,omitempty"` // FieldDropdown
+	Required    bool           `json:"required,omitzero"`
 }
 
 // Section is a titled group of items.
@@ -229,6 +308,8 @@ type Result struct {
 	PopToRoot bool         `json:"popToRoot,omitzero"`
 	// Refresh re-runs the current view (e.g. after deleting an item).
 	Refresh bool `json:"refresh,omitzero"`
+	// FieldErrors keeps a form open and shows these messages by field ID.
+	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
 }
 
 // ToastStyle is the look of a Toast.

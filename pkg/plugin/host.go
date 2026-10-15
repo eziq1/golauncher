@@ -27,6 +27,14 @@ type Host interface {
 	// work through Go (a test enforces this for built-in plugins); to wait
 	// for it, call wg.Add(1) before and defer wg.Done() inside fn.
 	Go(fn func())
+	// Invalidate tells the host that data the plugin shows changed. The host
+	// pulls the plugin's root results and its open views with ID viewID (""
+	// for all) again, coalescing bursts. Safe from any goroutine.
+	Invalidate(viewID string)
+	// Render pushes new content for the open view instance (see
+	// ViewRequest.Instance). Pushes for closed or unknown instances are
+	// dropped. Safe from any goroutine.
+	Render(instance string, v View)
 }
 
 // KV is a small persistent key/value store.

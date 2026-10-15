@@ -27,6 +27,10 @@ type Host struct {
 	I18N  *i18n.Manager
 	ns    string
 	dir   string
+
+	mu          sync.Mutex
+	invalidated []string
+	rendered    []Rendered
 }
 
 var _ plugin.Host = (*Host)(nil)
@@ -141,4 +145,38 @@ func (c *Clipboard) WriteImage(png []byte) error {
 func (c *Clipboard) WriteFiles(paths []string) error {
 	c.Set(plugin.ClipboardContent{Files: slices.Clone(paths)})
 	return nil
+}
+
+// Invalidate implements plugin.Host and records the call.
+func (h *Host) Invalidate(viewID string) {
+	h.mu.Lock()
+	h.invalidated = append(h.invalidated, viewID)
+	h.mu.Unlock()
+}
+
+// Invalidated returns the view IDs passed to Invalidate so far.
+func (h *Host) Invalidated() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return slices.Clone(h.invalidated)
+}
+
+// Rendered is a view pushed with Render.
+type Rendered struct {
+	Instance string
+	View     plugin.View
+}
+
+// Render implements plugin.Host and records the push.
+func (h *Host) Render(instance string, v plugin.View) {
+	h.mu.Lock()
+	h.rendered = append(h.rendered, Rendered{instance, v})
+	h.mu.Unlock()
+}
+
+// Renders returns the views pushed with Render so far.
+func (h *Host) Renders() []Rendered {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return slices.Clone(h.rendered)
 }

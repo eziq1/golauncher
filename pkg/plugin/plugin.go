@@ -55,6 +55,12 @@ type LocaleProvider interface {
 	Locales() fs.FS
 }
 
+// PreferenceOptionsProvider supplies the options of preferences declared with
+// DynamicOptions.
+type PreferenceOptionsProvider interface {
+	PreferenceOptions(ctx context.Context, name string) ([]Option, error)
+}
+
 // Query is the search text typed by the user.
 type Query struct {
 	Text string `json:"text"`
@@ -67,4 +73,9 @@ type ViewRequest struct {
 	ID      string  `json:"id"`
 	Payload Payload `json:"payload,omitempty"`
 	Query   Query   `json:"query"`
+	// Instance identifies this open view (e.g. "v17") for Host.Render; it
+	// changes every time the view is opened.
+	Instance string `json:"instance,omitempty"`
+	// Arguments are the values of the opening command's arguments.
+	Arguments map[string]string `json:"arguments,omitempty"`
 }
