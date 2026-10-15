@@ -1,0 +1,7 @@
+{
+  "time.justNow": "Just now",
+  "time.minutesAgo": { "one": "{{.Count}} minute ago", "other": "{{.Count}} minutes ago" },
+  "time.hoursAgo": { "one": "{{.Count}} hour ago", "other": "{{.Count}} hours ago" },
+  "time.daysAgo": { "one": "{{.Count}} day ago", "other": "{{.Count}} days ago" },
+  "time.dateLayout": "Jan 2, 2006"
+}
