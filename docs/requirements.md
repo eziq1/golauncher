@@ -25,3 +25,4 @@
 | R17 | 2026-10-15 | 比较插件渲染的拉取式和推送式两种模型的优劣 | [plugin-render-model.md](plugin-render-model.md)：以拉取为主，加两级推送（先做 invalidate 通知，M5 再做推送快照） | ✅ 已分析；实现 📋 |
 | R18 | 2026-10-15 | 做 M5 插件平台，并为它单独写一份设计方案 | [m5-plugin-platform.md](m5-plugin-platform.md)：① Invalidate ② Form 视图和命令参数 ③ 设置项扩展 ④ 外部插件（JSON-RPC、进程隔离、推送快照）⑤ Script Commands | 🚧 W0（SDK）已完成，W1 子代理开发中 |
 | R19 | 2026-10-15 | 多分支协作改用 Git worktree | 开发流程：每个子代理在独立的 worktree 和分支（如 `m5/<子项>`）里开发并提交，主控逐个合并、跑全量测试后推送 | ✅ 从 M5 W1 开始执行 |
+| R20 | 2026-10-15 | Everything 搜索时，把缓存目录、系统目录等非用户文件的权重降到最低，优先展示用户自己的文件 | [everything.md §2](everything.md)：路径分级 + 分两次查询（先排除系统路径，再补足）+ 本地重新排序；偏好项 `hideSystemFiles`、`extraLowPriorityPaths` | 🚧 子代理开发中 |

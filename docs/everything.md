@@ -54,13 +54,62 @@
 - 不依赖 Everything 的测试：用合成的二进制数据测试 IPC 编码和解析；用 fixture 后端（`testdata/fixtures/files.json`）测试插件逻辑。`glctl --fixtures` 也会用到这份 fixture。
 - 依赖真实 Everything 的测试：没有运行 Everything 时自动跳过，所以在 CI 上不会运行。包括真实搜索、模拟快速打字的压力测试 `TestStressTyping`，以及界面层的 `TestRealFileSearch`。
 
-## 2. 已知限制
+## 2. 搜索结果排序：优先显示用户自己的文件（R20）
+
+> 需求：Windows 里有很多缓存目录、系统目录，也就是非用户文件的目录。把它们的权重降到最低，搜索时优先展示用户自己的文件。
+
+### 2.1 问题
+
+现在的做法是让 Everything 按文件名排序，再截取前 `maxResults` 条。以 `notepad` 为例，前几条全是 `WinSxS` 和 `Containers\Layers` 里的系统文件；搜 `report` 会先出来 `site-packages` 里的源码目录。用户自己的文档反而被截断在 100 条以外，根本显示不出来。
+
+### 2.2 方案：分两次查询，再在本地重新排序
+
+**第一步：对路径分级**（`plugins/everything/rank.go`，纯函数，便于测试）
+
+| 级别 | 权重 | 默认规则（大小写不敏感） |
+|------|------|--------------------------|
+| 用户文件 | 高 | 用户目录下的已知文件夹：桌面、文档、下载、图片、视频、音乐、OneDrive（用 `SHGetKnownFolderPath` 取真实路径，支持被重定向的文件夹）；非系统盘上的普通目录 |
+| 普通 | 中 | 其他位置 |
+| 程序 | 低 | `Program Files`、`Program Files (x86)`、`%LOCALAPPDATA%\Programs`、`scoop\apps` |
+| 系统与缓存 | 最低 | `C:\Windows`、`C:\ProgramData`、`$Recycle.Bin`、`System Volume Information`、`AppData\Local\Temp`，以及路径中任一段是 `node_modules`、`.git`、`__pycache__`、`.cache`、`Cache`、`CacheStorage`、`site-packages`、`go\pkg\mod`、`.nuget\packages`、`WinSxS`、`Containers\Layers` |
+
+**第二步：分两次查询**，保证用户文件不被截断：
+
+1. **查询 A**：在用户的关键词后面追加排除条件，比如 `notepad !"C:\Windows\" !"\node_modules\" …`（Everything 的语法：`!` 表示排除，包含 `\` 的词会去匹配完整路径）。最多取 `maxResults` 条。
+2. **查询 B**：如果 A 的结果不满 `maxResults`，就用原始关键词再查一次，去掉和 A 重复的结果后补足。这些补进来的结果大多是系统和缓存文件，会排在最后。
+
+**第三步：本地重新排序**：
+
+```
+得分 = 路径级别权重
+     + 名称匹配质量（完全相等 > 前缀 > 单词开头 > 包含）
+     + 新近度（30 天内修改过的加分，按时间衰减）
+     + 文件夹比文件略低（同等条件下）
+```
+
+排序后再截取 `maxResults` 条。查询 A 是 Everything 的索引查询，速度很快；B 只在结果不足时才执行。实际耗时要用 `glctl bench --real` 验证，目标是 p95 不超过 50ms。
+
+**第四步：可配置**（新增的偏好项）：
+
+| 偏好项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `hideSystemFiles` | bool | false | 打开后不执行查询 B，系统和缓存文件完全不显示 |
+| `extraLowPriorityPaths` | stringList | 空 | 用户自己追加的低优先级路径或目录名 |
+
+根搜索里的文件结果（`showInRoot`）用同一套排序，并且只取用户文件和普通两级。
+
+### 2.3 测试
+
+- `rank.go` 用表驱动测试覆盖各类路径，包括大小写、`\\?\` 前缀、被重定向的已知文件夹。
+- 用 fixture 后端测试"用户文档排在系统文件前面"，以及 `hideSystemFiles` 打开后的效果。
+- 接真实 Everything 的测试（没有运行 Everything 时跳过）：搜 `notepad` 时第一条不能在 `WinSxS` 里。
+## 3. 已知限制
 
 - 没有在 1.5 alpha 版和 arm64 上实测过。
 - Everything 需要管理员权限才能启动时，自动启动会失败，只显示提示，不会弹出 UAC。
-- 结果按名称排序。按修改时间或使用次数排序只需改一行，但前提是用户在 Everything 设置里为对应字段建立了索引，否则会很慢。
+- 按 §2 的方案重新排序后，Everything 自身的排序方式只影响同分结果的先后。
 - 详情面板里的修改时间用的是固定格式 `2006-01-02 15:04`，因为 Localizer 还没有日期格式化功能。
 
-## 3. 变更记录
+## 4. 变更记录
 
 - 2026-10-15：首次实现。同时修复了"搜索无结果时程序崩溃"的问题，详见 [reliability.md §1](reliability.md)。
