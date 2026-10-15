@@ -574,7 +574,11 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 				label = s.Title
 			}
 			mui.Icon(c, builtinIcon("command")).FontSize(14).TextColor(t.TextMuted)
-			mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Grow(1).Shrink(1)
+			mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0)
+			if s.Context != nil {
+				l.contextChip(c, s.Context)
+			}
+			mui.Box(c).Grow(1)
 		}
 		if s.Form != nil {
 			if l.footerButton(c, cmp.Or(s.Form.Submit, l.loc.T("ui.form.submit")), "Ctrl+Enter") {
@@ -594,6 +598,36 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 		if l.footerButton(c, l.loc.T("ui.footer.actions"), "Ctrl+K") {
 			l.Key("Ctrl+K")
 		}
+	})
+}
+
+// contextChip shows the context captured when the launcher opened (e.g. the
+// folder open in File Explorer); a click copies its path.
+func (l *Launcher) contextChip(c *mui.Context, ctx *core.ContextSnapshot) {
+	t := c.Theme()
+	icon := "app"
+	if ctx.Folder != "" {
+		icon = "folder"
+	}
+	chip := mui.Row(c.Key("context-chip")).Gap(5).Padding(2, 7).Radius(6).AlignItems(mui.Center).Shrink(1).MinWidth(0).MaxWidth(200).
+		Background(t.Text.Alpha(0.06)).Label(l.loc.T("ui.context.copy", "name", ctx.Name))
+	if ctx.Folder != "" {
+		if chip.Hovered() {
+			chip.Background(t.Text.Alpha(0.12))
+		}
+		if chip.Clicked() {
+			l.work.Do(func(context.Context) {
+				if err := l.ctrl.CopyContextPath(); err != nil {
+					l.log.Warn("copy context path", "err", err)
+				}
+				l.host.Invalidate()
+			})
+			l.input.Focus()
+		}
+	}
+	chip.Children(func() {
+		mui.Icon(c, builtinIcon(icon)).FontSize(12).TextColor(t.TextMuted)
+		mui.Text(c, ctx.Name).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0)
 	})
 }
 

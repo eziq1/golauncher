@@ -366,10 +366,45 @@ func (c *Controller) invalidate(pluginID, viewID string) {
 // plugin contributes to it. c.mu must be held.
 func (c *Controller) affected(inv invalidation) bool {
 	f := c.top()
+	if inv.plugin == "" { // the context changed (contextChanged)
+		return f.nav == nil
+	}
 	if f.nav == nil {
 		return c.eng.isRootProvider(inv.plugin)
 	}
 	return f.nav.Plugin == inv.plugin && (inv.view == "" || inv.view == f.nav.Request.ID)
+}
+
+// contextChanged handles a new context of the show: the root search is
+// refreshed when it already ran without it (pulled); otherwise the front end
+// is only told, for the context chip.
+func (c *Controller) contextChanged(pulled bool) {
+	c.mu.Lock()
+	if pulled && c.top().nav == nil {
+		c.mu.Unlock()
+		c.invalidate("", "")
+		return
+	}
+	notify := c.onChange
+	c.mu.Unlock()
+	if notify != nil {
+		notify()
+	}
+}
+
+// CopyContextPath copies the folder of the current context (the footer's
+// context chip) and shows a toast.
+func (c *Controller) CopyContextPath() error {
+	cur := c.eng.Context()
+	if cur == nil || cur.Folder == "" {
+		return nil
+	}
+	if err := c.eng.sys.CopyText(cur.Folder); err != nil {
+		c.setToast(&plugin.Toast{Style: plugin.ToastFailure, Title: c.eng.core.T("toast.actionFailed"), Message: err.Error()})
+		return err
+	}
+	c.setToast(&plugin.Toast{Style: plugin.ToastSuccess, Title: c.eng.core.T("toast.copied")})
+	return nil
 }
 
 // flushInvalidations refreshes the top frame for the invalidations gathered,
@@ -861,6 +896,16 @@ type Snapshot struct {
 	// Enter confirms, Escape cancels.
 	Confirm *ConfirmSnapshot `json:"confirm,omitempty"`
 	Toast   *plugin.Toast    `json:"toast,omitempty"`
+	// Context is the context of the current show, for the footer's chip.
+	Context *ContextSnapshot `json:"context,omitempty"`
+}
+
+// ContextSnapshot is the context captured when the launcher opened.
+type ContextSnapshot struct {
+	Kind   string `json:"kind,omitempty"`
+	Name   string `json:"name"`             // short name: the folder's name, else title or app
+	Folder string `json:"folder,omitempty"` // copied by a click on the chip
+	App    string `json:"app,omitempty"`
 }
 
 // ConfirmSnapshot is a confirmation dialog.
@@ -901,6 +946,9 @@ func (c *Controller) Snapshot() Snapshot {
 		Selected:    -1,
 		Toast:       c.toast,
 		EmptyText:   core.T("search.empty"),
+	}
+	if cur := c.eng.Context(); cur != nil && (cur.Folder != "" || cur.Kind != "") {
+		s.Context = &ContextSnapshot{Kind: cur.Kind, Name: ContextName(cur), Folder: cur.Folder, App: cur.App.Name}
 	}
 	if f.view != nil {
 		s.Title = f.view.Title

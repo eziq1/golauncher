@@ -118,7 +118,7 @@ func (s *server) handle(ctx context.Context, method string, params jsontext.Valu
 		if err != nil {
 			return nil, err
 		}
-		items, err := rp.RootItems(ctx, plugin.Query{Text: a.Query})
+		items, err := rp.RootItems(ctx, plugin.Query{Text: a.Query, Context: a.Context})
 		if items == nil {
 			items = []plugin.Item{}
 		}
@@ -143,6 +143,20 @@ func (s *server) handle(ctx context.Context, method string, params jsontext.Valu
 			return nil, err
 		}
 		return ah.HandleAction(ctx, a.Action)
+	case protocol.MethodContextItems:
+		cp, ok := s.p.(plugin.ContextProvider)
+		if !ok {
+			return nil, notFound(method)
+		}
+		a, err := decode[protocol.ContextItemsParams](params)
+		if err != nil {
+			return nil, err
+		}
+		items, err := cp.ContextItems(ctx, a.Context)
+		if items == nil {
+			items = []plugin.Item{}
+		}
+		return items, err
 	case protocol.MethodPreferenceOptions:
 		po, ok := s.p.(plugin.PreferenceOptionsProvider)
 		if !ok {
@@ -244,10 +258,12 @@ func (s *server) initialize(ctx context.Context, params jsontext.Value) (any, er
 	_, views := s.p.(plugin.ViewProvider)
 	_, actions := s.p.(plugin.ActionHandler)
 	_, opts := s.p.(plugin.PreferenceOptionsProvider)
+	_, contextItems := s.p.(plugin.ContextProvider)
 	return protocol.InitializeResult{
 		Protocol: protocol.Version,
 		Capabilities: protocol.Capabilities{
 			RootItems: root, Views: views, Actions: actions, PreferenceOptions: opts, Render: true,
+			ContextItems: contextItems,
 		},
 	}, nil
 }

@@ -366,6 +366,9 @@ func (s *Settings) generalPage(c *mui.Context, cfg config.Config) {
 	s.toggle(c, s.loc.T("settings.general.hideOnBlur"), "", cfg.HideOnBlur, func(v bool) {
 		s.update(func(c *config.Config) { c.HideOnBlur = v })
 	})
+	s.toggle(c, s.loc.T("settings.general.contextAware"), s.loc.T("settings.general.contextAware.desc"), cfg.ContextAware, func(v bool) {
+		s.update(func(c *config.Config) { c.ContextAware = v })
+	})
 	if locales := s.env.I18n.Available(); len(locales) > 1 {
 		s.setting(c, s.loc.T("settings.general.language"), "", func() {
 			options := append([]string{s.loc.T("settings.language.system")}, locales...)

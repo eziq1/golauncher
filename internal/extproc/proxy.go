@@ -132,6 +132,7 @@ var (
 	_ plugin.ActionHandler             = (*Proxy)(nil)
 	_ plugin.LocaleProvider            = (*Proxy)(nil)
 	_ plugin.PreferenceOptionsProvider = (*Proxy)(nil)
+	_ plugin.ContextProvider           = (*Proxy)(nil)
 )
 
 // New returns a proxy for the plugin in dir described by m.
@@ -290,7 +291,18 @@ func (p *Proxy) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, e
 		return nil, nil
 	}
 	var items []plugin.Item
-	err := p.call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: q.Text}, &items)
+	err := p.call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: q.Text, Context: q.Context}, &items)
+	return items, err
+}
+
+// ContextItems implements plugin.ContextProvider. Like rootItems, it is
+// not called once the plugin told it lacks the capability.
+func (p *Proxy) ContextItems(ctx context.Context, c plugin.Context) ([]plugin.Item, error) {
+	if !p.mayHave(func(c protocol.Capabilities) bool { return c.ContextItems }) {
+		return nil, nil
+	}
+	var items []plugin.Item
+	err := p.call(ctx, protocol.MethodContextItems, protocol.ContextItemsParams{Context: c}, &items)
 	return items, err
 }
 
