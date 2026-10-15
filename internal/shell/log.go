@@ -1,9 +1,11 @@
 package shell
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/eziq1/golauncher/assets"
 	"github.com/eziq1/golauncher/internal/app"
@@ -31,6 +33,14 @@ func openLog() (*os.File, *slog.LevelVar, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	// A -H windowsgui program has no console: without this, the traceback of
+	// an unrecovered panic or fatal runtime error would be lost. The runtime
+	// appends it to the log, which survives the crash.
+	if err := debug.SetCrashOutput(f, debug.CrashOptions{}); err != nil {
+		fmt.Fprintln(f, "crash output:", err)
+	}
+	// Stray writes to stderr (e.g. from libraries) go to the log as well.
+	os.Stderr = f
 	return f, new(slog.LevelVar), nil
 }
 

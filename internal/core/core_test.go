@@ -404,6 +404,44 @@ func TestSearchErrorClearsResults(t *testing.T) {
 	}
 }
 
+// panicky crashes on every call.
+type panicky struct{}
+
+func (panicky) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "boom", Name: "Boom", Version: "1",
+		Commands: []plugin.Command{{Name: "go", Title: "Boom View", Mode: plugin.ModeView}}}
+}
+func (panicky) Init(context.Context, plugin.Host) error { return nil }
+func (panicky) Close() error                            { return nil }
+func (panicky) RootItems(context.Context, plugin.Query) ([]plugin.Item, error) {
+	panic("root boom")
+}
+func (panicky) View(context.Context, plugin.ViewRequest) (plugin.View, error) {
+	panic("view boom")
+}
+
+func TestPluginPanicIsContained(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{panicky{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	env.Controller.SetText(t.Context(), "boom")
+	env.Controller.Wait()
+	if got := titles(env.Controller.Snapshot()); len(got) != 1 || got[0] != "Boom View" {
+		t.Fatalf("root search with a panicking provider = %v", got)
+	}
+	env.Controller.Key(t.Context(), "Enter")
+	env.Controller.Wait()
+	if s := env.Controller.Snapshot(); !strings.Contains(s.Error, "crashed") {
+		t.Fatalf("view panic not reported: %+v", s.Error)
+	}
+}
+
 func TestDisabledPluginHidden(t *testing.T) {
 	e := newEnv(t)
 	e.Config.Update(func(c *config.Config) {

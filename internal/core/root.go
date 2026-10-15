@@ -126,7 +126,7 @@ func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, text st
 		wg.Go(func() {
 			done := make(chan []plugin.Item, 1)
 			go func() {
-				items, err := rp.RootItems(ctx, plugin.Query{Text: text})
+				items, err := guard(e, l.m.ID, func() ([]plugin.Item, error) { return rp.RootItems(ctx, plugin.Query{Text: text}) })
 				if err != nil {
 					e.log.Warn("root items", "plugin", l.m.ID, "err", err)
 				}

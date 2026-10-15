@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"time"
@@ -190,7 +191,7 @@ func (e *Engine) View(ctx context.Context, nav Nav) (plugin.View, error) {
 	if !ok {
 		return plugin.View{}, fmt.Errorf("core: plugin %q has no views", nav.Plugin)
 	}
-	return vp.View(ctx, nav.Request)
+	return guard(e, nav.Plugin, func() (plugin.View, error) { return vp.View(ctx, nav.Request) })
 }
 
 // Outcome tells the front end what to do after an action.
@@ -258,7 +259,7 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 	if !ok {
 		return Outcome{}, fmt.Errorf("core: plugin %q cannot handle actions", pluginID)
 	}
-	r, err := h.HandleAction(ctx, do)
+	r, err := guard(e, pluginID, func() (plugin.Result, error) { return h.HandleAction(ctx, do) })
 	if err != nil {
 		return Outcome{}, err
 	}
@@ -339,4 +340,16 @@ func normalizeShortcut(s string) string {
 	slices.SortFunc(mods, func(a, b string) int { return order[a] - order[b] })
 	mods = slices.Compact(mods)
 	return strings.Join(append(mods, key), "+")
+}
+
+// guard calls into a plugin, turning a panic into an error so a faulty
+// plugin cannot take the launcher down. The stack is logged.
+func guard[T any](e *Engine, pluginID string, fn func() (T, error)) (v T, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			e.log.Error("plugin panicked", "plugin", pluginID, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("core: plugin %s crashed: %v", pluginID, r)
+		}
+	}()
+	return fn()
 }
