@@ -2,9 +2,9 @@
 
 Everything golauncher does is implemented as a plugin, including the built-in
 application launcher, calculator, clipboard history and file search. This
-guide shows how to write one. It covers in-process Go plugins, which are the
-only kind supported in v0.1. Out-of-process plugins in any language are
-planned (design §5.5).
+guide shows how to write one. Built-in plugins are Go code compiled into the
+launcher; [external plugins](#external-plugins) are programs in any language
+that run in their own process and talk to golauncher over JSON-RPC.
 
 The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 [`plugins/`](../plugins/) are complete examples:
@@ -353,3 +353,101 @@ Write-Output "Hello, $Name!"
   UTF-8 is decoded from the OEM code page; ANSI colors are removed.
 - **Icons**: PNG and SVG files (relative to the script) are shown; emoji and
   URLs fall back to a generic icon.
+
+## External plugins
+
+An external plugin is a directory with a `plugin.json` manifest and a
+program. golauncher starts the program when the plugin is first used and
+talks to it over JSON-RPC 2.0 on stdin/stdout, one JSON object per line.
+The plugin can be written in any language; a crash or hang only affects the
+plugin, which golauncher restarts (and turns off if it keeps crashing).
+
+| Example | Shows |
+|---------|-------|
+| [`examples/plugins/go-hello`](../examples/plugins/go-hello/) | A Go plugin run with `rpcserve`: root item, list view, callback, no-view command, storage |
+| [`examples/plugins/python-hello`](../examples/plugins/python-hello/) | Standard-library Python: root item, a form whose submit writes the clipboard, storage |
+
+### Manifest
+
+`plugin.json` is the JSON form of `plugin.Manifest` plus two fields:
+
+```json
+{
+  "id": "example.go-hello",
+  "name": "%plugin.name%",
+  "version": "0.1.0",
+  "protocol": 1,
+  "run": { "command": "go-hello.exe", "args": [] },
+  "permissions": ["storage"],
+  "commands": [{ "name": "greetings", "title": "%command.greetings.title%", "mode": "view" }]
+}
+```
+
+- `protocol` is the protocol version (1).
+- `run.command` is a path relative to the plugin directory or a program on
+  `PATH` such as `python` or `node`. The working directory is the plugin
+  directory.
+- `%key%` strings are translated from `locales/<lang>.json`, as for
+  built-in plugins. Strings your plugin returns at run time are yours to
+  translate: `initialize` and `localeChanged` tell you the locale.
+- `permissions` gate the host APIs: a plugin without `storage` cannot call
+  `host/storage.*`, one without `clipboard` cannot call
+  `host/clipboard.*` (error `-32001`). `network` and `exec` cannot be
+  enforced; external plugins run with the user's rights, and Settings says
+  so.
+
+### Installing and developing
+
+golauncher loads external plugins from `%APPDATA%\golauncher\plugins\<dir>\`
+and from the directories listed in `GOLAUNCHER_PLUGIN_PATH` (separated by
+`;`; an entry can be a plugin directory itself). Settings shows each
+plugin's origin and process state (running, stopped, crashed, turned off
+after repeated crashes, or unavailable with the reason).
+
+During development, use `glctl`, which runs an isolated environment:
+
+```powershell
+glctl plugin validate examples/plugins/python-hello      # manifest, protocol, %key%s, run.command
+glctl query hello --plugins examples/plugins/python-hello --format text
+go build -o examples/plugins/go-hello/go-hello.exe ./examples/plugins/go-hello
+glctl run example.go-hello/greetings --plugins examples/plugins/go-hello
+```
+
+`--plugins DIR` may be repeated and also accepts a directory of plugin
+directories. glctl never loads the plugins in your `%APPDATA%` folder unless
+you pass `--real`.
+
+### Go: `rpcserve`
+
+A Go plugin written against `pkg/plugin` becomes an external plugin with
+one line:
+
+```go
+func main() {
+	if err := rpcserve.Serve(&Hello{}); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Inside the process, `rpcserve` provides a `plugin.Host` that forwards
+`Storage`, `Clipboard`, `Events`, `Invalidate` and `Render` to golauncher,
+keeps `Preferences` and `I18n` in sync with it, and logs to stderr. Panics in
+your handlers become error responses and `Host.Go` contains panics, so the
+process survives them. `os.Stdout` is redirected to stderr so stray prints
+cannot corrupt the protocol.
+
+### Other languages
+
+Implement the protocol: [plugin-protocol.md](plugin-protocol.md) is the
+complete reference. In short:
+
+| Direction | Messages |
+|-----------|----------|
+| host → plugin requests | `initialize`, `rootItems`, `view`, `handleAction`, `preferenceOptions`, `shutdown` |
+| host → plugin notifications | `$/cancelRequest`, `localeChanged`, `preferencesChanged`, `event`, `viewClosed` |
+| plugin → host requests | `host/storage.get/set/delete`, `host/clipboard.read/writeText/writeImage/writeFiles`, `host/subscribe`, `host/log` |
+| plugin → host notifications | `host/invalidate`, `ui/render` |
+
+Keep stdout for protocol messages and log to stderr. Answer `rootItems`
+quickly (150 ms), honor `$/cancelRequest`, and exit when stdin closes.

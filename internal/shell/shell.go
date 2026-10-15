@@ -138,6 +138,7 @@ func Run(o Options) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s := &Shell{log: log, level: level, version: o.Version, ctx: ctx, cancel: cancel, keepLoginItem: o.keepLoginItem}
+	builtin.HostVersion = o.Version
 	plugins := builtin.All
 	if o.Plugins != nil {
 		plugins = o.Plugins

@@ -1,0 +1,15 @@
+{
+  "plugin.name": "你好（Go）",
+  "plugin.description": "用 pkg/plugin/rpcserve 编写的 Go 外部插件示例",
+  "command.greetings.title": "各种语言的问候",
+  "command.greetings.keywords": "hello, greetings, 问候",
+  "command.count.title": "统计问候次数",
+  "group": "你好",
+  "root.title": "用 Go 打个招呼",
+  "root.subtitle": { "other": "已经打了 {{.Count}} 次招呼" },
+  "view.title": "问候语",
+  "view.placeholder": "筛选问候语…",
+  "action.copy": "复制问候语",
+  "action.count": "记一次招呼",
+  "toast.counted": { "other": "已经打了 {{.Count}} 次招呼" }
+}

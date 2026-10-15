@@ -67,6 +67,7 @@ type Engine struct {
 
 // unavailable is a plugin that could not be initialized.
 type unavailable struct {
+	p      plugin.Plugin
 	m      plugin.Manifest
 	loc    *i18n.Localizer
 	reason string
@@ -125,10 +126,10 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 			loc := o.Services.I18n.Localizer(m.ID)
 			if errors.Is(err, plugin.ErrUnavailable) {
 				e.log.Info("plugin unavailable", "plugin", m.ID, "reason", err)
-				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: unavailableReason(err)})
+				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: unavailableReason(err)})
 			} else {
 				e.log.Error("plugin init failed", "plugin", m.ID, "err", err)
-				e.unavailable = append(e.unavailable, unavailable{m: m, loc: loc, reason: err.Error()})
+				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: err.Error()})
 			}
 			continue
 		}
@@ -136,6 +137,15 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		e.plugins = append(e.plugins, l)
 		e.byID[m.ID] = l
 	}
+	// Tell plugins that track open views (out-of-process ones) when a view
+	// closes, so they can free its state and an idle process can stop.
+	e.OnViewClosed(func(pluginID, instance string) {
+		if l, ok := e.byID[pluginID]; ok {
+			if vc, ok := l.p.(interface{ ViewClosed(instance string) }); ok {
+				vc.ViewClosed(instance)
+			}
+		}
+	})
 	o.Config.OnChange(func(c config.Config) {
 		for _, l := range e.plugins {
 			l.host.Prefs().SetValues(c.Plugin(l.m.ID).Preferences)

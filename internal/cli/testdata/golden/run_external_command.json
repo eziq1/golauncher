@@ -1,0 +1,246 @@
+{
+  "step": "run example.go-hello/count",
+  "outcome": {
+    "toast": {
+      "style": "success",
+      "title": "Said hello 1 time"
+    }
+  },
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "",
+    "sections": [
+      {
+        "title": "Recent",
+        "items": [
+          {
+            "id": "cmd:count",
+            "title": "Count Hellos",
+            "subtitle": "Hello (Go)",
+            "icon": {
+              "name": "command"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "count"
+                }
+              }
+            ],
+            "plugin": "example.go-hello",
+            "key": "example.go-hello/cmd:count"
+          }
+        ]
+      },
+      {
+        "title": "Commands",
+        "items": [
+          {
+            "id": "cmd:clear",
+            "title": "Clear Clipboard History",
+            "subtitle": "Clipboard History",
+            "icon": {
+              "name": "trash"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "style": "destructive",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "clear"
+                }
+              }
+            ],
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/cmd:clear"
+          },
+          {
+            "id": "cmd:count",
+            "title": "Count Hellos",
+            "subtitle": "Hello (Go)",
+            "icon": {
+              "name": "command"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "count"
+                }
+              }
+            ],
+            "plugin": "example.go-hello",
+            "key": "example.go-hello/cmd:count"
+          },
+          {
+            "id": "cmd:new",
+            "title": "Create Script Command",
+            "subtitle": "Script Commands",
+            "icon": {
+              "name": "command"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "new"
+                }
+              }
+            ],
+            "plugin": "builtin.scripts",
+            "key": "builtin.scripts/cmd:new"
+          },
+          {
+            "id": "cmd:greetings",
+            "title": "Greetings in Many Languages",
+            "subtitle": "Hello (Go)",
+            "icon": {
+              "name": "command"
+            },
+            "keywords": [
+              "hello",
+              "greetings"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "greetings"
+                }
+              }
+            ],
+            "plugin": "example.go-hello",
+            "key": "example.go-hello/cmd:greetings"
+          },
+          {
+            "id": "cmd:open-folder",
+            "title": "Open Scripts Folder",
+            "subtitle": "Script Commands",
+            "icon": {
+              "name": "folder"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "open-folder"
+                }
+              }
+            ],
+            "plugin": "builtin.scripts",
+            "key": "builtin.scripts/cmd:open-folder"
+          },
+          {
+            "id": "cmd:reload",
+            "title": "Reload Applications",
+            "subtitle": "Applications",
+            "icon": {
+              "name": "app"
+            },
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "reload"
+                }
+              }
+            ],
+            "plugin": "builtin.apps",
+            "key": "builtin.apps/cmd:reload"
+          },
+          {
+            "id": "cmd:history",
+            "title": "Search Clipboard History",
+            "subtitle": "Clipboard History",
+            "icon": {
+              "name": "clipboard"
+            },
+            "keywords": [
+              "clip",
+              "paste",
+              "history"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "history"
+                }
+              }
+            ],
+            "plugin": "builtin.clipboard",
+            "key": "builtin.clipboard/cmd:history"
+          },
+          {
+            "id": "cmd:search",
+            "title": "Search Files",
+            "subtitle": "File Search (Everything)",
+            "icon": {
+              "name": "file"
+            },
+            "keywords": [
+              "files",
+              "find",
+              "everything",
+              "文件"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "search"
+                }
+              }
+            ],
+            "plugin": "builtin.everything",
+            "key": "builtin.everything/cmd:search"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "toast": {
+      "style": "success",
+      "title": "Said hello 1 time"
+    }
+  }
+}

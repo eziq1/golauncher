@@ -8,6 +8,35 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **External plugins** in any language, in their own process, over JSON-RPC
+  2.0 on stdio (see `docs/plugin-protocol.md`). Plugins live in
+  `%APPDATA%\golauncher\plugins\<id>\` (plus `GOLAUNCHER_PLUGIN_PATH`). A
+  crashing or hung plugin never takes golauncher down: it is restarted with
+  backoff and turned off after repeated crashes (Settings › Plugins can turn
+  it on again). Go plugins become external with `rpcserve.Serve`; examples
+  for Go and Python are in `examples/plugins/`. `glctl --plugins DIR` and
+  `glctl plugin validate DIR` support plugin development.
+- **Raycast Script Commands**: `.ps1`, `.py`, `.js`, `.bat`/`.cmd` and `.sh`
+  scripts with `@raycast.*` metadata in `%APPDATA%\golauncher\scripts` show up
+  in the root search, with arguments and the silent, compact and full-output
+  modes. "Create Script Command" starts a new one.
+- **Forms and command arguments** for plugins: form views with text,
+  password, text area, number, checkbox, dropdown, date and file fields, and
+  up to three inline arguments next to the search field.
+- **Live updates**: plugins can ask the host to refresh what they show
+  (`Host.Invalidate`) or push new content (`Host.Render`). Clipboard history,
+  the app list and file search now refresh by themselves.
+- **Plugin settings**: buttons (e.g. "Sign in"), options loaded at runtime,
+  groups and preferences shown only when another one has a certain value.
+
+### Changed
+
+- **File search** ranks your own files first and system, cache and program
+  files last; new preferences "Hide system and cache files" and extra
+  low-priority paths.
+
 ## [0.1.0] - 2026-10-15
 
 First public release: a Raycast-style launcher for Windows 10/11, written in Go

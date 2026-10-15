@@ -27,3 +27,6 @@ Desktop.ini
 # Agent worktrees
 /.claude/
 
+
+# Python example plugins
+__pycache__/

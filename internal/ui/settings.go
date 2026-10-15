@@ -396,6 +396,9 @@ func (s *Settings) pluginsPage(c *mui.Context) {
 				mui.Row(c).Gap(8).AlignItems(mui.Center).Children(func() {
 					mui.Text(c, p.Name).Bold()
 					mui.Text(c, p.Version).FontSize(12).TextColor(t.TextMuted)
+					if p.Origin == core.OriginExternal {
+						mui.Badge(c, s.loc.T("settings.plugins.external"))
+					}
 				})
 				if p.Description != "" {
 					mui.Text(c, p.Description).FontSize(12).TextColor(t.TextMuted)
@@ -403,6 +406,7 @@ func (s *Settings) pluginsPage(c *mui.Context) {
 				if p.Unavailable != "" {
 					mui.Text(c, s.loc.T("settings.plugins.unavailable", "reason", p.Unavailable)).FontSize(12).TextColor(t.TextMuted)
 				}
+				s.processState(c, p)
 			})
 			if p.Unavailable != "" {
 				off := false
@@ -425,6 +429,29 @@ func (s *Settings) pluginsPage(c *mui.Context) {
 			}
 		})
 	}
+}
+
+// processState shows an external plugin's crash state and, when the crash
+// breaker turned it off, a button to turn it on again.
+func (s *Settings) processState(c *mui.Context, p core.PluginInfo) {
+	t := c.Theme()
+	var msg string
+	switch p.State {
+	case "crashed":
+		msg = s.loc.T("settings.plugins.stateCrashed", "reason", p.StateReason)
+	case "disabled":
+		msg = s.loc.T("settings.plugins.stateDisabled", "reason", p.StateReason)
+	default:
+		return
+	}
+	mui.Row(c).Gap(8).AlignItems(mui.Center).Children(func() {
+		mui.Text(c, msg).FontSize(12).TextColor(t.Danger).Shrink(1)
+		if p.State == "disabled" && button(c.Key("reset:"+p.ID), s.loc.T("settings.plugins.reset")) {
+			if err := s.env.Engine.ResetPlugin(p.ID); err != nil {
+				s.setNotice(err.Error(), true)
+			}
+		}
+	})
 }
 
 func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
@@ -450,6 +477,10 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 		}
 	})
 	mui.Text(c, s.loc.T("settings.plugins.version", "version", p.Version)).FontSize(12).TextColor(t.TextMuted)
+	if p.Origin == core.OriginExternal {
+		mui.Text(c, s.loc.T("settings.plugins.externalNote")).FontSize(12).TextColor(t.TextMuted)
+	}
+	s.processState(c, p)
 	if p.Description != "" {
 		mui.Text(c, p.Description)
 	}

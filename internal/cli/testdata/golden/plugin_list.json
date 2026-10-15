@@ -26,7 +26,8 @@
         "title": "Hidden Applications",
         "description": "IDs of applications that are not shown in search"
       }
-    ]
+    ],
+    "origin": "builtin"
   },
   {
     "id": "builtin.calc",
@@ -36,7 +37,8 @@
     "icon": {
       "name": "calculator"
     },
-    "enabled": true
+    "enabled": true,
+    "origin": "builtin"
   },
   {
     "id": "builtin.clipboard",
@@ -99,7 +101,8 @@
           "KeePass.exe"
         ]
       }
-    ]
+    ],
+    "origin": "builtin"
   },
   {
     "id": "builtin.everything",
@@ -155,7 +158,8 @@
         "title": "Low-priority locations",
         "description": "Folders listed after your own files, like system files: a full path (D:\\VMs) or a folder name matched anywhere (vendor, build)."
       }
-    ]
+    ],
+    "origin": "builtin"
   },
   {
     "id": "builtin.scripts",
@@ -188,6 +192,7 @@
         "title": "Script directories",
         "description": "Folders scanned for scripts (.ps1, .py, .js, .bat, .cmd, .sh) with @raycast metadata. %VAR% is expanded."
       }
-    ]
+    ],
+    "origin": "builtin"
   }
 ]

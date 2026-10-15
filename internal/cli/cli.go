@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -54,6 +55,8 @@ Commands:
   session field -s FILE <id> <value> set a field of the open form
   session arg -s FILE <name> <value> set an argument of the selected entry
   plugin list | plugin info <id>     describe plugins
+  plugin validate <dir>              check an external plugin (manifest, protocol,
+                                     translations, run.command)
   config path | get [key] | set <key> <value>
                                      the user configuration (always the real file)
   i18n check [--src DIR]             check message catalogs and key references
@@ -67,6 +70,9 @@ Environment flags (query, run, session new, plugin, bench):
                    (default: an isolated in-memory environment)
   --exec           with --real, perform action side effects (default: record only)
   --fixtures DIR   load apps.json / clipboard.json fixtures (fake mode)
+  --plugins DIR    load external plugins from DIR (repeatable): a plugin directory
+                   or a directory of plugin directories; GOLAUNCHER_PLUGIN_PATH
+                   is also read. The real user plugin folder is used only with --real
   --now RFC3339    fix the clock (default 2026-10-14T10:00:00Z in fake mode)
   --locale TAG     UI locale (default "en"; "en-XA" is the pseudo-locale)
   --format json|text
@@ -79,11 +85,12 @@ type cli struct {
 
 // envFlags are the flags that describe an environment.
 type envFlags struct {
-	Real     bool   `json:"real,omitzero"`
-	Exec     bool   `json:"exec,omitzero"`
-	Fixtures string `json:"fixtures,omitempty"`
-	Now      string `json:"now,omitempty"`
-	Locale   string `json:"locale,omitempty"`
+	Real     bool     `json:"real,omitzero"`
+	Exec     bool     `json:"exec,omitzero"`
+	Fixtures string   `json:"fixtures,omitempty"`
+	Plugins  []string `json:"plugins,omitempty"`
+	Now      string   `json:"now,omitempty"`
+	Locale   string   `json:"locale,omitempty"`
 }
 
 func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
@@ -97,6 +104,11 @@ func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
 		fs.StringVar(&ef.Fixtures, "fixtures", "", "fixtures directory")
 		fs.StringVar(&ef.Now, "now", "", "fixed time (RFC 3339)")
 		fs.StringVar(&ef.Locale, "locale", "en", "UI locale")
+		fs.Func("plugins", "external plugin directory (repeatable)", func(s string) error {
+			abs, err := filepath.Abs(s)
+			ef.Plugins = append(ef.Plugins, abs)
+			return err
+		})
 	}
 	return fs
 }
@@ -178,7 +190,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		if ef.Exec {
 			opts.System = real.system
 		}
-		opts.Plugins = realPlugins()
+		opts.Plugins = realPlugins(ef.Plugins)
 		if ef.Now != "" {
 			opts.Now = func() time.Time { return now }
 		}
@@ -188,7 +200,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		opts.Fake = true
 		opts.Clipboard = e.clip
 		opts.Now = func() time.Time { return now }
-		plugins, err := fakePlugins(ef.Fixtures)
+		plugins, err := fakePlugins(ef.Fixtures, ef.Plugins)
 		if err != nil {
 			return nil, err
 		}
@@ -416,7 +428,13 @@ func (c *cli) plugin(ctx context.Context, args []string) error {
 		return err
 	}
 	if len(pos) == 0 {
-		return usagef("plugin: want list or info <id>")
+		return usagef("plugin: want list, info <id> or validate <dir>")
+	}
+	if pos[0] == "validate" {
+		if len(pos) != 2 {
+			return usagef("plugin validate: want <dir>")
+		}
+		return c.validate(pos[1])
 	}
 	e, err := c.build(ctx, ef)
 	if err != nil {
@@ -432,7 +450,10 @@ func (c *cli) plugin(ctx context.Context, args []string) error {
 				if !p.Enabled {
 					state = "disabled"
 				}
-				fmt.Fprintf(w, "%-20s %-24s %s %s\n", p.ID, p.Name, p.Version, state)
+				if p.State != "" {
+					state += ", " + p.State
+				}
+				fmt.Fprintf(w, "%-20s %-24s %-8s %s %s\n", p.ID, p.Name, p.Origin, p.Version, state)
 			}
 		})
 	case pos[0] == "info" && len(pos) == 2:

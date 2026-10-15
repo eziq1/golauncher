@@ -11,6 +11,7 @@ import (
 
 	"github.com/eziq1/golauncher/internal/builtin"
 	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/internal/extproc"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -26,12 +27,18 @@ func realPlatform(bool) (platform, error) {
 	return platform{clipboard: sysClipboard{}, system: sysSystem{}}, nil
 }
 
-func realPlugins() []plugin.Plugin { return builtin.All() }
+// realPlugins returns the real plugins plus the external ones in extra.
+func realPlugins(extra []string) []plugin.Plugin {
+	builtin.HostVersion = Version
+	all := builtin.All()
+	return append(all, builtin.External(extra, all, extproc.Options{})...)
+}
 
 // fakePlugins returns the built-in plugins fed from the fixtures in dir
-// (apps.json, files.json; see testdata/fixtures).
-func fakePlugins(dir string) ([]plugin.Plugin, error) {
-	return builtin.Fake(dir), nil
+// (apps.json, files.json; see testdata/fixtures) and the external plugins
+// under pluginRoots.
+func fakePlugins(dir string, pluginRoots []string) ([]plugin.Plugin, error) {
+	return builtin.Fake(dir, pluginRoots...), nil
 }
 
 // clipFixture is one entry of clipboard.json: content copied at a time.

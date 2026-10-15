@@ -1,0 +1,15 @@
+{
+  "plugin.name": "Hello (Go)",
+  "plugin.description": "An example external plugin written in Go with pkg/plugin/rpcserve",
+  "command.greetings.title": "Greetings in Many Languages",
+  "command.greetings.keywords": "hello, greetings",
+  "command.count.title": "Count Hellos",
+  "group": "Hello",
+  "root.title": "Say Hello from Go",
+  "root.subtitle": { "one": "Said hello {{.Count}} time", "other": "Said hello {{.Count}} times" },
+  "view.title": "Greetings",
+  "view.placeholder": "Filter greetings…",
+  "action.copy": "Copy Greeting",
+  "action.count": "Count as Said",
+  "toast.counted": { "one": "Said hello {{.Count}} time", "other": "Said hello {{.Count}} times" }
+}

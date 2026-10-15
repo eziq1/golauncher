@@ -1,0 +1,13 @@
+{
+  "id": "example.python-hello",
+  "name": "%plugin.name%",
+  "description": "%plugin.description%",
+  "version": "0.1.0",
+  "icon": { "name": "command" },
+  "protocol": 1,
+  "run": { "command": "python", "args": ["-u", "-B", "main.py"] },
+  "permissions": ["storage", "clipboard"],
+  "commands": [
+    { "name": "greet", "title": "%command.greet.title%", "mode": "view" }
+  ]
+}
