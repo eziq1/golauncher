@@ -120,3 +120,27 @@
   - 每次要重新启动进程（几秒），所以适合"问一句、看一段"的节奏，不适合逐字实时对话。
 - **工作目录要单独用一个**：Claude Code 的会话按工作目录归档（`~/.claude/projects/<目录>`），`--continue` 也是按目录找"最近的会话"。启动器固定在 `%LOCALAPPDATA%\golauncher\ai\` 下运行 CLI，这样不会和你平时写代码的会话混在一起；也只用显式的 `--resume <id>`，不用 `--continue`。
 - **只问答，不动电脑**：用 `--tools ""`（不给任何工具）或只给只读的工具，权限模式不跳过确认；Codex 用 `--sandbox read-only`。
+### 6.2 常驻后台的 Claude 进程，以及怎么调用工具
+
+**常驻进程**：`claude -p --input-format stream-json --output-format stream-json`（加 `--include-partial-messages` 可以逐字输出）。
+
+- 进程启动后一直运行。用户的每条消息以一行 JSON 写进它的 stdin，回答以 JSONL 事件从 stdout 流出，同一个进程里可以连续多轮。
+- 只有第一次要几秒启动，之后的追问没有启动开销。Claude Agent SDK 就是这样驱动 CLI 的。
+- **生命周期**：golauncher 第一次用 AI 时启动它，放进 Job Object 跟随启动器退出，闲置一段时间后关掉（和 R41 的"闲置释放"同一个思路）。下次用时带 `--resume <会话ID>` 重启，对话不丢。
+- `--bg` 是另一回事：它开的是给人 `claude attach` 进去用的后台交互会话，不适合程序对接。
+- **风险**：stream-json 的消息格式不像公开 API 那样有严格的版本承诺。实现时要锁定已验证的 CLI 版本范围，解析失败时退回"每轮一个进程"的方式。
+
+**怎么调用工具**：
+
+1. **Claude Code 自带的工具**（读文件、搜索、Bash、WebSearch……）用 `--tools` 和 `--allowedTools`/`--disallowedTools` 控制。启动器的问答场景默认只给只读的或干脆不给（`--tools ""`）。
+2. **启动器自己的能力**通过 MCP 提供：
+   - golauncher 提供一个 MCP 服务器（stdio，例如 `golauncher mcp`），把插件的命令和动作暴露成工具；
+   - 启动 CLI 时用 `--mcp-config` 指定它，加 `--strict-mcp-config` 只用这一个，不加载你平时给 Claude Code 配的其他 MCP 服务器；
+   - Claude 想"打开蓝牙设置""查 8080 端口""用 winget 装 7zip"时，就调用这些工具，由 golauncher 执行。
+
+   这和 §6 里"给 Claude 桌面版用的 MCP 服务器"是**同一个服务器**，做一次两处用。
+3. **确认**：
+   - 工具调用需要授权时，`--permission-prompts host` 加 `--permission-prompt-tool` 会把授权请求交给宿主，也就是 golauncher；
+   - golauncher 用它已有的确认框问你，按你的选择回复允许或拒绝；
+   - 破坏性的插件动作（卸载、关机、清空回收站）就算 Claude 有权限调用，执行前仍会弹 golauncher 自己的确认框。
+4. **结果显示**：工具调用和结果都在事件流里。启动器的 AI 对话视图把它们显示成步骤，例如"🔧 查询端口 8080 → node.exe (PID 4242)"，你能看到 Claude 做了什么。
