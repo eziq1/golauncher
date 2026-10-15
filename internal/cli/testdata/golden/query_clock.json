@@ -89,7 +89,7 @@
         {
           "id": "city:beijing",
           "title": "Beijing  18:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
           "icon": {
             "name": "clock"
           },
@@ -186,7 +186,7 @@
         {
           "id": "city:tokyo",
           "title": "Tokyo  19:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+9 · +9h",
+          "subtitle": "Japan · Thursday, Oct 15 · UTC+9 · +9h",
           "icon": {
             "name": "clock"
           },
@@ -283,7 +283,7 @@
         {
           "id": "city:singapore",
           "title": "Singapore  18:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "subtitle": "Singapore · Thursday, Oct 15 · UTC+8 · +8h",
           "icon": {
             "name": "clock"
           },
@@ -376,7 +376,7 @@
         {
           "id": "city:mumbai",
           "title": "Mumbai  15:30:00",
-          "subtitle": "Thursday, Oct 15 · UTC+5:30 · +5h 30m",
+          "subtitle": "India · Thursday, Oct 15 · UTC+5:30 · +5h 30m",
           "icon": {
             "name": "clock"
           },
@@ -441,6 +441,10 @@
                 "value": "Thursday, October 15, 2026"
               },
               {
+                "label": "Region",
+                "value": "Maharashtra"
+              },
+              {
                 "label": "Country",
                 "value": "India"
               },
@@ -473,7 +477,7 @@
         {
           "id": "city:dubai",
           "title": "Dubai  14:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+4 · +4h",
+          "subtitle": "United Arab Emirates · Thursday, Oct 15 · UTC+4 · +4h",
           "icon": {
             "name": "clock"
           },
@@ -566,7 +570,7 @@
         {
           "id": "city:moscow",
           "title": "Moscow  13:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+3 · +3h",
+          "subtitle": "Russia · Thursday, Oct 15 · UTC+3 · +3h",
           "icon": {
             "name": "clock"
           },
@@ -663,7 +667,7 @@
         {
           "id": "city:london",
           "title": "London  11:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+1 · +1h",
+          "subtitle": "England, United Kingdom · Thursday, Oct 15 · UTC+1 · +1h",
           "icon": {
             "name": "clock"
           },
@@ -728,6 +732,10 @@
                 "value": "Thursday, October 15, 2026"
               },
               {
+                "label": "Region",
+                "value": "England"
+              },
+              {
                 "label": "Country",
                 "value": "United Kingdom"
               },
@@ -760,7 +768,7 @@
         {
           "id": "city:paris",
           "title": "Paris  12:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+2 · +2h",
+          "subtitle": "Île-de-France, France · Thursday, Oct 15 · UTC+2 · +2h",
           "icon": {
             "name": "clock"
           },
@@ -825,6 +833,10 @@
                 "value": "Thursday, October 15, 2026"
               },
               {
+                "label": "Region",
+                "value": "Île-de-France"
+              },
+              {
                 "label": "Country",
                 "value": "France"
               },
@@ -857,7 +869,7 @@
         {
           "id": "city:berlin",
           "title": "Berlin  12:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+2 · +2h",
+          "subtitle": "Germany · Thursday, Oct 15 · UTC+2 · +2h",
           "icon": {
             "name": "clock"
           },
@@ -922,6 +934,10 @@
                 "value": "Thursday, October 15, 2026"
               },
               {
+                "label": "Region",
+                "value": "State of Berlin"
+              },
+              {
                 "label": "Country",
                 "value": "Germany"
               },
@@ -954,7 +970,7 @@
         {
           "id": "city:new-york",
           "title": "New York  06:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC-4 · -4h",
+          "subtitle": "United States · Thursday, Oct 15 · UTC-4 · -4h",
           "icon": {
             "name": "clock"
           },
@@ -1051,7 +1067,7 @@
         {
           "id": "city:san-francisco",
           "title": "San Francisco  03:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC-7 · -7h",
+          "subtitle": "California, United States · Thursday, Oct 15 · UTC-7 · -7h",
           "icon": {
             "name": "clock"
           },
@@ -1116,6 +1132,10 @@
                 "value": "Thursday, October 15, 2026"
               },
               {
+                "label": "Region",
+                "value": "California"
+              },
+              {
                 "label": "Country",
                 "value": "United States"
               },
@@ -1148,7 +1168,7 @@
         {
           "id": "city:sydney",
           "title": "Sydney  21:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+11 · +11h",
+          "subtitle": "New South Wales, Australia · Thursday, Oct 15 · UTC+11 · +11h",
           "icon": {
             "name": "clock"
           },
@@ -1211,6 +1231,10 @@
               {
                 "label": "Date",
                 "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "New South Wales"
               },
               {
                 "label": "Country",

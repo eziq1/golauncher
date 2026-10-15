@@ -120,11 +120,11 @@ func TestDST(t *testing.T) {
 	// The world clock follows: New York is 13h behind Beijing before the
 	// switch and 12h after it.
 	e.clock.set(time.Date(2026, 3, 8, 6, 30, 0, 0, load(t, "Asia/Shanghai")))
-	if got := e.root(t, "time new york")[0].Subtitle; got != "Saturday, Mar 7 · UTC-5 · -13h" {
+	if got := e.root(t, "time new york")[0].Subtitle; got != "United States · Saturday, Mar 7 · UTC-5 · -13h" {
 		t.Errorf("before switch: %q", got)
 	}
 	e.clock.set(time.Date(2026, 3, 9, 6, 30, 0, 0, load(t, "Asia/Shanghai")))
-	if got := e.root(t, "time new york")[0].Subtitle; got != "Sunday, Mar 8 · UTC-4 · -12h" {
+	if got := e.root(t, "time new york")[0].Subtitle; got != "United States · Sunday, Mar 8 · UTC-4 · -12h" {
 		t.Errorf("after switch: %q", got)
 	}
 }
@@ -186,13 +186,13 @@ func TestDateLine(t *testing.T) {
 	if got := acc("london"); got != "☀" {
 		t.Errorf("London: %q", got)
 	}
-	if got := e.root(t, "time pago pago")[0].Subtitle; got != "Wednesday, Oct 14 · UTC-11 · -11h" {
+	if got := e.root(t, "time pago pago")[0].Subtitle; got != "American Samoa · Wednesday, Oct 14 · UTC-11 · -11h" {
 		t.Errorf("Pago Pago subtitle: %q", got)
 	}
 	// Seen from Pago Pago, Apia is a day and an hour ahead.
 	e.clock.set(time.Date(2026, 10, 15, 10, 30, 0, 0, load(t, "Pacific/Pago_Pago")))
 	it := e.root(t, "time apia")[0]
-	if it.Subtitle != "Friday, Oct 16 · UTC+13 · +24h" || it.Accessory != "☀ Tomorrow" {
+	if it.Subtitle != "Samoa · Friday, Oct 16 · UTC+13 · +24h" || it.Accessory != "☀ Tomorrow" {
 		t.Errorf("Apia from Pago Pago: %q %q", it.Subtitle, it.Accessory)
 	}
 }

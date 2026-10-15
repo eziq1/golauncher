@@ -151,12 +151,13 @@ func TestViewPushesEverySecond(t *testing.T) {
 		}
 	}
 	// Typing filters; later pushes keep the search text.
-	if got := e.view(t, "v1", "kathmandu").Sections[0].Items; len(got) != 1 || got[0].ID != "city:kathmandu" {
+	// Kathmandu first, then the other cities of its zone.
+	if got := e.view(t, "v1", "kathmandu").Sections[0].Items; len(got) == 0 || got[0].ID != "city:kathmandu" {
 		t.Fatalf("search = %v", ids(got))
 	}
 	e.ticks.tick(t)
 	e.renders(t, 4)
-	if got := e.h.Renders()[3].View.Sections[0].Items; len(got) != 1 || got[0].Title != "Kathmandu  15:45:04" {
+	if got := e.h.Renders()[3].View.Sections[0].Items; len(got) == 0 || got[0].Title != "Kathmandu  15:45:04" {
 		t.Errorf("push after search = %v", got)
 	}
 	if len(e.h.Invalidated()) != 0 {

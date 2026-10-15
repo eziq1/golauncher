@@ -207,7 +207,7 @@
   {
     "id": "builtin.clock",
     "name": "World Clock",
-    "description": "The time around the world. Type “time” and a city, country or time zone in the main search.",
+    "description": "The time in over 30,000 cities. Type “time” and a city, country or time zone in the main search. City data: GeoNames (geonames.org), CC BY 4.0.",
     "version": "1.0.0",
     "icon": {
       "name": "clock"

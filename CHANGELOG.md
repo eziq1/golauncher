@@ -19,6 +19,19 @@ Before 1.0.0, minor versions may contain breaking changes.
   Operations run one at a time as background tasks. Disabled when winget is
   not installed.
 
+### Changed
+
+- **World Clock** knows about 32,000 cities instead of 185: every city with
+  15,000 people or more, from [GeoNames](https://www.geonames.org/)
+  (CC BY 4.0), with Chinese names (and their pinyin) for about 11,000 of
+  them. The 185 hand-picked cities keep their Chinese names, abbreviations
+  (`nyc`, `sf`, `hk`) and ranking; other cities rank by population.
+  Subtitles now name the country, plus the state or province when several
+  cities share a name (*Springfield* in Missouri, Massachusetts, Illinois…),
+  in Chinese in the Chinese UI; the detail shows the region. Searches stay
+  within a few milliseconds through a prebuilt index. The data adds about
+  0.7 MB to the program and is loaded in the background.
+
 ### Fixed
 
 - Apps registered under one name only can be found by their name in another

@@ -142,7 +142,7 @@ func zoneAbbr(t time.Time) string {
 }
 
 // detail is the detail panel of a clock showing t.
-func (f formatter) detail(name, country, zone string, t time.Time) *plugin.Detail {
+func (f formatter) detail(name, country, region, zone string, t time.Time) *plugin.Detail {
 	d := &plugin.Detail{
 		Markdown: "# " + f.clock(t, true) + "\n\n" + name + " · " + f.longDate(t),
 	}
@@ -153,6 +153,7 @@ func (f formatter) detail(name, country, zone string, t time.Time) *plugin.Detai
 	}
 	add(f.l.T("meta.time"), f.clock(t, true))
 	add(f.l.T("meta.date"), f.longDate(t))
+	add(f.l.T("meta.region"), region)
 	add(f.l.T("meta.country"), country)
 	add(f.l.T("meta.zone"), zone)
 	add(f.l.T("meta.offset"), f.offset(t))
