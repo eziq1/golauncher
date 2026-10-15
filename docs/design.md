@@ -1,6 +1,6 @@
 # golauncher 设计方案
 
-> 状态：草案 v0.2 · 2026-10-14（已确定 §14 的四项决策）
+> 状态：v0.3 · 2026-10-15（v0.1.0 已实现；§12 里程碑和 §15 状态已更新；需求台账见 [requirements.md](requirements.md)）
 > 目标平台：Windows 10/11（x64 / arm64）
 > 技术栈：Go 1.27+、[MyGo](https://github.com/egoist/mygo) v0.5.x（原生 UI 模式）
 
@@ -606,16 +606,19 @@ type Localizer interface {
 
 ## 12. 里程碑
 
-| 阶段 | 内容 | 验收 |
-|------|------|------|
-| **M0 技术验证（1 周）** | 用 MyGo 实现：无边框置顶窗口 + 全局热键 + TextInput + 虚拟列表；确认 `WindowOptions` 能力、焦点抢占、渲染性能 | 能呼出、搜索假数据、`Esc` 隐藏；产出 `docs/spike-mygo.md` |
-| **M1 核心 + CLI + I18N 基础** | `pkg/plugin`、`core.Engine`、Ranker、`hostfake`、`glctl query/run/session`；`internal/i18n`、`en.json`、`en-XA` 伪语言、`glctl i18n check`、lint 分析器 | golden 测试通过；`i18n check` 和 lint 进入 CI |
-| **M2 三个内置插件** | `calc` → `apps` → `clipboard` | 各插件单元测试 + `glctl` 集成测试 |
-| **M3 GUI 完整化** | 导航栈、Action Panel、Detail 预览、主题、托盘 | `ui.NewTester` 用例覆盖主要交互 |
-| **M4 设置界面** | 通用 / 插件 / 高级页面，偏好表单自动生成，热键录制 | 设置修改即时生效 |
-| **M5 外部插件** | JSON-RPC 协议、`extproc`、`rpcserve`、示例插件 | 用 Go 和 Python 各写一个示例插件并跑通 |
-| **M6 发布** | 安装包、自动更新、性能基线 | 满足 §11 指标；`en-XA` 截图检查无写死文字 |
+> 2026-10-15 更新：增加状态列；根据实际进展和新需求（见 [requirements.md](requirements.md)）调整了 M5 之后的规划。
 
+| 阶段 | 内容 | 验收 | 状态 |
+|------|------|------|------|
+| **M0 技术验证** | 用 MyGo 实现：无边框置顶窗口 + 全局热键 + TextInput + 虚拟列表；确认 `WindowOptions` 能力、焦点抢占、渲染性能 | 能呼出、搜索、`Esc` 隐藏 | ✅ 改为直接研读 MyGo 源码和它自带的 launcher 示例，结论融入了 §2、§9，没有单独写 `spike-mygo.md` |
+| **M1 核心 + CLI + I18N 基础** | `pkg/plugin`、`core.Engine`、Controller、Ranker、`hostfake`、`glctl`；`internal/i18n`、`en.json`、`en-XA`、`glctl i18n check`、规范检查 | golden 测试通过；i18n 检查和规范检查进入 CI | ✅ 规范检查用 `go/ast` 测试实现（`internal/lint`） |
+| **M2 内置插件** | `calc`、`apps`、`clipboard`；之后追加 `everything`（R8） | 各插件单元测试 + `glctl` 集成测试 | ✅ |
+| **M3 GUI 完整化** | 导航栈、动作面板、详情预览、确认对话框、主题、托盘 | `ui.NewTester` 覆盖主要交互 | ✅ |
+| **M4 设置界面** | 通用、插件、高级、关于；偏好表单自动生成；热键录制；凭据管理器；导入导出 | 设置修改即时生效 | ✅ |
+| **v0.1.0 发布**（原 M6 的一部分） | 发布工程（版本号、图标、CI、自动发布）、代码审查与修复、稳定性（R11、R12、R14）、自安装（R15）、文档 | CI 全绿；GitHub Release 包含 amd64 和 arm64 两个 zip | 🚧 只差自安装；合入后重新打 `v0.1.0`（[release.md](release.md)） |
+| **M5 插件平台（v0.2）** | ① `Host.Invalidate`：通知后再拉取（[plugin-render-model.md](plugin-render-model.md) 第一级）<br>② Form 视图和命令参数输入<br>③ 设置项扩展：按钮型、动态选项、分组和条件显示（[plugin-settings.md](plugin-settings.md)）<br>④ 外部插件：JSON-RPC、`extproc`、`rpcserve`；进程隔离、崩溃重启和熔断（[reliability.md §3.3](reliability.md)）；协议预留 `ui/render` 推送快照（第二级）<br>⑤ 兼容 Raycast Script Commands（[调研方案 C](raycast-extensions-research.md)） | 用 Go 和 Python 各写一个示例外部插件并跑通；外部插件崩溃不影响宿主；剪贴板和应用视图能自动刷新 | 📋 |
+| **M6 分发与维护（v0.3）** | 自动更新（MyGo `plugins/updater`）、代码签名、计算器补全（`ans`、单位和汇率换算）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 📋 |
+| **M7 Raycast 扩展兼容评估** | 约 2 人周的 Node sidecar 原型：自写 `@raycast/api` 子集和 React reconciler，通过 `ui/render` 推送；挑 3–5 个支持 Windows 的纯列表扩展试跑 | 根据结果决定是否投入方案 B（8–12 人周） | 📋 等你决定（R13） |
 ## 13. 风险与对策
 
 | 风险 | 影响 | 对策 |
@@ -682,10 +685,22 @@ type Localizer interface {
   - 剪贴板历史的默认快捷键改为 `Alt+Shift+V`：全局注册 `Ctrl+Shift+V` 会抢走各应用的"粘贴为纯文本"。
 - 发布工程：版本号注入、图标和版本资源、CI、tag 触发的自动发布（amd64 和 arm64）。
 
-**尚未实现 / 已知限制**：
+**尚未实现 / 已知限制**：都已排入 §12 的里程碑。
 
-1. 外部插件（M5：JSON-RPC、`extproc`、`rpcserve`），以及插件自定义设置表单（按钮型设置项、动态选项、`Form` 视图）。
-2. 计算器的 `ans`、单位和汇率换算。
-3. `Tab` 进入命令参数。
-4. 快捷键的显示名没有本地化。
-5. 安装包、自动更新和代码签名（M6）。
+- **M5**：外部插件和进程隔离、Form 视图和命令参数、设置项扩展、`Host.Invalidate`、Script Commands 兼容。
+- **M6**：自动更新、代码签名、计算器补全、`Tab` 进入命令参数、快捷键显示名本地化。
+- **M7**：Raycast 扩展兼容评估。
+
+其他文档：
+
+| 主题 | 文档 |
+|------|------|
+| 需求台账 | [requirements.md](requirements.md) |
+| 稳定性 | [reliability.md](reliability.md) |
+| 存储与迁移 | [storage.md](storage.md) |
+| Everything | [everything.md](everything.md) |
+| 插件设置 | [plugin-settings.md](plugin-settings.md) |
+| 渲染模型 | [plugin-render-model.md](plugin-render-model.md) |
+| Raycast 调研 | [raycast-extensions-research.md](raycast-extensions-research.md) |
+| 发布 | [release.md](release.md) |
+| 自安装 | [self-install.md](self-install.md) |
