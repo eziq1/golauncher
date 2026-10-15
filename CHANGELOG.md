@@ -31,6 +31,13 @@ Before 1.0.0, minor versions may contain breaking changes.
   in Chinese in the Chinese UI; the detail shows the region. Searches stay
   within a few milliseconds through a prebuilt index. The data adds about
   0.7 MB to the program and is loaded in the background.
+- **World Clock** uses much less memory (R41, `docs/world-clock.md` §10):
+  the city index takes about 4 MB instead of 18 MB, through a compact
+  table of cities, match keys and name index. It is built the first time
+  the world clock is used (about 0.1 s, in the background) instead of at
+  startup, and released after the launcher has been hidden for 10 minutes
+  (not while a World Clock view is open). Search results are unchanged;
+  most searches got faster.
 
 ### Fixed
 
