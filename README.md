@@ -43,6 +43,10 @@
     Manager, Services, Registry Editor, …), searchable in English, Chinese and
     pinyin (`蓝牙`, `wifi`, `关机`, `gj`). Restart, Shut Down, Sign Out and
     Empty Recycle Bin ask first.
+  - **Terminal & WSL**: your Windows Terminal profiles (including fragments
+    such as Git Bash) and WSL distributions with their running state; open
+    one in a new window or tab, as administrator or in the current folder,
+    set the default distribution, stop it, shut down or update WSL.
   - **World Clock**: type `time` for your local time and major cities, or
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find a
     city. The clocks tick; favorite cities stay on top.

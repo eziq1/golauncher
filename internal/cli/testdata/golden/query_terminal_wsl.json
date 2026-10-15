@@ -1,0 +1,97 @@
+{
+  "query": "ubuntu",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Terminal",
+      "items": [
+        {
+          "id": "distro:ubuntu-22.04",
+          "title": "Ubuntu-22.04",
+          "subtitle": "WSL 2 · Running",
+          "icon": {
+            "name": "square-terminal",
+            "tint": "success"
+          },
+          "keywords": [
+            "wsl",
+            "linux",
+            "distro",
+            "distribution",
+            "bash",
+            "发行版"
+          ],
+          "accessory": "Default",
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p Ubuntu-22.04"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p Ubuntu-22.04"
+                }
+              }
+            },
+            {
+              "id": "explorer",
+              "title": "Open in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "\\\\wsl.localhost\\Ubuntu-22.04"
+              }
+            },
+            {
+              "id": "terminate",
+              "title": "Stop Distribution",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "do": {
+                "kind": "Callback",
+                "target": "terminate",
+                "payload": {
+                  "name": "Ubuntu-22.04"
+                }
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "Ubuntu-22.04"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Location",
+                "value": "C:\\Users\\me\\AppData\\Local\\wsl\\{d8e1f9b2-0b6c-4c43-9d33-1a2b3c4d5e6f}"
+              }
+            ]
+          },
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/distro:ubuntu-22.04",
+          "rank": 0.6475
+        }
+      ]
+    }
+  ]
+}

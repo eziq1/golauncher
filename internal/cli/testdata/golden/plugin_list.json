@@ -421,5 +421,21 @@
       "exec"
     ],
     "origin": "builtin"
+  },
+  {
+    "id": "builtin.terminal",
+    "name": "Terminal & WSL",
+    "description": "Your Windows Terminal profiles and WSL distributions in the root search: open them in a new window, a new tab, as administrator or in the current folder; set the default distribution, stop it, shut down or update WSL.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "terminal"
+    },
+    "enabled": false,
+    "unavailable": "Neither Windows Terminal nor a WSL distribution is installed",
+    "permissions": [
+      "clipboard",
+      "exec"
+    ],
+    "origin": "builtin"
   }
 ]

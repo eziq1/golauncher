@@ -471,6 +471,361 @@
           "rank": 0.5319999999999999
         }
       ]
+    },
+    {
+      "title": "Terminal",
+      "items": [
+        {
+          "id": "profile:{9acb9455-ca41-5af7-950f-6bca1bc9722f}",
+          "title": "Dev; Tools \"Nightly\"",
+          "subtitle": "Windows Terminal profile · pwsh.exe -NoLogo // not a comment",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Dev\\; Tools \\\"Nightly\\\"\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Dev\\; Tools \\\"Nightly\\\"\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Dev\\; Tools \\\"Nightly\\\"\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "pwsh.exe -NoLogo // not a comment"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{9acb9455-ca41-5af7-950f-6bca1bc9722f}",
+          "rank": 0.16244117647058823
+        },
+        {
+          "id": "profile:developer powershell for vs 2022",
+          "title": "Developer PowerShell for VS 2022",
+          "subtitle": "Windows Terminal profile · powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\"",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\""
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:developer powershell for vs 2022",
+          "rank": 0.16169999999999998
+        },
+        {
+          "id": "profile:{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+          "title": "命令提示符",
+          "subtitle": "Windows Terminal profile · %SystemRoot%\\System32\\cmd.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p 命令提示符"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p 命令提示符"
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p 命令提示符",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\cmd.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+          "rank": 0.16055454545454545
+        },
+        {
+          "id": "profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+          "title": "Git Bash",
+          "subtitle": "Windows Terminal profile · C:\\Program Files\\Git\\bin\\bash.exe -i -l",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Git Bash\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Git Bash\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Git Bash\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Git\\bin\\bash.exe -i -l"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+          "rank": 0.16034745762711863
+        },
+        {
+          "id": "profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "title": "Windows PowerShell",
+          "subtitle": "Windows Terminal profile · %SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "rank": 0.15947647058823528
+        }
+      ]
     }
   ]
 }

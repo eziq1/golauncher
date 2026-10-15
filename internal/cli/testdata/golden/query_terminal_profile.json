@@ -1,0 +1,93 @@
+{
+  "query": "git bash",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Terminal",
+      "items": [
+        {
+          "id": "profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+          "title": "Git Bash",
+          "subtitle": "Windows Terminal profile · C:\\Program Files\\Git\\bin\\bash.exe -i -l",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Git Bash\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Git Bash\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Git Bash\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "open-here",
+              "title": "Open in C:\\Work Dir",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Git Bash\" -d \"C:\\Work Dir\"",
+                  "dir": "C:\\Work Dir"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Git\\bin\\bash.exe -i -l"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+          "rank": 0.7
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "profiles": [
+    {
+      "name": "Developer PowerShell for VS 2022",
+      "commandline": "powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\""
+    },
+    {
+      "name": "Hidden Helper",
+      "commandline": "helper.exe",
+      "hidden": true
+    }
+  ]
+}

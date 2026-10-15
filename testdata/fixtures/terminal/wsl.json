@@ -1,0 +1,8 @@
+{
+  "default": "{d8e1f9b2-0b6c-4c43-9d33-1a2b3c4d5e6f}",
+  "distros": [
+    { "guid": "{d8e1f9b2-0b6c-4c43-9d33-1a2b3c4d5e6f}", "name": "Ubuntu-22.04", "basePath": "C:\\Users\\me\\AppData\\Local\\wsl\\{d8e1f9b2-0b6c-4c43-9d33-1a2b3c4d5e6f}", "version": 2 },
+    { "guid": "{0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0}", "name": "Debian", "basePath": "D:\\WSL\\Debian", "version": 2 },
+    { "guid": "{11111111-2222-3333-4444-555555555555}", "name": "Legacy", "basePath": "D:\\WSL\\Legacy", "version": 1 }
+  ]
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
 	"github.com/eziq1/golauncher/plugins/system"
+	"github.com/eziq1/golauncher/plugins/terminal"
 )
 
 // HostVersion is sent to external plugins in initialize and in the User-Agent
@@ -43,6 +44,7 @@ func All() []plugin.Plugin {
 		scripts.New(),
 		realScoop(),
 		system.New(),
+		terminal.New(),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
 }
@@ -70,6 +72,12 @@ func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugi
 // unavailable without it). No icons are extracted and nothing is opened;
 // programs (Scoop commands) run as background tasks, which the fake
 // environment's task runner only records.
+// ("" for none): apps.json (installed applications) and files.json
+// (Everything's file index), scripts/ (script commands) and scoop/ (a Scoop
+// root; Scoop is unavailable without it), terminal/ (Windows Terminal and WSL,
+// see terminal.FixtureOptions). No icons are extracted and nothing
+// is opened; programs (Scoop commands) run as background tasks, which the
+// fake environment's task runner only records.
 //
 // External plugins are loaded from pluginRoots and GOLAUNCHER_PLUGIN_PATH
 // (never from the user's plugin directory). They start eagerly, so results
@@ -89,6 +97,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 		fakeScoop(dir),
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
+		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
 	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)
