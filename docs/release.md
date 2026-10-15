@@ -81,4 +81,4 @@
 - **提交前脱敏**：终端分支的文档列出了本机真实的 Windows Terminal 配置和 WSL 发行版名称，网络分支的文档写了系统版本号、fixture 用了真实的网卡型号。都改成了只写结论或虚构的例子。
 - **整合时修的问题**：网络工具复制 Wi-Fi 密码时，密码会进入 Windows 的剪贴板历史（Win+V）和云剪贴板。SDK 加了 `Clipboard.WriteSecret`（外部插件用 `host/clipboard.writeText` 的 `secret: true`），写入时附带 `ExcludeClipboardContentFromMonitorProcessing`、`CanIncludeInClipboardHistory = 0`、`CanUploadToCloudClipboard = 0`。
 - **中文补齐**：中文分支开发时还没有后面三个插件和计算器的新词条，整合时补了计算器的新词条、系统、终端、网络插件的 `zh-CN.json`，以及核心的两条确认框文案。`glctl i18n check` 无错误。
-- **版本号**：0.3.0。新增功能，按语义化版本升次版本号。`plugin.Clipboard` 多了一个方法，自己实现这个接口的代码需要补上（0.x 允许不兼容改动，已写进 CHANGELOG）。
+- **版本号**：0.3.0。新增功能，按语义化版本升次版本号。`plugin.Clipboard` 多了一个方法，自己实现这个接口的代码需要补上（0.x 允许不兼容改动，已写进 CHANGELOG）。- **结果**：2026-10-15 在提交 `d80d1f4` 上打了 `v0.3.0`。第一次推送后 CI 有 3 个 golden 失败：终端插件会检查配置图标文件是否真的存在，CI 机器装了 Git（`C:\Program Files\Git`），本机没有，所以输出不同。修复是让 glctl 的假环境只承认 fixture 目录里的文件。之后 CI 和发布工作流都通过了。Release 为正式版，`/releases/latest` 指向它。产物：amd64（17.7MB）、arm64（16.2MB）两个 zip 和 `checksums.txt`。<https://github.com/eziq1/golauncher/releases/tag/v0.3.0>
