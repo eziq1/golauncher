@@ -238,6 +238,63 @@ is opened. Push a complete new `View` for it with
 Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
 stay simple, testable and deterministic.
 
+### Context: acting on what the user was doing
+
+When the launcher opens, the host looks at the window that was in the
+foreground (unless the user turned **Context awareness** off in Settings)
+and describes it as a `plugin.Context`:
+
+```go
+type Context struct {
+    App      AppInfo           // Name ("explorer.exe"), Path, PID, Package (AUMID)
+    Kind     string            // "explorer", "desktop", "path-in-title", or "" if unrecognized
+    Folder   string            // the folder shown, absolute; "" for virtual folders
+    Selected []string          // selected files and folders, absolute
+    Title    string            // the window title
+    Extra    map[string]string // detector details, e.g. "file" for a path-in-title file
+}
+```
+
+Implement `plugin.ContextProvider` to offer items for it:
+
+```go
+func (p *Plugin) ContextItems(ctx context.Context, c plugin.Context) ([]plugin.Item, error) {
+    if c.Folder == "" {
+        return nil, nil // nothing to offer
+    }
+    l := p.h.I18n()
+    return []plugin.Item{{
+        ID: "git-status", Title: l.T("item.gitStatus"), Subtitle: c.Folder,
+        Actions: []plugin.Action{{ID: "run", Title: l.T("action.run"),
+            Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "status",
+                Payload: plugin.MustPayload(c.Folder)}}},
+    }}, nil
+}
+```
+
+- The items of all providers are shown in an **"In <folder>"** section at the
+  top of the empty root search, and they take part in the root search when
+  the user types (with a small ranking bonus). Their `Group` is set by the
+  host.
+- Detection runs in the background (at most 300ms) so the window appears at
+  once; when the context arrives after the root was shown, the host pulls it
+  again. `ContextItems` is called for every root search, so keep it fast and
+  return nil when the context does not apply.
+- `RootItems` also receives the context in `Query.Context` (nil when none).
+- The context lives in memory for one show only. Context items are never
+  recorded in Recent, so put everything an action needs (the folder, the
+  paths) into the action itself.
+- Built-in detectors: File Explorer (the active tab on Windows 11, with the
+  selected items), the desktop, and any window whose title holds an
+  existing path (editors, terminals, other file managers). More are added in
+  `internal/winapi/context` (`wincontext.Register`).
+- Test with an injected context:
+  `glctl query "" --context-folder C:\tmp --context-select C:\tmp\a.txt`
+  (also `--context-app NAME`, and `glctl session new … --context-folder`).
+  The built-in `builtin.files` plugin is a complete example.
+
+External plugins get the context in the `rootItems` params and through the
+`contextItems` method (see [plugin-protocol.md](plugin-protocol.md)).
 ### Robustness
 
 The host contains panics in every call into your plugin and gives up on
