@@ -282,7 +282,7 @@ type Host interface {
     Storage() KV              // 每个插件独立的命名空间，SQLite 落盘
     Preferences() Preferences // 读取设置界面填写的偏好，缺省时取 manifest 默认值
     Clipboard() Clipboard     // 读写系统剪贴板
-    Events() Events           // 订阅 clipboard-changed、window-shown、locale-changed、config-changed
+    Events() Events           // 订阅 clipboard-changed、window-shown、window-hidden、locale-changed、config-changed
     I18n() Localizer          // 限定在本插件命名空间的翻译与格式化（§10）
     DataDir() string
     CacheDir() string
