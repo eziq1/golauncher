@@ -36,8 +36,10 @@ jobs:
             throw "tag $env:TAG is not a version (vMAJOR.MINOR.PATCH[-PRE])"
           }
           $version = $env:TAG.Substring(1)
-          # v0.x and -pre versions are pre-releases.
-          $prerelease = ($Matches[1] -eq '0' -or $Matches[2]) ? 'true' : 'false'
+          # Only versions with a pre-release suffix (v1.2.0-rc.1) are marked
+          # pre-release. v0.x releases are regular ones: GitHub never shows a
+          # pre-release as "Latest" (repo sidebar, /releases/latest).
+          $prerelease = $Matches[2] ? 'true' : 'false'
           "version=$version" >> $env:GITHUB_OUTPUT
           "prerelease=$prerelease" >> $env:GITHUB_OUTPUT
           Write-Output "version $version, prerelease $prerelease"

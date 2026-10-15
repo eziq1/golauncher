@@ -37,3 +37,4 @@
 | R29 | 2026-10-15 | 问：想打开调试窗口看性能，该怎么打开？ | 正式发布版（R21）已剔除开发者工具。要用的话，构建不注入版本号的开发版（版本为 `dev`），按 F12 或 Ctrl+Shift+I 打开；`GOLAUNCHER_DEVTOOLS=1` 和 `MYGO_FRAME_STATS=1` 的用法见 README 的 Debugging the UI 一节 | ✅ 已答复，并写进 README |
 | R30 | 2026-10-15 | 问：在 Windows 上，还推荐开发什么插件？ | [plugin-ideas.md](plugin-ideas.md)：按三个梯队列出；建议先做系统命令与设置直达、窗口切换器、网页搜索与快捷链接 | ✅ 已选择第一批，见 R31 |
 | R31 | 2026-10-15 | 分多个 Agent 实现三个插件：系统命令与设置直达、终端配置与 WSL、网络工具 | [system-commands.md](system-commands.md)、[terminal-wsl.md](terminal-wsl.md)、[network-tools.md](network-tools.md) | 🚧 三个子代理并行开发中（各自的 worktree） |
+| R32 | 2026-10-15 | 把当前 main 再发布一个版本（版本号由我定）；GitHub 的 Release 里好像没有可下载的包 | [release.md §6](release.md)：包其实在，但 v0.1.0 被标成了预发布，GitHub 不把它当作 Latest；改为只有带后缀的版本号才标预发布；新版本定为 v0.2.0 | 🚧 发布中 |

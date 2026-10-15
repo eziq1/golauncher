@@ -34,7 +34,7 @@ A Raycast-style launcher for Windows, written in Go with the
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.1 is a first public preview. Its UI is English-only, but every
+> **Status:** v0.2 is an early public release. Its UI is English-only, but every
 > string goes through the i18n pipeline. See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 

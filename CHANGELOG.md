@@ -8,6 +8,8 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-15
+
 ### Added
 
 - **External plugins** in any language, in their own process, over JSON-RPC
@@ -140,5 +142,6 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/eziq1/golauncher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eziq1/golauncher/releases/tag/v0.1.0
