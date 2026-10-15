@@ -12,7 +12,12 @@ import (
 	"strings"
 
 	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
+
+// fakeExtras are plugins that tests add to the fake environment, e.g. one
+// with a form view.
+var fakeExtras []plugin.Plugin
 
 // sessionFile is a multi-step session. Each glctl session invocation
 // rebuilds the environment and replays every step, so a session is fully
@@ -24,7 +29,7 @@ type sessionFile struct {
 
 // step is one interaction.
 type step struct {
-	Op   string `json:"op"` // type, key, select, action
+	Op   string `json:"op"` // type, key, select, action, field, arg
 	Arg  string `json:"arg,omitempty"`
 	Arg2 string `json:"arg2,omitempty"`
 }
@@ -35,7 +40,7 @@ func (s step) String() string {
 
 func (c *cli) session(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return usagef("session: want new|type|key|select|action|show")
+		return usagef("session: want new|type|key|select|action|field|arg|show")
 	}
 	op := args[0]
 	var ef envFlags
@@ -76,6 +81,11 @@ func (c *cli) session(ctx context.Context, args []string) error {
 		if len(pos) == 2 {
 			next.Arg2 = pos[1]
 		}
+	case "field", "arg":
+		if len(pos) < 1 {
+			return usagef("session %s: want <name> <value>", op)
+		}
+		next = &step{Op: op, Arg: pos[0], Arg2: strings.Join(pos[1:], " ")}
 	default:
 		return usagef("session: unknown step %q", op)
 	}
@@ -138,6 +148,10 @@ func apply(ctx context.Context, e *env, s step) (*core.Outcome, error) {
 	case "action":
 		out, err := ctrl.RunAction(ctx, s.Arg, s.Arg2)
 		return &out, err
+	case "field":
+		return nil, ctrl.SetField(s.Arg, s.Arg2)
+	case "arg":
+		return nil, ctrl.SetArgument(s.Arg, s.Arg2)
 	default:
 		return nil, fmt.Errorf("unknown step %q", s.Op)
 	}

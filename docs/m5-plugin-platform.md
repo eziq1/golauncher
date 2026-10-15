@@ -374,3 +374,54 @@ func main() { rpcserve.Serve(hello.New()) }
 | 外部插件的 stdout 混进了非协议输出（比如 Python 的 print） | 按行解析，非 JSON 的行当作日志处理并告警；文档要求插件只往 stderr 写日志 |
 | Windows 上的子进程管理（僵尸进程、控制台窗口闪一下） | Job Object；创建进程时加 `CREATE_NO_WINDOW` |
 | 推送和导航之间的竞态 | 同时用实例 ID 和版本号把关；为这种竞态写专门的测试 |
+
+## 11. 实现记录（W1-A：① ② ③ 与推送快照的宿主侧）
+
+> 分支 `worktree-agent-a062767d87edd746e`，由子代理 A 完成，等待主控合并。需求台账 R18：①②③ 与 §5.4 宿主侧已实现并有测试（台账由主控更新）。
+
+### ① Invalidate
+
+- `core.New` 在初始化插件**之前**设置 `Services.OnInvalidate` / `OnRender`，插件在 `Init` 里启动的后台任务也能通知到。Engine 维护订阅它的 Controller 列表（`NewController` 自动订阅），逐个转发。
+- Controller 收到通知时先判断是否和栈顶有关（栈顶是该插件 ID 匹配的视图，或栈顶是根搜索且插件实现了 `RootProvider`；根搜索不看 `viewID`），无关的直接丢弃，不起定时器。
+- 合并：第一次通知启动 50ms 定时器，期间的通知只记录下来；到期时再判断一次是否仍然相关。如果这时有搜索正在进行，**不取消它**，而是置 `invAfter`，等所有进行中的搜索结束后再补一次刷新（否则持续通知的插件会让搜索永远完成不了）。
+- 通知触发的刷新是"安静"的：不把 `loading` 置为 true，界面不会因为后台刷新闪出加载动画；这也让 `glctl` 快照不受后台刷新时机影响。
+- 选中项保持：每个 frame 记录 `selKey`（选中条目的 Key）。上下键、`Select`、每次刷新或推送之后都会更新它；刷新结果到达时先按 `selKey` 找回，找不到才保留原下标。输入新文字（`SetText`）会清空 `selKey`，让最佳匹配重新排第一。普通的刷新（`Refresh`、动作返回 `Refresh`）同样保持。
+- `Controller.Wait` 同时等待"进行中的搜索"和"待处理的通知/推送"两种计数。`Key`、`RunAction`、`SetField`、`SetArgument` 内部只等进行中的搜索（`waitSearches`），不会因为 50ms 的合并窗口变慢。
+- 插件：clipboard 记录新条目后、配置变化重新清理后调用 `Invalidate("history")`（重复内容、被排除的内容不通知）；apps 在索引刷新后、生成了新图标后调用 `Invalidate("")`；everything 在后台启动 Everything 成功并等到它运行（最多 5 秒，插件关闭时提前结束）后调用 `Invalidate("search")`。
+
+### §5.4 推送快照（宿主侧）
+
+- 每次推入视图帧时分配实例 ID（`v1`、`v2`……，每个 Controller 递增），写进 `Nav.Request.Instance`，随每次 `View` 调用传给插件。`Outcome.Push` 本身不带实例 ID（保持 golden 不变）。
+- `Host.Render(instance, view)` → Engine → 各 Controller：只接受栈里存在、插件 ID 和实例 ID 都匹配的帧；栈顶以外的帧也会更新内容（返回时看到最新内容）。
+- **偏差**：SDK 的 `Render` 没有版本号，宿主按到达顺序处理，"更新的版本"就是"后到的推送"；外部插件协议里的 `version` 由 extproc（B）在转发前自行丢弃乱序的推送。
+- 限流：每个实例两次应用之间至少 16ms，期间到达的推送只保留最后一份，由定时器应用；定时器触发时帧已关闭则丢弃。推送和拉取对同一帧是"后到者生效"。
+- 视图关闭：帧被弹出（Escape、Backspace、PopToRoot、Reset、OpenCommand）时调用 `Engine.OnViewClosed(func(pluginID, instance string))` 注册的回调（后台 goroutine）。进程内插件的 SDK 没有对应回调，按计划跳过；extproc 用它转发 `viewClosed`。
+
+### ② Form 视图与命令参数
+
+- 表单状态 `formState` 挂在 frame 上：字段、值（统一用文本保存：checkbox 为 `"true"/"false"`，dropdown 为选项值，date 为 `YYYY-MM-DD`，file 为路径）、错误、焦点。视图被重新拉取或推送时，按字段 ID 保留已输入的值和错误、焦点。
+- 键：`Tab`/`Shift+Tab` 循环切换；`Enter` 在单行字段跳到下一个、在最后一个字段提交，在 textarea 里不处理（由前端换行）；`Ctrl+Enter` 提交；`Space` 切换焦点所在的 checkbox（GUI 的复选框自己处理，主要给 `glctl` 用）；`Escape` 返回上一级；`Backspace` 在表单里**不**返回。表单没有搜索框，`SetText` 被忽略。
+- 宿主校验：必填（checkbox 必须勾选）、number、date（`YYYY-MM-DD`）、dropdown 必须是选项之一；失败时显示错误、焦点移到第一个出错的字段，不调用插件。
+- 提交值 `ActionDo.Values`：number 为 JSON 数字（空则 `null`），checkbox 为布尔值，其余为字符串。提交动作是 `Push` 时，值（转换成字符串）同时进入 `ViewRequest.Arguments`。插件返回 `FieldErrors`（新增 `Outcome.FieldErrors`）时表单保持打开，并忽略同一结果里的 Hide/Push/PopToRoot/Refresh；Toast 照常显示。
+- API：`SetField(id, value)`、`FocusField(id)`；`Snapshot.Form{Fields[{Field…, value, error}], focused, submit}`（`submit` 是提交动作的标题，GUI 页脚按钮用）。
+- 参数：`commandEntry` 把 `Command.Arguments` 本地化后放进条目的 `Item.Arguments`；任何 `Item` 都可以带参数。参数状态 `argState` 属于当前选中的条目（按 Key），选中别的条目后清空。`Tab`/`Shift+Tab` 在搜索框和各参数之间循环；参数获得焦点时 `Escape` 回到搜索框（不清空文字）。
+- 执行主动作（Enter、面板里选主动作、`RunAction` 指定主动作）时，必填参数没填就把焦点移到第一个空参数、不执行；其他动作不检查必填。所有动作都带上参数值：`ActionDo.Values`（字符串），`Push` 动作同时转成 `ViewRequest.Arguments`。
+- 全局热键打开带必填参数的命令（`OpenCommand`）：**偏差**——不直接执行，而是回到根搜索、把搜索文字设为命令标题、选中该命令并聚焦第一个必填参数（Raycast 的做法类似）。
+- API：`SetArgument(name, value)`、`FocusArgument(name)`（`""` 为搜索框）；`Snapshot.Arguments{entry, fields[{Argument…, value}], focused}`。
+- `glctl session field <id> <value>` 和 `arg <name> <value>`；值可以包含空格（其余参数用空格连接）。文本格式输出会列出表单字段和参数。golden：`session_form_invalid`、`session_form_submit`、`session_arg_missing`、`session_arg_run`（测试插件通过 `cli.fakeExtras` 注入假环境）。
+- GUI（`internal/ui/form.go`）：表单替换结果列表、隐藏搜索框；text/password/number 为单行输入，textarea 为多行，checkbox、dropdown（Select），date 为文本（占位 `YYYY-MM-DD`），file 为文本（启动器的 Host 没有选择文件的钩子，**暂不提供"浏览"按钮**）。必填字段标题后加 `*`，`Info` 显示为说明，错误显示在字段下方。页脚按钮为提交动作标题 + `Ctrl+Enter`。参数输入框显示在搜索框右侧（dropdown 为 Select，第一项是占位文字）。焦点双向同步：Controller 的焦点变化时移动键盘焦点（并把光标放到末尾而不是全选），用户点击输入框时通知 Controller。
+- 顺带修正：启动器在取快照**之前**判断是否有排队的输入，避免用过期快照覆盖刚输入的文字。
+
+### ③ 设置项扩展
+
+- `PluginInfo.Preferences` 的 `Group`、选项标题都已本地化；`Action`、`VisibleWhen`、`DynamicOptions` 原样带出（`glctl plugin info` 可见）。
+- `Engine.PreferenceOptions(ctx, plugin, name)`：只对声明了 `DynamicOptions` 且插件实现 `PreferenceOptionsProvider` 的项有效；和视图调用一样受 panic 保护、10 秒超时；选项标题按 `%key%` 本地化。
+- `Engine.RunPreferenceAction(ctx, plugin, name)`：只对 `PrefButton` 且有 `Action` 的项有效，走 `Engine.Run`（Callback/RunCommand 由插件处理，其他内置动作照常执行），返回 `Outcome`（主要用 Toast）。
+- `core.PrefVisible(prefs, values, pref)`：`VisibleWhen` 的比较按 JSON 值（解码后深比较），未配置时用默认值。
+- 设置页：未分组的项在前，各分组按首次出现的顺序带小标题；隐藏不满足条件的项（随配置变化即时更新）；按钮项显示说明、按钮，运行中显示加载动画，结束后在按钮旁显示 Toast（标题 + 消息）或错误；动态选项在打开插件页时后台加载，失败时在字段下方显示"无法加载选项"。后台调用结束后通过 `mui.Services.Invalidate` 重绘；`Settings.Wait()` 供测试使用。
+
+### 改动范围外的文件（合并时注意）
+
+- `internal/cli/cli.go`：`build` 里假环境的插件列表追加 `fakeExtras`（一行）；`writeStep` 文本输出；用法说明。
+- `plugins/everything/everything.go`：`stop` 通道和 `waitRunning`（Everything 排序那一路也在改这个文件，可能需要手工合并）。
+- `internal/i18n/locales/en.json`：只新增 key（`form.*`、`ui.form.*`、`settings.plugins.optionsFailed`、`settings.plugins.buttonFailed`）。

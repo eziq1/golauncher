@@ -51,6 +51,8 @@ Commands:
   session new -s FILE                start a multi-step session (stores env flags)
   session type|key|select|action|show -s FILE [args]
                                      replay the session plus one step and print the result
+  session field -s FILE <id> <value> set a field of the open form
+  session arg -s FILE <name> <value> set an argument of the selected entry
   plugin list | plugin info <id>     describe plugins
   config path | get [key] | set <key> <value>
                                      the user configuration (always the real file)
@@ -190,7 +192,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts.Plugins = plugins
+		opts.Plugins = append(plugins, fakeExtras...)
 	}
 	var err error
 	if e.Env, err = app.Build(ctx, opts); err != nil {
@@ -361,7 +363,36 @@ func writeStep(w io.Writer, r stepResult) {
 		title = "root"
 	}
 	fmt.Fprintf(w, "view: %s (depth %d)  text: %q\n", title, s.Depth, s.Text)
-	writeSections(w, s.Sections, s.Selected)
+	if f := s.Form; f != nil {
+		for _, fl := range f.Fields {
+			mark := "  "
+			if fl.ID == f.Focused {
+				mark = "> "
+			}
+			fmt.Fprintf(w, "%s%s (%s, %s) = %q", mark, fl.Title, fl.ID, fl.Type, fl.Value)
+			if fl.Error != "" {
+				fmt.Fprintf(w, "  error: %s", fl.Error)
+			}
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "submit: %s (Ctrl+Enter)\n", f.Submit)
+	} else {
+		writeSections(w, s.Sections, s.Selected)
+	}
+	if a := s.Arguments; a != nil {
+		fmt.Fprintf(w, "arguments of %s:\n", a.Entry)
+		for _, f := range a.Fields {
+			mark := "  "
+			if f.Name == a.Focused {
+				mark = "> "
+			}
+			req := ""
+			if f.Required {
+				req = ", required"
+			}
+			fmt.Fprintf(w, "%s%s (%s%s) = %q\n", mark, f.Name, f.Type, req, f.Value)
+		}
+	}
 	if s.Panel != nil {
 		fmt.Fprintf(w, "actions for %q:\n", s.Panel.Title)
 		for i, a := range s.Panel.Actions {

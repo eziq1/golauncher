@@ -6,6 +6,7 @@ package core
 import (
 	"cmp"
 	"context"
+	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/config"
@@ -55,6 +57,12 @@ type Engine struct {
 	plugins     []*loaded
 	byID        map[string]*loaded
 	unavailable []unavailable // plugins whose Init failed
+
+	// Controllers showing this engine's plugins, told about Host.Invalidate
+	// and Host.Render calls, and the hooks told when a view instance closes.
+	subMu       sync.Mutex
+	controllers []*Controller
+	closedHooks []func(pluginID, instance string)
 }
 
 // unavailable is a plugin that could not be initialized.
@@ -94,6 +102,10 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		rootTimeout: cmp.Or(o.RootTimeout, 150*time.Millisecond),
 		byID:        map[string]*loaded{},
 	}
+	// Before any plugin is initialized: Init may already start background
+	// work that invalidates.
+	o.Services.OnInvalidate = e.invalidate
+	o.Services.OnRender = e.render
 	cfg := o.Config.Get()
 	for _, p := range o.Plugins {
 		m := p.Manifest()
@@ -131,6 +143,73 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		e.svc.Bus.Publish(plugin.EventConfigChanged)
 	})
 	return e, nil
+}
+
+// subscribe makes c receive the plugins' invalidations and pushed views.
+func (e *Engine) subscribe(c *Controller) {
+	e.subMu.Lock()
+	e.controllers = append(e.controllers, c)
+	e.subMu.Unlock()
+}
+
+func (e *Engine) subscribers() []*Controller {
+	e.subMu.Lock()
+	defer e.subMu.Unlock()
+	return slices.Clone(e.controllers)
+}
+
+// invalidate receives Host.Invalidate (design m5 §2).
+func (e *Engine) invalidate(pluginID, viewID string) {
+	for _, c := range e.subscribers() {
+		c.invalidate(pluginID, viewID)
+	}
+}
+
+// render receives Host.Render (design m5 §5.4).
+func (e *Engine) render(pluginID, instance string, v plugin.View) {
+	for _, c := range e.subscribers() {
+		c.push(pluginID, instance, v)
+	}
+}
+
+// OnViewClosed registers fn to be called (on a background goroutine) when a
+// view instance (plugin.ViewRequest.Instance) is closed, so that a plugin
+// keeping state per instance can release it. External plugins forward it as
+// the viewClosed notification.
+func (e *Engine) OnViewClosed(fn func(pluginID, instance string)) {
+	e.subMu.Lock()
+	e.closedHooks = append(e.closedHooks, fn)
+	e.subMu.Unlock()
+}
+
+// viewsClosed calls the OnViewClosed hooks for closed frames.
+func (e *Engine) viewsClosed(closed []*Nav) {
+	if len(closed) == 0 {
+		return
+	}
+	e.subMu.Lock()
+	hooks := slices.Clone(e.closedHooks)
+	e.subMu.Unlock()
+	if len(hooks) == 0 {
+		return
+	}
+	host.Go(e.log, "view closed hooks", func() {
+		for _, n := range closed {
+			for _, fn := range hooks {
+				fn(n.Plugin, n.Request.Instance)
+			}
+		}
+	})
+}
+
+// isRootProvider reports whether plugin id contributes to the root search.
+func (e *Engine) isRootProvider(id string) bool {
+	l, ok := e.byID[id]
+	if !ok {
+		return false
+	}
+	_, ok = l.p.(plugin.RootProvider)
+	return ok
 }
 
 // Close closes all plugins.
@@ -202,6 +281,9 @@ type Outcome struct {
 	PopToRoot bool          `json:"popToRoot,omitzero"`
 	Refresh   bool          `json:"refresh,omitzero"`
 	Toast     *plugin.Toast `json:"toast,omitempty"`
+	// FieldErrors are the plugin's messages for the fields of the submitted
+	// form, by field ID; the form stays open.
+	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
 }
 
 // Run executes action a of entry. fromRoot records the use for ranking.
@@ -243,7 +325,8 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 		}
 		return Outcome{Hide: true}, e.sys.Paste(do.Target, content)
 	case plugin.ActionPush:
-		return Outcome{Push: &Nav{Plugin: entry.Plugin, Request: plugin.ViewRequest{ID: do.Target, Payload: do.Payload}}}, nil
+		req := plugin.ViewRequest{ID: do.Target, Payload: do.Payload, Arguments: stringValues(do.Values)}
+		return Outcome{Push: &Nav{Plugin: entry.Plugin, Request: req}}, nil
 	case plugin.ActionRunCommand, plugin.ActionCallback:
 		return e.handle(ctx, entry.Plugin, do)
 	default:
@@ -264,7 +347,31 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 	if err != nil {
 		return Outcome{}, err
 	}
-	return Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast}, nil
+	return Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast,
+		FieldErrors: r.FieldErrors}, nil
+}
+
+// stringValues turns ActionDo.Values into ViewRequest.Arguments: JSON
+// strings are decoded, other values kept as JSON text.
+func stringValues(values map[string]jsontext.Value) map[string]string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(values))
+	for k, v := range values {
+		var s string
+		if err := json.Unmarshal(v, &s); err != nil {
+			s = string(v)
+		}
+		out[k] = s
+	}
+	return out
+}
+
+// stringValue is the JSON string value of s.
+func stringValue(s string) jsontext.Value {
+	b, _ := json.Marshal(s)
+	return b
 }
 
 func navOf(pluginID string, req *plugin.ViewRequest) *Nav {

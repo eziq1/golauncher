@@ -5,6 +5,7 @@
 package ui
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
@@ -74,6 +75,11 @@ type Launcher struct {
 	lastPanelSel  int
 	hoverRow      int  // flat index of the row last hovered, -1 for none
 	armed         bool // hovering selects only once the pointer moved after showing
+
+	// The inputs of the open form and of the selected entry's arguments.
+	fields, args inputs
+	formOpen     bool
+	pending      bool // input was queued when the snapshot was taken
 
 	toast   *plugin.Toast
 	toastAt time.Time
@@ -232,9 +238,13 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 				return true
 			}
 		case mui.KeyTab:
-			return true // arguments of commands are not supported yet
+			l.Key(name) // into the arguments of the selected entry
+			return true
 		}
 		return l.forwardShortcut(name)
+	case mods == mui.Shift && key == mui.KeyTab:
+		l.Key(name)
+		return true
 	case mods == mui.Ctrl && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP):
 		l.Key(name)
 		return true
@@ -264,7 +274,7 @@ func (l *Launcher) forwardShortcut(name string) bool {
 // sync takes the search text from the Controller when it changed it
 // (Escape clearing it, a pushed view, Reset), unless edits are on their way.
 func (l *Launcher) sync(s core.Snapshot) {
-	if l.work.Pending() {
+	if l.pending {
 		return
 	}
 	if l.text == l.sent && s.Text != l.text {
@@ -284,6 +294,9 @@ func (l *Launcher) View(c *mui.Context) {
 	} else {
 		c.Root().Background(t.Background)
 	}
+	// Whether edits are on their way, asked before the snapshot is taken: it
+	// may otherwise miss edits that were made in between.
+	l.pending = l.work.Pending()
 	s := l.ctrl.Snapshot()
 	l.sync(s)
 	l.updateToast(c, s)
@@ -300,17 +313,30 @@ func (l *Launcher) View(c *mui.Context) {
 		}
 	}
 
+	// A form has no search field: the focus is in its fields.
+	if open := s.Form != nil; open != l.formOpen {
+		l.formOpen = open
+		if !open {
+			l.fields.reset("")
+			l.input.Focus()
+		}
+	}
+
 	mui.Box(c).Fill().Children(func() {
 		mui.Column(c).Fill().Children(func() {
 			l.searchBar(c, s)
 			mui.Divider(c)
-			mui.Row(c).Grow(1).AlignItems(mui.Stretch).Children(func() {
-				l.results(c, s)
-				if s.ShowDetail {
-					mui.Divider(c).Vertical()
-					l.detail(c, s.Detail)
-				}
-			})
+			if s.Form != nil {
+				l.formView(c, s)
+			} else {
+				mui.Row(c).Grow(1).AlignItems(mui.Stretch).Children(func() {
+					l.results(c, s)
+					if s.ShowDetail {
+						mui.Divider(c).Vertical()
+						l.detail(c, s.Detail)
+					}
+				})
+			}
 			mui.Divider(c)
 			l.footer(c, s)
 		})
@@ -371,11 +397,16 @@ func (l *Launcher) searchBar(c *mui.Context, s core.Snapshot) {
 		} else {
 			mui.Icon(c, builtinIcon("search")).FontSize(20).TextColor(t.TextMuted)
 		}
-		in := mui.TextInputBase(c.Key("search"), &l.text).Bind(&l.input).AutoFocus().Grow(1).FontSize(18).
-			Placeholder(s.Placeholder).Label(l.loc.T("ui.search.label")).
-			OnTextKey(func(k mui.TextKey) bool { return l.textKey(k, false) })
-		if in.Changed() {
-			l.setText(l.text, false)
+		if s.Form != nil {
+			mui.Box(c).Grow(1).Height(28)
+		} else {
+			in := mui.TextInputBase(c.Key("search"), &l.text).Bind(&l.input).AutoFocus().Grow(1).FontSize(18).
+				Placeholder(s.Placeholder).Label(l.loc.T("ui.search.label")).
+				OnTextKey(func(k mui.TextKey) bool { return l.textKey(k, false) })
+			if in.Changed() {
+				l.setText(l.text, false)
+			}
+			l.argumentInputs(c, s, in)
 		}
 		if s.Loading {
 			if l.loading.IsZero() {
@@ -544,6 +575,12 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 			}
 			mui.Icon(c, builtinIcon("command")).FontSize(14).TextColor(t.TextMuted)
 			mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Grow(1).Shrink(1)
+		}
+		if s.Form != nil {
+			if l.footerButton(c, cmp.Or(s.Form.Submit, l.loc.T("ui.form.submit")), "Ctrl+Enter") {
+				l.Key("Ctrl+Enter")
+			}
+			return
 		}
 		entry, ok := s.SelectedEntry()
 		if !ok || len(entry.Actions) == 0 {

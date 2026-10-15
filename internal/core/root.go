@@ -251,6 +251,11 @@ func (e *Engine) commandEntry(cfg config.Config, pluginID, name string) (Entry, 
 		Group:     e.core.T("section.commands"),
 		Actions:   []plugin.Action{{ID: "run", Title: e.core.T("action.openCommand"), Style: style, Do: do}},
 	}
+	for _, a := range c.Arguments {
+		a.Placeholder = l.loc.Resolve(a.Placeholder)
+		a.Options = resolveOptions(l, a.Options)
+		it.Arguments = append(it.Arguments, a)
+	}
 	return newEntry(pluginID, it), true
 }
 
