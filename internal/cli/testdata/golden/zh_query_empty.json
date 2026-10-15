@@ -1,0 +1,582 @@
+{
+  "query": "",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "命令",
+      "items": [
+        {
+          "id": "cmd:dns",
+          "title": "DNS 查询",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "域名",
+            "解析",
+            "记录",
+            "DNS 查询",
+            "ym",
+            "jx",
+            "jl",
+            "dnscx",
+            "dns",
+            "nslookup",
+            "dig",
+            "domain",
+            "records",
+            "DNS Lookup"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "dns"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "query",
+              "type": "text",
+              "placeholder": "域名 [@服务器]",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:dns"
+        },
+        {
+          "id": "cmd:ip",
+          "title": "IP 地址",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "网络",
+            "IP 地址",
+            "公网 IP",
+            "MAC 地址",
+            "网关",
+            "无线",
+            "wl",
+            "ipdz",
+            "gwip",
+            "macdz",
+            "wg",
+            "network",
+            "ip address",
+            "public ip",
+            "mac address",
+            "gateway",
+            "wifi",
+            "公网",
+            "地址",
+            "IP Addresses"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ip"
+        },
+        {
+          "id": "cmd:ping",
+          "title": "Ping",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "延迟",
+            "网络",
+            "连通",
+            "yc",
+            "wl",
+            "lt",
+            "ping",
+            "latency",
+            "icmp",
+            "network"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "ping"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "主机或 IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ping"
+        },
+        {
+          "id": "cmd:new",
+          "title": "创建脚本命令",
+          "subtitle": "脚本命令",
+          "icon": {
+            "name": "command"
+          },
+          "keywords": [
+            "Create Script Command"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "new"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:new"
+        },
+        {
+          "id": "cmd:open-folder",
+          "title": "打开脚本文件夹",
+          "subtitle": "脚本命令",
+          "icon": {
+            "name": "folder"
+          },
+          "keywords": [
+            "Open Scripts Folder"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "open-folder"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:open-folder"
+        },
+        {
+          "id": "cmd:port",
+          "title": "端口查询",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "hash"
+          },
+          "keywords": [
+            "端口",
+            "监听",
+            "进程",
+            "占用",
+            "开放端口",
+            "dk",
+            "jt",
+            "jc",
+            "zy",
+            "dkcx",
+            "port",
+            "listening",
+            "netstat",
+            "process",
+            "open port",
+            "Port Lookup"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "port"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "target",
+              "type": "text",
+              "placeholder": "端口或 主机:端口"
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:port"
+        },
+        {
+          "id": "cmd:tracert",
+          "title": "跟踪路由",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "跟踪路由",
+            "路由",
+            "跃点",
+            "gzly",
+            "ly",
+            "yd",
+            "tracert",
+            "traceroute",
+            "route",
+            "hops",
+            "Trace Route"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "tracert"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "主机或 IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:tracert"
+        },
+        {
+          "id": "cmd:tasks",
+          "title": "后台任务",
+          "subtitle": "后台任务",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "tasks",
+            "任务",
+            "进程",
+            "输出",
+            "运行中",
+            "rw",
+            "htrw",
+            "Background Tasks",
+            "jobs",
+            "processes",
+            "output",
+            "running"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "tasks"
+              }
+            }
+          ],
+          "plugin": "builtin.tasks",
+          "key": "builtin.tasks/cmd:tasks"
+        },
+        {
+          "id": "cmd:clear",
+          "title": "清除剪贴板历史",
+          "subtitle": "剪贴板历史",
+          "icon": {
+            "name": "trash"
+          },
+          "keywords": [
+            "Clear Clipboard History"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "clear"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:clear"
+        },
+        {
+          "id": "cmd:world-clock",
+          "title": "世界时钟",
+          "subtitle": "世界时钟",
+          "icon": {
+            "name": "clock"
+          },
+          "keywords": [
+            "时间",
+            "时钟",
+            "时区",
+            "世界时间",
+            "sj",
+            "sq",
+            "sjsj",
+            "World Clock",
+            "time",
+            "clock",
+            "time zone",
+            "world time"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/cmd:world-clock"
+        },
+        {
+          "id": "cmd:flush-dns",
+          "title": "刷新 DNS 缓存",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "刷新 DNS 缓存",
+            "刷新",
+            "缓存",
+            "sxdnshc",
+            "sx",
+            "hc",
+            "flush dns",
+            "ipconfig",
+            "dns cache",
+            "Flush DNS Cache"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "flush-dns"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:flush-dns"
+        },
+        {
+          "id": "cmd:history",
+          "title": "搜索剪贴板历史",
+          "subtitle": "剪贴板历史",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "剪贴板",
+            "jtb",
+            "粘贴",
+            "zt",
+            "历史记录",
+            "lsjl",
+            "Search Clipboard History",
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history"
+        },
+        {
+          "id": "cmd:search",
+          "title": "搜索文件",
+          "subtitle": "文件搜索（Everything）",
+          "icon": {
+            "name": "file"
+          },
+          "keywords": [
+            "文件",
+            "wj",
+            "查找",
+            "搜索",
+            "cz",
+            "ss",
+            "everything",
+            "Search Files",
+            "files",
+            "find"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "search"
+              }
+            }
+          ],
+          "plugin": "builtin.everything",
+          "key": "builtin.everything/cmd:search"
+        },
+        {
+          "id": "cmd:renew-ip",
+          "title": "续订 IP 地址",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "续订",
+            "续租",
+            "释放",
+            "续订 IP 地址",
+            "xd",
+            "xz",
+            "sf",
+            "xdipdz",
+            "renew",
+            "release",
+            "dhcp",
+            "ipconfig",
+            "Renew IP Address"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "renew-ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:renew-ip"
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "已保存的 Wi-Fi 网络",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "无线",
+            "无线网络",
+            "密码",
+            "wx",
+            "wxwl",
+            "mm",
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "Saved Wi-Fi Networks"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi"
+        },
+        {
+          "id": "cmd:reload",
+          "title": "重新加载应用",
+          "subtitle": "应用",
+          "icon": {
+            "name": "app"
+          },
+          "keywords": [
+            "Reload Applications"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "reload"
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/cmd:reload"
+        }
+      ]
+    }
+  ]
+}

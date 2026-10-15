@@ -2,7 +2,9 @@
 // values for it.
 //
 // Catalogs are JSON files named "<lang>.json". A value is either a string or
-// an object of CLDR plural forms ("one", "other", ...). Messages are
+// an object of CLDR plural forms ("one", "other", ...), which may also have
+// exact forms such as "=1" that win over the category: Chinese has only
+// "other", and uses "=1" where English says "one" differently. Messages are
 // text/template strings: {{.name}} refers to an argument and {{.Count}} to
 // the plural count.
 //
@@ -136,6 +138,25 @@ func (m *Manager) Available() []string {
 	return slices.Sorted(maps.Keys(m.namespaces[CoreNamespace]))
 }
 
+// selfNames are the names of the shipped locales in their own language, as
+// the language selector shows them.
+var selfNames = map[string]string{
+	"en":    "English",
+	"zh-CN": "简体中文",
+}
+
+// DisplayName returns the name of locale loc in its own language, such as
+// "简体中文" for "zh-CN", so that a reader finds their language whatever the
+// current one is.
+func DisplayName(loc string) string {
+	if name, ok := selfNames[loc]; ok {
+		return name
+	}
+	// x/text/language/display would name any language but adds megabytes
+	// of tables; a new locale adds its name above.
+	return loc
+}
+
 // resolve maps a configured locale to a supported one.
 func (m *Manager) resolve(locale string) string {
 	switch locale {
@@ -174,7 +195,13 @@ func (m *Manager) match(prefs []string) string {
 			want = append(want, t)
 		}
 	}
-	_, idx, _ := language.NewMatcher(supported).Match(want...)
+	_, idx, conf := language.NewMatcher(supported).Match(want...)
+	if conf < language.High {
+		// A low-confidence match is another script, like Traditional
+		// Chinese (zh-TW, zh-HK) offered zh-CN: English is the safer choice,
+		// and Simplified Chinese stays one click away in the settings.
+		return Source
+	}
 	return supported[idx].String()
 }
 
@@ -184,12 +211,20 @@ func (m *Manager) Localizer(ns string) *Localizer {
 	return &Localizer{m: m, ns: ns}
 }
 
-// lookup finds the message for id, trying the locale then the source
+// lookup finds the message for id, trying the current locale then the source
 // language, first in ns and then in the core namespace.
 func (m *Manager) lookup(ns, id string) (*entry, string, bool) {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
 	loc := m.locale
+	m.mu.RUnlock()
+	return m.lookupIn(ns, id, loc)
+}
+
+// lookupIn is lookup for locale loc. The third result tells that the text
+// must be pseudo-localized.
+func (m *Manager) lookupIn(ns, id, loc string) (*entry, string, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	pseudo := loc == Pseudo
 	for _, n := range []string{ns, CoreNamespace} {
 		cat := m.namespaces[n]
@@ -235,6 +270,28 @@ func (m *Manager) Texts(ns, loc, id string) []string {
 		return []string{e.text}
 	}
 	return slices.Collect(maps.Values(e.plural))
+}
+
+// IsPlural reports whether message id of namespace ns in locale loc has
+// plural forms.
+func (m *Manager) IsPlural(ns, loc, id string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.namespaces[ns][loc][id]
+	return ok && e.plural != nil
+}
+
+// HasForm reports whether message id of namespace ns in locale loc is a
+// plural message with the CLDR form.
+func (m *Manager) HasForm(ns, loc, id, form string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	e, ok := m.namespaces[ns][loc][id]
+	if !ok || e.plural == nil {
+		return false
+	}
+	_, ok = e.plural[form]
+	return ok
 }
 
 // Namespaces returns the registered namespaces, sorted.

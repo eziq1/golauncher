@@ -371,15 +371,20 @@ func (s *Settings) generalPage(c *mui.Context, cfg config.Config) {
 	})
 	if locales := s.env.I18n.Available(); len(locales) > 1 {
 		s.setting(c, s.loc.T("settings.general.language"), "", func() {
-			options := append([]string{s.loc.T("settings.language.system")}, locales...)
+			// Each language is named in itself ("English", "简体中文"), so
+			// that it can be found whatever the current language is.
+			options := []string{s.loc.T("settings.language.system")}
+			for _, loc := range locales {
+				options = append(options, i18n.DisplayName(loc))
+			}
 			chosen := options[0]
 			if i := slices.Index(locales, cfg.Language); i >= 0 {
-				chosen = locales[i]
+				chosen = options[i+1]
 			}
 			if mui.Select(c, &chosen, options).Label(s.loc.T("settings.general.language")).Changed() {
-				lang := chosen
-				if chosen == options[0] {
-					lang = "system"
+				lang := "system"
+				if i := slices.Index(options, chosen); i > 0 {
+					lang = locales[i-1]
 				}
 				s.update(func(c *config.Config) { c.Language = lang })
 			}

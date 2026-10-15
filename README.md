@@ -57,13 +57,17 @@
     `port host:443` checks whether a port can be reached; `wifi` copies the
     password of a saved network; `tracert <host>`, Flush DNS Cache and
     Renew IP Address run in the background.
-- **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences and
-  the theme.
+- **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
+  the theme and the language.
+- **English and Simplified Chinese UI**: golauncher follows the Windows
+  display language (Simplified Chinese for zh-CN, zh-Hans and zh-SG, English
+  otherwise). To switch, open *Settings › General › Language* and pick
+  *System default*, *English* or *简体中文*; the change applies at once.
+  English command names and keywords keep working in the Chinese UI.
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.2 is an early public release. Its UI is English-only, but every
-> string goes through the i18n pipeline. See the
+> **Status:** v0.2 is an early public release. See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 
 ## Install

@@ -695,6 +695,45 @@
           "rank": 0.48999999999999994
         },
         {
+          "id": "settings:network-advancedsettings",
+          "title": "Advanced Network Settings",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "高级网络设置",
+            "gao ji wang luo she zhi",
+            "network adapters",
+            "network reset",
+            "适配器",
+            "网络重置"
+          ],
+          "accessory": "Network & internet",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:network-advancedsettings"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:network-advancedsettings"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:network-advancedsettings",
+          "rank": 0.4654999999999999
+        },
+        {
           "id": "settings:deviceusage",
           "title": "Device Usage",
           "icon": {
@@ -731,46 +770,6 @@
           "plugin": "builtin.system",
           "key": "builtin.system/settings:deviceusage",
           "rank": 0.4654999999999999
-        },
-        {
-          "id": "settings:personalization-textinput",
-          "title": "Text Input",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "文本输入",
-            "wen ben shu ru",
-            "emoji panel",
-            "voice typing",
-            "input theme",
-            "表情面板",
-            "输入主题"
-          ],
-          "accessory": "Personalization",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:personalization-textinput"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:personalization-textinput"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:personalization-textinput",
-          "rank": 0.3558333333333333
         },
         {
           "id": "tool:cleanmgr",
@@ -811,7 +810,7 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/tool:cleanmgr",
-          "rank": 0.33804166666666663
+          "rank": 0.4654999999999999
         },
         {
           "id": "tool:diskmgmt",
@@ -854,7 +853,7 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/tool:diskmgmt",
-          "rank": 0.33804166666666663
+          "rank": 0.4654999999999999
         },
         {
           "id": "settings:disksandvolumes",
@@ -894,7 +893,254 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:disksandvolumes",
-          "rank": 0.33804166666666663
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "tool:ncpa",
+          "title": "Network Connections",
+          "subtitle": "ncpa.cpl",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "network adapters",
+            "ncpa",
+            "网络连接",
+            "网络适配器",
+            "更改适配器设置",
+            "wang luo lian jie"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl"
+                }
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:ncpa",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:powersleep",
+          "title": "Power & Sleep",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "电源和睡眠",
+            "dian yuan he shui mian",
+            "power",
+            "sleep",
+            "screen timeout",
+            "power plan",
+            "battery",
+            "电源",
+            "睡眠",
+            "休眠",
+            "息屏"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:powersleep"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:powersleep"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:powersleep",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:storagesense",
+          "title": "Storage",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "存储",
+            "cun chu",
+            "disk space",
+            "drive",
+            "free space",
+            "磁盘空间",
+            "硬盘",
+            "空间"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:storagesense"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:storagesense"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:storagesense",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:videoplayback",
+          "title": "Video Playback",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "视频播放",
+            "shi pin bo fang",
+            "hdr video",
+            "video",
+            "视频"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:videoplayback"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:videoplayback"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:videoplayback",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:privacy-videos",
+          "title": "Videos Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "视频权限",
+            "shi pin quan xian",
+            "videos library",
+            "视频库"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-videos"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-videos"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-videos",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:personalization-textinput",
+          "title": "Text Input",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "文本输入",
+            "wen ben shu ru",
+            "emoji panel",
+            "voice typing",
+            "input theme",
+            "表情面板",
+            "输入主题"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization-textinput"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization-textinput"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization-textinput",
+          "rank": 0.3558333333333333
         },
         {
           "id": "settings:regionlanguage",
@@ -1023,81 +1269,6 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:keyboard",
-          "rank": 0.33804166666666663
-        },
-        {
-          "id": "settings:videoplayback",
-          "title": "Video Playback",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "视频播放",
-            "shi pin bo fang",
-            "hdr video",
-            "video",
-            "视频"
-          ],
-          "accessory": "Apps",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:videoplayback"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:videoplayback"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:videoplayback",
-          "rank": 0.33804166666666663
-        },
-        {
-          "id": "settings:privacy-videos",
-          "title": "Videos Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "视频权限",
-            "shi pin quan xian",
-            "videos library",
-            "视频库"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-videos"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-videos"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-videos",
           "rank": 0.33804166666666663
         },
         {
@@ -1290,6 +1461,44 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:recovery",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:privacy-graphicscaptureprogrammatic",
+          "title": "Screenshots and Apps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "屏幕截图和应用",
+            "ping mu jie tu he ying yong",
+            "screen capture",
+            "screenshot permission",
+            "截屏权限"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-graphicscaptureprogrammatic",
           "rank": 0.31587499999999996
         },
         {
@@ -1769,206 +1978,6 @@
           "plugin": "builtin.system",
           "key": "builtin.system/settings:regionlanguage-chsime-pinyin",
           "rank": 0.2905
-        },
-        {
-          "id": "settings:privacy-broadfilesystemaccess",
-          "title": "File System Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "文件系统权限",
-            "wen jian xi tong quan xian",
-            "file system access",
-            "文件系统"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-broadfilesystemaccess"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-broadfilesystemaccess"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-broadfilesystemaccess",
-          "rank": 0.28583333333333333
-        },
-        {
-          "id": "settings:appsfeatures",
-          "title": "Installed Apps",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "安装的应用",
-            "an zhuang de ying yong",
-            "apps & features",
-            "uninstall",
-            "programs",
-            "remove app",
-            "应用和功能",
-            "卸载",
-            "卸载程序",
-            "程序"
-          ],
-          "accessory": "Apps",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:appsfeatures"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:appsfeatures"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:appsfeatures",
-          "rank": 0.28583333333333333
-        },
-        {
-          "id": "settings:privacy-musiclibrary",
-          "title": "Music Library Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "音乐库权限",
-            "yin le ku quan xian",
-            "music",
-            "音乐"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-musiclibrary"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-musiclibrary"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-musiclibrary",
-          "rank": 0.28583333333333333
-        },
-        {
-          "id": "settings:project",
-          "title": "Projecting to This PC",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "投影到此电脑",
-            "tou ying dao ci dian nao",
-            "miracast",
-            "wireless display",
-            "projection",
-            "投屏",
-            "投影"
-          ],
-          "accessory": "System",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:project"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:project"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:project",
-          "rank": 0.2840384615384615
-        },
-        {
-          "id": "tool:msconfig",
-          "title": "System Configuration",
-          "subtitle": "msconfig",
-          "icon": {
-            "name": "wrench"
-          },
-          "keywords": [
-            "msconfig",
-            "boot options",
-            "safe mode",
-            "系统配置",
-            "安全模式",
-            "xi tong pei zhi"
-          ],
-          "accessory": "Windows Tools",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "msconfig.exe"
-              }
-            },
-            {
-              "id": "runas",
-              "title": "Run as Administrator",
-              "shortcut": "Ctrl+Shift+Enter",
-              "do": {
-                "kind": "Open",
-                "target": "msconfig.exe",
-                "payload": {
-                  "verb": "runas"
-                }
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/tool:msconfig",
-          "rank": 0.28262499999999996
         }
       ]
     },
@@ -2005,7 +2014,7 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/system:displayOff",
-          "rank": 0.33804166666666663
+          "rank": 0.4654999999999999
         }
       ]
     },

@@ -99,6 +99,13 @@ func TestGolden(t *testing.T) {
 		{"query_network_ip", []string{"query", "ip", "--fixtures", fixtures}},
 		{"query_network_port", []string{"query", "port 8080", "--fixtures", fixtures}},
 		{"query_network_invalid", []string{"query", "ping exa..mple"}},
+		// The Simplified Chinese UI (docs/i18n-zh-cn.md).
+		{"zh_query_empty", []string{"query", "--locale", "zh-CN"}},
+		{"zh_query_calc", []string{"query", "12*3+4", "--locale", "zh-CN"}},
+		{"zh_query_english", []string{"query", "clipboard", "--locale", "zh-CN"}}, // English words still find commands
+		{"zh_query_pinyin", []string{"query", "jtb", "--locale", "zh-CN"}},
+		{"zh_run_clipboard_history", []string{"run", "builtin.clipboard/history", "--locale", "zh-CN", "--fixtures", fixtures}},
+		{"zh_query_clock", []string{"query", "time 北京", "--locale", "zh-CN", "--now", clockNow}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

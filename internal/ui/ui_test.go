@@ -603,7 +603,8 @@ func TestSettingsAdvanced(t *testing.T) {
 }
 
 // TestSnapshots renders the windows to PNG files, in the light and dark
-// themes and the pseudo-locale, which must not break the layout code. They
+// themes, the pseudo-locale and Simplified Chinese, which must not break the
+// layout code. They
 // go to a temporary directory, or to $GOLAUNCHER_SNAPSHOTS to look at them.
 func TestSnapshots(t *testing.T) {
 	dir := cmp.Or(os.Getenv("GOLAUNCHER_SNAPSHOTS"), t.TempDir())
@@ -618,7 +619,7 @@ func TestSnapshots(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for _, locale := range []string{"en", "en-XA"} {
+	for _, locale := range []string{"en", "en-XA", "zh-CN"} {
 		for _, dark := range []bool{false, true} {
 			name := locale
 			if dark {

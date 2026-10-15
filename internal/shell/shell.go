@@ -191,6 +191,10 @@ const ControlEnv = "GOLAUNCHER_CONTROL"
 
 // ready creates the windows, the tray icon and the hotkeys.
 func (s *Shell) ready(action string) {
+	// MyGo's own controls and the text engine follow the UI language, which
+	// also picks Chinese rather than Japanese glyphs for Han characters.
+	mygo.App.SetLanguages(s.env.I18n.Available()...)
+	mygo.App.SetLocale(s.env.I18n.Locale())
 	s.panel = mygo.NewWindow(mygo.WindowOptions{
 		Page:          mygo.PageOptions{DevTools: devTools()},
 		Title:         s.loc.T("app.name"),
@@ -388,6 +392,7 @@ func (s *Shell) configChanged(c config.Config) {
 }
 
 func (s *Shell) localeChanged() {
+	mygo.App.SetLocale(s.env.I18n.Locale())
 	s.updateTrayMenu()
 	s.panel.Invalidate()
 	if s.settingsWin != nil {

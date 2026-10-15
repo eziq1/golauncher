@@ -1,0 +1,52 @@
+{
+  "query": "12*3+4",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "计算器",
+      "items": [
+        {
+          "id": "result",
+          "title": "40",
+          "subtitle": "12*3+4",
+          "icon": {
+            "name": "calculator"
+          },
+          "group": "计算器",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "复制结果",
+              "do": {
+                "kind": "CopyText",
+                "target": "40"
+              }
+            },
+            {
+              "id": "copy-expression",
+              "title": "复制表达式",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "12*3+4 = 40"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "粘贴结果",
+              "shortcut": "Ctrl+Shift+V",
+              "do": {
+                "kind": "Paste",
+                "target": "40"
+              }
+            }
+          ],
+          "plugin": "builtin.calc",
+          "key": "builtin.calc/result",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

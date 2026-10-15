@@ -1,0 +1,53 @@
+{
+  "plugin.name": "文件",
+  "plugin.description": "打开启动器时，针对你正在使用的文件夹提供操作：在那里打开终端或 VS Code、新建文件夹和文本文件、复制路径、压缩文件和计算校验和。",
+
+  "item.terminal.title": "在此处打开终端",
+  "item.terminalAdmin.title": "以管理员身份在此处打开终端",
+  "item.powershell.title": "在此处打开 PowerShell",
+  "item.powershellAdmin.title": "以管理员身份在此处打开 PowerShell",
+  "item.cmd.title": "在此处打开命令提示符",
+  "item.vscode.title": "在 VS Code 中打开文件夹",
+  "item.newFolder.title": "新建文件夹",
+  "item.newFile.title": "新建文本文件",
+  "item.copyPath.title": "复制文件夹路径",
+  "item.copySelected.title": { "=1": "复制路径", "other": "复制 {{.Count}} 个路径" },
+  "item.vscodeSelected.title": "在 VS Code 中打开所选项",
+  "item.zip.title": "压缩为 ZIP",
+  "item.sha256.title": "复制 SHA-256 校验和",
+  "item.runAdmin.title": "以管理员身份运行",
+
+  "subtitle.selected": { "=1": "{{.name}}", "other": "已选择 {{.Count}} 项" },
+
+  "action.open": "打开",
+  "action.openAdmin": "以管理员身份打开",
+  "action.runAdmin": "以管理员身份运行",
+  "action.create": "创建",
+  "action.copy": "复制",
+  "action.copyPath": "复制文件夹路径",
+  "action.copyFiles": "复制文件",
+  "action.compress": "压缩",
+
+  "default.folderName": "新建文件夹",
+  "default.fileName": "新建文本文档.txt",
+
+  "keywords.terminal": "终端, 命令行, zd, mlh, terminal, powershell, shell, console, wt",
+  "keywords.cmd": "命令提示符, mltsf, cmd, command prompt, console, dos",
+  "keywords.vscode": "编辑器, bjq, code, vscode, visual studio code, editor",
+  "keywords.newFolder": "新建文件夹, 创建文件夹, 目录, xjwjj, mkdir, create folder, directory",
+  "keywords.newFile": "新建文件, 文本文件, xjwj, touch, create file, text, txt",
+  "keywords.copyPath": "复制路径, 路径, 剪贴板, fzlj, path, copy path, clipboard",
+  "keywords.zip": "压缩, 打包, ys, zip, archive, compress",
+  "keywords.sha256": "校验, 校验和, 哈希, jy, hash, checksum, sha256, sha-256",
+  "keywords.admin": "管理员, 提权, gly, admin, administrator, elevated, sudo, runas",
+
+  "toast.created": "已创建“{{.name}}”",
+  "toast.invalidName": "“{{.name}}”不是有效的名称",
+  "toast.createFailed": "无法创建“{{.name}}”",
+  "toast.zipFailed": "无法创建 ZIP 文件",
+  "toast.hashCopied": "已复制 SHA-256 校验和",
+  "toast.hashFailed": "无法计算校验和",
+  "task.zip": { "=1": "压缩“{{.name}}”", "other": "压缩 {{.Count}} 项" },
+  "toast.zipStarted": "正在后台压缩",
+  "toast.stillWorking": "仍在后台处理"
+}

@@ -69,11 +69,21 @@ func (c *cli) i18n(ctx context.Context, args []string) error {
 	return nil
 }
 
+// completeLocales are the locales golauncher ships complete: a catalog of
+// one of them that lacks a message is an error, and a namespace without
+// one is a warning (docs/i18n-zh-cn.md). Other locales may be partial.
+var completeLocales = []string{"zh-CN"}
+
 // checkCatalogs compares every locale with the source locale and checks
 // that all messages are valid templates, also after pseudo-localization.
 func checkCatalogs(m *i18n.Manager) i18nReport {
 	var rep i18nReport
 	for _, ns := range m.Namespaces() {
+		for _, loc := range completeLocales {
+			if !slices.Contains(m.Locales(ns), loc) {
+				rep.Warnings = append(rep.Warnings, fmt.Sprintf("%s: no %s.json (falls back to %s)", ns, loc, i18n.Source))
+			}
+		}
 		src := m.Keys(ns, i18n.Source)
 		rep.Keys += len(src)
 		for _, id := range src {
@@ -92,11 +102,24 @@ func checkCatalogs(m *i18n.Manager) i18nReport {
 			keys := m.Keys(ns, loc)
 			for _, id := range src {
 				if !slices.Contains(keys, id) {
-					rep.Warnings = append(rep.Warnings, fmt.Sprintf("%s:%s: missing in %s (falls back to %s)", ns, id, loc, i18n.Source))
+					msg := fmt.Sprintf("%s:%s: missing in %s (falls back to %s)", ns, id, loc, i18n.Source)
+					if slices.Contains(completeLocales, loc) {
+						rep.Errors = append(rep.Errors, msg)
+					} else {
+						rep.Warnings = append(rep.Warnings, msg)
+					}
 					continue
 				}
 				if a, b := fields(m.Texts(ns, i18n.Source, id)), fields(m.Texts(ns, loc, id)); !slices.Equal(a, b) {
 					rep.Errors = append(rep.Errors, fmt.Sprintf("%s:%s: %s uses arguments %v, %s uses %v", ns, id, i18n.Source, a, loc, b))
+				}
+				if m.IsPlural(ns, i18n.Source, id) && !m.HasForm(ns, loc, id, "other") {
+					rep.Errors = append(rep.Errors, fmt.Sprintf("%s:%s: a plural message, but %s has no \"other\" form", ns, id, loc))
+				}
+				for _, text := range m.Texts(ns, loc, id) {
+					if _, err := template.New("").Parse(text); err != nil {
+						rep.Errors = append(rep.Errors, fmt.Sprintf("%s:%s: bad template in %s: %v", ns, id, loc, err))
+					}
 				}
 			}
 			for _, id := range keys {

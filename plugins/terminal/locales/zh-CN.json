@@ -1,0 +1,40 @@
+{
+  "plugin.name": "终端与 WSL",
+  "plugin.description": "在主搜索中列出 Windows Terminal 配置文件和 WSL 发行版：在新窗口、新标签页中打开，以管理员身份打开，或在当前文件夹中打开；设置默认发行版、停止发行版、关闭或更新 WSL。",
+  "unavailable.notInstalled": "没有安装 Windows Terminal，也没有安装 WSL 发行版",
+
+  "group": "终端",
+  "profile.subtitle": "Windows Terminal 配置文件",
+  "distro.version": "WSL {{.version}}",
+  "state.running": "正在运行",
+  "state.stopped": "已停止",
+  "accessory.default": "默认",
+  "meta.location": "位置",
+
+  "item.shutdown.title": "关闭 WSL",
+  "item.update.title": "更新 WSL",
+
+  "action.open": "打开",
+  "action.openWindow": "在新窗口中打开",
+  "action.openTab": "在新标签页中打开",
+  "action.openAdmin": "以管理员身份打开",
+  "action.openHere": "在 {{.folder}} 中打开",
+  "action.copyCommandline": "复制命令行",
+  "action.copyName": "复制名称",
+  "action.explorer": "在文件资源管理器中打开",
+  "action.setDefault": "设为默认发行版",
+  "action.terminate": "停止发行版",
+  "action.shutdown": "关闭",
+  "action.update": "更新",
+
+  "keywords.profile": "终端, 命令行, 配置文件, zd, mlh, pzwj, terminal, wt, windows terminal, shell, console, profile",
+  "keywords.distro": "发行版, 子系统, fxb, zxt, wsl, linux, distro, distribution, bash",
+  "keywords.shutdown": "关闭, 停止, gb, tz, wsl, shutdown, stop, linux",
+  "keywords.update": "更新, 升级, gx, sj, wsl, update, upgrade, linux",
+
+  "task.update": "更新 WSL",
+  "toast.defaultSet": "已将 {{.name}} 设为默认发行版",
+  "toast.terminated": "已停止 {{.name}}",
+  "toast.shutdown": "已关闭 WSL",
+  "toast.failed": "{{.command}} 失败"
+}

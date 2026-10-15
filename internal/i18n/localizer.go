@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,8 +51,12 @@ func (l *Localizer) N(id string, count int, kv ...any) string {
 	text := msg.text
 	if msg.plural != nil {
 		var ok bool
-		if text, ok = msg.plural[pluralForm(loc, count)]; !ok {
-			text = msg.plural["other"]
+		// An exact form ("=1") wins over the CLDR category, as in ICU, for
+		// languages like Chinese whose only category is "other".
+		if text, ok = msg.plural["="+strconv.Itoa(count)]; !ok {
+			if text, ok = msg.plural[pluralForm(loc, count)]; !ok {
+				text = msg.plural["other"]
+			}
 		}
 	}
 	return l.finish(text, data, pseudo)
@@ -71,6 +76,25 @@ func (l *Localizer) Resolve(s string) string {
 		return l.T(key)
 	}
 	return s
+}
+
+// ResolveSource is Resolve in the source language, whatever the current
+// locale. The host matches commands by their English words too, so that
+// searching in English keeps working after switching the UI language.
+func (l *Localizer) ResolveSource(s string) string {
+	key, ok := ManifestKey(s)
+	if !ok {
+		return s
+	}
+	msg, _, _ := l.m.lookupIn(l.ns, key, Source)
+	if msg == nil {
+		return key
+	}
+	text := msg.text
+	if msg.plural != nil {
+		text = msg.plural["other"]
+	}
+	return l.m.render(text, map[string]any{})
 }
 
 // ManifestKey reports whether s is a "%key%" reference and returns the key.

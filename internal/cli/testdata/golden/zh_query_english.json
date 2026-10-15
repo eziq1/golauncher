@@ -1,0 +1,115 @@
+{
+  "query": "clipboard",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "设置",
+      "items": [
+        {
+          "id": "settings:clipboard",
+          "title": "剪贴板",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Clipboard",
+            "jian tie ban",
+            "copy paste",
+            "复制粘贴"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:clipboard"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:clipboard"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:clipboard",
+          "rank": 0.6649999999999999
+        }
+      ]
+    },
+    {
+      "title": "命令",
+      "items": [
+        {
+          "id": "cmd:history",
+          "title": "搜索剪贴板历史",
+          "subtitle": "剪贴板历史",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "剪贴板",
+            "jtb",
+            "粘贴",
+            "zt",
+            "历史记录",
+            "lsjl",
+            "Search Clipboard History",
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "cmd:clear",
+          "title": "清除剪贴板历史",
+          "subtitle": "剪贴板历史",
+          "icon": {
+            "name": "trash"
+          },
+          "keywords": [
+            "Clear Clipboard History"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "clear"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:clear",
+          "rank": 0.5152499999999999
+        }
+      ]
+    }
+  ]
+}

@@ -154,6 +154,46 @@
           "rank": 0.5319999999999999
         },
         {
+          "id": "settings:network-ethernet",
+          "title": "Ethernet",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "以太网",
+            "yi tai wang",
+            "wired",
+            "lan",
+            "cable",
+            "有线网络",
+            "网线"
+          ],
+          "accessory": "Network & internet",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:network-ethernet"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:network-ethernet"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:network-ethernet",
+          "rank": 0.5319999999999999
+        },
+        {
           "id": "settings:privacy-broadfilesystemaccess",
           "title": "File System Permissions",
           "icon": {
@@ -188,6 +228,45 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:privacy-broadfilesystemaccess",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:assignedaccess",
+          "title": "Kiosk",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "展台",
+            "zhan tai",
+            "assigned access",
+            "kiosk mode",
+            "分配的访问权限",
+            "展台模式"
+          ],
+          "accessory": "Accounts",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:assignedaccess"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:assignedaccess"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:assignedaccess",
           "rank": 0.5319999999999999
         },
         {
@@ -385,6 +464,46 @@
           "rank": 0.5319999999999999
         },
         {
+          "id": "settings:network-wifi",
+          "title": "Wi-Fi",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "WLAN",
+            "wifi",
+            "wlan",
+            "wireless",
+            "无线",
+            "无线网络",
+            "无线网"
+          ],
+          "accessory": "Network & internet",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:network-wifi"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:network-wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:network-wifi",
+          "rank": 0.5319999999999999
+        },
+        {
           "id": "settings:windowsdefender",
           "title": "Windows Security",
           "icon": {
@@ -468,6 +587,43 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:windowsupdate",
+          "rank": 0.5319999999999999
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi",
           "rank": 0.5319999999999999
         }
       ]

@@ -96,6 +96,14 @@ The message catalog goes in `locales/en.json`:
 }
 ```
 
+Every new plugin ships **both `locales/en.json` and `locales/zh-CN.json`**
+(Simplified Chinese, following the glossary and rules in
+[i18n-zh-cn.md](i18n-zh-cn.md)); `glctl i18n check` fails on a key missing
+from `zh-CN.json`. Chinese has a single plural form, so plural messages need
+only `"other"`; where English says the `one` form differently (say, with
+`{{.name}}`), add an exact form `"=1"`. Keyword messages list Chinese words
+and their pinyin initials; the English keywords and title match too.
+
 Register the plugin in [`internal/builtin`](../internal/builtin/builtin.go).
 
 ## Interfaces
@@ -419,7 +427,8 @@ error.
   library and an allowlist of modules. Host internals are off limits.
 - No `go` statements or `WaitGroup.Go` in plugins; start goroutines with `Host.Go`.
 - No user-visible string literals. Use the Localizer, and use `%key%` in
-  manifests. `glctl i18n check` verifies that every key exists.
+  manifests. `glctl i18n check` verifies that every key exists, in `en.json`
+  and in `zh-CN.json`, with the same template arguments.
 
 These checks run as part of `go test ./...` (see `internal/lint`).
 

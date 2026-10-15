@@ -1,0 +1,108 @@
+{
+  "query": "time 北京",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "世界时钟",
+      "items": [
+        {
+          "id": "city:beijing",
+          "title": "Beijing  18:00:00",
+          "subtitle": "10月15日 星期四 · UTC+8 · +8 小时",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "世界时钟",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "复制时间",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "复制为 ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "beijing",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "添加到收藏",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "beijing"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "打开世界时钟",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBeijing · 2026年10月15日 星期四",
+            "metadata": [
+              {
+                "label": "时间",
+                "value": "18:00:00"
+              },
+              {
+                "label": "日期",
+                "value": "2026年10月15日 星期四"
+              },
+              {
+                "label": "国家/地区",
+                "value": "China"
+              },
+              {
+                "label": "时区",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC 偏移",
+                "value": "UTC+8"
+              },
+              {
+                "label": "缩写",
+                "value": "CST"
+              },
+              {
+                "label": "夏令时",
+                "value": "否"
+              },
+              {
+                "label": "下次切换",
+                "value": "无"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:beijing",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

@@ -122,6 +122,48 @@
           "rank": 0.6331818181818182
         },
         {
+          "id": "settings:signinoptions",
+          "title": "Sign-in Options",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "登录选项",
+            "deng lu xuan xiang",
+            "password",
+            "pin",
+            "windows hello",
+            "login",
+            "登录",
+            "密码",
+            "修改密码"
+          ],
+          "accessory": "Accounts",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:signinoptions"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:signinoptions"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:signinoptions",
+          "rank": 0.615125
+        },
+        {
           "id": "settings:apps-volume",
           "title": "Volume Mixer",
           "icon": {
@@ -241,6 +283,42 @@
           "rank": 0.60515
         },
         {
+          "id": "tool:cmdAdmin",
+          "title": "Command Prompt (Admin)",
+          "subtitle": "cmd",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "cmd",
+            "command prompt",
+            "terminal",
+            "elevated",
+            "admin",
+            "命令提示符",
+            "管理员",
+            "ming ling ti shi fu"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "do": {
+                "kind": "Open",
+                "target": "cmd.exe",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:cmdAdmin",
+          "rank": 0.6029333333333333
+        },
+        {
           "id": "settings:yourinfo",
           "title": "Your Info",
           "icon": {
@@ -282,40 +360,209 @@
           "rank": 0.6024117647058823
         },
         {
-          "id": "tool:cmdAdmin",
-          "title": "Command Prompt (Admin)",
-          "subtitle": "cmd",
+          "id": "settings:about",
+          "title": "About",
           "icon": {
-            "name": "terminal"
+            "name": "settings"
           },
           "keywords": [
-            "cmd",
-            "command prompt",
-            "terminal",
-            "elevated",
-            "admin",
-            "命令提示符",
-            "管理员",
-            "ming ling ti shi fu"
+            "关于",
+            "guan yu",
+            "system info",
+            "pc name",
+            "rename pc",
+            "specs",
+            "version",
+            "系统信息",
+            "电脑名称",
+            "重命名",
+            "配置",
+            "版本"
           ],
-          "accessory": "Windows Tools",
+          "accessory": "System",
           "group": "Settings",
           "actions": [
             {
-              "id": "runas",
-              "title": "Run as Administrator",
+              "id": "open",
+              "title": "Open",
               "do": {
                 "kind": "Open",
-                "target": "cmd.exe",
-                "payload": {
-                  "verb": "runas"
-                }
+                "target": "ms-settings:about"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:about"
               }
             }
           ],
           "plugin": "builtin.system",
-          "key": "builtin.system/tool:cmdAdmin",
-          "rank": 0.602
+          "key": "builtin.system/settings:about",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:activation",
+          "title": "Activation",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "激活",
+            "ji huo",
+            "product key",
+            "license",
+            "activate windows",
+            "产品密钥",
+            "许可证"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:activation"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:activation"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:activation",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:advanced-apps",
+          "title": "Advanced App Settings",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "高级应用设置",
+            "gao ji ying yong she zhi",
+            "app execution aliases",
+            "choose where to get apps",
+            "应用执行别名",
+            "获取应用的位置"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:advanced-apps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:advanced-apps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:advanced-apps",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:personalization-background",
+          "title": "Background",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "背景",
+            "bei jing",
+            "wallpaper",
+            "desktop background",
+            "slideshow",
+            "壁纸",
+            "桌面背景"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization-background"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization-background"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization-background",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:personalization-colors",
+          "title": "Colors",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "颜色",
+            "yan se",
+            "accent color",
+            "theme color",
+            "transparency",
+            "主题色",
+            "强调色",
+            "透明效果"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization-colors"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization-colors"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization-colors",
+          "rank": 0.5652499999999999
         },
         {
           "id": "tool:control",
@@ -477,6 +724,48 @@
           "rank": 0.5652499999999999
         },
         {
+          "id": "settings:multitasking",
+          "title": "Multitasking",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "多任务处理",
+            "duo ren wu chu li",
+            "snap",
+            "alt tab",
+            "virtual desktops",
+            "窗口贴靠",
+            "分屏",
+            "多任务",
+            "虚拟桌面"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:multitasking"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:multitasking"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:multitasking",
+          "rank": 0.5652499999999999
+        },
+        {
           "id": "settings:powersleep",
           "title": "Power & Sleep",
           "icon": {
@@ -635,6 +924,86 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:signinoptions-launchsecuritykeyenrollment",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:personalization-textinput",
+          "title": "Text Input",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "文本输入",
+            "wen ben shu ru",
+            "emoji panel",
+            "voice typing",
+            "input theme",
+            "表情面板",
+            "输入主题"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization-textinput"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization-textinput"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization-textinput",
+          "rank": 0.5652499999999999
+        },
+        {
+          "id": "settings:themes",
+          "title": "Themes",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "主题",
+            "zhu ti",
+            "theme",
+            "desktop icons",
+            "cursor",
+            "桌面图标",
+            "主题设置"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:themes"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:themes"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:themes",
           "rank": 0.5652499999999999
         },
         {
@@ -1161,465 +1530,6 @@
           "plugin": "builtin.system",
           "key": "builtin.system/settings:privacy-musiclibrary",
           "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-customdevices",
-          "title": "Other Devices Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "其他设备权限",
-            "qi ta she bei quan xian",
-            "other devices",
-            "其他设备"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-customdevices"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-customdevices"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-customdevices",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-phonecalls",
-          "title": "Phone Calls Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "电话呼叫权限",
-            "dian hua hu jiao quan xian",
-            "phone calls",
-            "电话"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-phonecalls"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-phonecalls"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-phonecalls",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-pictures",
-          "title": "Pictures Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "图片权限",
-            "tu pian quan xian",
-            "pictures library",
-            "photos",
-            "图片库",
-            "照片"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-pictures"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-pictures"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-pictures",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-radios",
-          "title": "Radios Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "无线电收发器权限",
-            "wu xian dian shou fa qi quan xian",
-            "radios",
-            "无线电"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-radios"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-radios"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-radios",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:search-permissions",
-          "title": "Search Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "搜索权限",
-            "sou suo quan xian",
-            "safesearch",
-            "search history",
-            "安全搜索",
-            "搜索历史"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:search-permissions"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:search-permissions"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:search-permissions",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-tasks",
-          "title": "Tasks Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "任务权限",
-            "ren wu quan xian",
-            "tasks",
-            "任务"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-tasks"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-tasks"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-tasks",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:privacy-videos",
-          "title": "Videos Permissions",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "视频权限",
-            "shi pin quan xian",
-            "videos library",
-            "视频库"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-videos"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-videos"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-videos",
-          "rank": 0.48999999999999994
-        },
-        {
-          "id": "settings:datausage",
-          "title": "Data Usage",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "数据使用量",
-            "shu ju shi yong liang",
-            "data limit",
-            "metered",
-            "traffic",
-            "流量",
-            "数据用量",
-            "按流量计费"
-          ],
-          "accessory": "Network & internet",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:datausage"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:datausage"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:datausage",
-          "rank": 0.4654999999999999
-        },
-        {
-          "id": "settings:gaming-gamemode",
-          "title": "Game Mode",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "游戏模式",
-            "you xi mo shi",
-            "game mode",
-            "gaming performance",
-            "游戏性能"
-          ],
-          "accessory": "Gaming",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:gaming-gamemode"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:gaming-gamemode"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:gaming-gamemode",
-          "rank": 0.4654999999999999
-        },
-        {
-          "id": "settings:privacy-notifications",
-          "title": "Notification Access",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "通知访问权限",
-            "tong zhi fang wen quan xian",
-            "notification permissions",
-            "通知权限"
-          ],
-          "accessory": "Privacy & security",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:privacy-notifications"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:privacy-notifications"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:privacy-notifications",
-          "rank": 0.4654999999999999
-        },
-        {
-          "id": "settings:otherusers",
-          "title": "Other Users",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "其他用户",
-            "qi ta yong hu",
-            "add user",
-            "family",
-            "new account",
-            "添加用户",
-            "家庭和其他用户",
-            "新建用户"
-          ],
-          "accessory": "Accounts",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:otherusers"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:otherusers"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:otherusers",
-          "rank": 0.4654999999999999
-        },
-        {
-          "id": "settings:personalization",
-          "title": "Personalization",
-          "icon": {
-            "name": "settings"
-          },
-          "keywords": [
-            "个性化",
-            "ge xing hua",
-            "customize",
-            "appearance",
-            "外观",
-            "自定义"
-          ],
-          "accessory": "Personalization",
-          "group": "Settings",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "ms-settings:personalization"
-              }
-            },
-            {
-              "id": "copy-uri",
-              "title": "Copy URI",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "ms-settings:personalization"
-              }
-            }
-          ],
-          "plugin": "builtin.system",
-          "key": "builtin.system/settings:personalization",
-          "rank": 0.4654999999999999
         }
       ]
     },
@@ -1764,7 +1674,7 @@
           ],
           "plugin": "builtin.terminal",
           "key": "builtin.terminal/profile:{9acb9455-ca41-5af7-950f-6bca1bc9722f}",
-          "rank": 0.4654999999999999
+          "rank": 0.6040416666666666
         },
         {
           "id": "profile:developer powershell for vs 2022",
@@ -1834,7 +1744,7 @@
           ],
           "plugin": "builtin.terminal",
           "key": "builtin.terminal/profile:developer powershell for vs 2022",
-          "rank": 0.4654999999999999
+          "rank": 0.6040416666666666
         },
         {
           "id": "profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
@@ -1904,7 +1814,216 @@
           ],
           "plugin": "builtin.terminal",
           "key": "builtin.terminal/profile:{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
-          "rank": 0.4654999999999999
+          "rank": 0.6040416666666666
+        },
+        {
+          "id": "profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "title": "PowerShell",
+          "subtitle": "Windows Terminal profile",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "accessory": "Default",
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "rank": 0.6040416666666666
+        },
+        {
+          "id": "profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "title": "Windows PowerShell",
+          "subtitle": "Windows Terminal profile · %SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "rank": 0.6040416666666666
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi",
+          "rank": 0.615125
+        },
+        {
+          "id": "cmd:dns",
+          "title": "DNS Lookup",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "dns",
+            "nslookup",
+            "dig",
+            "domain",
+            "records",
+            "域名",
+            "解析"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "dns"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "query",
+              "type": "text",
+              "placeholder": "Domain [@server]",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:dns",
+          "rank": 0.5652499999999999
         }
       ]
     },
@@ -2002,53 +2121,6 @@
           "plugin": "builtin.system",
           "key": "builtin.system/system:sleep",
           "rank": 0.5652499999999999
-        }
-      ]
-    },
-    {
-      "title": "Applications",
-      "items": [
-        {
-          "id": "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App",
-          "title": "Terminal",
-          "icon": {
-            "name": "app"
-          },
-          "accessory": "Application",
-          "group": "Applications",
-          "actions": [
-            {
-              "id": "open",
-              "title": "Open",
-              "do": {
-                "kind": "Open",
-                "target": "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
-              }
-            },
-            {
-              "id": "copy-path",
-              "title": "Copy Path",
-              "shortcut": "Ctrl+Shift+C",
-              "do": {
-                "kind": "CopyText",
-                "target": "shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
-              }
-            },
-            {
-              "id": "hide",
-              "title": "Hide Application",
-              "do": {
-                "kind": "Callback",
-                "target": "hide",
-                "payload": {
-                  "id": "Microsoft.WindowsTerminal_8wekyb3d8bbwe!App"
-                }
-              }
-            }
-          ],
-          "plugin": "builtin.apps",
-          "key": "builtin.apps/Microsoft.WindowsTerminal_8wekyb3d8bbwe!App",
-          "rank": 0.48999999999999994
         }
       ]
     }

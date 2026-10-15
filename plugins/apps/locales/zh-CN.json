@@ -1,0 +1,17 @@
+{
+  "plugin.name": "应用",
+  "plugin.description": "搜索并启动已安装的应用",
+  "command.reload.title": "重新加载应用",
+  "pref.hiddenApps.title": "隐藏的应用",
+  "pref.hiddenApps.description": "不在搜索结果中显示的应用 ID",
+  "accessory": "应用",
+  "group": "应用",
+  "action.open": "打开",
+  "action.runAsAdmin": "以管理员身份运行",
+  "action.reveal": "在文件资源管理器中显示",
+  "action.copyPath": "复制路径",
+  "action.hide": "隐藏应用",
+  "toast.reloaded": { "other": "找到 {{.Count}} 个应用" },
+  "toast.reloadFailed": "无法重新加载应用",
+  "toast.hidden": "已隐藏 {{.name}}"
+}

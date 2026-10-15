@@ -2,7 +2,7 @@
   "plugin.name": "你好（Go）",
   "plugin.description": "用 pkg/plugin/rpcserve 编写的 Go 外部插件示例",
   "command.greetings.title": "各种语言的问候",
-  "command.greetings.keywords": "hello, greetings, 问候",
+  "command.greetings.keywords": "问候, 你好, wh, nh",
   "command.count.title": "统计问候次数",
   "group": "你好",
   "root.title": "用 Go 打个招呼",

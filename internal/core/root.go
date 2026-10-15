@@ -106,7 +106,10 @@ func entryMatch(text string, it Entry) float64 {
 		best = max(best, match.Score(text, k))
 	}
 	for _, kw := range it.Keywords {
-		best = max(best, 0.95*match.Score(text, kw))
+		// Chinese keywords match by pinyin and its initials too, like titles.
+		for _, k := range match.Keys(kw) {
+			best = max(best, 0.95*match.Score(text, k))
+		}
 	}
 	if it.Subtitle != "" {
 		best = max(best, 0.6*match.Score(text, it.Subtitle))
@@ -198,7 +201,9 @@ func (e *Engine) rootEmpty(ctx context.Context, cfg config.Config, cur *plugin.C
 		out = append(out, rec)
 	}
 	if len(commands) > 0 {
-		slices.SortStableFunc(commands, func(a, b Entry) int { return cmp.Compare(a.Title, b.Title) })
+		// Chinese titles sort by their pinyin, as Chinese lists do.
+		sortKey := func(s string) string { k := match.Keys(s); return k[len(k)-1] }
+		slices.SortStableFunc(commands, func(a, b Entry) int { return cmp.Compare(sortKey(a.Title), sortKey(b.Title)) })
 		out = append(out, Section{Title: e.core.T("section.commands"), Items: commands})
 	}
 	return out, nil
@@ -238,13 +243,24 @@ func (e *Engine) commandEntry(cfg config.Config, pluginID, name string) (Entry, 
 		icon = l.m.Icon
 	}
 	var keywords []string
-	for _, k := range c.Keywords {
+	add := func(s string) {
 		// A keyword may be a %key% holding several comma-separated words.
-		for w := range strings.SplitSeq(l.loc.Resolve(k), ",") {
-			if w = strings.TrimSpace(w); w != "" {
+		for w := range strings.SplitSeq(s, ",") {
+			if w = strings.TrimSpace(w); w != "" && !slices.Contains(keywords, w) {
 				keywords = append(keywords, w)
 			}
 		}
+	}
+	for _, k := range c.Keywords {
+		add(l.loc.Resolve(k))
+	}
+	// The English title and keywords match too in other languages
+	// (design.md §10.3), so that searching in English keeps working.
+	if title := l.loc.ResolveSource(c.Title); title != l.loc.Resolve(c.Title) {
+		add(strings.ReplaceAll(title, ",", " "))
+	}
+	for _, k := range c.Keywords {
+		add(l.loc.ResolveSource(k))
 	}
 	if a := cfg.Plugin(pluginID).Commands[name].Alias; a != "" {
 		keywords = append(keywords, a)
