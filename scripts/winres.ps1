@@ -5,8 +5,8 @@
 
 .DESCRIPTION
   The resources come from cmd/<name>/winres/winres.json, the manifests next to
-  it and the icons in assets/ (regenerate those first with
-  "go run ./scripts/geniconsgen" when the icon changes).
+  it and the icons in assets/ (the designer's PNG files; replace them there
+  when the icon changes).
 
   The committed .syso files carry the version in winres.json. -Version stamps
   another one (as the release workflow and build.ps1 do); build.ps1 restores

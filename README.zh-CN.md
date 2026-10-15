@@ -1,8 +1,14 @@
-# golauncher
+<p align="center">
+  <img src="assets/icon.svg" width="128" height="128" alt="golauncher 图标">
+</p>
 
-类 Raycast 的 Windows 启动器，用 Go 和 [MyGo](https://github.com/egoist/mygo) 原生 UI 编写。
+<h1 align="center">golauncher</h1>
 
-[English](README.md)
+<p align="center">
+  类 Raycast 的 Windows 启动器，用 Go 和 <a href="https://github.com/egoist/mygo">MyGo</a> 原生 UI 编写。
+  <br>
+  <a href="README.md">English</a>
+</p>
 
 - 在任意位置按 **Alt+Space** 呼出，可以搜索应用、命令、文件，也可以直接算数。
 - 一切皆插件：内置功能和第三方插件用的是同一套[插件 SDK](pkg/plugin/)。

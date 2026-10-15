@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>golauncher</title>
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18233D"/>
+      <stop offset="1" stop-color="#05080F"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.45" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#2FD3F5" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#2FD3F5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arc" gradientUnits="userSpaceOnUse" x1="96" y1="400" x2="320" y2="140">
+      <stop offset="0" stop-color="#6C7CFF"/>
+      <stop offset="1" stop-color="#2FD3F5"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#ground)"/>
+  <g transform="translate(256 256) scale(1.08) translate(-256 -256)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="48">
+    <path d="M318.3 187.2 A120 120 0 1 0 318.3 324.8" stroke="url(#arc)"/>
+    <path d="M220 256 H412 M372 216 L412 256 L372 296" stroke="#F4FBFF"/>
+  </g>
+</svg>

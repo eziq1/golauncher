@@ -1,9 +1,15 @@
-# golauncher
+<p align="center">
+  <img src="assets/icon.svg" width="128" height="128" alt="golauncher icon">
+</p>
 
-A Raycast-style launcher for Windows, written in Go with the
-[MyGo](https://github.com/egoist/mygo) native UI toolkit.
+<h1 align="center">golauncher</h1>
 
-[简体中文](README.zh-CN.md)
+<p align="center">
+  A Raycast-style launcher for Windows, written in Go with the
+  <a href="https://github.com/egoist/mygo">MyGo</a> native UI toolkit.
+  <br>
+  <a href="README.zh-CN.md">简体中文</a>
+</p>
 
 - Press **Alt+Space** anywhere to search apps, commands, files and math.
 - Everything is a plugin. The built-in features use the same

@@ -64,6 +64,7 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- **New application icon** (executables, tray, README).
 - **File search** ranks your own files first and system, cache and program
   files last; new preferences "Hide system and cache files" and extra
   low-priority paths.
