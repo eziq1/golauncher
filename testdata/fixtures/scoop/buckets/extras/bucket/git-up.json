@@ -1,0 +1,7 @@
+{
+    "version": "2.2.0",
+    "description": "Fetch and rebase all locally-tracked branches",
+    "homepage": "https://github.com/msiebuhr/git-up",
+    "license": "MIT",
+    "bin": "git-up.exe"
+}

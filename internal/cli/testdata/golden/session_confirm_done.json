@@ -44,6 +44,32 @@
         "title": "Commands",
         "items": [
           {
+            "id": "cmd:cleanup",
+            "title": "Clean Up Scoop",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "trash"
+            },
+            "keywords": [
+              "scoop",
+              "cache"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "cleanup"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:cleanup"
+          },
+          {
             "id": "cmd:clear",
             "title": "Clear Clipboard History",
             "subtitle": "Clipboard History",
@@ -89,6 +115,32 @@
             "key": "builtin.scripts/cmd:new"
           },
           {
+            "id": "cmd:installed",
+            "title": "Installed Scoop Apps",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "scoop",
+              "uninstall"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "installed"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:installed"
+          },
+          {
             "id": "cmd:open-folder",
             "title": "Open Scripts Folder",
             "subtitle": "Script Commands",
@@ -131,6 +183,57 @@
             ],
             "plugin": "builtin.apps",
             "key": "builtin.apps/cmd:reload"
+          },
+          {
+            "id": "cmd:buckets",
+            "title": "Scoop Buckets",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "folder"
+            },
+            "keywords": [
+              "scoop"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "buckets"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:buckets"
+          },
+          {
+            "id": "cmd:updates",
+            "title": "Scoop Updates",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "scoop",
+              "upgrade"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "updates"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:updates"
           },
           {
             "id": "cmd:history",
@@ -186,6 +289,84 @@
             ],
             "plugin": "builtin.everything",
             "key": "builtin.everything/cmd:search"
+          },
+          {
+            "id": "cmd:search",
+            "title": "Search Scoop Packages",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "scoop",
+              "install",
+              "package"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "search"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:search"
+          },
+          {
+            "id": "cmd:update-all",
+            "title": "Update All Scoop Apps",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "scoop",
+              "upgrade"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "update-all"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:update-all"
+          },
+          {
+            "id": "cmd:update-buckets",
+            "title": "Update Scoop Buckets",
+            "subtitle": "Scoop",
+            "icon": {
+              "name": "package"
+            },
+            "keywords": [
+              "scoop"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "RunCommand",
+                  "target": "update-buckets"
+                }
+              }
+            ],
+            "plugin": "builtin.scoop",
+            "key": "builtin.scoop/cmd:update-buckets"
           }
         ]
       }

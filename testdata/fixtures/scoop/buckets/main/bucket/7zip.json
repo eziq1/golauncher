@@ -1,0 +1,11 @@
+{
+    "version": "24.08",
+    "description": "A multi-format file archiver with high compression ratios",
+    "homepage": "https://www.7-zip.org/",
+    "license": "LGPL-2.1-or-later",
+    "architecture": {
+        "64bit": { "bin": ["7z.exe"] },
+        "arm64": { "bin": ["7z.exe"] },
+        "32bit": { "bin": "7z.exe" }
+    }
+}

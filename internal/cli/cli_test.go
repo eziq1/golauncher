@@ -64,6 +64,10 @@ func TestGolden(t *testing.T) {
 		{"run_file_search", []string{"run", "builtin.everything/search", "--text", "工作", "--fixtures", fixtures}},
 		{"run_file_search_report", []string{"run", "builtin.everything/search", "--text", "report q3", "--fixtures", fixtures}},
 		{"query_scripts", []string{"query", "greet", "--fixtures", fixtures}},
+		{"run_scoop_search", []string{"run", "builtin.scoop/search", "--text", "git", "--fixtures", fixtures}},
+		{"run_scoop_search_chinese", []string{"run", "builtin.scoop/search", "--text", "微信", "--fixtures", fixtures}},
+		{"run_scoop_installed", []string{"run", "builtin.scoop/installed", "--fixtures", fixtures}},
+		{"run_scoop_updates", []string{"run", "builtin.scoop/updates", "--fixtures", fixtures}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -106,6 +110,38 @@ func TestSessionConfirmClear(t *testing.T) {
 	golden(t, "session_confirm_ask", out)
 	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
 	golden(t, "session_confirm_done", out)
+}
+
+// TestSessionScoopInstall installs a package from the search view: the fake
+// runner records the scoop command, which the output view shows.
+func TestSessionScoopInstall(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--fixtures", fixtures)
+	glctl(t, "session", "type", "-s", s, "search scoop packages")
+	glctl(t, "session", "key", "-s", s, "Enter")
+	glctl(t, "session", "type", "-s", s, "lazygit")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_scoop_install", out)
+	if !strings.Contains(out, "scoop install main/lazygit") {
+		t.Errorf("the output view does not show the install command:\n%s", out)
+	}
+}
+
+// TestSessionScoopUninstallConfirms asks before uninstalling.
+func TestSessionScoopUninstallConfirms(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--fixtures", fixtures)
+	glctl(t, "session", "type", "-s", s, "installed scoop apps")
+	glctl(t, "session", "key", "-s", s, "Enter")
+	glctl(t, "session", "type", "-s", s, "7zip")
+	out, _ := glctl(t, "session", "key", "-s", s, "Ctrl+X")
+	if !strings.Contains(out, `"confirm"`) {
+		t.Fatalf("no confirmation:\n%s", out)
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	if !strings.Contains(out, "scoop uninstall 7zip") {
+		t.Errorf("the output view does not show the uninstall command:\n%s", out)
+	}
 }
 
 func TestUsageErrors(t *testing.T) {
