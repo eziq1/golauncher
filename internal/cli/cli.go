@@ -440,6 +440,9 @@ func writeStep(w io.Writer, r stepResult) {
 	if s.Toast != nil {
 		fmt.Fprintf(w, "toast: [%s] %s %s\n", s.Toast.Style, s.Toast.Title, s.Toast.Message)
 	}
+	if s.Tasks != nil {
+		fmt.Fprintf(w, "tasks: %s\n", s.Tasks.Label)
+	}
 }
 
 func (c *cli) plugin(ctx context.Context, args []string) error {
