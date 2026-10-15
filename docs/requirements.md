@@ -20,6 +20,7 @@
 | R12 | 2026-10-15 | 问：怎么才能逮住这种崩溃？ | [reliability.md §2](reliability.md)：`debug.SetCrashOutput` 把崩溃调用栈写进日志 | ✅ |
 | R13 | 2026-10-15 | 用子 Agent 调研 Raycast 扩展仓库（raycast/extensions），看能否直接集成它们的扩展 | [raycast-extensions-research.md](raycast-extensions-research.md)：不能直接集成；推荐 M5 协议预留推送式渲染，先做 Script Commands 兼容（方案 C），之后再做 Node sidecar 原型验证 | ✅ 调研完成；⏳ 待你决定走哪个方案 |
 | R14 | 2026-10-15 | 在主程序和插件之间加一层防护：插件崩溃时主程序不能崩 | [reliability.md §3](reliability.md)：进程内防护（recover、`Host.Go`、事件分发、超时）；彻底隔离靠 M5 外部插件 | ✅ 进程内防护已完成；进程隔离随 M5 外部插件 📋 |
-| R15 | 2026-10-15 | 自安装：第一次打开时弹出安装界面，默认装到用户程序目录；已安装时比较版本，不一致就提示升级或降级，一致就跳过 | [self-install.md](self-install.md) | 🚧 子代理实现中 |
+| R15 | 2026-10-15 | 自安装：第一次打开时弹出安装界面，默认装到用户程序目录；已安装时比较版本，不一致就提示升级或降级，一致就跳过 | [self-install.md](self-install.md) | ✅ 已实现（安装界面尚未在真机上目视确认） |
 | R16 | 2026-10-15 | 每个新需求和每个方案都要落到 docs 里 | 本台账，以及每项对应的方案文档 | ✅ 持续执行 |
 | R17 | 2026-10-15 | 比较插件渲染的拉取式和推送式两种模型的优劣 | [plugin-render-model.md](plugin-render-model.md)：以拉取为主，加两级推送（先做 invalidate 通知，M5 再做推送快照） | ✅ 已分析；实现 📋 |
+| R18 | 2026-10-15 | 做 M5 插件平台，并为它单独写一份设计方案 | [m5-plugin-platform.md](m5-plugin-platform.md)：① Invalidate ② Form 视图和命令参数 ③ 设置项扩展 ④ 外部插件（JSON-RPC、进程隔离、推送快照）⑤ Script Commands | 🚧 W0（SDK）已完成，W1 子代理开发中 |

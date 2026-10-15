@@ -29,8 +29,13 @@ A Raycast-style launcher for Windows, written in Go with the
 ## Install
 
 Download `golauncher_<version>_windows_<arch>.zip` from
-[Releases](https://github.com/eziq1/golauncher/releases), unzip it anywhere and
-run `golauncher.exe`. It lives in the system tray.
+[Releases](https://github.com/eziq1/golauncher/releases), unzip it and run
+`golauncher.exe`. On first run it offers to install itself into
+`%LOCALAPPDATA%\Programs\golauncher` (no administrator rights needed) with a
+Start menu entry and an entry in *Settings › Apps* for uninstalling. Running a
+newer or older download later offers to upgrade or downgrade; the same version
+just starts the installed copy. Choose *Run without installing* (or pass
+`--portable`) to run it from where it is. golauncher lives in the system tray.
 
 Requirements:
 
@@ -41,6 +46,8 @@ Requirements:
 golauncher.exe --show       # show the launcher
 golauncher.exe --settings   # open Settings
 golauncher.exe --quit       # quit the running instance
+golauncher.exe --portable   # run without installing
+golauncher.exe --uninstall  # remove the installation
 ```
 
 | What | Where |
@@ -86,7 +93,7 @@ Tests that touch the real clipboard are skipped unless you opt in with `$env:GOL
 The end-to-end test drives a running GUI through a local control socket, which is only enabled when golauncher is started with `GOLAUNCHER_CONTROL=1`:
 
 ```powershell
-$env:GOLAUNCHER_CONTROL=1; .\golauncher.exe
+$env:GOLAUNCHER_CONTROL=1; .\golauncher.exe --portable
 $env:GOLAUNCHER_E2E=1; go test ./internal/shell -run RunningInstance
 ```
 

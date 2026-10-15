@@ -41,6 +41,9 @@ type Options struct {
 	Version string
 	// Plugins returns the plugins to load (default builtin.All).
 	Plugins func() []plugin.Plugin
+
+	// keepLoginItem leaves the login item alone: another copy is installed.
+	keepLoginItem bool
 }
 
 // Command-line actions.
@@ -100,6 +103,8 @@ type Shell struct {
 	suspended   bool   // hotkeys are off while one is being recorded
 	quitting    bool   // windows close for good
 
+	keepLoginItem bool // see Options
+
 	// prevForeground is the window that was active before the launcher
 	// showed, which Paste pastes into.
 	prevForeground atomic.Uintptr
@@ -107,8 +112,12 @@ type Shell struct {
 }
 
 // Run runs golauncher until it quits. A second instance hands its arguments
-// to the running one and returns at once.
+// to the running one and returns at once. A copy that is not installed
+// first offers to install itself (docs/self-install.md).
 func Run(o Options) error {
+	if done, err := selfInstall(&o); done {
+		return err
+	}
 	action := parseArgs(o.Args)
 	mygo.App.SetName(AppName)
 	if !mygo.App.RequestSingleInstanceLock() {
@@ -128,7 +137,7 @@ func Run(o Options) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	s := &Shell{log: log, level: level, version: o.Version, ctx: ctx, cancel: cancel}
+	s := &Shell{log: log, level: level, version: o.Version, ctx: ctx, cancel: cancel, keepLoginItem: o.keepLoginItem}
 	plugins := builtin.All
 	if o.Plugins != nil {
 		plugins = o.Plugins
@@ -356,7 +365,7 @@ func (s *Shell) localeChanged() {
 }
 
 func (s *Shell) syncLoginItem(c config.Config) {
-	if c.LaunchAtLogin == mygo.App.OpenAtLogin() {
+	if s.keepLoginItem || c.LaunchAtLogin == mygo.App.OpenAtLogin() {
 		return
 	}
 	if err := mygo.App.SetOpenAtLogin(c.LaunchAtLogin); err != nil {

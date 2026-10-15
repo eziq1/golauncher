@@ -615,8 +615,8 @@ type Localizer interface {
 | **M2 内置插件** | `calc`、`apps`、`clipboard`；之后追加 `everything`（R8） | 各插件单元测试 + `glctl` 集成测试 | ✅ |
 | **M3 GUI 完整化** | 导航栈、动作面板、详情预览、确认对话框、主题、托盘 | `ui.NewTester` 覆盖主要交互 | ✅ |
 | **M4 设置界面** | 通用、插件、高级、关于；偏好表单自动生成；热键录制；凭据管理器；导入导出 | 设置修改即时生效 | ✅ |
-| **v0.1.0 发布**（原 M6 的一部分） | 发布工程（版本号、图标、CI、自动发布）、代码审查与修复、稳定性（R11、R12、R14）、自安装（R15）、文档 | CI 全绿；GitHub Release 包含 amd64 和 arm64 两个 zip | 🚧 只差自安装；合入后重新打 `v0.1.0`（[release.md](release.md)） |
-| **M5 插件平台（v0.2）** | ① `Host.Invalidate`：通知后再拉取（[plugin-render-model.md](plugin-render-model.md) 第一级）<br>② Form 视图和命令参数输入<br>③ 设置项扩展：按钮型、动态选项、分组和条件显示（[plugin-settings.md](plugin-settings.md)）<br>④ 外部插件：JSON-RPC、`extproc`、`rpcserve`；进程隔离、崩溃重启和熔断（[reliability.md §3.3](reliability.md)）；协议预留 `ui/render` 推送快照（第二级）<br>⑤ 兼容 Raycast Script Commands（[调研方案 C](raycast-extensions-research.md)） | 用 Go 和 Python 各写一个示例外部插件并跑通；外部插件崩溃不影响宿主；剪贴板和应用视图能自动刷新 | 📋 |
+| **v0.1.0 发布**（原 M6 的一部分） | 发布工程（版本号、图标、CI、自动发布）、代码审查与修复、稳定性（R11、R12、R14）、自安装（R15）、文档 | CI 全绿；GitHub Release 包含 amd64 和 arm64 两个 zip | ✅ 功能齐备（含自安装，[self-install.md](self-install.md)）；发布记录见 [release.md](release.md) |
+| **M5 插件平台（v0.2）** | ① `Host.Invalidate`：通知后再拉取（[plugin-render-model.md](plugin-render-model.md) 第一级）<br>② Form 视图和命令参数输入<br>③ 设置项扩展：按钮型、动态选项、分组和条件显示（[plugin-settings.md](plugin-settings.md)）<br>④ 外部插件：JSON-RPC、`extproc`、`rpcserve`；进程隔离、崩溃重启和熔断（[reliability.md §3.3](reliability.md)）；协议预留 `ui/render` 推送快照（第二级）<br>⑤ 兼容 Raycast Script Commands（[调研方案 C](raycast-extensions-research.md)） | 用 Go 和 Python 各写一个示例外部插件并跑通；外部插件崩溃不影响宿主；剪贴板和应用视图能自动刷新 | 🚧 设计见 [m5-plugin-platform.md](m5-plugin-platform.md) |
 | **M6 分发与维护（v0.3）** | 自动更新（MyGo `plugins/updater`）、代码签名、计算器补全（`ans`、单位和汇率换算）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 📋 |
 | **M7 Raycast 扩展兼容评估** | 约 2 人周的 Node sidecar 原型：自写 `@raycast/api` 子集和 React reconciler，通过 `ui/render` 推送；挑 3–5 个支持 Windows 的纯列表扩展试跑 | 根据结果决定是否投入方案 B（8–12 人周） | 📋 等你决定（R13） |
 ## 13. 风险与对策

@@ -19,7 +19,7 @@
 ## 安装
 
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_windows_<架构>.zip`。
-2. 解压到任意目录，运行 `golauncher.exe`。程序会常驻在系统托盘。
+2. 解压后运行 `golauncher.exe`。第一次运行会弹出安装界面，默认安装到 `%LOCALAPPDATA%\Programs\golauncher`（不需要管理员权限），并创建开始菜单项、在"设置 › 应用"里注册卸载入口。之后运行更新或更旧的版本，会提示升级或降级；版本相同则直接启动已安装的程序。也可以选择"不安装，直接运行"（或加 `--portable` 参数）。程序常驻在系统托盘。
 
 需要 Windows 10 或 11，Acrylic 毛玻璃背景只在 Windows 11 上有。不需要 WebView2 运行时。
 
@@ -27,6 +27,8 @@
 golauncher.exe --show       # 呼出启动器
 golauncher.exe --settings   # 打开设置
 golauncher.exe --quit       # 退出正在运行的实例
+golauncher.exe --portable   # 不安装，直接运行
+golauncher.exe --uninstall  # 卸载
 ```
 
 | 内容 | 位置 |

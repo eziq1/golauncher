@@ -43,6 +43,12 @@ WebView2).
 - **Data locations**: `config.json` in `%APPDATA%\golauncher`; databases and
   clipboard history in `%LOCALAPPDATA%\golauncher\data` so they never roam.
   A corrupt `config.json` is set aside and the defaults are used.
+- **Self-installer**: on first run golauncher offers to install itself into
+  `%LOCALAPPDATA%\Programs\golauncher` (per user, no UAC) with a Start menu
+  shortcut, optional desktop shortcut, launch at login and an uninstall entry
+  in *Settings › Apps*. Running another version offers an upgrade or
+  downgrade; the same version starts the installed copy. `--portable` runs
+  without installing; `--uninstall` removes it.
 - **Robustness**: plugins cannot take the launcher down. Panics in plugin
   calls, `Init`/`Close`, event handlers and plugin goroutines (started with
   the new `Host.Go`) are contained and logged; hung plugin calls time out
@@ -73,7 +79,7 @@ WebView2).
 - `Tab` does not yet move into command arguments.
 - Hotkey display names are not localized.
 - The UI ships in English only (plus the `en-XA` pseudo-locale).
-- No installer and no auto-update: unzip and run `golauncher.exe`.
+- No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
 [Unreleased]: https://github.com/eziq1/golauncher/compare/v0.1.0...HEAD
