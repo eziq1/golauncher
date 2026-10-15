@@ -22,7 +22,7 @@ func TestSkipApp(t *testing.T) {
 		{App{Name: "Sandboxie-Plus 网站", ID: "http://sandboxie-plus.com/"}, true},
 		{App{Name: "license", ID: "x", Path: `C:\IDM\license.txt`}, true},
 		{App{Name: "Readme", ID: "x", Path: `C:\a\readme.exe`}, true},
-		{App{Name: "Ryzen Master Help Guide", ID: `{6D80}\Userguide.html`}, true},
+		{App{Name: "Contoso Help Guide", ID: `{6D80}\Userguide.html`}, true},
 		{App{Name: "Get Help", ID: "Microsoft.GetHelp_8wekyb3d8bbwe!App", Packaged: true}, false},
 		{App{Name: "", ID: "x"}, true},
 	}
