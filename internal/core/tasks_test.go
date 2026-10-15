@@ -37,7 +37,7 @@ func (p *taskPlugin) Manifest() plugin.Manifest {
 }
 
 func (p *taskPlugin) Init(_ context.Context, h plugin.Host) error { p.h = h; return nil }
-func (p *taskPlugin) Close() error                              { return nil }
+func (p *taskPlugin) Close() error                                { return nil }
 
 func (p *taskPlugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	switch a.Target {

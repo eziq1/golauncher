@@ -9,8 +9,7 @@
   "action.run": "Run Script",
   "action.reveal": "Show in File Explorer",
   "action.copyPath": "Copy Path",
-  "action.stop": "Stop Script",
-  "action.copyOutput": "Copy Output",
+  "action.showTask": "Show in Background Tasks",
   "toast.runFailed": "Could not run {{.name}}",
   "toast.finished": "{{.name}} finished",
   "toast.timedOut": "{{.name}} took too long and was stopped",
@@ -21,15 +20,5 @@
   "error.noInterpreter": "{{.program}} was not found. Install it or add it to PATH.",
   "error.noDirectory": "No script directory is configured.",
   "template.title": "My Script Command {{.n}}",
-  "status.running": "Running…",
-  "status.stopped": "Stopped",
-  "status.exited": "Exited with code {{.code}}",
-  "status.error": "Failed: {{.error}}",
-  "view.title": "Script Output",
-  "view.gone": "This run is no longer available.",
-  "view.truncated": "… (earlier output omitted)",
-  "view.noOutput": "(no output)",
-  "meta.status": "Status",
-  "meta.duration": "Duration",
-  "meta.script": "Script"
+  "status.exited": "Exited with code {{.code}}"
 }

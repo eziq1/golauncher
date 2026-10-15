@@ -29,7 +29,7 @@ type sessionFile struct {
 
 // step is one interaction.
 type step struct {
-	Op   string `json:"op"` // type, key, select, action, field, arg
+	Op   string `json:"op"` // type, key, select, action, field, arg, wait-tasks
 	Arg  string `json:"arg,omitempty"`
 	Arg2 string `json:"arg2,omitempty"`
 }
@@ -40,7 +40,7 @@ func (s step) String() string {
 
 func (c *cli) session(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return usagef("session: want new|type|key|select|action|field|arg|show")
+		return usagef("session: want new|type|key|select|action|field|arg|wait-tasks|show")
 	}
 	op := args[0]
 	var ef envFlags
@@ -81,6 +81,11 @@ func (c *cli) session(ctx context.Context, args []string) error {
 		if len(pos) == 2 {
 			next.Arg2 = pos[1]
 		}
+	case "wait-tasks":
+		if len(pos) != 0 {
+			return usagef("session wait-tasks: takes no arguments")
+		}
+		next = &step{Op: op}
 	case "field", "arg":
 		if len(pos) < 1 {
 			return usagef("session %s: want <name> <value>", op)
@@ -90,18 +95,11 @@ func (c *cli) session(ctx context.Context, args []string) error {
 		return usagef("session: unknown step %q", op)
 	}
 
-	e, err := c.build(ctx, sess.Env)
+	e, err := c.replay(ctx, sess)
 	if err != nil {
 		return err
 	}
 	defer e.Close()
-	e.Controller.Reset(ctx)
-	e.Controller.Wait()
-	for i, s := range sess.Steps {
-		if _, err := apply(ctx, e, s); err != nil {
-			return fmt.Errorf("replaying step %d (%s): %w", i+1, s, err)
-		}
-	}
 	res := stepResult{}
 	if next != nil {
 		e.rec.Reset()
@@ -128,6 +126,23 @@ func (c *cli) session(ctx context.Context, args []string) error {
 	return nil
 }
 
+// replay builds the session's environment and replays its steps.
+func (c *cli) replay(ctx context.Context, sess sessionFile) (*env, error) {
+	e, err := c.build(ctx, sess.Env)
+	if err != nil {
+		return nil, err
+	}
+	e.Controller.Reset(ctx)
+	e.Controller.Wait()
+	for i, s := range sess.Steps {
+		if _, err := apply(ctx, e, s); err != nil {
+			e.Close()
+			return nil, fmt.Errorf("replaying step %d (%s): %w", i+1, s, err)
+		}
+	}
+	return e, nil
+}
+
 func apply(ctx context.Context, e *env, s step) (*core.Outcome, error) {
 	ctrl := e.Controller
 	defer ctrl.Wait()
@@ -152,6 +167,8 @@ func apply(ctx context.Context, e *env, s step) (*core.Outcome, error) {
 		return nil, ctrl.SetField(s.Arg, s.Arg2)
 	case "arg":
 		return nil, ctrl.SetArgument(s.Arg, s.Arg2)
+	case "wait-tasks":
+		return nil, waitTasks(ctx, e)
 	default:
 		return nil, fmt.Errorf("unknown step %q", s.Op)
 	}

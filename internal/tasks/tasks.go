@@ -103,10 +103,10 @@ type Options struct {
 	// (default 2 MiB); the log file has all of it.
 	MaxOutput int
 	// Env is the base environment of programs (default os.Environ()).
-	Env  []string
-	Now  func() time.Time
-	Log  *slog.Logger
-	Loc  plugin.Localizer // for the host's own error messages (may be nil)
+	Env []string
+	Now func() time.Time
+	Log *slog.Logger
+	Loc plugin.Localizer // for the host's own error messages (may be nil)
 	// Allowed reports whether a plugin may run programs (PermExec); nil
 	// allows every plugin.
 	Allowed func(pluginID string) bool

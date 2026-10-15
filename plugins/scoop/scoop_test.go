@@ -8,13 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -24,19 +24,18 @@ type env struct {
 	t      *testing.T
 	p      *Plugin
 	h      *hostfake.Host
-	runner *FakeRunner
+	runner *tasks.FakeRunner // the host's: commands end at once
 }
 
-// newEnv starts the plugin on the Scoop root dir with a fake runner.
+// newEnv starts the plugin on the Scoop root dir. Its operations are tasks
+// of the fake host, whose runner records them.
 func newEnv(t *testing.T, root string, o Options) *env {
 	t.Helper()
-	e := &env{t: t, runner: &FakeRunner{}}
-	if o.Runner == nil {
-		o.Runner = e.runner
-	} else if f, ok := o.Runner.(*FakeRunner); ok {
-		e.runner = f
-	}
+	e := &env{t: t}
 	o.Root, o.NoDetect = root, true
+	if o.Shell == "" {
+		o.Shell = "powershell.exe"
+	}
 	if o.Global == "" && root != "" {
 		o.Global = filepath.Join(root, "global")
 	}
@@ -45,12 +44,24 @@ func newEnv(t *testing.T, root string, o Options) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.h = h
+	e.h, e.runner = h, h.Runner
 	if err := e.p.Init(t.Context(), h); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { e.p.Close() })
+	t.Cleanup(func() {
+		h.Tasks.Close()
+		e.p.Close()
+	})
 	return e
+}
+
+// commands returns the command lines run since the first n commands.
+func (e *env) commands(n int) []string {
+	var out []string
+	for _, c := range e.runner.Commands()[n:] {
+		out = append(out, c.CommandLine)
+	}
+	return out
 }
 
 func (e *env) setPref(name string, v any) {
@@ -174,7 +185,7 @@ func TestUnavailableWithoutScoop(t *testing.T) {
 
 func TestDetectedRootIsUsed(t *testing.T) {
 	root, _ := filepath.Abs(fixtureRoot)
-	p := NewWithOptions(Options{Runner: &FakeRunner{}, Sync: true,
+	p := NewWithOptions(Options{Sync: true,
 		Getenv: func(k string) string { return map[string]string{"SCOOP": root}[k] }})
 	h, err := hostfake.New(p, t.TempDir())
 	if err != nil {
@@ -336,7 +347,7 @@ func TestIndexCache(t *testing.T) {
 	copyDir(t, fixtureRoot, root)
 	cache := t.TempDir()
 	newPlugin := func() *Plugin {
-		p := NewWithOptions(Options{Root: root, NoDetect: true, Runner: &FakeRunner{}, Sync: true})
+		p := NewWithOptions(Options{Root: root, NoDetect: true, Sync: true})
 		h, err := hostfake.New(p, cache)
 		if err != nil {
 			t.Fatal(err)
@@ -544,51 +555,53 @@ func TestActionCommands(t *testing.T) {
 		"url":  jsontext.Value(`"https://github.com/me/my-bucket"`),
 	}
 	steps := []struct {
-		name string
-		do   plugin.ActionDo
-		want []string
+		name  string
+		do    plugin.ActionDo
+		want  string
+		title string
 	}{
-		{"install", action(t, e.item(search, "pkg/main/lazygit"), "install").Do, []string{"install main/lazygit"}},
-		{"update", action(t, e.item(search, "pkg/main/git"), "update").Do, []string{"update git"}},
-		{"uninstall", action(t, e.item(inst, "app/7zip"), "uninstall").Do, []string{"uninstall 7zip"}},
-		{"hold", action(t, e.item(inst, "app/7zip"), "hold").Do, []string{"hold 7zip"}},
-		{"unhold", action(t, e.item(inst, "app/nodejs"), "unhold").Do, []string{"unhold nodejs"}},
-		{"update all", action(t, e.item(e.view(cmdUpdates, ""), "update-all"), "update-all").Do, []string{"update", "update *"}},
-		{"update all command", plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateAll}, []string{"update", "update *"}},
-		{"update buckets", plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateBuckets}, []string{"update"}},
-		{"add known bucket", action(t, e.item(buckets, "known/versions"), "add-bucket").Do, []string{"bucket add versions"}},
-		{"add custom bucket", custom, []string{"bucket add mine https://github.com/me/my-bucket"}},
-		{"remove bucket", action(t, e.item(buckets, "bucket/extras"), "remove-bucket").Do, []string{"bucket rm extras"}},
-		{"cleanup", action(t, e.item(e.view(cmdCleanup, ""), "cleanup"), "cleanup").Do, []string{"cleanup *", "cache rm *"}},
+		{"install", action(t, e.item(search, "pkg/main/lazygit"), "install").Do, "scoop install main/lazygit", "Install lazygit"},
+		{"update", action(t, e.item(search, "pkg/main/git"), "update").Do, "scoop update git", "Update git"},
+		{"uninstall", action(t, e.item(inst, "app/7zip"), "uninstall").Do, "scoop uninstall 7zip", "Uninstall 7zip"},
+		{"hold", action(t, e.item(inst, "app/7zip"), "hold").Do, "scoop hold 7zip", "Hold 7zip"},
+		{"unhold", action(t, e.item(inst, "app/nodejs"), "unhold").Do, "scoop unhold nodejs", "Unhold nodejs"},
+		{"update all", action(t, e.item(e.view(cmdUpdates, ""), "update-all"), "update-all").Do, "scoop update && scoop update *", "Update All Apps"},
+		{"update all command", plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateAll}, "scoop update && scoop update *", "Update All Apps"},
+		{"update buckets", plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateBuckets}, "scoop update", "Update Buckets"},
+		{"add known bucket", action(t, e.item(buckets, "known/versions"), "add-bucket").Do, "scoop bucket add versions", "Add Bucket versions"},
+		{"add custom bucket", custom, "scoop bucket add mine https://github.com/me/my-bucket", "Add Bucket mine"},
+		{"remove bucket", action(t, e.item(buckets, "bucket/extras"), "remove-bucket").Do, "scoop bucket rm extras", "Remove Bucket extras"},
+		{"cleanup", action(t, e.item(e.view(cmdCleanup, ""), "cleanup"), "cleanup").Do, "scoop cleanup * && scoop cache rm *", "Clean Up"},
 	}
 	for _, st := range steps {
 		before := len(e.runner.Commands())
 		res := e.run(st.do)
-		if res.Push == nil || res.Push.ID != viewOutput {
-			t.Fatalf("%s: result %+v, want the output view", st.name, res)
+		// The action returns at once with a toast; the operation is a task.
+		if res.Push != nil || res.Toast == nil || res.Toast.Style != plugin.ToastInfo ||
+			res.Toast.Title != st.title+": running in the background" {
+			t.Fatalf("%s: result %+v %+v", st.name, res, res.Toast)
 		}
-		var got []string
-		for _, c := range e.runner.Commands()[before:] {
-			got = append(got, strings.Join(c, " "))
-		}
-		if !slices.Equal(got, st.want) {
+		e.h.WaitTasks()
+		if got := e.commands(before); !slices.Equal(got, []string{st.want}) {
 			t.Errorf("%s: ran %q, want %q", st.name, got, st.want)
 		}
-		out := e.p.View
-		v, err := out(t.Context(), *res.Push)
-		if err != nil {
-			t.Fatal(err)
+		list := e.h.Tasks.List()
+		task := list[0]
+		if task.Title != st.title || task.Queue != "scoop" || task.Notify != plugin.NotifyAlways || task.Plugin != ID ||
+			task.State != plugin.TaskSucceeded || task.Icon.Name != "package" {
+			t.Errorf("%s: task %+v", st.name, task)
 		}
-		it := v.Sections[0].Items[0]
-		if it.Title != "Done" || !strings.Contains(it.Detail.Markdown, "> scoop "+st.want[0]) {
-			t.Errorf("%s: output view %q %q", st.name, it.Title, it.Detail.Markdown)
+		cmd := e.runner.Commands()[before]
+		if len(cmd.Argv) != 7 || cmd.Argv[0] != "powershell.exe" || cmd.Argv[5] != "-EncodedCommand" {
+			t.Errorf("%s: argv %q", st.name, cmd.Argv)
 		}
 	}
 
 	e.setPref(prefUpdateBucketsFirst, false)
 	before := len(e.runner.Commands())
 	e.run(plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateAll})
-	if got := e.runner.Commands()[before:]; len(got) != 1 || strings.Join(got[0], " ") != "update *" {
+	e.h.WaitTasks()
+	if got := e.commands(before); !slices.Equal(got, []string{"scoop update *"}) {
 		t.Errorf("update all without updating buckets: %q", got)
 	}
 }
@@ -610,15 +623,28 @@ func TestBadRequestsAreRefused(t *testing.T) {
 		}
 	}
 	if c := e.runner.Commands(); len(c) != 0 {
-		t.Errorf("ran %q", c)
+		t.Errorf("ran %+v", c)
+	}
+	if l := e.h.Tasks.List(); len(l) != 0 {
+		t.Errorf("tasks %+v", l)
 	}
 }
 
 func TestScriptQuoting(t *testing.T) {
-	s := Script([]string{"install", "it's", "a b", "$(evil)", "‘x’"})
-	want := `& scoop 'install' 'it''s' 'a b' '$(evil)' '‘‘x’’'`
-	if !strings.Contains(s, want) {
-		t.Errorf("script:\n%s\nwant %s", s, want)
+	s := Script(`C:\my scoop`, [][]string{{"install", "it's", "a b", "$(evil)", "‘x’"}, {"update", "*"}})
+	for _, want := range []string{
+		`& scoop 'install' 'it''s' 'a b' '$(evil)' '‘‘x’’'`,
+		`$env:SCOOP = 'C:\my scoop'`,
+		`$env:PATH = 'C:\my scoop\shims;' + $env:PATH`,
+		"Write-Output '> scoop update *'",
+		"if ($global:LASTEXITCODE -ne 0) { exit $global:LASTEXITCODE }",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("script:\n%s\nwant %s", s, want)
+		}
+	}
+	if i, j := strings.Index(s, "'install'"), strings.Index(s, "'update' '*'"); i < 0 || j < i {
+		t.Error("steps out of order")
 	}
 	if CommandLine([]string{"update", "*"}) != "scoop update *" {
 		t.Error("CommandLine")
@@ -649,29 +675,6 @@ func TestRootItems(t *testing.T) {
 	}
 }
 
-// blockingRunner is a FakeRunner whose commands run until released or
-// stopped, counting how many run at once.
-func blockingRunner(release <-chan struct{}, running, maxRunning *atomic.Int32) *FakeRunner {
-	return &FakeRunner{Hook: func(args []string, out io.Writer, stop <-chan struct{}) int {
-		n := running.Add(1)
-		defer running.Add(-1)
-		for {
-			m := maxRunning.Load()
-			if n <= m || maxRunning.CompareAndSwap(m, n) {
-				break
-			}
-		}
-		io.WriteString(out, "working on "+strings.Join(args, " ")+"\n")
-		select {
-		case <-release:
-			io.WriteString(out, "finished\n")
-			return 0
-		case <-stop:
-			return 1
-		}
-	}}
-}
-
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
@@ -683,116 +686,88 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	}
 }
 
-func TestQueueRunsOneAtATime(t *testing.T) {
+// TestOperationsRunOneAtATime: operations share the host's "scoop" queue,
+// so they run one after the other; the index is read again after each.
+func TestOperationsRunOneAtATime(t *testing.T) {
 	release := make(chan struct{})
 	var running, maxRunning atomic.Int32
-	e := newEnv(t, fixtureRoot, Options{Runner: blockingRunner(release, &running, &maxRunning)})
-	waitFor(t, "the index", func() bool { return e.p.Index() != nil })
-
-	start := func(req opRequest) *op {
-		res := e.run(plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackOp, Payload: plugin.MustPayload(req)})
-		if res.Push == nil {
-			t.Fatalf("%+v", res)
+	e := newEnv(t, fixtureRoot, Options{})
+	e.runner.Hook = func(cmd plugin.ProcessSpec, out io.Writer, stop <-chan struct{}) int {
+		n := running.Add(1)
+		defer running.Add(-1)
+		for {
+			m := maxRunning.Load()
+			if n <= m || maxRunning.CompareAndSwap(m, n) {
+				break
+			}
 		}
-		e.p.mu.Lock()
-		defer e.p.mu.Unlock()
-		return e.p.ops["op"+strconv.Itoa(e.p.opSeq)]
+		io.WriteString(out, "working on "+cmd.CommandLine+"\n")
+		select {
+		case <-release:
+			return 0
+		case <-stop:
+			return 1
+		}
 	}
-	a := start(opRequest{Kind: opInstall, Name: "lazygit", Bucket: "main"})
-	b := start(opRequest{Kind: opUpdate, Name: "git"})
-	c := start(opRequest{Kind: opHold, Name: "7zip"})
-	waitFor(t, "the first operation to run", func() bool { return a.state().status == opRunning })
-	if b.state().status != opQueued || c.state().status != opQueued {
-		t.Fatal("operations run concurrently")
+	waitFor(t, "the index", func() bool { return e.p.Index() != nil })
+	for _, req := range []opRequest{{Kind: opInstall, Name: "lazygit", Bucket: "main"}, {Kind: opUpdate, Name: "git"}, {Kind: opHold, Name: "7zip"}} {
+		e.run(plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackOp, Payload: plugin.MustPayload(req)})
 	}
-
-	// The output view of a running operation streams output and offers Stop;
-	// views list the queued and running operations.
-	waitFor(t, "output", func() bool { return strings.Contains(a.out.String(), "working on install main/lazygit") })
-	v, _ := e.p.View(t.Context(), plugin.ViewRequest{ID: viewOutput, Payload: plugin.MustPayload(stopPayload{Op: a.id})})
-	it := v.Sections[0].Items[0]
-	if it.Title != "Running…" || it.Actions[0].ID != "stop" || !strings.Contains(it.Detail.Markdown, "working on") {
-		t.Errorf("running output view: %q %v %q", it.Title, actionIDs(it), it.Detail.Markdown)
+	states := func() []plugin.TaskState {
+		var out []plugin.TaskState
+		for _, i := range e.h.Tasks.List() {
+			out = append(out, i.State)
+		}
+		return out
 	}
-	waitFor(t, "an output refresh", func() bool { return slices.Contains(e.h.Invalidated(), viewOutput) })
-	inst := e.view(cmdInstalled, "")
-	if inst.Sections[0].Title != "Scoop Operations" || len(inst.Sections[0].Items) != 3 {
-		t.Errorf("operations section: %+v", inst.Sections[0])
+	waitFor(t, "the first operation", func() bool { return running.Load() == 1 })
+	if got := states(); !slices.Equal(got, []plugin.TaskState{plugin.TaskRunning, plugin.TaskQueued, plugin.TaskQueued}) {
+		t.Fatalf("states %v", got)
 	}
-	bv, _ := e.p.View(t.Context(), plugin.ViewRequest{ID: viewOutput, Payload: plugin.MustPayload(stopPayload{Op: b.id})})
-	if got := bv.Sections[0].Items[0].Title; got != "Waiting for another Scoop operation…" {
-		t.Errorf("queued status %q", got)
+	// The views no longer list operations: Background Tasks does.
+	for _, s := range e.view(cmdInstalled, "").Sections {
+		if strings.Contains(s.Title, "Operations") {
+			t.Errorf("section %q", s.Title)
+		}
 	}
-
-	// Stopping a queued operation drops it; stopping the running one ends it.
-	e.run(plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackStop, Payload: plugin.MustPayload(stopPayload{Op: b.id})})
-	if s := b.state(); s.status != opDone || !s.stopped {
-		t.Errorf("stopped queued op: %+v", s)
-	}
-	e.run(plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackStop, Payload: plugin.MustPayload(stopPayload{Op: a.id})})
-	if s := a.state(); s.status != opDone || !s.stopped {
-		t.Errorf("stopped running op: %+v", s)
-	}
-	v, _ = e.p.View(t.Context(), plugin.ViewRequest{ID: viewOutput, Payload: plugin.MustPayload(stopPayload{Op: a.id})})
-	if it := v.Sections[0].Items[0]; it.Title != "Stopped" || slices.Contains(actionIDs(it), "stop") {
-		t.Errorf("stopped view: %q %v", it.Title, actionIDs(it))
-	}
-
-	// The last one runs and succeeds.
-	waitFor(t, "the third operation", func() bool { return c.state().status == opRunning })
 	close(release)
-	c.wait(t.Context())
-	if s := c.state(); !s.succeeded() {
-		t.Errorf("third op: %+v", s)
-	}
-	var got []string
-	for _, cmd := range e.runner.Commands() {
-		got = append(got, strings.Join(cmd, " "))
-	}
-	if !slices.Equal(got, []string{"install main/lazygit", "hold 7zip"}) {
-		t.Errorf("commands %q (the dropped one must not run)", got)
-	}
+	e.h.WaitTasks()
 	if maxRunning.Load() != 1 {
-		t.Errorf("%d commands ran at once", maxRunning.Load())
+		t.Errorf("%d operations ran at once", maxRunning.Load())
+	}
+	if got := states(); !slices.Equal(got, []plugin.TaskState{plugin.TaskSucceeded, plugin.TaskSucceeded, plugin.TaskSucceeded}) {
+		t.Errorf("states %v", got)
 	}
 }
 
 func TestFailedOperation(t *testing.T) {
-	runner := &FakeRunner{Hook: func(args []string, out io.Writer, _ <-chan struct{}) int {
-		io.WriteString(out, "ERROR something went wrong\n")
-		return 2
-	}}
-	e := newEnv(t, fixtureRoot, Options{Runner: runner, Sync: true})
-	res := e.run(plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateAll})
-	v, _ := e.p.View(t.Context(), *res.Push)
-	it := v.Sections[0].Items[0]
-	if it.Title != "Failed (exit code 2)" {
-		t.Errorf("title %q", it.Title)
-	}
-	if n := len(runner.Commands()); n != 1 {
-		t.Errorf("%d commands ran; the second step must not run after a failure", n)
-	}
-	if a := action(t, it, "copy-output"); !strings.Contains(a.Do.Target, "something went wrong") {
-		t.Errorf("copy output %q", a.Do.Target)
+	e := newEnv(t, fixtureRoot, Options{Sync: true})
+	e.runner.Results = []tasks.FakeResult{{Match: "scoop update", Output: "ERROR something went wrong", ExitCode: 2}}
+	e.run(plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateAll})
+	e.h.WaitTasks()
+	task := e.h.Tasks.List()[0]
+	if task.State != plugin.TaskFailed || task.ExitCode != 2 || task.LastLine != "ERROR something went wrong" {
+		t.Errorf("task %+v", task)
 	}
 }
 
-func TestCloseStopsOperations(t *testing.T) {
-	release := make(chan struct{})
-	defer close(release)
-	var running, maxRunning atomic.Int32
-	e := newEnv(t, fixtureRoot, Options{Runner: blockingRunner(release, &running, &maxRunning)})
-	e.run(plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateBuckets})
-	waitFor(t, "the operation", func() bool { return running.Load() == 1 })
-	done := make(chan struct{})
-	e.h.Go(func() { e.p.Close(); close(done) })
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-		t.Fatal("Close did not stop the running operation")
+// TestOperationRefreshesIndex: when an operation ended, installed apps are
+// read again.
+func TestOperationRefreshesIndex(t *testing.T) {
+	root := t.TempDir()
+	copyDir(t, fixtureRoot, root)
+	e := newEnv(t, root, Options{Sync: true})
+	e.runner.Hook = func(plugin.ProcessSpec, io.Writer, <-chan struct{}) int {
+		os.RemoveAll(filepath.Join(root, "apps", "7zip")) // as scoop uninstall would
+		return 0
 	}
-	if res, _ := e.p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdUpdateBuckets}); res.Toast == nil {
-		t.Error("an operation was queued after Close")
+	e.run(action(t, e.item(e.view(cmdInstalled, ""), "app/7zip"), "uninstall").Do)
+	e.h.WaitTasks()
+	if _, ok := e.p.Index().App("7zip"); ok {
+		t.Error("7zip is still listed after the operation")
+	}
+	if !slices.Contains(e.h.Invalidated(), "") {
+		t.Error("no Invalidate after the operation")
 	}
 }
 

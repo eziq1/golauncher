@@ -17,9 +17,6 @@ import (
 // View implements plugin.ViewProvider.
 func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View, error) {
 	t := p.h.I18n()
-	if req.ID == viewOutput {
-		return p.outputView(t, req), nil
-	}
 	ix := p.waitIndex(ctx)
 	if ix == nil {
 		if err := ctx.Err(); err != nil {
@@ -42,37 +39,12 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 	return plugin.View{}, fmt.Errorf("scoop: unknown view %q", req.ID)
 }
 
-// opsSection lists the queued and running operations, if any.
-func (p *Plugin) opsSection(t plugin.Localizer) []plugin.Section {
-	ops := p.activeOps()
-	if len(ops) == 0 {
-		return nil
-	}
-	items := make([]plugin.Item, 0, len(ops))
-	for _, o := range ops {
-		items = append(items, plugin.Item{
-			ID:       "op/" + o.id,
-			Title:    o.title,
-			Subtitle: p.statusText(t, o.state()),
-			Icon:     plugin.Icon{Name: "package"},
-			Actions: []plugin.Action{
-				{ID: "show-output", Title: t.T("action.showOutput"),
-					Do: plugin.ActionDo{Kind: plugin.ActionPush, Target: viewOutput, Payload: plugin.MustPayload(stopPayload{Op: o.id})}},
-				{ID: "stop", Title: t.T("action.stop"), Shortcut: "Ctrl+X",
-					Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackStop, Payload: plugin.MustPayload(stopPayload{Op: o.id})}},
-			},
-		})
-	}
-	return []plugin.Section{{Title: t.T("section.operations"), Items: items}}
-}
-
 func (p *Plugin) searchView(ctx context.Context, t plugin.Localizer, ix *Index, text string) (plugin.View, error) {
 	v := plugin.View{
 		Kind:        plugin.ViewList,
 		Title:       t.T("view.search.title"),
 		Placeholder: t.T("view.search.placeholder"),
 		ShowDetail:  true,
-		Sections:    p.opsSection(t),
 	}
 	if strings.TrimSpace(text) == "" {
 		v.EmptyText = t.T("view.search.hint", "packages", ix.PackageCount(), "buckets", len(ix.Buckets))
@@ -101,7 +73,6 @@ func (p *Plugin) installedView(t plugin.Localizer, ix *Index) plugin.View {
 		ShowDetail:    true,
 		FilterLocally: true,
 		EmptyText:     t.T("view.installed.empty"),
-		Sections:      p.opsSection(t),
 	}
 	var updates, current, global []plugin.Item
 	for _, a := range sortedApps(ix.Apps) {
@@ -144,7 +115,6 @@ func (p *Plugin) updatesView(t plugin.Localizer, ix *Index) plugin.View {
 		Placeholder:   t.T("view.updates.placeholder"),
 		ShowDetail:    true,
 		FilterLocally: true,
-		Sections:      p.opsSection(t),
 	}
 	var items []plugin.Item
 	updatable := 0
@@ -386,7 +356,6 @@ func (p *Plugin) bucketsView(t plugin.Localizer, ix *Index) plugin.View {
 		Placeholder:   t.T("view.buckets.placeholder"),
 		ShowDetail:    true,
 		FilterLocally: true,
-		Sections:      p.opsSection(t),
 	}
 	now := p.h.Now()
 	var added []plugin.Item
@@ -496,7 +465,6 @@ func (p *Plugin) cleanupView(ctx context.Context, t plugin.Localizer, ix *Index)
 		Title:         t.T("view.cleanup.title"),
 		ShowDetail:    true,
 		FilterLocally: true,
-		Sections:      p.opsSection(t),
 	}
 	versions := 0
 	for _, a := range r.Apps {
@@ -553,95 +521,5 @@ func formatSize(l plugin.Localizer, n int64) string {
 		return l.T("size.mb", "size", l.Number(round(float64(n)/(k*k))))
 	default:
 		return l.T("size.gb", "size", l.Number(round(float64(n)/(k*k*k))))
-	}
-}
-
-// ---- output ----
-
-// viewTail is how much output the output view shows.
-const viewTail = 32 << 10
-
-// statusText describes the state of an operation.
-func (p *Plugin) statusText(t plugin.Localizer, s opState) string {
-	switch {
-	case s.status == opQueued:
-		return t.T("status.queued")
-	case s.status == opRunning:
-		return t.T("status.running")
-	case s.stopped:
-		return t.T("status.stopped")
-	case s.err != nil:
-		return t.T("status.error", "error", s.err.Error())
-	case s.exitCode != 0:
-		return t.T("status.failed", "code", s.exitCode)
-	}
-	return t.T("status.succeeded")
-}
-
-// outputView shows the output and status of one operation.
-func (p *Plugin) outputView(t plugin.Localizer, req plugin.ViewRequest) plugin.View {
-	var sp stopPayload
-	_ = json.Unmarshal(req.Payload, &sp)
-	p.mu.Lock()
-	o := p.ops[sp.Op]
-	p.mu.Unlock()
-	if o == nil {
-		return plugin.View{Kind: plugin.ViewList, Title: t.T("view.output.title"), EmptyText: t.T("view.output.gone")}
-	}
-	s := o.state()
-	status := p.statusText(t, s)
-	var duration string
-	if !s.started.IsZero() {
-		end := s.ended
-		if s.status != opDone {
-			end = p.h.Now()
-		}
-		duration = end.Sub(s.started).Round(100 * time.Millisecond).String()
-	}
-	text := o.out.String()
-	if len(text) > viewTail {
-		text = text[len(text)-viewTail:]
-		if i := strings.IndexByte(text, '\n'); i >= 0 {
-			text = text[i+1:]
-		}
-		text = t.T("view.output.truncated") + "\n" + text
-	} else if o.out.Truncated() {
-		text = t.T("view.output.truncated") + "\n" + text
-	}
-	if text == "" {
-		text = t.T("view.output.empty")
-	}
-	var commands []string
-	for _, args := range o.steps {
-		commands = append(commands, CommandLine(args))
-	}
-	var actions []plugin.Action
-	if s.status != opDone {
-		actions = append(actions, plugin.Action{ID: "stop", Title: t.T("action.stop"), Shortcut: "Ctrl+X",
-			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackStop, Payload: plugin.MustPayload(stopPayload{Op: o.id})}})
-	}
-	actions = append(actions, plugin.Action{ID: "copy-output", Title: t.T("action.copyOutput"), Shortcut: "Ctrl+Shift+C",
-		Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: o.out.String()}})
-	meta := []plugin.Metadata{
-		{Label: t.T("meta.status"), Value: status},
-		{Label: t.T("meta.command"), Value: strings.Join(commands, "\n")},
-	}
-	if duration != "" {
-		meta = append(meta, plugin.Metadata{Label: t.T("meta.duration"), Value: duration})
-	}
-	item := plugin.Item{
-		ID:        "output",
-		Title:     status,
-		Subtitle:  o.title,
-		Icon:      plugin.Icon{Name: "package"},
-		Accessory: duration,
-		Actions:   actions,
-		Detail:    &plugin.Detail{Markdown: fenced(text), Metadata: meta},
-	}
-	return plugin.View{
-		Kind:       plugin.ViewList,
-		Title:      o.title,
-		ShowDetail: true,
-		Sections:   []plugin.Section{{Items: []plugin.Item{item}}},
 	}
 }

@@ -4,7 +4,8 @@
 //
 // Everything it shows is read from Scoop's own files (bucket manifests and
 // installed apps), which is fast enough to search as the user types. Changes
-// run the scoop command line, one at a time, with live output.
+// run the scoop command line as background tasks of the host, one at a time
+// (docs/background-tasks.md).
 package scoop
 
 import (
@@ -35,10 +36,8 @@ const (
 	cmdUpdateBuckets = "update-buckets"
 	cmdBuckets       = "buckets"
 	cmdCleanup       = "cleanup"
-	viewOutput       = "output"
 
-	callbackOp   = "op"
-	callbackStop = "stop"
+	callbackOp = "op"
 
 	prefScoopPath          = "scoopPath"
 	prefShowInRoot         = "showInRoot"
@@ -52,12 +51,8 @@ const (
 	rootScore = 0.9
 )
 
-var (
-	// indexWait is how long a view waits for the first index.
-	indexWait = 5 * time.Second
-	// invalidateEvery throttles refreshes of the output view.
-	invalidateEvery = 100 * time.Millisecond
-)
+// indexWait is how long a view waits for the first index.
+var indexWait = 5 * time.Second
 
 //go:embed locales/*.json
 var locales embed.FS
@@ -72,13 +67,14 @@ type Options struct {
 	Global string
 	// NoDetect uses Root and Global as given (fake environments).
 	NoDetect bool
-	// Runner runs Scoop commands; nil means PowerShell.
-	Runner Runner
+	// Shell is the PowerShell that runs Scoop commands (default: pwsh.exe if
+	// installed, else powershell.exe).
+	Shell string
 	// Getenv reads environment variables; nil means os.Getenv.
 	Getenv func(string) string
-	// Sync builds the index during Init and makes actions wait until their
-	// operation ended, which keeps glctl's fake environment and tests
-	// deterministic.
+	// Sync builds the index during Init and reads it again before an
+	// operation's task counts as ended, which keeps glctl's fake environment
+	// and tests deterministic.
 	Sync bool
 }
 
@@ -87,15 +83,14 @@ type Plugin struct {
 	opts Options
 
 	h      plugin.Host
-	runner Runner
 	root   string
 	global string
-	ctx    context.Context
-	cancel context.CancelFunc
 	unsubs []func()
 	wg     sync.WaitGroup
 
 	refreshMu sync.Mutex // serializes index refreshes
+	shellOnce sync.Once
+	shellPath string
 
 	mu         sync.Mutex
 	closed     bool
@@ -103,10 +98,6 @@ type Plugin struct {
 	ready      chan struct{} // closed when the first index is set
 	refreshing bool
 	again      bool
-	ops        map[string]*op
-	queue      []*op
-	working    bool
-	opSeq      int
 	// The last cleanup measurement (see reclaimFor).
 	reclaim   Reclaim
 	reclaimIx *Index
@@ -129,7 +120,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Getenv == nil {
 		o.Getenv = os.Getenv
 	}
-	return &Plugin{opts: o, ready: make(chan struct{}), ops: map[string]*op{}}
+	return &Plugin{opts: o, ready: make(chan struct{})}
 }
 
 // Manifest implements plugin.Plugin.
@@ -201,11 +192,6 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	if p.root == "" {
 		return fmt.Errorf("%s: %w", t.T("unavailable.notInstalled"), plugin.ErrUnavailable)
 	}
-	p.runner = p.opts.Runner
-	if p.runner == nil {
-		p.runner = &PowerShell{Root: p.root}
-	}
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if p.opts.Sync {
 		p.refresh(false)
 	} else {
@@ -215,8 +201,8 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	return nil
 }
 
-// Close implements plugin.Plugin. It stops a running operation, drops the
-// queued ones and waits for background work.
+// Close implements plugin.Plugin. It waits for background work. Operations
+// are tasks of the host, which stops them when golauncher quits.
 func (p *Plugin) Close() error {
 	p.mu.Lock()
 	if p.closed || p.h == nil {
@@ -225,19 +211,9 @@ func (p *Plugin) Close() error {
 		return nil
 	}
 	p.closed = true
-	var pending []*op
-	for _, o := range p.ops {
-		pending = append(pending, o)
-	}
 	p.mu.Unlock()
 	for _, u := range p.unsubs {
 		u()
-	}
-	for _, o := range pending {
-		p.stopOp(o)
-	}
-	if p.cancel != nil {
-		p.cancel()
 	}
 	p.wg.Wait()
 	return nil
@@ -419,19 +395,14 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	return items, nil
 }
 
-// stopPayload is the Payload of the "stop" callback and of the output view.
-type stopPayload struct {
-	Op string `json:"op"`
-}
-
-// HandleAction implements plugin.ActionHandler. Scoop operations are queued
-// and the output view is opened at once; the action does not wait for them.
-func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Result, error) {
+// HandleAction implements plugin.ActionHandler. Scoop operations start as
+// background tasks; the action does not wait for them.
+func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	switch {
 	case a.Kind == plugin.ActionRunCommand && a.Target == cmdUpdateAll:
-		return p.start(ctx, opRequest{Kind: opUpdateAll})
+		return p.start(opRequest{Kind: opUpdateAll})
 	case a.Kind == plugin.ActionRunCommand && a.Target == cmdUpdateBuckets:
-		return p.start(ctx, opRequest{Kind: opUpdateBuckets})
+		return p.start(opRequest{Kind: opUpdateBuckets})
 	case a.Kind == plugin.ActionCallback && a.Target == callbackOp:
 		var req opRequest
 		if err := json.Unmarshal(a.Payload, &req); err != nil {
@@ -444,35 +415,9 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		if v, ok := a.Values["url"]; ok && req.URL == "" {
 			_ = json.Unmarshal(v, &req.URL)
 		}
-		return p.start(ctx, req)
-	case a.Kind == plugin.ActionCallback && a.Target == callbackStop:
-		var sp stopPayload
-		if err := json.Unmarshal(a.Payload, &sp); err != nil {
-			return plugin.Result{}, fmt.Errorf("scoop: bad stop payload %q", a.Payload)
-		}
-		p.mu.Lock()
-		o := p.ops[sp.Op]
-		p.mu.Unlock()
-		if o != nil {
-			p.stopOp(o)
-			o.wait(ctx)
-		}
-		return plugin.Result{Refresh: true}, nil
+		return p.start(req)
 	}
 	return plugin.Result{}, fmt.Errorf("scoop: unknown action %s %q", a.Kind, a.Target)
-}
-
-// start queues the operation req and opens its output view.
-func (p *Plugin) start(ctx context.Context, req opRequest) (plugin.Result, error) {
-	t := p.h.I18n()
-	o, err := p.enqueue(req)
-	if err != nil {
-		return failure(t.T("toast.cannotRun"), err.Error()), nil
-	}
-	if p.opts.Sync {
-		o.wait(ctx)
-	}
-	return plugin.Result{Push: &plugin.ViewRequest{ID: viewOutput, Payload: plugin.MustPayload(stopPayload{Op: o.id})}}, nil
 }
 
 // failure is a Result with a failure toast.

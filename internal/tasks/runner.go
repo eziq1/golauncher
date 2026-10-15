@@ -75,6 +75,22 @@ type FakeRunner struct {
 
 	mu       sync.Mutex
 	commands []plugin.ProcessSpec
+	gate     chan struct{} // while held: closed by Hold(false)
+}
+
+// Hold makes the commands started from now on wait until Hold(false), which
+// also releases the waiting ones. glctl holds its fake tasks between steps,
+// so that every snapshot sees them running until a wait-tasks step.
+func (f *FakeRunner) Hold(hold bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch {
+	case hold && f.gate == nil:
+		f.gate = make(chan struct{})
+	case !hold && f.gate != nil:
+		close(f.gate)
+		f.gate = nil
+	}
 }
 
 // Commands returns the commands started so far.
@@ -91,8 +107,9 @@ func (f *FakeRunner) Start(cmd plugin.ProcessSpec, _ []string, out io.Writer) (P
 	f.commands = append(f.commands, cmd)
 	hook := f.Hook
 	results := f.Results
+	gate := f.gate
 	f.mu.Unlock()
-	return &fakeProcess{cmd: cmd, out: out, hook: hook, results: results, stop: make(chan struct{})}, nil
+	return &fakeProcess{cmd: cmd, out: out, hook: hook, results: results, gate: gate, stop: make(chan struct{})}, nil
 }
 
 type fakeProcess struct {
@@ -100,11 +117,19 @@ type fakeProcess struct {
 	out     io.Writer
 	hook    func(plugin.ProcessSpec, io.Writer, <-chan struct{}) int
 	results []FakeResult
+	gate    chan struct{}
 	once    sync.Once
 	stop    chan struct{}
 }
 
 func (p *fakeProcess) Wait() (int, error) {
+	if p.gate != nil {
+		select {
+		case <-p.gate:
+		case <-p.stop:
+			return -1, nil
+		}
+	}
 	if p.hook != nil {
 		return p.hook(p.cmd, p.out, p.stop), nil
 	}
