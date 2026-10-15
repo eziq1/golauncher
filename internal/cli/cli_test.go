@@ -63,6 +63,7 @@ func TestGolden(t *testing.T) {
 		{"plugin_list", []string{"plugin", "list"}},
 		{"run_file_search", []string{"run", "builtin.everything/search", "--text", "工作", "--fixtures", fixtures}},
 		{"run_file_search_report", []string{"run", "builtin.everything/search", "--text", "report q3", "--fixtures", fixtures}},
+		{"query_scripts", []string{"query", "greet", "--fixtures", fixtures}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

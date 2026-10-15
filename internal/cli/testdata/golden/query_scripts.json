@@ -1,0 +1,67 @@
+{
+  "query": "greet",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Script Commands",
+      "items": [
+        {
+          "id": "..\\..\\testdata\\fixtures\\scripts\\greet.ps1",
+          "title": "Greet",
+          "subtitle": "Examples",
+          "icon": {
+            "name": "command"
+          },
+          "keywords": [
+            "greet"
+          ],
+          "group": "Script Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run Script",
+              "do": {
+                "kind": "Callback",
+                "target": "run",
+                "payload": {
+                  "path": "..\\..\\testdata\\fixtures\\scripts\\greet.ps1"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "..\\..\\testdata\\fixtures\\scripts\\greet.ps1",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "..\\..\\testdata\\fixtures\\scripts\\greet.ps1"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "argument1",
+              "type": "text",
+              "placeholder": "Name"
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/..\\..\\testdata\\fixtures\\scripts\\greet.ps1",
+          "rank": 0.7
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/calc"
 	"github.com/eziq1/golauncher/plugins/clipboard"
 	"github.com/eziq1/golauncher/plugins/everything"
+	"github.com/eziq1/golauncher/plugins/scripts"
 )
 
 // All returns new instances of the built-in plugins for the real system.
@@ -23,13 +24,15 @@ func All() []plugin.Plugin {
 		calc.New(),
 		clipboard.New(),
 		everything.New(),
+		scripts.New(),
 	}
 }
 
 // Fake returns the built-in plugins for an isolated environment. Data that
 // would come from the system is read from fixture files in dir when present
 // ("" for none): apps.json (installed applications) and files.json
-// (Everything's file index). No icons are extracted.
+// (Everything's file index), and scripts/ (script commands). No icons are
+// extracted and nothing is opened.
 func Fake(dir string) []plugin.Plugin {
 	appsSrc := apps.Source(func(context.Context) ([]shell.App, error) { return nil, nil })
 	if f := fixture(dir, "apps.json"); f != "" {
@@ -40,6 +43,7 @@ func Fake(dir string) []plugin.Plugin {
 		calc.New(),
 		clipboard.New(),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
+		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 	}
 }
 
@@ -54,3 +58,18 @@ func fixture(dir, name string) string {
 	}
 	return p
 }
+
+// fixtureDirs returns [dir/name] if that directory exists, else nil.
+func fixtureDirs(dir, name string) []string {
+	if dir == "" {
+		return nil
+	}
+	p := filepath.Join(dir, name)
+	if st, err := os.Stat(p); err != nil || !st.IsDir() {
+		return nil
+	}
+	return []string{p}
+}
+
+// noOpen stands in for opening files in fake mode.
+func noOpen(string, plugin.OpenOptions) error { return nil }
