@@ -8,7 +8,7 @@
         {
           "id": "city:beijing",
           "title": "Beijing  18:00:00",
-          "subtitle": "10月15日 星期四 · UTC+8 · +8 小时",
+          "subtitle": "中国 · 10月15日 星期四 · UTC+8 · +8 小时",
           "icon": {
             "name": "clock"
           },
@@ -74,7 +74,7 @@
               },
               {
                 "label": "国家/地区",
-                "value": "China"
+                "value": "中国"
               },
               {
                 "label": "时区",

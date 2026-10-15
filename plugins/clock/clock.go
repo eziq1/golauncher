@@ -9,6 +9,7 @@
 package clock
 
 import (
+	"cmp"
 	"context"
 	"embed"
 	"encoding/json/v2"
@@ -313,39 +314,12 @@ func (c *listContext) search(q string, root bool) []plugin.Item {
 		return nil
 	}
 	qc := strings.ReplaceAll(nq, " ", "")
-	// Offsets are parsed before normalizing, which turns "-" into a space.
-	off, zones := parseOffset(strings.ToLower(strings.TrimSpace(q))), zonesOf(nq)
 	// Cities that are favorites or listed come first among equal matches.
-	rank := map[string]int{}
+	rank := map[int]int{}
 	for i, ct := range c.listed() {
-		rank[ct.ID] = i - len(c.idx.cities) - 1
+		rank[ct.ord] = i - len(c.idx.cities) - 1
 	}
-	type hit struct {
-		c     *city
-		score float64
-	}
-	var hits []hit
-	for _, ct := range c.idx.cities {
-		if s := scoreCity(nq, qc, ct, c.now, off, zones); s > 0 {
-			hits = append(hits, hit{ct, s})
-		}
-	}
-	slices.SortStableFunc(hits, func(a, b hit) int {
-		if a.score != b.score {
-			if a.score > b.score {
-				return -1
-			}
-			return 1
-		}
-		ra, rb := rank[a.c.ID], rank[b.c.ID]
-		if ra == 0 {
-			ra = a.c.ord
-		}
-		if rb == 0 {
-			rb = b.c.ord
-		}
-		return ra - rb
-	})
+	hits := c.idx.find(q, c.now, rank, maxResults)
 	var items []plugin.Item
 	localScore := 0.0
 	for i := range localKeys {
@@ -385,7 +359,7 @@ func (c *listContext) localItem(root bool) plugin.Item {
 		Subtitle:  subtitle,
 		Icon:      plugin.Icon{Name: "clock"},
 		Accessory: f.accessory(t, t, false),
-		Detail:    f.detail(name, "", zone, t),
+		Detail:    f.detail(name, "", "", zone, t),
 	}
 	it.Actions = c.actions(localID, false, false, root)
 	return it
@@ -398,17 +372,53 @@ func (c *listContext) cityItem(ct *city, root bool) plugin.Item {
 	_, cityOff := t.Zone()
 	_, localOff := c.now.Zone()
 	fav := slices.Contains(c.favs, ct.ID)
+	country, region := c.placeNames(ct)
+	subtitle := f.l.T("item.subtitle", "date", f.date(t), "offset", f.offset(t),
+		"difference", f.difference(cityOff-localOff))
+	if place := c.place(ct); place != "" {
+		subtitle = f.l.T("item.subtitlePlace", "place", place, "date", f.date(t), "offset", f.offset(t),
+			"difference", f.difference(cityOff-localOff))
+	}
 	it := plugin.Item{
-		ID:    "city:" + ct.ID,
-		Title: f.l.T("item.title", "city", ct.Name, "time", f.clock(t, f.seconds)),
-		Subtitle: f.l.T("item.subtitle", "date", f.date(t), "offset", f.offset(t),
-			"difference", f.difference(cityOff-localOff)),
+		ID:        "city:" + ct.ID,
+		Title:     f.l.T("item.title", "city", ct.Name, "time", f.clock(t, f.seconds)),
+		Subtitle:  subtitle,
 		Icon:      plugin.Icon{Name: "clock"},
 		Accessory: f.accessory(t, c.now, fav),
-		Detail:    f.detail(ct.Name, ct.Country, ct.TZ, t),
+		Detail:    f.detail(ct.Name, country, region, ct.TZ, t),
 	}
 	it.Actions = c.actions(ct.ID, true, fav, root)
 	return it
+}
+
+// placeNames are the country and region of ct in the UI language: the
+// Chinese names in a Chinese UI where there are any.
+func (c *listContext) placeNames(ct *city) (country, region string) {
+	country, region = ct.Country, ct.region
+	if normalize(region) == normalize(ct.Name) {
+		region = "" // Beijing, Beijing; Moscow, Moscow
+	}
+	if strings.HasPrefix(c.f.l.Locale(), "zh") {
+		country = cmp.Or(ct.CountryZh, country)
+		if region != "" {
+			region = cmp.Or(ct.regionZh, region)
+		}
+	}
+	return country, region
+}
+
+// place is where ct is, for the subtitle: the country, plus the region
+// when another city has the same name ("Illinois, United States"); "" for
+// clocks that are not places (UTC, cities made up from a zone).
+func (c *listContext) place(ct *city) string {
+	country, region := c.placeNames(ct)
+	if country == "" || ct.TZ == "UTC" {
+		return ""
+	}
+	if ct.ambiguous && region != "" {
+		return c.f.l.T("place.region", "region", region, "country", country)
+	}
+	return country
 }
 
 // copyPayload is the payload of the copy callback.

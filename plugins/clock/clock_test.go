@@ -168,18 +168,37 @@ func TestCities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := len(idx.cities); n < 150 {
-		t.Errorf("%d cities, want about 150 or more", n)
+	if n := len(idx.cities); n < 30000 {
+		t.Errorf("%d cities, want 30,000 or more", n)
 	}
 	for _, name := range defaultCities {
-		if _, ok := idx.lookup(name); !ok {
+		if c, ok := idx.lookup(name); !ok || !c.curated {
 			t.Errorf("default city %q not found", name)
 		}
 	}
+	curated := 0
 	for _, c := range idx.cities {
-		if c.Name == "" || c.Zh == "" || c.Country == "" || c.CountryZh == "" {
+		if c.Name == "" || c.Country == "" {
 			t.Errorf("city %s lacks a name or country", c.ID)
 		}
+		if !c.curated {
+			continue
+		}
+		curated++
+		if c.ord != curated-1 {
+			t.Errorf("curated city %s at %d, want the curated cities first", c.ID, c.ord)
+		}
+		if c.Zh == "" || c.CountryZh == "" {
+			t.Errorf("curated city %s lacks a Chinese name", c.ID)
+		}
+		// Each curated city's geonameid is in the GeoNames data, which
+		// gives it a country code.
+		if c.GeonameID != 0 && c.cc == "" {
+			t.Errorf("curated city %s: geonameid %d not found in the GeoNames data", c.ID, c.GeonameID)
+		}
+	}
+	if curated < 150 {
+		t.Errorf("%d curated cities, want about 150 or more", curated)
 	}
 }
 
@@ -212,7 +231,7 @@ func TestRootList(t *testing.T) {
 	if got := items[1].Title; got != "Beijing  18:00:00" {
 		t.Errorf("title = %q", got)
 	}
-	if got := items[1].Subtitle; got != "Thursday, Oct 15 · UTC+8 · +8h" {
+	if got := items[1].Subtitle; got != "China · Thursday, Oct 15 · UTC+8 · +8h" {
 		t.Errorf("subtitle = %q", got)
 	}
 	if got := items[0].Subtitle; got != "Thursday, Oct 15 · UTC" {
@@ -253,9 +272,10 @@ func TestFavoritesFirst(t *testing.T) {
 
 func TestCitiesPreference(t *testing.T) {
 	e := newEnv(t)
-	e.setPref(prefCities, []string{"东京", "nyc", "Europe/Lisbon", "America/Boise", "Atlantis"})
+	// Boise is a GeoNames city (ID 5586437); no city uses Etc/GMT+5.
+	e.setPref(prefCities, []string{"东京", "nyc", "Europe/Lisbon", "Boise", "Etc/GMT+5", "Qwxzville"})
 	got := ids(e.root(t, "time"))
-	if want := []string{localID, "city:tokyo", "city:new-york", "city:lisbon", "city:tz:America/Boise"}; !slices.Equal(got, want) {
+	if want := []string{localID, "city:tokyo", "city:new-york", "city:lisbon", "city:5586437", "city:tz:Etc/GMT+5"}; !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
@@ -292,7 +312,23 @@ func TestMatching(t *testing.T) {
 		{"nyc", "new-york", nil},
 		{"new york", "new-york", nil},
 		{"newyork", "new-york", nil},
-		{"york", "new-york", nil},
+		// York, England is a city of its own (an exact match beats the word
+		// prefix in "New York City").
+		{"york", "2633352", []string{"new-york"}},
+		// GeoNames cities (IDs are GeoNames IDs).
+		{"springfield", "4409896", []string{"4951788", "4250542"}}, // largest first: Missouri, Massachusetts, Illinois
+		{"san jose", "san-jose", []string{"3621849", "1689510"}},   // curated California, Costa Rica, the Philippines
+		{"san josé", "san-jose", []string{"3621849"}},
+		{"kiruna", "605155", nil}, // about 20,000 people
+		{"tromso", "3133895", nil},
+		{"tromsø", "3133895", nil},
+		{"宝鸡", "10942359", nil}, // Chinese name from GeoNames
+		{"baoji", "10942359", nil},
+		{"基律纳", "605155", nil},
+		{"jilvna", "605155", nil},                              // pinyin of a transliteration
+		{"nepal", "6941099", []string{"kathmandu", "1282898"}}, // Nepalgunj (a name prefix) before the country
+		{"nepal ", "6941099", nil},
+		{"尼泊尔", "kathmandu", []string{"1282898"}},
 		{"sf", "san-francisco", nil},
 		{"la", "los-angeles", nil},
 		{"hk", "hong-kong", nil},
@@ -341,6 +377,9 @@ func TestMatching(t *testing.T) {
 			t.Errorf("time %s: got %v, want %s first", tt.query, got, want)
 			continue
 		}
+		if len(got) > maxResults {
+			t.Errorf("time %s: %d results, want at most %d", tt.query, len(got), maxResults)
+		}
 		for _, a := range tt.also {
 			if !slices.Contains(got, "city:"+a) {
 				t.Errorf("time %s: %s missing from %v", tt.query, a, got)
@@ -357,11 +396,54 @@ func TestMatching(t *testing.T) {
 			t.Errorf("time %s: got %v", q, ids(got))
 		}
 	}
-	// Precise queries do not list unrelated cities.
-	for _, q := range []string{"bj", "nyc", "北京"} {
+	// Precise queries do not list unrelated cities. ("bj" also finds 宝鸡
+	// and names starting with "Bj", "nyc" substrings such as Bortnychi.)
+	for _, q := range []string{"北京"} {
 		if got := e.root(t, "time "+q); len(got) != 1 {
 			t.Errorf("time %s: got %v, want one city", q, ids(got))
 		}
+	}
+	// Pinyin initials count only for Chinese cities: "bkl" is not 博克拉
+	// (Pokhara, Nepal), while "bj" finds 宝鸡 (Baoji) after Beijing.
+	if got := ids(e.root(t, "time bkl")); slices.Contains(got, "city:1282898") {
+		t.Errorf("time bkl: got %v", got)
+	}
+	if got := ids(e.root(t, "time bj")); got[0] != "city:beijing" || !slices.Contains(got, "city:10942359") {
+		t.Errorf("time bj: got %v", got)
+	}
+	// Same-name cities show their region and country.
+	items := e.root(t, "time springfield")
+	if got := items[0].Subtitle; got != "Missouri, United States · Thursday, Oct 15 · UTC-5 · -5h" {
+		t.Errorf("springfield subtitle = %q", got)
+	}
+	if got := e.root(t, "time kiruna")[0].Subtitle; got != "Sweden · Thursday, Oct 15 · UTC+2 · +2h" {
+		t.Errorf("kiruna subtitle = %q", got)
+	}
+}
+
+// TestChineseUI: the subtitle and detail use Chinese country and region
+// names in a Chinese UI.
+func TestChineseUI(t *testing.T) {
+	e := newEnv(t)
+	e.h.I18N.SetLocale("zh-CN")
+	it := e.root(t, "time springfield")[0]
+	if got := it.Subtitle; !strings.HasPrefix(got, "美国 密苏里州 · ") {
+		t.Errorf("subtitle = %q", got)
+	}
+	var country, region string
+	for _, m := range it.Detail.Metadata {
+		switch m.Label {
+		case "国家/地区":
+			country = m.Value
+		case "省/州":
+			region = m.Value
+		}
+	}
+	if country != "美国" || region != "密苏里州" {
+		t.Errorf("detail = %+v", it.Detail.Metadata)
+	}
+	if got := e.root(t, "time 北京")[0].Subtitle; !strings.HasPrefix(got, "中国 · ") {
+		t.Errorf("北京 subtitle = %q", got)
 	}
 }
 

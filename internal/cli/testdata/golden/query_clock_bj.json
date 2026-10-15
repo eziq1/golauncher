@@ -8,7 +8,7 @@
         {
           "id": "city:beijing",
           "title": "Beijing  18:00:00",
-          "subtitle": "Thursday, Oct 15 · UTC+8 · +8h",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
           "icon": {
             "name": "clock"
           },
@@ -101,6 +101,2766 @@
           "plugin": "builtin.clock",
           "key": "builtin.clock/city:beijing",
           "rank": 1.7
+        },
+        {
+          "id": "city:10942359",
+          "title": "Baoji  18:00:00",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.995,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "10942359"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "10942359",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "10942359"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBaoji · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Shaanxi"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:10942359",
+          "rank": 1.6965
+        },
+        {
+          "id": "city:1816373",
+          "title": "Bijie  18:00:00",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.99,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1816373"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1816373",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "1816373"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBijie · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Guizhou"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:1816373",
+          "rank": 1.693
+        },
+        {
+          "id": "city:1816942",
+          "title": "Baojia  18:00:00",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.985,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1816942"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1816942",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "1816942"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBaojia · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Chongqing"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:1816942",
+          "rank": 1.6895
+        },
+        {
+          "id": "city:8405703",
+          "title": "Baijia  18:00:00",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.98,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "8405703"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "8405703",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "8405703"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBaijia · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Chongqing"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:8405703",
+          "rank": 1.686
+        },
+        {
+          "id": "city:3827406",
+          "title": "Benito Juarez  04:00:00",
+          "subtitle": "Mexico City, Mexico · Thursday, Oct 15 · UTC-6 · -6h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☾",
+          "group": "World Clock",
+          "score": 0.975,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3827406"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3827406",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3827406"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 04:00:00\n\nBenito Juarez · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "04:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Mexico City"
+              },
+              {
+                "label": "Country",
+                "value": "Mexico"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Mexico_City"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-6"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3827406",
+          "rank": 1.6825
+        },
+        {
+          "id": "city:13118362",
+          "title": "Bukit Jalil  18:00:00",
+          "subtitle": "Malaysia · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.97,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "13118362"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "13118362",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "13118362"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBukit Jalil · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Kuala Lumpur"
+              },
+              {
+                "label": "Country",
+                "value": "Malaysia"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Kuala_Lumpur"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:13118362",
+          "rank": 1.6789999999999998
+        },
+        {
+          "id": "city:10263167",
+          "title": "Bhālswa Jahangirpur  15:30:00",
+          "subtitle": "India · Thursday, Oct 15 · UTC+5:30 · +5h 30m",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.965,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "10263167"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "10263167",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "10263167"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 15:30:00\n\nBhālswa Jahangirpur · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "15:30:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Delhi"
+              },
+              {
+                "label": "Country",
+                "value": "India"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Kolkata"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+5:30"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "IST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:10263167",
+          "rank": 1.6755
+        },
+        {
+          "id": "city:3405812",
+          "title": "Belo Jardim  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.96,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405812"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405812",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3405812"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBelo Jardim · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Pernambuco"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Recife"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3405812",
+          "rank": 1.672
+        },
+        {
+          "id": "city:2555567",
+          "title": "Ben Jerrar  10:00:00",
+          "subtitle": "Morocco · Thursday, Oct 15 · UTC · Same time",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.955,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2555567"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2555567",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "2555567"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 10:00:00\n\nBen Jerrar · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "10:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Souss-Massa"
+              },
+              {
+                "label": "Country",
+                "value": "Morocco"
+              },
+              {
+                "label": "Time zone",
+                "value": "Africa/Casablanca"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:2555567",
+          "rank": 1.6684999999999999
+        },
+        {
+          "id": "city:3405339",
+          "title": "Bom Jardim  07:00:00",
+          "subtitle": "Pernambuco, Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.95,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405339"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405339",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3405339"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jardim · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Pernambuco"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Recife"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3405339",
+          "rank": 1.665
+        },
+        {
+          "id": "city:12958682",
+          "title": "Bom Jardim  07:00:00",
+          "subtitle": "Maranhão, Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.945,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "12958682"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "12958682",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "12958682"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jardim · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Maranhão"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Fortaleza"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:12958682",
+          "rank": 1.6615
+        },
+        {
+          "id": "city:3469481",
+          "title": "Bom Jardim  07:00:00",
+          "subtitle": "Rio de Janeiro, Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.94,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469481"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469481",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3469481"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jardim · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Rio de Janeiro"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Sao_Paulo"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3469481",
+          "rank": 1.658
+        },
+        {
+          "id": "city:2555342",
+          "title": "Bir Jdid  10:00:00",
+          "subtitle": "Morocco · Thursday, Oct 15 · UTC · Same time",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.935,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2555342"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2555342",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "2555342"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 10:00:00\n\nBir Jdid · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "10:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Casablanca-Settat"
+              },
+              {
+                "label": "Country",
+                "value": "Morocco"
+              },
+              {
+                "label": "Time zone",
+                "value": "Africa/Casablanca"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:2555342",
+          "rank": 1.6545
+        },
+        {
+          "id": "city:1784199",
+          "title": "Báigōng Jiēdào  18:00:00",
+          "subtitle": "China · Thursday, Oct 15 · UTC+8 · +8h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.9299999999999999,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1784199"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "1784199",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "1784199"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 18:00:00\n\nBáigōng Jiēdào · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "18:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Chongqing"
+              },
+              {
+                "label": "Country",
+                "value": "China"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Shanghai"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+8"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:1784199",
+          "rank": 1.6509999999999998
+        },
+        {
+          "id": "city:3405304",
+          "title": "Bom Jesus  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.925,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405304"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3405304",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3405304"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Piauí"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Fortaleza"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3405304",
+          "rank": 1.6475
+        },
+        {
+          "id": "city:3203982",
+          "title": "Bjelovar  12:00:00",
+          "subtitle": "Croatia · Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.92,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3203982"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3203982",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3203982"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nBjelovar · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Bjelovar-Bilogora"
+              },
+              {
+                "label": "Country",
+                "value": "Croatia"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Zagreb"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 03:00 → UTC+1"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3203982",
+          "rank": 1.6440000000000001
+        },
+        {
+          "id": "city:2721946",
+          "title": "Björlanda  12:00:00",
+          "subtitle": "Sweden · Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.915,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2721946"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2721946",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "2721946"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nBjörlanda · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Västra Götaland"
+              },
+              {
+                "label": "Country",
+                "value": "Sweden"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Stockholm"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 03:00 → UTC+1"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:2721946",
+          "rank": 1.6404999999999998
+        },
+        {
+          "id": "city:284324",
+          "title": "Bayt Jālā  13:00:00",
+          "subtitle": "Palestinian Territory · Thursday, Oct 15 · UTC+3 · +3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.91,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "284324"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "284324",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "284324"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 13:00:00\n\nBayt Jālā · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "13:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "West Bank"
+              },
+              {
+                "label": "Country",
+                "value": "Palestinian Territory"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Hebron"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+3"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "EEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Saturday, October 24, 2026 02:00 → UTC+2"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:284324",
+          "rank": 1.637
+        },
+        {
+          "id": "city:3436047",
+          "title": "Benito Juárez  07:00:00",
+          "subtitle": "Buenos Aires, Argentina · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.905,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3436047"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3436047",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3436047"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBenito Juárez · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Buenos Aires"
+              },
+              {
+                "label": "Country",
+                "value": "Argentina"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Argentina/Buenos_Aires"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3436047",
+          "rank": 1.6335
+        },
+        {
+          "id": "city:2218562",
+          "title": "Bin Jawwād  12:00:00",
+          "subtitle": "Libya · Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.9,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2218562"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2218562",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "2218562"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nBin Jawwād · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Surt"
+              },
+              {
+                "label": "Country",
+                "value": "Libya"
+              },
+              {
+                "label": "Time zone",
+                "value": "Africa/Tripoli"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "EET"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:2218562",
+          "rank": 1.63
+        },
+        {
+          "id": "city:3469437",
+          "title": "Bom Jesus da Lapa  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.895,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469437"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469437",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3469437"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus da Lapa · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Bahia"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Bahia"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3469437",
+          "rank": 1.6265
+        },
+        {
+          "id": "city:3469425",
+          "title": "Bom Jesus do Itabapoana  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.89,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469425"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469425",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3469425"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus do Itabapoana · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Rio de Janeiro"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Sao_Paulo"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3469425",
+          "rank": 1.623
+        },
+        {
+          "id": "city:6316600",
+          "title": "Bom Jesus das Selvas  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.885,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "6316600"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "6316600",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "6316600"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus das Selvas · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Maranhão"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Fortaleza"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:6316600",
+          "rank": 1.6195
+        },
+        {
+          "id": "city:3469451",
+          "title": "Bom Jesus de Goiás  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.88,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469451"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469451",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3469451"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus de Goiás · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Goiás"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Sao_Paulo"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3469451",
+          "rank": 1.616
+        },
+        {
+          "id": "city:3469421",
+          "title": "Bom Jesus dos Perdões  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.875,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469421"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "3469421",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "3469421"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus dos Perdões · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "São Paulo"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Sao_Paulo"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:3469421",
+          "rank": 1.6124999999999998
+        },
+        {
+          "id": "city:6316607",
+          "title": "Bom Jesus do Tocantins  07:00:00",
+          "subtitle": "Brazil · Thursday, Oct 15 · UTC-3 · -3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.87,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "6316607"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "6316607",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "6316607"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 07:00:00\n\nBom Jesus do Tocantins · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "07:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "Pará"
+              },
+              {
+                "label": "Country",
+                "value": "Brazil"
+              },
+              {
+                "label": "Time zone",
+                "value": "America/Belem"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC-3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:6316607",
+          "rank": 1.609
+        },
+        {
+          "id": "city:2622447",
+          "title": "Esbjerg  12:00:00",
+          "subtitle": "Denmark · Thursday, Oct 15 · UTC+2 · +2h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.865,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2622447"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "2622447",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "2622447"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 12:00:00\n\nEsbjerg · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "12:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Region",
+                "value": "South Denmark"
+              },
+              {
+                "label": "Country",
+                "value": "Denmark"
+              },
+              {
+                "label": "Time zone",
+                "value": "Europe/Copenhagen"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+2"
+              },
+              {
+                "label": "Abbreviation",
+                "value": "CEST"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "Yes"
+              },
+              {
+                "label": "Next change",
+                "value": "Sunday, October 25, 2026 03:00 → UTC+1"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:2622447",
+          "rank": 1.6055
+        },
+        {
+          "id": "city:96205",
+          "title": "Halabja  13:00:00",
+          "subtitle": "Iraq · Thursday, Oct 15 · UTC+3 · +3h",
+          "icon": {
+            "name": "clock"
+          },
+          "accessory": "☀",
+          "group": "World Clock",
+          "score": 0.86,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Time",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "96205"
+                }
+              }
+            },
+            {
+              "id": "copy-iso",
+              "title": "Copy as ISO 8601",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Callback",
+                "target": "copy",
+                "payload": {
+                  "city": "96205",
+                  "iso": true
+                }
+              }
+            },
+            {
+              "id": "favorite",
+              "title": "Add to Favorites",
+              "shortcut": "Ctrl+Shift+P",
+              "do": {
+                "kind": "Callback",
+                "target": "favorite",
+                "payload": {
+                  "city": "96205"
+                }
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open World Clock",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "# 13:00:00\n\nHalabja · Thursday, October 15, 2026",
+            "metadata": [
+              {
+                "label": "Time",
+                "value": "13:00:00"
+              },
+              {
+                "label": "Date",
+                "value": "Thursday, October 15, 2026"
+              },
+              {
+                "label": "Country",
+                "value": "Iraq"
+              },
+              {
+                "label": "Time zone",
+                "value": "Asia/Baghdad"
+              },
+              {
+                "label": "UTC offset",
+                "value": "UTC+3"
+              },
+              {
+                "label": "Daylight saving time",
+                "value": "No"
+              },
+              {
+                "label": "Next change",
+                "value": "None"
+              }
+            ]
+          },
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/city:96205",
+          "rank": 1.6019999999999999
         }
       ]
     }
