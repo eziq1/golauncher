@@ -645,3 +645,42 @@ func TestSnapshots(t *testing.T) {
 	}
 	t.Logf("snapshots in %s", dir)
 }
+
+// emptyView is a plugin whose view has a section without items, which once
+// crashed the footer (Selected == -1).
+type emptyView struct{}
+
+func (emptyView) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "empty", Name: "Empty", Version: "1",
+		Commands: []plugin.Command{{Name: "find", Title: "Find Nothing", Mode: plugin.ModeView}}}
+}
+func (emptyView) Init(context.Context, plugin.Host) error { return nil }
+func (emptyView) Close() error                            { return nil }
+func (emptyView) View(context.Context, plugin.ViewRequest) (plugin.View, error) {
+	return plugin.View{Kind: plugin.ViewList, ShowDetail: true, Sections: []plugin.Section{{Title: "Results"}}}, nil
+}
+
+func TestEmptySectionDoesNotCrash(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{emptyView{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	lt := &launcherTest{Env: env, t: t, host: &fakeHost{}}
+	lt.l = ui.NewLauncher(env, lt.host, ui.NewDispatcher(t.Context(), nil))
+	lt.tt = mui.NewTester(lt.l.View, ui.LauncherWidth, ui.LauncherHeight)
+	lt.l.Shown()
+	lt.step()
+	if _, err := env.Controller.OpenCommand(t.Context(), "empty", "find"); err != nil {
+		t.Fatal(err)
+	}
+	lt.step()
+	lt.typeText("x")
+	lt.key(0, mui.KeyDown)
+	lt.key(0, mui.KeyEnter)
+	lt.key(mui.Ctrl, mui.KeyK)
+}

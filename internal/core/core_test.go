@@ -442,6 +442,25 @@ func TestPluginPanicIsContained(t *testing.T) {
 	}
 }
 
+// TestEmptySectionNoSelection is the v0.1.0-pre crash: a view returning a
+// section without items left Selected at -1, and SelectedEntry indexed it.
+func TestEmptySectionNoSelection(t *testing.T) {
+	e := newEnv(t)
+	if _, err := e.Controller.OpenCommand(t.Context(), "test", "list"); err != nil {
+		t.Fatal(err)
+	}
+	s := e.typeText(t, "zzz") // matches no fruit: one section, no items
+	if len(s.Sections) != 1 || len(s.Sections[0].Items) != 0 || s.Selected != -1 {
+		t.Fatalf("want one empty section and no selection, got %+v", s)
+	}
+	if _, ok := s.SelectedEntry(); ok {
+		t.Fatal("SelectedEntry with no selection must report false")
+	}
+	for _, k := range []string{"Down", "Up", "Enter", "Ctrl+Enter", "Ctrl+K", "Ctrl+Shift+C"} {
+		e.key(t, k) // must not panic
+	}
+}
+
 func TestDisabledPluginHidden(t *testing.T) {
 	e := newEnv(t)
 	e.Config.Update(func(c *config.Config) {

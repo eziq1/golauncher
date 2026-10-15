@@ -39,7 +39,8 @@ func TestRealFileSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 	lt.step()
-	for _, q := range []string{"notepad", "中文", "report", "*.go", "a"} {
+	// The last query finds nothing: an empty result section.
+	for _, q := range []string{"notepad", "中文", "report", "*.go", "a", "zqxjkvwzqxjkvw"} {
 		for _, r := range q {
 			lt.tt.Type(string(r))
 			lt.tt.Frame() // render while searches are in flight

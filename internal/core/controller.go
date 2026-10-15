@@ -236,10 +236,15 @@ func countItems(sections []Section) int {
 	return n
 }
 
+// itemAt returns the i-th entry across sections. i may be -1 (no
+// selection) and sections may be empty.
 func itemAt(sections []Section, i int) (Entry, bool) {
+	if i < 0 {
+		return Entry{}, false
+	}
 	for _, s := range sections {
 		if i < len(s.Items) {
-			return s.Items[i], i >= 0
+			return s.Items[i], true
 		}
 		i -= len(s.Items)
 	}
