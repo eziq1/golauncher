@@ -8,6 +8,15 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Apps registered under one name only can be found by their name in another
+  language (R40, `docs/app-names.md`): typing `微信` (or `weixin`, `wx`)
+  now finds an app listed as *WeChat*. Apps get extra keywords: the shortcut's
+  file name when the Start menu shows a localized name, the Chinese (or other
+  non-Latin) names in the executable's version information, and the other
+  names of well-known apps from a built-in table (`plugins/apps/names.json`).
+
 ## [0.3.0] - 2026-10-15
 
 ### Added

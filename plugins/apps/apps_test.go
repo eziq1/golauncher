@@ -146,7 +146,7 @@ func TestRootItems(t *testing.T) {
 	}
 
 	wx := find(t, items, "微信")
-	if wx.ID != "Tencent.WeChat" || !slices.Equal(wx.Keywords, []string{"Weixin"}) {
+	if wx.ID != "Tencent.WeChat" || !slices.Equal(wx.Keywords, []string{"Weixin", "WeChat"}) {
 		t.Errorf("微信 item = %+v", wx)
 	}
 	if got := actionIDs(wx); !slices.Equal(got, []string{"open", "runas", "reveal", "copy-path", "hide"}) {
@@ -447,5 +447,41 @@ func TestFixtureSourceErrors(t *testing.T) {
 	os.WriteFile(bad, []byte("{"), 0o644)
 	if _, err := FixtureSource(bad)(t.Context()); err == nil {
 		t.Error("bad fixture succeeded")
+	}
+}
+
+// TestKeywords covers R40: an app whose shortcut and executable carry only
+// its English name (a "WeChat.exe" listed as "WeChat") is found by its
+// Chinese name too, and the names the shell found are kept.
+func TestKeywords(t *testing.T) {
+	tests := []struct {
+		app  shell.App
+		want []string
+	}{
+		{shell.App{Name: "WeChat", ID: "w", Path: `C:\Apps\wechat\current\WeChat.exe`}, []string{"微信", "Weixin"}},
+		{shell.App{Name: "微信", ID: "w2", Path: `C:\Program Files\Tencent\Weixin\Weixin.exe`}, []string{"Weixin", "WeChat"}},
+		{shell.App{Name: "Contoso Chat", ID: "c", Path: `C:\Apps\Contoso\ContosoChat.exe`, Keywords: []string{"康托聊天", "contosochat"}}, []string{"ContosoChat", "康托聊天"}},
+		{shell.App{Name: "画板", ID: "s", Path: `C:\Apps\Sketch\sketch.exe`, Keywords: []string{"Sketch Pad"}}, []string{"sketch", "Sketch Pad"}},
+		{shell.App{Name: "Store App", ID: "x!App", Packaged: true}, nil},
+	}
+	for _, tt := range tests {
+		if got := keywords(tt.app); !slices.Equal(got, tt.want) {
+			t.Errorf("keywords(%s) = %q, want %q", tt.app.Name, got, tt.want)
+		}
+	}
+}
+
+func TestKnownNames(t *testing.T) {
+	m := knownNames()
+	if len(m) == 0 {
+		t.Fatal("no known names")
+	}
+	for exe, names := range m {
+		if exe != strings.ToLower(exe) || !strings.HasSuffix(exe, ".exe") || strings.ContainsAny(exe, `\/`) {
+			t.Errorf("bad executable name %q", exe)
+		}
+		if len(names) < 2 || slices.Contains(names, "") {
+			t.Errorf("%s: names %q", exe, names)
+		}
 	}
 }
