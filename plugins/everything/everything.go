@@ -72,9 +72,10 @@ type Plugin struct {
 	b    Backend
 	home string // user profile, shown as "~"
 
-	h   plugin.Host
-	exe string
-	wg  sync.WaitGroup
+	h    plugin.Host
+	exe  string
+	wg   sync.WaitGroup
+	stop chan struct{} // closed by Close
 }
 
 var (
@@ -145,21 +146,51 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	if !ok {
 		return fmt.Errorf("%s: %w", h.I18n().T("unavailable.notInstalled"), plugin.ErrUnavailable)
 	}
-	p.h, p.exe = h, exe
+	p.h, p.exe, p.stop = h, exe, make(chan struct{})
 	if !p.b.Running() {
 		p.wg.Add(1)
 		h.Go(func() {
 			defer p.wg.Done()
 			if err := p.b.Start(exe); err != nil {
 				h.Logger().Warn("everything: starting Everything", "exe", exe, "err", err)
+				return
+			}
+			// An open search view shows "not running" until it is pulled again.
+			if p.waitRunning() {
+				h.Invalidate(cmdSearch)
 			}
 		})
 	}
 	return nil
 }
 
+// waitRunning waits until Everything runs, for at most startTimeout or until
+// the plugin closes, and reports whether it runs.
+func (p *Plugin) waitRunning() bool {
+	tick := time.NewTicker(50 * time.Millisecond)
+	defer tick.Stop()
+	deadline := time.After(startTimeout)
+	for !p.b.Running() {
+		select {
+		case <-p.stop:
+			return false
+		case <-deadline:
+			return false
+		case <-tick.C:
+		}
+	}
+	return true
+}
+
 // Close implements plugin.Plugin.
 func (p *Plugin) Close() error {
+	if p.stop != nil {
+		select {
+		case <-p.stop: // closed before
+		default:
+			close(p.stop)
+		}
+	}
 	p.wg.Wait()
 	return nil
 }

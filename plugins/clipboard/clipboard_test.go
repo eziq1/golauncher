@@ -160,6 +160,25 @@ func TestRecordText(t *testing.T) {
 	}
 }
 
+// TestInvalidates checks that an open history view is pulled again when a
+// clip is recorded or the limits change, and not for a duplicate.
+func TestInvalidates(t *testing.T) {
+	e := setup(t)
+	e.copyText("one")
+	if got := e.h.Invalidated(); !slices.Equal(got, []string{"history"}) {
+		t.Fatalf("invalidated after a copy = %q", got)
+	}
+	e.copy(plugin.ClipboardContent{Text: "secret", Exclude: true})
+	if got := e.h.Invalidated(); len(got) != 1 {
+		t.Fatalf("an excluded copy invalidated: %q", got)
+	}
+	e.pref("maxItems", 1)
+	e.h.Bus.PublishSync(plugin.EventConfigChanged)
+	if got := e.h.Invalidated(); len(got) != 2 {
+		t.Fatalf("invalidated after a config change = %q", got)
+	}
+}
+
 func TestLongTitleTruncated(t *testing.T) {
 	e := setup(t)
 	e.copyText(strings.Repeat("字", 100))

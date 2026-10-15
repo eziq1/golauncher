@@ -14,6 +14,10 @@
   "confirm.titleCommand": "{{.item}}?",
   "confirm.message": "This cannot be undone.",
   "confirm.cancel": "Cancel",
+  "form.required": "This field is required.",
+  "form.invalidNumber": "Enter a number.",
+  "form.invalidDate": "Enter a date as YYYY-MM-DD.",
+  "form.invalidOption": "Choose one of the options.",
 
   "time.justNow": "Just now",
   "time.minutesAgo": { "one": "{{.Count}} minute ago", "other": "{{.Count}} minutes ago" },

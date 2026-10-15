@@ -276,6 +276,7 @@ func (p *Plugin) refreshLocked(ctx context.Context) (int, error) {
 			p.h.Logger().Warn("apps: saving the index", "err", err)
 		}
 	}
+	p.h.Invalidate("") // the root results shown may have changed
 	if p.icons != nil {
 		p.spawn(p.generateIcons)
 	}
@@ -307,6 +308,12 @@ func (p *Plugin) generateIcons(ctx context.Context) {
 		p.h.Logger().Warn("apps: creating the icon cache", "err", err)
 		return
 	}
+	added := false
+	defer func() {
+		if added {
+			p.h.Invalidate("") // show the new icons
+		}
+	}()
 	for _, a := range todo {
 		if ctx.Err() != nil {
 			return
@@ -326,6 +333,7 @@ func (p *Plugin) generateIcons(ctx context.Context) {
 		p.mu.Lock()
 		p.iconReady[a.ID] = true
 		p.mu.Unlock()
+		added = true
 	}
 }
 

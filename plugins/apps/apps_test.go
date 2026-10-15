@@ -402,6 +402,10 @@ func TestIcons(t *testing.T) {
 		return buf.Bytes(), nil
 	}
 	p, h := start(t, FixtureSource(fixture), icons)
+	// The refreshed index and the new icons each invalidate the root results.
+	if got := h.Invalidated(); !slices.Equal(got, []string{"", ""}) {
+		t.Fatalf("invalidated = %q", got)
+	}
 	items := rootItems(t, p, "a")
 	wx := find(t, items, "微信")
 	if dir := filepath.Join(h.CacheDir(), "icons"); filepath.Dir(wx.Icon.Path) != dir || wx.Icon.Name != "" {
@@ -421,6 +425,9 @@ func TestIcons(t *testing.T) {
 	p.waitIdle()
 	if got := calls.Load() - before; got != 2 { // only the two packaged apps are retried
 		t.Errorf("icons drawn again: %d", got)
+	}
+	if got := h.Invalidated(); len(got) != 3 { // the index only: no new icon
+		t.Errorf("invalidated after reload = %q", got)
 	}
 	p2 := NewWithSource(func(ctx context.Context) ([]shell.App, error) { <-ctx.Done(); return nil, ctx.Err() }, icons)
 	if err := p2.Init(t.Context(), h); err != nil {

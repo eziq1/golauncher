@@ -7,15 +7,27 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/eziq1/golauncher/internal/match"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
+// Coalescing of plugin notifications (docs/m5-plugin-platform.md §2, §5.4).
+var (
+	// invalidateDelay gathers the Host.Invalidate calls of a burst into one
+	// refresh.
+	invalidateDelay = 50 * time.Millisecond
+	// renderInterval is the shortest time between two pushed views applied
+	// to one view instance; pushes in between are coalesced to the latest.
+	renderInterval = 16 * time.Millisecond
+)
+
 // Controller is the launcher's interaction state machine: search text,
-// selection, action panel and navigation stack. Front ends feed it text and
-// key presses and render its Snapshot. It is safe for concurrent use;
-// searches run in the background and OnChange is called when they finish.
+// selection, action panel, navigation stack, form and argument inputs. Front
+// ends feed it text and key presses and render its Snapshot. It is safe for
+// concurrent use; searches run in the background and OnChange is called when
+// they finish.
 type Controller struct {
 	eng *Engine
 
@@ -28,21 +40,43 @@ type Controller struct {
 
 	gen    int // incremented for every search; stale results are dropped
 	cancel context.CancelFunc
-	// running counts searches in flight; idle is signalled when it drops to
-	// zero. (A WaitGroup cannot be used: Wait may run concurrently with Add.)
+	// running counts searches in flight and pending the invalidations and
+	// pushed views waiting to be applied; idle is signalled when they
+	// change. (A WaitGroup cannot be used: Wait may run concurrently with Add.)
 	running int
+	pending int
 	idle    *sync.Cond
+
+	instances int // view instances opened so far, for their IDs
+
+	// Invalidations gathered while invTimer runs; invAfter asks for one more
+	// refresh once the searches in flight have finished.
+	inv      []invalidation
+	invTimer bool
+	invAfter bool
 }
+
+// invalidation is a Host.Invalidate call.
+type invalidation struct{ plugin, view string }
 
 // frame is one level of the navigation stack.
 type frame struct {
 	nav      *Nav // nil for the root
 	text     string
 	sel      int
+	selKey   string // key of the selected entry, kept across refreshes
 	loading  bool
 	err      string
 	sections []Section
-	view     *plugin.View // the last view returned by the plugin
+	view     *plugin.View // the last view returned or pushed by the plugin
+	form     *formState   // the inputs of a form view
+	args     *argState    // the arguments typed for the selected entry
+
+	// Views pushed with Host.Render: the latest one waiting for the rate
+	// limit, whether a timer will apply it, and when the last one was applied.
+	pushed    *plugin.View
+	pushTimer bool
+	lastPush  time.Time
 }
 
 // panel is the open action panel.
@@ -62,6 +96,7 @@ type pending struct {
 func NewController(eng *Engine) *Controller {
 	c := &Controller{eng: eng, stack: []*frame{{}}}
 	c.idle = sync.NewCond(&c.mu)
+	eng.subscribe(c)
 	return c
 }
 
@@ -75,8 +110,18 @@ func (c *Controller) OnChange(fn func()) {
 
 func (c *Controller) top() *frame { return c.stack[len(c.stack)-1] }
 
-// Wait blocks until pending searches have finished.
+// Wait blocks until pending searches have finished, including the refreshes
+// of coalesced invalidations and the views pushed by plugins.
 func (c *Controller) Wait() {
+	c.mu.Lock()
+	for c.running > 0 || c.pending > 0 {
+		c.idle.Wait()
+	}
+	c.mu.Unlock()
+}
+
+// waitSearches blocks until the searches in flight have finished.
+func (c *Controller) waitSearches() {
 	c.mu.Lock()
 	for c.running > 0 {
 		c.idle.Wait()
@@ -87,20 +132,49 @@ func (c *Controller) Wait() {
 // searchDone marks one search finished. c.mu must be held.
 func (c *Controller) searchDone() {
 	c.running--
-	if c.running == 0 {
-		c.idle.Broadcast()
-	}
+	c.idle.Broadcast()
 }
+
+// pendingDone marks a coalesced notification handled. c.mu must be held.
+func (c *Controller) pendingDone() {
+	c.pending--
+	c.idle.Broadcast()
+}
+
+// truncate pops the stack down to n frames and returns the views closed.
+// c.mu must be held; pass the result to closed after unlocking.
+func (c *Controller) truncate(n int) []*Nav {
+	var navs []*Nav
+	for _, f := range c.stack[n:] {
+		if f.nav != nil {
+			navs = append(navs, f.nav)
+		}
+	}
+	clear(c.stack[n:])
+	c.stack = c.stack[:n]
+	return navs
+}
+
+// toRoot pops every view and starts a new root search. c.mu must be held.
+func (c *Controller) toRoot() []*Nav {
+	navs := c.truncate(0)
+	c.stack = append(c.stack, &frame{})
+	return navs
+}
+
+// closed tells the engine about closed view instances.
+func (c *Controller) closed(navs []*Nav) { c.eng.viewsClosed(navs) }
 
 // Reset pops to the root, clears the text and closes the panel. Front ends
 // call it when the window is shown.
 func (c *Controller) Reset(ctx context.Context) {
 	c.mu.Lock()
-	c.stack = []*frame{{}}
+	navs := c.toRoot()
 	c.panel = nil
 	c.confirm = nil
 	c.toast = nil
 	c.mu.Unlock()
+	c.closed(navs)
 	c.refresh(ctx)
 }
 
@@ -108,7 +182,7 @@ func (c *Controller) Reset(ctx context.Context) {
 func (c *Controller) Refresh(ctx context.Context) { c.refresh(ctx) }
 
 // SetText sets the search text of the current view, or the filter of the
-// open action panel.
+// open action panel. A form has no search text.
 func (c *Controller) SetText(ctx context.Context, text string) {
 	c.mu.Lock()
 	if c.panel != nil {
@@ -118,13 +192,16 @@ func (c *Controller) SetText(ctx context.Context, text string) {
 		return
 	}
 	f := c.top()
-	if f.text == text {
+	if f.text == text || f.form != nil {
 		c.mu.Unlock()
 		return
 	}
 	f.text = text
-	f.sel = 0
+	f.sel, f.selKey = 0, ""
 	local := f.view != nil && f.view.FilterLocally
+	if local {
+		c.setSel(f, 0)
+	}
 	c.mu.Unlock()
 	if !local {
 		c.refresh(ctx)
@@ -132,7 +209,11 @@ func (c *Controller) SetText(ctx context.Context, text string) {
 }
 
 // refresh starts a search for the top frame in the background.
-func (c *Controller) refresh(ctx context.Context) {
+func (c *Controller) refresh(ctx context.Context) { c.search(ctx, false) }
+
+// search starts a search for the top frame. A quiet search (the refresh of an
+// invalidation) does not show as loading.
+func (c *Controller) search(ctx context.Context, quiet bool) {
 	c.mu.Lock()
 	if c.cancel != nil {
 		c.cancel()
@@ -140,7 +221,9 @@ func (c *Controller) refresh(ctx context.Context) {
 	c.gen++
 	gen := c.gen
 	f := c.top()
-	f.loading = true
+	if !quiet {
+		f.loading = true
+	}
 	text, nav := f.text, f.nav
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	c.cancel = cancel
@@ -163,7 +246,6 @@ func (c *Controller) refresh(ctx context.Context) {
 			v, err = c.eng.View(ctx, Nav{Plugin: nav.Plugin, Request: req})
 			if err == nil {
 				view = &v
-				sections = viewSections(nav.Plugin, v)
 			}
 		}
 		// Notify outside the lock but before counting the search as done, so
@@ -173,15 +255,19 @@ func (c *Controller) refresh(ctx context.Context) {
 		if gen == c.gen && ctx.Err() == nil {
 			f.loading = false
 			f.err = ""
-			if err != nil {
+			switch {
+			case err != nil:
 				// Don't leave the previous results selectable under an error.
 				f.err = err.Error()
 				f.sections = nil
 				c.eng.log.Warn("search failed", "err", err)
-			} else {
-				f.sections, f.view = sections, view
+				f.sel = 0
+			case view != nil:
+				c.setView(f, view)
+			default:
+				f.sections = sections
+				c.restoreSelection(f)
 			}
-			f.sel = min(f.sel, max(0, countItems(c.visible(f))-1))
 			notify = c.onChange
 		}
 		c.mu.Unlock()
@@ -190,8 +276,189 @@ func (c *Controller) refresh(ctx context.Context) {
 		}
 		c.mu.Lock()
 		c.searchDone()
+		again := c.running == 0 && c.invAfter
+		if again {
+			c.invAfter = false
+		}
 		c.mu.Unlock()
+		if again {
+			c.search(context.Background(), true)
+			c.mu.Lock()
+			c.pendingDone()
+			c.mu.Unlock()
+		}
 	}()
+}
+
+// setView shows view v of the plugin in frame f, keeping the selection and
+// the values typed into a form. c.mu must be held.
+func (c *Controller) setView(f *frame, v *plugin.View) {
+	f.view = v
+	f.sections = viewSections(f.nav.Plugin, *v)
+	f.loading, f.err = false, ""
+	if v.Kind == plugin.ViewForm && v.Form != nil {
+		f.form = newFormState(f.form, v.Form)
+	} else {
+		f.form = nil
+	}
+	c.restoreSelection(f)
+}
+
+// restoreSelection selects the entry selected before the results of f
+// changed, by its key, or else the row at the same index. c.mu must be held.
+func (c *Controller) restoreSelection(f *frame) {
+	vis := c.visible(f)
+	n := countItems(vis)
+	if i := indexOfKey(vis, f.selKey); i >= 0 {
+		f.sel = i
+	} else {
+		f.sel = min(f.sel, max(0, n-1))
+	}
+	if e, ok := itemAt(vis, f.sel); ok {
+		f.selKey = e.Key
+	}
+}
+
+// setSel selects row i of f. c.mu must be held.
+func (c *Controller) setSel(f *frame, i int) {
+	vis := c.visible(f)
+	f.sel = clamp(i, countItems(vis))
+	if e, ok := itemAt(vis, f.sel); ok {
+		f.selKey = e.Key
+	}
+}
+
+func indexOfKey(sections []Section, key string) int {
+	if key == "" {
+		return -1
+	}
+	i := 0
+	for _, s := range sections {
+		for _, it := range s.Items {
+			if it.Key == key {
+				return i
+			}
+			i++
+		}
+	}
+	return -1
+}
+
+// invalidate handles Host.Invalidate of a plugin: when it shows in the top
+// frame, the frame is refreshed after a short delay that gathers bursts.
+func (c *Controller) invalidate(pluginID, viewID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.affected(invalidation{pluginID, viewID}) {
+		return
+	}
+	c.inv = append(c.inv, invalidation{pluginID, viewID})
+	if c.invTimer {
+		return
+	}
+	c.invTimer = true
+	c.pending++
+	time.AfterFunc(invalidateDelay, c.flushInvalidations)
+}
+
+// affected reports whether an invalidation concerns the top frame: the
+// plugin's view with that ID (any view for ""), or the root search when the
+// plugin contributes to it. c.mu must be held.
+func (c *Controller) affected(inv invalidation) bool {
+	f := c.top()
+	if f.nav == nil {
+		return c.eng.isRootProvider(inv.plugin)
+	}
+	return f.nav.Plugin == inv.plugin && (inv.view == "" || inv.view == f.nav.Request.ID)
+}
+
+// flushInvalidations refreshes the top frame for the invalidations gathered,
+// or, while a search is in flight, once it has finished.
+func (c *Controller) flushInvalidations() {
+	c.mu.Lock()
+	invs := c.inv
+	c.inv, c.invTimer = nil, false
+	if !slices.ContainsFunc(invs, c.affected) {
+		c.pendingDone()
+		c.mu.Unlock()
+		return
+	}
+	if c.running > 0 {
+		// Refreshing now would cancel the search in flight, and a plugin
+		// invalidating continuously would starve it.
+		if c.invAfter {
+			c.pendingDone()
+		}
+		c.invAfter = true // keeps the pending count until it refreshes
+		c.mu.Unlock()
+		return
+	}
+	c.mu.Unlock()
+	c.search(context.Background(), true)
+	c.mu.Lock()
+	c.pendingDone()
+	c.mu.Unlock()
+}
+
+// push handles Host.Render: the view replaces the content of the open view
+// instance, at most once per renderInterval; pushes for instances that are
+// not open are dropped. Pushes are ordered by their arrival.
+func (c *Controller) push(pluginID, instance string, v plugin.View) {
+	c.mu.Lock()
+	i := slices.IndexFunc(c.stack, func(f *frame) bool {
+		return f.nav != nil && f.nav.Plugin == pluginID && f.nav.Request.Instance == instance
+	})
+	if i < 0 || instance == "" {
+		c.mu.Unlock()
+		return
+	}
+	f := c.stack[i]
+	f.pushed = &v
+	if f.pushTimer {
+		c.mu.Unlock() // the scheduled flush applies the latest view
+		return
+	}
+	if wait := renderInterval - time.Since(f.lastPush); wait > 0 {
+		f.pushTimer = true
+		c.pending++
+		c.mu.Unlock()
+		time.AfterFunc(wait, func() { c.flushPush(f) })
+		return
+	}
+	notify := c.applyPush(f)
+	c.mu.Unlock()
+	if notify != nil {
+		notify()
+	}
+}
+
+func (c *Controller) flushPush(f *frame) {
+	c.mu.Lock()
+	f.pushTimer = false
+	var notify func()
+	if slices.Contains(c.stack, f) {
+		notify = c.applyPush(f)
+	} else {
+		f.pushed = nil // closed meanwhile
+	}
+	c.mu.Unlock()
+	if notify != nil {
+		notify()
+	}
+	c.mu.Lock()
+	c.pendingDone()
+	c.mu.Unlock()
+}
+
+// applyPush shows the latest pushed view of f. c.mu must be held.
+func (c *Controller) applyPush(f *frame) func() {
+	v := f.pushed
+	if v == nil {
+		return nil
+	}
+	f.pushed, f.lastPush = nil, time.Now()
+	c.setView(f, v)
+	return c.onChange
 }
 
 func viewSections(pluginID string, v plugin.View) []Section {
@@ -259,8 +526,7 @@ func (c *Controller) Select(i int) {
 		c.panel.sel = clamp(i, len(c.panelActions()))
 		return
 	}
-	f := c.top()
-	f.sel = clamp(i, countItems(c.visible(f)))
+	c.setSel(c.top(), i)
 }
 
 func clamp(i, n int) int { return max(0, min(i, n-1)) }
@@ -288,7 +554,7 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 	key = normalizeShortcut(key)
 	// Act on the results of what has been typed so far.
 	if key != "Up" && key != "Down" {
-		c.Wait()
+		c.waitSearches()
 	}
 	c.mu.Lock()
 	if p := c.confirm; p != nil {
@@ -308,17 +574,24 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		return c.panelKey(ctx, key) // unlocks
 	}
 	f := c.top()
+	if f.form != nil {
+		return c.formKey(ctx, key) // unlocks
+	}
+	if c.argumentKey(f, key) {
+		c.mu.Unlock()
+		return Outcome{}, nil
+	}
 	n := countItems(c.visible(f))
 	switch key {
 	case "Down", "Ctrl+N":
 		if n > 0 {
-			f.sel = (f.sel + 1) % n
+			c.setSel(f, (f.sel+1)%n)
 		}
 		c.mu.Unlock()
 		return Outcome{}, nil
 	case "Up", "Ctrl+P":
 		if n > 0 {
-			f.sel = (f.sel - 1 + n) % n
+			c.setSel(f, (f.sel-1+n)%n)
 		}
 		c.mu.Unlock()
 		return Outcome{}, nil
@@ -329,8 +602,7 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 			c.SetText(ctx, "")
 			return Outcome{}, nil
 		case len(c.stack) > 1:
-			c.stack = c.stack[:len(c.stack)-1]
-			c.mu.Unlock()
+			c.back() // unlocks
 			c.refresh(ctx)
 			return Outcome{}, nil
 		default:
@@ -340,8 +612,7 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 	case "Backspace":
 		// Backspace in an empty search field goes back, as in Raycast.
 		if f.text == "" && len(c.stack) > 1 {
-			c.stack = c.stack[:len(c.stack)-1]
-			c.mu.Unlock()
+			c.back() // unlocks
 			c.refresh(ctx)
 			return Outcome{}, nil
 		}
@@ -384,6 +655,14 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 	}
 	c.mu.Unlock()
 	return c.run(ctx, entry, action)
+}
+
+// back pops the top view. c.mu is held on entry and released before
+// returning.
+func (c *Controller) back() {
+	navs := c.truncate(len(c.stack) - 1)
+	c.mu.Unlock()
+	c.closed(navs)
 }
 
 // panelKey handles a key while the action panel is open. c.mu is held on
@@ -433,7 +712,7 @@ func (c *Controller) Activate(ctx context.Context, i int) (Outcome, error) {
 
 // RunAction runs the action with id of the entry with key in the current view.
 func (c *Controller) RunAction(ctx context.Context, entryKey, actionID string) (Outcome, error) {
-	c.Wait()
+	c.waitSearches()
 	c.mu.Lock()
 	entry, ok := FindEntry(c.visible(c.top()), entryKey)
 	c.mu.Unlock()
@@ -447,22 +726,51 @@ func (c *Controller) RunAction(ctx context.Context, entryKey, actionID string) (
 	return c.run(ctx, entry, action)
 }
 
-// OpenCommand resets to the root and runs a command, as its hotkey does.
+// OpenCommand resets to the root and runs a command, as its hotkey does. A
+// command with required arguments is shown selected in the root search
+// instead, with its first argument focused.
 func (c *Controller) OpenCommand(ctx context.Context, pluginID, name string) (Outcome, error) {
 	c.mu.Lock()
-	c.stack = []*frame{{}}
+	navs := c.toRoot()
 	c.panel = nil
 	c.confirm = nil
 	c.mu.Unlock()
+	c.closed(navs)
 	entry, ok := c.eng.commandEntry(c.eng.cfg.Get(), pluginID, name)
 	if !ok {
 		return Outcome{}, fmt.Errorf("core: unknown command %s/%s", pluginID, name)
 	}
+	if first := missingArgument(entry, nil); first != "" {
+		c.mu.Lock()
+		f := c.top()
+		f.text, f.sel, f.selKey = entry.Title, 0, entry.Key
+		f.argsFor(entry.Key).focus = first
+		c.mu.Unlock()
+		c.refresh(ctx)
+		c.waitSearches()
+		return Outcome{}, nil
+	}
 	return c.run(ctx, entry, entry.Actions[0])
 }
 
-// run executes an action, first asking for confirmation if it is destructive.
+// run executes an action, first collecting the entry's arguments and asking
+// for confirmation if it is destructive.
 func (c *Controller) run(ctx context.Context, entry Entry, action plugin.Action) (Outcome, error) {
+	if len(entry.Arguments) > 0 {
+		c.mu.Lock()
+		f := c.top()
+		st := f.argsOf(entry.Key)
+		if len(entry.Actions) > 0 && action.ID == entry.Actions[0].ID {
+			// The primary action needs the required arguments.
+			if name := missingArgument(entry, st); name != "" {
+				f.argsFor(entry.Key).focus = name
+				c.mu.Unlock()
+				return Outcome{}, nil
+			}
+		}
+		action.Do.Values = argumentValues(entry, st, action.Do.Values)
+		c.mu.Unlock()
+	}
 	if action.Style == plugin.StyleDestructive {
 		c.mu.Lock()
 		c.confirm = &pending{entry: entry, action: action}
@@ -485,16 +793,30 @@ func (c *Controller) exec(ctx context.Context, entry Entry, action plugin.Action
 	if out.Toast != nil {
 		c.setToast(out.Toast)
 	}
+	if len(out.FieldErrors) > 0 {
+		// The plugin rejected the form: it stays open with the messages.
+		c.mu.Lock()
+		if f := c.top(); f.form != nil {
+			f.form.setErrors(out.FieldErrors)
+		}
+		c.mu.Unlock()
+		out.Hide, out.Push, out.PopToRoot, out.Refresh = false, nil, false, false
+		return out, nil
+	}
 	switch {
 	case out.Push != nil:
+		nav := *out.Push
 		c.mu.Lock()
-		c.stack = append(c.stack, &frame{nav: out.Push})
+		c.instances++
+		nav.Request.Instance = fmt.Sprintf("v%d", c.instances)
+		c.stack = append(c.stack, &frame{nav: &nav})
 		c.mu.Unlock()
 		c.refresh(ctx)
 	case out.PopToRoot:
 		c.mu.Lock()
-		c.stack = []*frame{{}}
+		navs := c.toRoot()
 		c.mu.Unlock()
+		c.closed(navs)
 		c.refresh(ctx)
 	case out.Refresh:
 		c.refresh(ctx)
@@ -530,7 +852,11 @@ type Snapshot struct {
 	ShowDetail bool           `json:"showDetail,omitzero"`
 	Detail     *plugin.Detail `json:"detail,omitempty"`
 	EmptyText  string         `json:"emptyText,omitempty"`
-	Panel      *PanelSnapshot `json:"panel,omitempty"`
+	// Form is set when the view is a form; it has no search field then.
+	Form *FormSnapshot `json:"form,omitempty"`
+	// Arguments is set when the selected entry takes arguments.
+	Arguments *ArgumentsSnapshot `json:"arguments,omitempty"`
+	Panel     *PanelSnapshot     `json:"panel,omitempty"`
 	// Confirm is set while a destructive action awaits confirmation:
 	// Enter confirms, Escape cancels.
 	Confirm *ConfirmSnapshot `json:"confirm,omitempty"`
@@ -583,11 +909,16 @@ func (c *Controller) Snapshot() Snapshot {
 		s.EmptyText = cmp.Or(f.view.EmptyText, s.EmptyText)
 		s.Detail = f.view.Detail
 	}
+	if f.form != nil {
+		s.Form = f.form.snapshot(f.view.Form.Submit.Title)
+	}
 	if n := countItems(sections); n > 0 {
 		s.Selected = clamp(f.sel, n)
-		if e, ok := itemAt(sections, s.Selected); ok && s.ShowDetail && e.Detail != nil {
+		e, _ := itemAt(sections, s.Selected)
+		if s.ShowDetail && e.Detail != nil {
 			s.Detail = e.Detail
 		}
+		s.Arguments = argumentsSnapshot(e, f.argsOf(e.Key))
 	}
 	if p := c.confirm; p != nil {
 		s.Confirm = &ConfirmSnapshot{

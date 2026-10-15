@@ -143,6 +143,10 @@ func TestStartsEverythingWhenNotRunning(t *testing.T) {
 	if got := f.startCalls(); len(got) != 1 || got[0] != `C:\Program Files\Everything\Everything.exe` {
 		t.Fatalf("starts = %v", got)
 	}
+	// Once it runs, an open search view is pulled again.
+	if got := h.Invalidated(); !slices.Equal(got, []string{cmdSearch}) {
+		t.Fatalf("invalidated = %q", got)
+	}
 
 	// Still not running (e.g. the start failed): a single item to start it.
 	f.setRunning(false)
@@ -174,9 +178,9 @@ func TestStartsEverythingWhenNotRunning(t *testing.T) {
 
 func TestStartRunningOnInitIsSkipped(t *testing.T) {
 	f := &fake{installed: true, running: true}
-	p, _ := start(t, f)
+	p, h := start(t, f)
 	p.wg.Wait()
-	if len(f.startCalls()) != 0 {
+	if len(f.startCalls()) != 0 || len(h.Invalidated()) != 0 {
 		t.Fatal("started a running Everything")
 	}
 	// Starting when already running just refreshes.

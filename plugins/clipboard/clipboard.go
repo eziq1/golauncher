@@ -29,6 +29,9 @@ import (
 // ID is the plugin id.
 const ID = "builtin.clipboard"
 
+// viewHistory is the ID of the history view (the command's name).
+const viewHistory = "history"
+
 //go:embed locales/*.json
 var locales embed.FS
 
@@ -188,6 +191,7 @@ func (p *Plugin) onConfigChanged() {
 	if err := p.prune(h, db); err != nil {
 		h.Logger().Warn("clipboard: prune failed", "err", err)
 	}
+	h.Invalidate(viewHistory) // lower limits may have removed clips
 }
 
 // prune enforces the maxItems and maxDays preferences and removes the
@@ -263,7 +267,9 @@ func (p *Plugin) record(h plugin.Host, db *store, c plugin.ClipboardContent) err
 	if err != nil || !added {
 		return err
 	}
-	return p.prune(h, db)
+	err = p.prune(h, db)
+	h.Invalidate(viewHistory) // an open history view shows the new clip
+	return err
 }
 
 func hash(kind string, data []byte) [sha256.Size]byte {

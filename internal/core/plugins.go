@@ -1,6 +1,11 @@
 package core
 
 import (
+	"context"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"fmt"
+	"reflect"
 	"slices"
 
 	"github.com/eziq1/golauncher/internal/config"
@@ -66,10 +71,8 @@ func (e *Engine) Plugins() []PluginInfo {
 		for _, p := range l.m.Preferences {
 			p.Title = l.loc.Resolve(p.Title)
 			p.Description = l.loc.Resolve(p.Description)
-			p.Options = slices.Clone(p.Options)
-			for i := range p.Options {
-				p.Options[i].Title = l.loc.Resolve(p.Options[i].Title)
-			}
+			p.Group = l.loc.Resolve(p.Group)
+			p.Options = resolveOptions(l, p.Options)
 			info.Preferences = append(info.Preferences, p)
 		}
 		out = append(out, info)
@@ -86,6 +89,86 @@ func (e *Engine) Plugins() []PluginInfo {
 		})
 	}
 	return out
+}
+
+// resolveOptions returns a copy of options with localized titles.
+func resolveOptions(l *loaded, options []plugin.Option) []plugin.Option {
+	out := slices.Clone(options)
+	for i := range out {
+		out[i].Title = l.loc.Resolve(out[i].Title)
+	}
+	return out
+}
+
+// preference returns the declared preference name of plugin id.
+func (e *Engine) preference(id, name string) (*loaded, plugin.Preference, error) {
+	l, ok := e.byID[id]
+	if !ok {
+		return nil, plugin.Preference{}, fmt.Errorf("core: unknown plugin %q", id)
+	}
+	i := slices.IndexFunc(l.m.Preferences, func(p plugin.Preference) bool { return p.Name == name })
+	if i < 0 {
+		return nil, plugin.Preference{}, fmt.Errorf("core: plugin %q has no preference %q", id, name)
+	}
+	return l, l.m.Preferences[i], nil
+}
+
+// PreferenceOptions asks plugin id for the options of its preference name,
+// declared with DynamicOptions (design m5 §4). The call is guarded like
+// every plugin call and gives up after the view time limit.
+func (e *Engine) PreferenceOptions(ctx context.Context, id, name string) ([]plugin.Option, error) {
+	l, pref, err := e.preference(id, name)
+	if err != nil {
+		return nil, err
+	}
+	pp, ok := l.p.(plugin.PreferenceOptionsProvider)
+	if !pref.DynamicOptions || !ok {
+		return nil, fmt.Errorf("core: preference %s/%s has no dynamic options", id, name)
+	}
+	opts, err := callPlugin(ctx, e, id, viewTimeout, func(ctx context.Context) ([]plugin.Option, error) {
+		return pp.PreferenceOptions(ctx, name)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resolveOptions(l, opts), nil
+}
+
+// RunPreferenceAction runs the Action of the button preference name of
+// plugin id, as clicking it in the settings does, and returns its outcome
+// (usually a toast to show next to the button).
+func (e *Engine) RunPreferenceAction(ctx context.Context, id, name string) (Outcome, error) {
+	_, pref, err := e.preference(id, name)
+	if err != nil {
+		return Outcome{}, err
+	}
+	if pref.Type != plugin.PrefButton || pref.Action == nil {
+		return Outcome{}, fmt.Errorf("core: preference %s/%s is not a button", id, name)
+	}
+	return e.Run(ctx, Entry{Plugin: id}, plugin.Action{ID: name, Do: *pref.Action}, false)
+}
+
+// PrefVisible reports whether preference p shows, given the configured
+// values: a VisibleWhen condition compares the other preference's value
+// (or its default) with Equals as JSON values.
+func PrefVisible(prefs []plugin.Preference, values map[string]jsontext.Value, p plugin.Preference) bool {
+	cond := p.VisibleWhen
+	if cond == nil {
+		return true
+	}
+	v, ok := values[cond.Pref]
+	if !ok {
+		i := slices.IndexFunc(prefs, func(o plugin.Preference) bool { return o.Name == cond.Pref })
+		if i < 0 {
+			return false
+		}
+		v = prefs[i].Default
+	}
+	var a, b any
+	if json.Unmarshal(v, &a) != nil || json.Unmarshal(cond.Equals, &b) != nil {
+		return false
+	}
+	return reflect.DeepEqual(a, b)
 }
 
 func effectiveHotkey(def, override string) string {
