@@ -1,0 +1,8 @@
+{
+  "plugin.name": "Calculator",
+  "plugin.description": "Evaluate math expressions right in the search bar",
+  "group": "Calculator",
+  "action.copy": "Copy Result",
+  "action.copyExpression": "Copy Expression",
+  "action.paste": "Paste Result"
+}
