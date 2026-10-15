@@ -15,6 +15,7 @@ import (
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/system"
 )
 
 // realPlatform holds the real clipboard and system for --real.
@@ -29,10 +30,19 @@ func realPlatform(bool) (platform, error) {
 
 // realPlugins returns the real plugins plus the external ones in extra.
 // (Without --exec the programs they run as background tasks are only
-// recorded: build gives the environment a fake task runner.)
-func realPlugins(extra []string) []plugin.Plugin {
+// recorded: build gives the environment a fake task runner. The system
+// commands, such as Shut Down, then only read the real state and record
+// what they would do.)
+func realPlugins(extra []string, exec bool) []plugin.Plugin {
 	builtin.HostVersion = Version
 	all := builtin.All()
+	if !exec {
+		for i, p := range all {
+			if _, ok := p.(*system.Plugin); ok {
+				all[i] = system.NewWithOptions(system.Options{System: system.DryRun()})
+			}
+		}
+	}
 	return append(all, builtin.External(extra, all, extproc.Options{})...)
 }
 

@@ -223,7 +223,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		if ef.Exec {
 			opts.System = real.system
 		}
-		opts.Plugins = realPlugins(ef.Plugins)
+		opts.Plugins = realPlugins(ef.Plugins, ef.Exec)
 		if !ef.Exec {
 			// Programs are only recorded, and the real task history is read but
 			// not written.

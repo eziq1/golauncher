@@ -75,6 +75,402 @@
           "rank": 0.5599999999999999
         }
       ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:privacy-documents",
+          "title": "Documents Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "文档权限",
+            "wen dang quan xian",
+            "documents library",
+            "文档库"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-documents"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-documents"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-documents",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-downloadsfolder",
+          "title": "Downloads Folder Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "下载文件夹权限",
+            "xia zai wen jian jia quan xian",
+            "downloads",
+            "下载文件夹"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-downloadsfolder"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-downloadsfolder"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-downloadsfolder",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-broadfilesystemaccess",
+          "title": "File System Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "文件系统权限",
+            "wen jian xi tong quan xian",
+            "file system access",
+            "文件系统"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-broadfilesystemaccess"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-broadfilesystemaccess"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-broadfilesystemaccess",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-notifications",
+          "title": "Notification Access",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "通知访问权限",
+            "tong zhi fang wen quan xian",
+            "notification permissions",
+            "通知权限"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-notifications"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-notifications"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-notifications",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-radios",
+          "title": "Radios Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "无线电收发器权限",
+            "wu xian dian shou fa qi quan xian",
+            "radios",
+            "无线电"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-radios"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-radios"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-radios",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "tool:taskschd",
+          "title": "Task Scheduler",
+          "subtitle": "taskschd.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "scheduled tasks",
+            "cron",
+            "taskschd",
+            "任务计划程序",
+            "计划任务",
+            "ren wu ji hua cheng xu"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "taskschd.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "taskschd.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:taskschd",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-tasks",
+          "title": "Tasks Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "任务权限",
+            "ren wu quan xian",
+            "tasks",
+            "任务"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-tasks"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-tasks"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-tasks",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:easeofaccess-display",
+          "title": "Text Size",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "文本大小",
+            "wen ben da xiao",
+            "font size",
+            "make text bigger",
+            "字体大小",
+            "字号",
+            "放大文字"
+          ],
+          "accessory": "Accessibility",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:easeofaccess-display"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:easeofaccess-display"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:easeofaccess-display",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:windowsdefender",
+          "title": "Windows Security",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Windows 安全中心",
+            "windows an quan zhong xin",
+            "defender",
+            "antivirus",
+            "firewall",
+            "virus",
+            "杀毒",
+            "防火墙",
+            "病毒",
+            "安全中心"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:windowsdefender"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:windowsdefender"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:windowsdefender",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:windowsupdate",
+          "title": "Windows Update",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Windows 更新",
+            "windows geng xin",
+            "update",
+            "check for updates",
+            "patch",
+            "升级",
+            "检查更新",
+            "补丁",
+            "系统更新",
+            "gx"
+          ],
+          "accessory": "Windows Update",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:windowsupdate"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:windowsupdate"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:windowsupdate",
+          "rank": 0.5319999999999999
+        }
+      ]
     }
   ]
 }

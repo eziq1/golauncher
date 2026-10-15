@@ -1,0 +1,45 @@
+{
+  "query": "关机",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "System",
+      "items": [
+        {
+          "id": "system:shutdown",
+          "title": "Shut Down",
+          "icon": {
+            "name": "power"
+          },
+          "keywords": [
+            "shutdown",
+            "shut down",
+            "power off",
+            "turn off computer",
+            "关机",
+            "关闭电脑",
+            "gj",
+            "guan ji",
+            "guan bi dian nao"
+          ],
+          "group": "System",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Shut Down",
+              "style": "destructive",
+              "endsSession": true,
+              "do": {
+                "kind": "Callback",
+                "target": "shutdown"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/system:shutdown",
+          "rank": 0.6149999999999999
+        }
+      ]
+    }
+  ]
+}

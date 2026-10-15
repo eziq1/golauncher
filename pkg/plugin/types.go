@@ -203,7 +203,11 @@ type Action struct {
 	Title    string      `json:"title"`
 	Shortcut string      `json:"shortcut,omitempty"` // e.g. "Ctrl+Shift+C"
 	Style    ActionStyle `json:"style,omitempty"`
-	Do       ActionDo    `json:"do"`
+	// EndsSession marks a destructive action that ends the Windows session
+	// (shut down, restart, sign out): its confirmation warns that the
+	// running background tasks will be interrupted.
+	EndsSession bool     `json:"endsSession,omitzero"`
+	Do          ActionDo `json:"do"`
 }
 
 // ActionKind is what the host does when an action runs.

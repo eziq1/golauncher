@@ -21,6 +21,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/files"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
+	"github.com/eziq1/golauncher/plugins/system"
 )
 
 // HostVersion is sent to external plugins in initialize and in the User-Agent
@@ -41,6 +42,7 @@ func All() []plugin.Plugin {
 		everything.New(),
 		scripts.New(),
 		realScoop(),
+		system.New(),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
 }
@@ -86,6 +88,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
 		fakeScoop(dir),
+		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
 	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)

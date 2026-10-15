@@ -379,6 +379,17 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.system",
+    "name": "System",
+    "description": "Lock, sleep, restart or shut down the computer, empty the Recycle Bin, toggle dark mode, change the volume, and open any Windows settings page or administrative tool.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "settings"
+    },
+    "enabled": true,
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.tasks",
     "name": "Background Tasks",
     "description": "Shows the background tasks of golauncher and its plugins with their output, and lets you stop or rerun them.",

@@ -1,0 +1,53 @@
+{
+  "query": "蓝牙",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:bluetooth",
+          "title": "Bluetooth & Devices",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "蓝牙和其他设备",
+            "lan ya he qi ta she bei",
+            "bt",
+            "bluetooth",
+            "pair",
+            "headphones",
+            "蓝牙",
+            "配对",
+            "耳机"
+          ],
+          "accessory": "Bluetooth & devices",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:bluetooth"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:bluetooth"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:bluetooth",
+          "rank": 0.6649999999999999
+        }
+      ]
+    }
+  ]
+}

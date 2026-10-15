@@ -1055,10 +1055,20 @@ func (c *Controller) Snapshot() Snapshot {
 			Confirm: p.action.Title,
 			Cancel:  core.T("confirm.cancel"),
 		}
-		if strings.HasPrefix(p.entry.ID, cmdPrefix) {
-			// For a command the entry title already names the action.
+		if strings.HasPrefix(p.entry.ID, cmdPrefix) || p.action.Title == p.entry.Title {
+			// For a command (or an item named like its action, "Shut Down")
+			// the entry title already names the action.
 			s.Confirm.Title = core.T("confirm.titleCommand", "item", p.entry.Title)
 			s.Confirm.Confirm = p.entry.Title
+		}
+		if p.action.EndsSession {
+			// Shutting down or signing out also stops the background tasks.
+			s.Confirm.Message = core.T("confirm.messageSession")
+			if ts := c.eng.tasks; ts != nil {
+				if active, _ := ts.Indicator(); active > 0 {
+					s.Confirm.Message = core.N("confirm.tasksInterrupted", active)
+				}
+			}
 		}
 	}
 	if ts := c.eng.tasks; ts != nil {

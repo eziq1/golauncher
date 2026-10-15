@@ -93,6 +93,9 @@ func TestGolden(t *testing.T) {
 		{"query_color", []string{"query", "#ff8800 to rgb"}},
 		{"query_size", []string{"query", "US 9 shoe in EU"}},
 		{"query_not_unit", []string{"query", "mi", "--fixtures", fixtures}},
+		{"query_system_lock", []string{"query", "lock"}},
+		{"query_system_shutdown_zh", []string{"query", "关机"}},
+		{"query_system_bluetooth_zh", []string{"query", "蓝牙"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -135,6 +138,38 @@ func TestSessionConfirmClear(t *testing.T) {
 	golden(t, "session_confirm_ask", out)
 	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
 	golden(t, "session_confirm_done", out)
+}
+
+// TestSessionEmptyRecycleBin asks before emptying the Recycle Bin (of the
+// fake machine) and then reports it.
+func TestSessionEmptyRecycleBin(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	glctl(t, "session", "type", "-s", s, "empty recycle bin")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_system_empty_bin_ask", out)
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_system_empty_bin_done", out)
+}
+
+// TestSessionShutDownWarnsAboutTasks: while a background task runs, the
+// confirmation of Shut Down says that it will be interrupted.
+func TestSessionShutDownWarnsAboutTasks(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--fixtures", fixtures)
+	glctl(t, "session", "type", "-s", s, "shut down")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	if !strings.Contains(out, `"title": "Shut Down?"`) || !strings.Contains(out, "Open apps will be closed.") {
+		t.Errorf("no confirmation without tasks:\n%s", out)
+	}
+	glctl(t, "session", "key", "-s", s, "Escape")
+	glctl(t, "session", "type", "-s", s, "update scoop buckets")
+	glctl(t, "session", "key", "-s", s, "Enter") // held until wait-tasks
+	glctl(t, "session", "type", "-s", s, "shut down")
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	if !strings.Contains(out, `"message": "1 background task will be interrupted."`) {
+		t.Errorf("no warning about the running task:\n%s", out)
+	}
 }
 
 // TestSessionScoopInstall installs a package from the search view: the

@@ -1,0 +1,58 @@
+{
+  "step": "key \"Enter\"",
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "empty recycle bin",
+    "sections": [
+      {
+        "title": "System",
+        "items": [
+          {
+            "id": "system:emptyBin",
+            "title": "Empty Recycle Bin",
+            "subtitle": "3 items · 1.5 MB",
+            "icon": {
+              "name": "trash"
+            },
+            "keywords": [
+              "recycle bin",
+              "trash",
+              "empty trash",
+              "清空回收站",
+              "回收站",
+              "垃圾桶",
+              "hsz",
+              "qing kong hui shou zhan",
+              "hui shou zhan",
+              "la ji tong"
+            ],
+            "group": "System",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Empty Recycle Bin",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "emptyBin"
+                }
+              }
+            ],
+            "plugin": "builtin.system",
+            "key": "builtin.system/system:emptyBin",
+            "rank": 0.6499999999999999
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "confirm": {
+      "title": "Empty Recycle Bin?",
+      "message": "This cannot be undone.",
+      "confirm": "Empty Recycle Bin",
+      "cancel": "Cancel"
+    }
+  }
+}

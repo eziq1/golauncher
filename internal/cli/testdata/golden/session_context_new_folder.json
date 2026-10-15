@@ -331,6 +331,49 @@
             "context": true
           }
         ]
+      },
+      {
+        "title": "Settings",
+        "items": [
+          {
+            "id": "settings:personalization-start-places",
+            "title": "Start Folders",
+            "icon": {
+              "name": "settings"
+            },
+            "keywords": [
+              "开始菜单文件夹",
+              "kai shi cai dan wen jian jia",
+              "folders next to power button",
+              "start folders",
+              "开始文件夹"
+            ],
+            "accessory": "Personalization",
+            "group": "Settings",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "ms-settings:personalization-start-places"
+                }
+              },
+              {
+                "id": "copy-uri",
+                "title": "Copy URI",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "ms-settings:personalization-start-places"
+                }
+              }
+            ],
+            "plugin": "builtin.system",
+            "key": "builtin.system/settings:personalization-start-places",
+            "rank": 0.3935914772727273
+          }
+        ]
       }
     ],
     "selected": 0,

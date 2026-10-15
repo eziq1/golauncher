@@ -37,6 +37,12 @@
     is installed.
   - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)
     packages, when Scoop is installed.
+  - **System**: Lock, Sleep, Hibernate, Restart, Shut Down, Sign Out, Empty
+    Recycle Bin, Toggle Dark Mode, volume, Turn Off Display and Show Desktop,
+    plus about 150 Windows Settings pages and the classic tools (Device
+    Manager, Services, Registry Editor, …), searchable in English, Chinese and
+    pinyin (`蓝牙`, `wifi`, `关机`, `gj`). Restart, Shut Down, Sign Out and
+    Empty Recycle Bin ask first.
   - **World Clock**: type `time` for your local time and major cities, or
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find a
     city. The clocks tick; favorite cities stay on top.

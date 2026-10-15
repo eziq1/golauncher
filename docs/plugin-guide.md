@@ -118,6 +118,9 @@ Commands declared in the manifest appear in the root search under
 - Mark commands that delete data `Destructive: true`, and give such actions
   `Style: plugin.StyleDestructive`. The host then asks the user to confirm
   before running them.
+- Also set `EndsSession: true` on destructive actions that end the Windows
+  session (shut down, restart, sign out): the confirmation then says how
+  many background tasks would be interrupted.
 
 ### Preferences
 

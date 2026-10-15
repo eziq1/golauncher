@@ -62,6 +62,49 @@
           "rank": 0.7
         }
       ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:energyrecommendations",
+          "title": "Energy Recommendations",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "能耗建议",
+            "neng hao jian yi",
+            "energy",
+            "carbon",
+            "节能建议"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:energyrecommendations"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:energyrecommendations"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:energyrecommendations",
+          "rank": 0.281
+        }
+      ]
     }
   ]
 }

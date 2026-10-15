@@ -1,0 +1,246 @@
+{
+  "query": "lock",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "System",
+      "items": [
+        {
+          "id": "system:lock",
+          "title": "Lock",
+          "icon": {
+            "name": "lock"
+          },
+          "keywords": [
+            "lock",
+            "lock computer",
+            "lock pc",
+            "锁屏",
+            "锁定",
+            "锁定电脑",
+            "sp",
+            "suo ping",
+            "suo ding",
+            "suo ding dian nao"
+          ],
+          "group": "System",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Lock",
+              "do": {
+                "kind": "Callback",
+                "target": "lock"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/system:lock",
+          "rank": 0.7
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:lockscreen",
+          "title": "Lock Screen",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "锁屏界面",
+            "suo ping jie mian",
+            "lock screen",
+            "spotlight",
+            "screen saver",
+            "锁屏",
+            "屏幕保护程序",
+            "屏保"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:lockscreen"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:lockscreen"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:lockscreen",
+          "rank": 0.6427272727272727
+        },
+        {
+          "id": "settings:signinoptions-dynamiclock",
+          "title": "Dynamic Lock",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "动态锁",
+            "dong tai suo",
+            "dynamic lock",
+            "auto lock",
+            "自动锁定"
+          ],
+          "accessory": "Accounts",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:signinoptions-dynamiclock"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:signinoptions-dynamiclock"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:signinoptions-dynamiclock",
+          "rank": 0.595
+        },
+        {
+          "id": "settings:dateandtime",
+          "title": "Date & Time",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "日期和时间",
+            "ri qi he shi jian",
+            "time zone",
+            "clock",
+            "sync time",
+            "日期",
+            "时间",
+            "时区",
+            "时钟",
+            "同步时间"
+          ],
+          "accessory": "Time & language",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:dateandtime"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:dateandtime"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:dateandtime",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:deviceencryption",
+          "title": "Device Encryption",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "设备加密",
+            "she bei jia mi",
+            "bitlocker",
+            "encrypt",
+            "加密"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:deviceencryption"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:deviceencryption"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:deviceencryption",
+          "rank": 0.4654999999999999
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:world-clock",
+          "title": "World Clock",
+          "subtitle": "World Clock",
+          "icon": {
+            "name": "clock"
+          },
+          "keywords": [
+            "time",
+            "clock",
+            "time zone",
+            "world time",
+            "时间",
+            "时区",
+            "世界时间"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/cmd:world-clock",
+          "rank": 0.48999999999999994
+        }
+      ]
+    }
+  ]
+}

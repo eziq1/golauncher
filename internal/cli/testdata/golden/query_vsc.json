@@ -144,6 +144,218 @@
           "rank": 0.287
         }
       ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:privacy",
+          "title": "Privacy & Security",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "隐私和安全性",
+            "yin si he an quan xing",
+            "privacy",
+            "security",
+            "permissions",
+            "隐私",
+            "安全",
+            "权限"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy",
+          "rank": 0.287
+        },
+        {
+          "id": "settings:easeofaccess-visualeffects",
+          "title": "Visual Effects",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "视觉效果",
+            "shi jue xiao guo",
+            "animation effects",
+            "transparency effects",
+            "always show scrollbars",
+            "动画效果",
+            "滚动条"
+          ],
+          "accessory": "Accessibility",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:easeofaccess-visualeffects"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:easeofaccess-visualeffects"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:easeofaccess-visualeffects",
+          "rank": 0.27999999999999997
+        },
+        {
+          "id": "tool:devmgmt",
+          "title": "Device Manager",
+          "subtitle": "devmgmt.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "drivers",
+            "devmgmt",
+            "设备管理器",
+            "驱动",
+            "she bei guan li qi"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "devmgmt.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "devmgmt.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:devmgmt",
+          "rank": 0.15399999999999997
+        },
+        {
+          "id": "tool:services",
+          "title": "Services",
+          "subtitle": "services.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "services",
+            "windows services",
+            "服务",
+            "fu wu"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "services.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "services.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:services",
+          "rank": 0.15399999999999997
+        },
+        {
+          "id": "tool:eventvwr",
+          "title": "Event Viewer",
+          "subtitle": "eventvwr.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "event log",
+            "logs",
+            "eventvwr",
+            "事件查看器",
+            "日志",
+            "shi jian cha kan qi"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "eventvwr.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "eventvwr.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:eventvwr",
+          "rank": 0.1489090909090909
+        }
+      ]
     }
   ]
 }
