@@ -138,6 +138,11 @@ func TestGoHelloRoundTrip(t *testing.T) {
 	if state(p) != StateRunning {
 		t.Fatalf("state = %q", state(p))
 	}
+	// go-hello has no context items: once initialize said so, contextItems
+	// is not sent (it would fail with "method not found").
+	if items, err := p.ContextItems(ctx, plugin.Context{Kind: plugin.ContextExplorer, Folder: `C:\tmp`}); err != nil || items != nil {
+		t.Fatalf("context items = %+v, %v", items, err)
+	}
 	v, err := p.View(ctx, plugin.ViewRequest{ID: "greetings"})
 	if err != nil {
 		t.Fatal(err)

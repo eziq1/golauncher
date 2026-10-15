@@ -192,9 +192,9 @@ func (p *Plugin) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Ite
 }
 
 // keywords splits a comma-separated message into search keywords.
-func keywords(l plugin.Localizer, id string) []string {
+func keywords(list string) []string {
 	var out []string
-	for w := range strings.SplitSeq(l.T(id), ",") {
+	for w := range strings.SplitSeq(list, ",") {
 		if w = strings.TrimSpace(w); w != "" {
 			out = append(out, w)
 		}
@@ -231,45 +231,45 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 	if term.target != "" {
 		items = append(items, plugin.Item{
 			ID: "terminal", Title: term.title, Subtitle: dir, Icon: plugin.Icon{Name: "terminal"},
-			Keywords: keywords(l, "keywords.terminal"),
+			Keywords: keywords(l.T("keywords.terminal")),
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), term.target, term.opts), copyPath},
 		})
 	}
 	items = append(items, plugin.Item{
 		ID: "cmd", Title: l.T("item.cmd.title"), Subtitle: dir, Icon: plugin.Icon{Name: "terminal"},
-		Keywords: keywords(l, "keywords.cmd"),
+		Keywords: keywords(l.T("keywords.cmd")),
 		Actions:  []plugin.Action{openAction("open", l.T("action.open"), "cmd.exe", plugin.OpenOptions{Dir: dir}), copyPath},
 	})
 	if code := p.program("code"); code != "" {
 		items = append(items, plugin.Item{
 			ID: "vscode", Title: l.T("item.vscode.title"), Subtitle: dir, Icon: plugin.Icon{Name: "code"},
-			Keywords: keywords(l, "keywords.vscode"),
+			Keywords: keywords(l.T("keywords.vscode")),
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(dir), Dir: dir}), copyPath},
 		})
 	}
 	items = append(items,
 		plugin.Item{
 			ID: "new-folder", Title: l.T("item.newFolder.title"), Subtitle: dir, Icon: plugin.Icon{Name: "folder-plus"},
-			Keywords:  keywords(l, "keywords.newFolder"),
+			Keywords:  keywords(l.T("keywords.newFolder")),
 			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.folderName")}},
 			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFolder, payload{Dir: dir})},
 		},
 		plugin.Item{
 			ID: "new-file", Title: l.T("item.newFile.title"), Subtitle: dir, Icon: plugin.Icon{Name: "file-plus"},
-			Keywords:  keywords(l, "keywords.newFile"),
+			Keywords:  keywords(l.T("keywords.newFile")),
 			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.fileName")}},
 			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFile, payload{Dir: dir})},
 		},
 		plugin.Item{
 			ID: "copy-path", Title: l.T("item.copyPath.title"), Subtitle: dir, Icon: plugin.Icon{Name: "clipboard"},
-			Keywords: keywords(l, "keywords.copyPath"),
+			Keywords: keywords(l.T("keywords.copyPath")),
 			Actions:  []plugin.Action{{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: dir}}},
 		},
 	)
 	if admin := p.terminal(l, dir, true); admin.target != "" {
 		items = append(items, plugin.Item{
 			ID: "terminal-admin", Title: admin.title, Subtitle: dir, Icon: plugin.Icon{Name: "shield"},
-			Keywords: slices.Concat(keywords(l, "keywords.terminal"), keywords(l, "keywords.admin")),
+			Keywords: slices.Concat(keywords(l.T("keywords.terminal")), keywords(l.T("keywords.admin"))),
 			Actions: []plugin.Action{{ID: "open", Title: l.T("action.openAdmin"), Style: plugin.StyleDestructive,
 				Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: admin.target, Payload: plugin.MustPayload(admin.opts)}}},
 		})
@@ -323,7 +323,7 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 	}
 	items := []plugin.Item{{
 		ID: "copy-selected", Title: l.N("item.copySelected.title", n), Subtitle: subtitle, Icon: plugin.Icon{Name: "clipboard"},
-		Keywords: keywords(l, "keywords.copyPath"),
+		Keywords: keywords(l.T("keywords.copyPath")),
 		Actions: []plugin.Action{
 			{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: strings.Join(sel, "\r\n")}},
 			{ID: "copy-files", Title: l.T("action.copyFiles"), Shortcut: "Ctrl+Alt+C",
@@ -333,26 +333,26 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 	if code := p.program("code"); code != "" {
 		items = append(items, plugin.Item{
 			ID: "vscode-selected", Title: l.T("item.vscodeSelected.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "code"},
-			Keywords: keywords(l, "keywords.vscode"),
+			Keywords: keywords(l.T("keywords.vscode")),
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(sel...), Dir: dir})},
 		})
 	}
 	items = append(items, plugin.Item{
 		ID: "zip", Title: l.T("item.zip.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "archive"},
-		Keywords: keywords(l, "keywords.zip"),
+		Keywords: keywords(l.T("keywords.zip")),
 		Actions:  []plugin.Action{callback("compress", l.T("action.compress"), cbZip, payload{Dir: dir, Paths: sel})},
 	})
 	if n == 1 {
 		if st, err := os.Stat(sel[0]); err == nil && st.Mode().IsRegular() {
 			items = append(items, plugin.Item{
 				ID: "sha256", Title: l.T("item.sha256.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "hash"},
-				Keywords: keywords(l, "keywords.sha256"),
+				Keywords: keywords(l.T("keywords.sha256")),
 				Actions:  []plugin.Action{callback("hash", l.T("action.copy"), cbSHA256, payload{Paths: sel})},
 			})
 			if runnable(sel[0]) {
 				items = append(items, plugin.Item{
 					ID: "run-admin", Title: l.T("item.runAdmin.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "shield"},
-					Keywords: keywords(l, "keywords.admin"),
+					Keywords: keywords(l.T("keywords.admin")),
 					Actions: []plugin.Action{openAction("run", l.T("action.runAdmin"), sel[0],
 						plugin.OpenOptions{Dir: filepath.Dir(sel[0]), Verb: "runas"})},
 				})

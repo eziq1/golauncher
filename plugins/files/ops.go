@@ -145,14 +145,15 @@ func zipPaths(dir string, paths []string) (out string, err error) {
 	if f == nil {
 		return "", fmt.Errorf("%s: too many files with this name", base)
 	}
+	archive := out
 	defer func() {
 		if err != nil {
-			os.Remove(out) // no half-written archive
+			os.Remove(archive) // no half-written archive
 		}
 	}()
 	zw := zip.NewWriter(f)
 	for _, p := range paths {
-		if err = addToZip(zw, p, out); err != nil {
+		if err = addToZip(zw, p, archive); err != nil {
 			zw.Close()
 			f.Close()
 			return "", err

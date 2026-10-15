@@ -3,7 +3,6 @@ package core
 import (
 	"cmp"
 	"context"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -157,7 +156,11 @@ func ContextName(c *plugin.Context) string {
 	}
 	if c.Folder != "" {
 		f := strings.TrimRight(c.Folder, `\/`)
-		if name := filepath.Base(f); name != "" && name != "." && !strings.HasSuffix(f, ":") {
+		name := f
+		if i := strings.LastIndexAny(f, `\/`); i >= 0 {
+			name = f[i+1:]
+		}
+		if name != "" && !strings.HasSuffix(name, ":") {
 			return name
 		}
 		return c.Folder // a drive root such as C:\
