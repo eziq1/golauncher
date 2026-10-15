@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -71,7 +72,8 @@ type Launcher struct {
 	list, actions mui.ListState
 	rows          []launcherRow
 	rowOf         map[int]int // flat item index -> list row
-	lastSel       int
+	lastSel       string      // key of the selected row, to scroll when it changes
+	lastRows      string      // the rows' keys, to notice the results changing
 	lastPanelSel  int
 	hoverRow      int  // flat index of the row last hovered, -1 for none
 	armed         bool // hovering selects only once the pointer moved after showing
@@ -107,7 +109,6 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 		host:     host,
 		work:     work,
 		log:      env.Services.Log,
-		lastSel:  -1,
 		hoverRow: -1,
 	}
 	l.images = newImageCache(host.Invalidate)
@@ -207,9 +208,11 @@ func (l *Launcher) back() {
 	})
 }
 
-func (l *Launcher) selectRow(i int) {
+// hoverRowSelect selects the row under the pointer (Controller.Hover: not a
+// deliberate choice, see moved in core).
+func (l *Launcher) hoverRowSelect(i int) {
 	l.work.Do(func(context.Context) {
-		l.ctrl.Select(i)
+		l.ctrl.Hover(i)
 		l.host.Invalidate()
 	})
 }
@@ -464,9 +467,28 @@ func (l *Launcher) buildRows(s core.Snapshot) {
 func (l *Launcher) results(c *mui.Context, s core.Snapshot) {
 	t := c.Theme()
 	l.buildRows(s)
-	if s.Selected != l.lastSel {
-		l.lastSel = s.Selected
-		if r, ok := l.rowOf[s.Selected]; ok {
+	keys := make([]string, len(l.rows))
+	for i, r := range l.rows {
+		keys[i] = r.key
+	}
+	sig := strings.Join(keys, "\x00")
+	changed := sig != l.lastRows
+	if changed {
+		// Rows moved under a resting pointer (e.g. the context section
+		// arrived above): hovering selects again only after it moves.
+		l.lastRows, l.armed = sig, false
+	}
+	selKey := ""
+	if e, ok := s.SelectedEntry(); ok {
+		selKey = e.Key
+	}
+	// Compare keys, not indexes: the selected index can stay 0 while the
+	// row at 0 changes.
+	if selKey != l.lastSel || changed {
+		l.lastSel = selKey
+		if s.Selected == 0 {
+			l.list.ScrollTo(0, mui.Start) // the first section's header too
+		} else if r, ok := l.rowOf[s.Selected]; ok {
 			l.list.ScrollIntoView(r)
 		}
 	}
@@ -520,7 +542,7 @@ func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 		// The first row under the pointer after showing does not take the
 		// choice: the pointer may just be resting there.
 		if l.armed && !selected {
-			l.selectRow(r.flat)
+			l.hoverRowSelect(r.flat)
 		}
 		l.hoverRow, l.armed = r.flat, true
 	}

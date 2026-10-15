@@ -692,7 +692,13 @@ func TestEmptySectionDoesNotCrash(t *testing.T) {
 type ctxRows struct{}
 
 func (ctxRows) Manifest() plugin.Manifest {
-	return plugin.Manifest{ID: "rows", Name: "Rows", Version: "1"}
+	m := plugin.Manifest{ID: "rows", Name: "Rows", Version: "1"}
+	// Enough commands for a root list taller than the window, as on a real
+	// machine with recent items and many plugins.
+	for i := range 12 {
+		m.Commands = append(m.Commands, plugin.Command{Name: fmt.Sprint("c", i), Title: fmt.Sprintf("Command %02d", i), Mode: plugin.ModeNoView})
+	}
+	return m
 }
 func (ctxRows) Init(context.Context, plugin.Host) error                        { return nil }
 func (ctxRows) Close() error                                                   { return nil }
@@ -750,5 +756,65 @@ func TestLateContextDoesNotOverlap(t *testing.T) {
 	}
 	if s := env.Controller.Snapshot(); s.Selected != 0 {
 		t.Errorf("selected row %d, want the context's first row", s.Selected)
+	}
+}
+
+// TestLateContextWithPointerOnList is the follow-up: with the mouse resting
+// over the list, the rows shifting under it when the context arrived counted
+// as hovering, which kept a lower row selected and the list scrolled past the
+// context section.
+func TestLateContextWithPointerOnList(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{ctxRows{}, testPlugin{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	release := make(chan struct{})
+	env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) {
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return plugin.Context{App: plugin.AppInfo{Name: "explorer.exe"}, Kind: plugin.ContextExplorer, Folder: `C:\Users\ann\Photos`}, true
+	})
+	lt := &launcherTest{Env: env, t: t, host: &fakeHost{}}
+	lt.l = ui.NewLauncher(env, lt.host, ui.NewDispatcher(t.Context(), nil))
+	lt.tt = mui.NewTester(lt.l.View, ui.LauncherWidth, ui.LauncherHeight)
+	lt.l.Shown()
+	lt.step()
+	// The pointer rests over the list and has moved there once (armed), then
+	// moves onto the third row: hovering selects it.
+	lt.tt.Move(300, 200)
+	lt.step()
+	lt.tt.Move(300, 260)
+	lt.step()
+	if s := env.Controller.Snapshot(); s.Selected == 0 {
+		t.Fatalf("hovering did not select a row (texts %q)", lt.tt.Texts())
+	}
+	close(release)
+	for range 50 {
+		lt.step()
+		if lt.tt.HasText("In Photos") {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	lt.step() // a frame with the rows moved under the resting pointer
+	s := env.Controller.Snapshot()
+	if s.Selected != 0 {
+		e, _ := s.SelectedEntry()
+		t.Errorf("selected row %d %q, want the context's first row", s.Selected, e.Title)
+	}
+	header, ok1 := lt.tt.Find("In Photos")
+	first, ok2 := lt.tt.Find("Open Terminal Here")
+	if !ok1 || !ok2 {
+		t.Fatalf("header visible %v, first row visible %v", ok1, ok2)
+	}
+	if header.Y < 40 || header.Y+header.H > first.Y {
+		t.Errorf("header %+v and first row %+v: want the header at the top of the list, above the row", header, first)
 	}
 }

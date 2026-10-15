@@ -575,6 +575,19 @@ func (c *Controller) Select(i int) {
 	c.top().moved = true
 }
 
+// Hover selects row i under the mouse pointer. Unlike Select (a click) it
+// does not count as the user choosing a row, so results arriving above (the
+// context) still move the selection to the first row.
+func (c *Controller) Hover(i int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.panel != nil {
+		c.panel.sel = clamp(i, len(c.panelActions()))
+		return
+	}
+	c.setSel(c.top(), i)
+}
+
 func clamp(i, n int) int { return max(0, min(i, n-1)) }
 
 // panelActions returns the panel's actions filtered by its text. c.mu must be held.
