@@ -69,7 +69,7 @@ func TestLoadFixture(t *testing.T) {
 	if len(frags) != 2 {
 		t.Fatalf("fragments = %q", frags)
 	}
-	term, err := loadTerminal(settings, frags, func(string) string { return "" })
+	term, err := loadTerminal(settings, frags, func(string) string { return "" }, nil)
 	if err != nil || len(term.Problems) > 0 {
 		t.Fatal(err, term.Problems)
 	}
@@ -120,7 +120,7 @@ func TestSettingsLocations(t *testing.T) {
 		if got != locs[i] {
 			t.Fatalf("with %d files: %q, want %q", len(locs)-i, got, locs[i])
 		}
-		term, err := loadTerminal(got, nil, nil)
+		term, err := loadTerminal(got, nil, nil, nil)
 		if err != nil || len(term.Profiles) != 1 || term.Profiles[0].Name != "P"+string(rune('0'+i)) {
 			t.Errorf("%s: %v %+v", got, err, term.Profiles)
 		}
@@ -174,7 +174,7 @@ func TestLayering(t *testing.T) {
 		}
 		return ""
 	}
-	term, err := loadTerminal(settings, fragmentFiles(fragmentRoots(la, "")), getenv)
+	term, err := loadTerminal(settings, fragmentFiles(fragmentRoots(la, "")), getenv, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestLayering(t *testing.T) {
 
 	// A settings.json being saved (invalid) is an error.
 	writeFile(t, settings, `{"profiles": {"list": [ {"name": `)
-	if _, err := loadTerminal(settings, nil, nil); err == nil {
+	if _, err := loadTerminal(settings, nil, nil, nil); err == nil {
 		t.Error("no error for a broken settings.json")
 	}
 }
@@ -250,7 +250,7 @@ func TestBuiltinProfiles(t *testing.T) {
 		{"guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}", "name": "命令提示符", "hidden": false},
 		{"guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}", "name": "Mine", "commandline": "mine.exe"}
 	]}}`)
-	term, err := loadTerminal(settings, nil, nil)
+	term, err := loadTerminal(settings, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

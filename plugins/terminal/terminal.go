@@ -63,6 +63,8 @@ type Options struct {
 	// fragments are found in (default: %LOCALAPPDATA% and %ProgramData%).
 	LocalAppData string
 	ProgramData  string
+	// IsFile reports whether an icon file exists (default: os.Stat).
+	IsFile func(path string) bool
 	// Which finds "wt" (wt.exe); "" when Windows Terminal is not installed.
 	Which func(name string) string
 	// Registry reads the WSL distributions (default: the Lxss registry key).
@@ -117,6 +119,9 @@ func NewWithOptions(o Options) *Plugin {
 	}
 	if o.ProgramData == "" {
 		o.ProgramData = o.Getenv("ProgramData")
+	}
+	if o.IsFile == nil {
+		o.IsFile = isFile
 	}
 	if o.Which == nil {
 		o.Which = systemWhich(o.LocalAppData)
@@ -271,7 +276,7 @@ func (p *Plugin) reloadSettings() bool {
 	if same {
 		return false
 	}
-	t, err := loadTerminal(settings, fragments, p.o.Getenv)
+	t, err := loadTerminal(settings, fragments, p.o.Getenv, p.o.IsFile)
 	for _, e := range t.Problems {
 		p.h.Logger().Warn("terminal: reading a fragment", "err", e)
 	}

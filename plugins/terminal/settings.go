@@ -230,7 +230,10 @@ func isSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\
 // getenv expands %VAR% in icon paths. The
 // error reports a settings.json that cannot be read or parsed (e.g. while it
 // is being saved); broken fragments are only listed in Problems.
-func loadTerminal(settings string, fragments []string, getenv func(string) string) (Terminal, error) {
+func loadTerminal(settings string, fragments []string, getenv func(string) string, exists func(string) bool) (Terminal, error) {
+	if exists == nil {
+		exists = isFile
+	}
 	t := Terminal{Settings: settings}
 	var (
 		list     []layered
@@ -324,7 +327,7 @@ func loadTerminal(settings string, fragments []string, getenv func(string) strin
 			GUID:        g,
 			Name:        *p.Name,
 			Commandline: cmp.Or(strings.TrimSpace(deref(p.Commandline)), builtinCommandlines[g]),
-			Icon:        resolveIcon(deref(p.Icon), p.iconBase, getenv),
+			Icon:        resolveIcon(deref(p.Icon), p.iconBase, getenv, exists),
 			Source:      deref(p.Source),
 			Default:     g != "" && g == defGUID,
 		})
@@ -385,7 +388,7 @@ var iconExts = []string{".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg"}
 // that exists: emoji, ms-appx:// resources, URLs and missing files are left
 // to the built-in icon. %VAR% is expanded and relative paths are resolved
 // against base.
-func resolveIcon(icon, base string, getenv func(string) string) string {
+func resolveIcon(icon, base string, getenv func(string) string, exists func(string) bool) string {
 	icon = strings.TrimSpace(icon)
 	if icon == "" || strings.Contains(icon, "://") {
 		return ""
@@ -400,10 +403,16 @@ func resolveIcon(icon, base string, getenv func(string) string) string {
 		}
 		icon = filepath.Join(base, icon)
 	}
-	if st, err := os.Stat(icon); err != nil || !st.Mode().IsRegular() {
+	if !exists(icon) {
 		return ""
 	}
 	return icon
+}
+
+// isFile reports whether path is a regular file.
+func isFile(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && st.Mode().IsRegular()
 }
 
 // expandEnv replaces %NAME% with the value of the environment variable;

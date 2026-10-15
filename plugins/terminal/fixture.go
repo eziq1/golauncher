@@ -41,6 +41,15 @@ func FixtureOptions(root string) Options {
 		LocalAppData: sub("LocalAppData"),
 		ProgramData:  sub("ProgramData"),
 		Which:        func(string) string { return "" },
+		// Only files of the fixture exist: an icon path such as C:\Program
+		// Files\Git\... must not depend on what this machine has installed.
+		IsFile: func(path string) bool {
+			if dir == "" {
+				return false
+			}
+			rel, err := filepath.Rel(dir, path)
+			return err == nil && filepath.IsLocal(rel) && isFile(path)
+		},
 		Registry: func() (Registry, error) {
 			var r Registry
 			if dir == "" {
