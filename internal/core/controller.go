@@ -583,6 +583,10 @@ func (c *Controller) panelActions() []plugin.Action {
 	return out
 }
 
+// KeyTasks opens Background Tasks from anywhere in the launcher; it takes
+// precedence over action shortcuts.
+const KeyTasks = "Ctrl+J"
+
 // Key handles a key press such as "Down", "Enter", "Ctrl+K" or an action
 // shortcut, and returns what the front end should do.
 func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
@@ -604,6 +608,10 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		}
 		c.mu.Unlock()
 		return Outcome{}, nil
+	}
+	if key == KeyTasks && c.eng.tasks != nil {
+		c.mu.Unlock()
+		return c.OpenTasks(ctx, "")
 	}
 	if c.panel != nil {
 		return c.panelKey(ctx, key) // unlocks
@@ -820,6 +828,11 @@ func (c *Controller) exec(ctx context.Context, entry Entry, action plugin.Action
 	c.mu.Lock()
 	fromRoot := len(c.stack) == 1
 	c.mu.Unlock()
+	return c.execFrom(ctx, entry, action, fromRoot)
+}
+
+// execFrom is exec; fromRoot records the use of the entry for ranking.
+func (c *Controller) execFrom(ctx context.Context, entry Entry, action plugin.Action, fromRoot bool) (Outcome, error) {
 	out, err := c.eng.Run(ctx, entry, action, fromRoot)
 	if err != nil {
 		c.setToast(&plugin.Toast{Style: plugin.ToastFailure, Title: c.eng.core.T("toast.actionFailed"), Message: err.Error()})
@@ -865,6 +878,34 @@ func (c *Controller) setToast(t *plugin.Toast) {
 	c.mu.Unlock()
 }
 
+// ShowToast shows t in the footer, as if an action had returned it, and
+// tells the front end (Host.Toast, a finished background task).
+func (c *Controller) ShowToast(t plugin.Toast) {
+	c.mu.Lock()
+	c.toast = &t
+	notify := c.onChange
+	c.mu.Unlock()
+	if notify != nil {
+		notify()
+	}
+}
+
+// OpenTasks resets to the root and opens Background Tasks: the task with id,
+// or the list of all tasks for "" (Ctrl+J, the footer's indicator, a
+// notification about a task).
+func (c *Controller) OpenTasks(ctx context.Context, id string) (Outcome, error) {
+	if c.eng.tasks == nil {
+		return Outcome{}, nil
+	}
+	c.mu.Lock()
+	navs := c.toRoot()
+	c.panel = nil
+	c.confirm = nil
+	c.mu.Unlock()
+	c.closed(navs)
+	return c.execFrom(ctx, Entry{}, plugin.Action{ID: "show-task", Do: plugin.ActionDo{Kind: plugin.ActionShowTask, Target: id}}, false)
+}
+
 // ClearToast removes the current toast.
 func (c *Controller) ClearToast() {
 	c.mu.Lock()
@@ -898,6 +939,9 @@ type Snapshot struct {
 	Toast   *plugin.Toast    `json:"toast,omitempty"`
 	// Context is the context of the current show, for the footer's chip.
 	Context *ContextSnapshot `json:"context,omitempty"`
+	// Tasks is the footer's background task indicator; nil when no task is
+	// queued or running and no failure is unseen.
+	Tasks *TasksSnapshot `json:"tasks,omitempty"`
 }
 
 // ContextSnapshot is the context captured when the launcher opened.
@@ -906,6 +950,16 @@ type ContextSnapshot struct {
 	Name   string `json:"name"`             // short name: the folder's name, else title or app
 	Folder string `json:"folder,omitempty"` // copied by a click on the chip
 	App    string `json:"app,omitempty"`
+}
+
+// TasksSnapshot is the background task indicator.
+type TasksSnapshot struct {
+	// Active is the number of queued and running tasks (a spinner and the
+	// number); Failed the failed tasks not seen yet (a red dot).
+	Active int `json:"active,omitzero"`
+	Failed int `json:"failed,omitzero"`
+	// Label describes the indicator, e.g. "2 background tasks running".
+	Label string `json:"label"`
 }
 
 // ConfirmSnapshot is a confirmation dialog.
@@ -979,6 +1033,14 @@ func (c *Controller) Snapshot() Snapshot {
 			// For a command the entry title already names the action.
 			s.Confirm.Title = core.T("confirm.titleCommand", "item", p.entry.Title)
 			s.Confirm.Confirm = p.entry.Title
+		}
+	}
+	if ts := c.eng.tasks; ts != nil {
+		switch active, failed := ts.Indicator(); {
+		case active > 0:
+			s.Tasks = &TasksSnapshot{Active: active, Failed: failed, Label: core.N("ui.tasks.running", active)}
+		case failed > 0:
+			s.Tasks = &TasksSnapshot{Failed: failed, Label: core.N("ui.tasks.failed", failed)}
 		}
 	}
 	if c.panel != nil {

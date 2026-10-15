@@ -27,6 +27,11 @@ type Services struct {
 	// (set by the engine; nil drops them).
 	OnInvalidate func(pluginID, viewID string)
 	OnRender     func(pluginID, instance string, v plugin.View)
+	// OnToast receives Host.Toast calls (set by the engine; nil drops them).
+	OnToast func(pluginID string, t plugin.Toast)
+	// Tasks runs Host.RunProcess and Host.RunTask (internal/tasks); nil
+	// fails them.
+	Tasks TaskRunner
 	// DataRoot and CacheRoot contain one subdirectory per plugin.
 	DataRoot  string
 	CacheRoot string
@@ -92,5 +97,37 @@ func (h *Host) Invalidate(viewID string) {
 func (h *Host) Render(instance string, v plugin.View) {
 	if fn := h.s.OnRender; fn != nil {
 		fn(h.id, instance, v)
+	}
+}
+
+// TaskRunner runs background tasks on behalf of plugins
+// (internal/tasks.Manager).
+type TaskRunner interface {
+	RunProcess(pluginID string, spec plugin.TaskSpec, cmd plugin.ProcessSpec) string
+	RunTask(pluginID string, spec plugin.TaskSpec, fn plugin.TaskFunc) string
+}
+
+// RunProcess implements plugin.Host.
+func (h *Host) RunProcess(spec plugin.TaskSpec, cmd plugin.ProcessSpec) string {
+	if h.s.Tasks == nil {
+		h.Logger().Warn("RunProcess: background tasks are not available")
+		return ""
+	}
+	return h.s.Tasks.RunProcess(h.id, spec, cmd)
+}
+
+// RunTask implements plugin.Host.
+func (h *Host) RunTask(spec plugin.TaskSpec, fn plugin.TaskFunc) string {
+	if h.s.Tasks == nil {
+		h.Logger().Warn("RunTask: background tasks are not available")
+		return ""
+	}
+	return h.s.Tasks.RunTask(h.id, spec, fn)
+}
+
+// Toast implements plugin.Host.
+func (h *Host) Toast(t plugin.Toast) {
+	if fn := h.s.OnToast; fn != nil {
+		fn(h.id, t)
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/eziq1/golauncher/internal/app"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -54,8 +55,12 @@ Commands:
   session new -s FILE                start a multi-step session (stores env flags)
   session type|key|select|action|show -s FILE [args]
                                      replay the session plus one step and print the result
+  session wait-tasks -s FILE         wait until the background tasks ended
   session field -s FILE <id> <value> set a field of the open form
   session arg -s FILE <name> <value> set an argument of the selected entry
+  tasks list | tasks show <id> [-s FILE]
+                                     background tasks and their output (after
+                                     replaying a session; --real: the history)
   plugin list | plugin info <id>     describe plugins
   plugin validate <dir>              check an external plugin (manifest, protocol,
                                      translations, run.command)
@@ -67,11 +72,13 @@ Commands:
   bench [--n N] [queries...]         measure root search latency
   version                            print the glctl version
 
-Environment flags (query, run, session new, plugin, bench):
+Environment flags (query, run, session new, tasks, plugin, bench):
   --real           use the real configuration, database, apps and clipboard
                    (default: an isolated in-memory environment)
-  --exec           with --real, perform action side effects (default: record only)
-  --fixtures DIR   load apps.json / clipboard.json fixtures (fake mode)
+  --exec           with --real, perform action side effects and run the programs of
+                   background tasks (default: record only)
+  --fixtures DIR   load apps.json / clipboard.json / tasks.json fixtures (fake mode;
+                   tasks.json sets the fake output of background tasks)
   --plugins DIR    load external plugins from DIR (repeatable): a plugin directory
                    or a directory of plugin directories; GOLAUNCHER_PLUGIN_PATH
                    is also read. The real user plugin folder is used only with --real
@@ -166,6 +173,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.runCommand(ctx, rest)
 	case "session":
 		return c.session(ctx, rest)
+	case "tasks":
+		return c.tasksCmd(ctx, rest)
 	case "plugin":
 		return c.plugin(ctx, rest)
 	case "config":
@@ -188,6 +197,9 @@ type env struct {
 	*app.Env
 	rec  *app.Recorder
 	clip *hostfake.Clipboard
+	// runner is the fake task runner (fake mode). It holds tasks until a
+	// wait-tasks step, so that snapshots do not depend on timing.
+	runner *tasks.FakeRunner
 }
 
 // build creates the environment described by ef.
@@ -211,7 +223,12 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		if ef.Exec {
 			opts.System = real.system
 		}
-		opts.Plugins = realPlugins(ef.Plugins, ef.Exec)
+		opts.Plugins = realPlugins(ef.Plugins)
+		if !ef.Exec {
+			// Programs are only recorded, and the real task history is read but
+			// not written.
+			opts.TaskRunner, opts.TasksReadOnly = &tasks.FakeRunner{}, true
+		}
 		if ef.Now != "" {
 			opts.Now = func() time.Time { return now }
 		}
@@ -226,6 +243,11 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 			return nil, err
 		}
 		opts.Plugins = append(plugins, fakeExtras...)
+		if e.runner, err = fakeTaskRunner(ef.Fixtures); err != nil {
+			return nil, err
+		}
+		e.runner.Hold(true)
+		opts.TaskRunner = e.runner
 	}
 	var err error
 	if e.Env, err = app.Build(ctx, opts); err != nil {
@@ -459,6 +481,9 @@ func writeStep(w io.Writer, r stepResult) {
 	}
 	if s.Toast != nil {
 		fmt.Fprintf(w, "toast: [%s] %s %s\n", s.Toast.Style, s.Toast.Title, s.Toast.Message)
+	}
+	if s.Tasks != nil {
+		fmt.Fprintf(w, "tasks: %s\n", s.Tasks.Label)
 	}
 }
 

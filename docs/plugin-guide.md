@@ -295,6 +295,82 @@ func (p *Plugin) ContextItems(ctx context.Context, c plugin.Context) ([]plugin.I
 
 External plugins get the context in the `rootItems` params and through the
 `contextItems` method (see [plugin-protocol.md](plugin-protocol.md)).
+
+### Background tasks
+
+Long work (`scoop update`, a build, a download) should not keep the user
+waiting in your view. Hand it to the host as a **background task**: the
+action returns at once, and the host queues and runs the task, keeps its
+console output, lets the user stop or rerun it, and notifies when it ends.
+The user sees all tasks in **Background Tasks** (the `tasks` command, or
+`Ctrl+J`, or the spinner in the launcher's footer). See
+[background-tasks.md](background-tasks.md) (Chinese) for the design.
+
+```go
+func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Result, error) {
+	id := p.h.RunProcess(plugin.TaskSpec{
+		Title:  l.T("task.build", "project", name), // "Build myapp"
+		Icon:   plugin.Icon{Name: "package"},
+		Queue:  "myplugin",          // one at a time
+		Notify: plugin.NotifyAlways, // default: only failures
+		OnDone: func(r plugin.TaskResult) { // on a background goroutine
+			if r.State == plugin.TaskSucceeded {
+				p.reload()
+				p.h.Invalidate("")
+			}
+		},
+	}, plugin.ProcessSpec{Argv: []string{"go", "build", "./..."}, Dir: dir})
+	// Open the task's live output, or just say that it runs:
+	return plugin.Result{Do: &plugin.ActionDo{Kind: plugin.ActionShowTask, Target: id}}, nil
+}
+```
+
+- **`RunProcess(spec, cmd)`** runs a command line: without a console window,
+  in a Job Object (Stop or quitting golauncher ends the whole process tree),
+  with stdout and stderr as the output. Lines that are not UTF-8 are decoded
+  from the OEM code page; ANSI colors and `\r` progress bars are cleaned up.
+  A `.bat`/`.cmd` as `Argv[0]` runs through cmd.exe with correct quoting.
+  `Env` entries are added to the launcher's environment; `CommandLine` is
+  what the user sees when `Argv` is an implementation detail. It needs the
+  `exec` permission: without it the task fails at once.
+- **`RunTask(spec, fn)`** runs Go code: `fn(ctx, task)` writes output to
+  `task` (an `io.Writer`) and may call `task.SetStatus("Downloading 3/5")`
+  and `task.SetProgress(0.6)`. It must return when `ctx` is cancelled. A
+  panic fails the task instead of crashing the launcher. (External plugins
+  cannot show Go tasks in the launcher; `rpcserve` runs them unseen.)
+- **Queues**: tasks with the same non-empty `Queue` run one after the other,
+  also across plugins; other tasks run in parallel, at most 4 at once.
+- **Notifications**: `NotifyOnFailure` (default), `NotifyAlways` or
+  `NotifyNever`; nothing is shown after the user stopped a task. The
+  notification is a toast in the launcher when it is visible, else a
+  Windows notification that opens the task when clicked.
+- **Learning the outcome**: events carry no payload, so set
+  `TaskSpec.OnDone`; it receives the task's ID, state (`succeeded`,
+  `failed`, `cancelled`), exit code, error and last output line, and runs
+  again when the user reruns the task. The event `task-finished` is also
+  published after every task (of any plugin).
+- **Actions without code**: an action of kind `ActionRunProcess` (payload
+  `plugin.RunProcessPayload{Spec, Cmd}`) starts a task directly, and
+  `ActionShowTask` (target: a task ID, or `""` for all tasks) opens
+  Background Tasks. A `Result.Do` runs such a host action after your
+  handler, e.g. to show the task it started.
+- **Toasts from anywhere**: `Host.Toast(t)` shows a toast from a background
+  goroutine (in the launcher when it is visible, else as a Windows
+  notification).
+- The host keeps the last 50 finished tasks with their full logs in
+  `%LOCALAPPDATA%\golauncher\tasks`; the views show the last 2 MB of
+  output.
+- **Testing**: `hostfake` runs tasks with a fake runner that records each
+  `ProcessSpec` and ends it at once (`h.Runner.Commands()`, configurable
+  output with `h.Runner.Results` or `h.Runner.Hook`); `h.WaitTasks()` waits
+  for them and their `OnDone`, and `h.Toasts()` returns the toasts. Use
+  `h.SetTaskRunner(tasks.ProcessRunner{})` to run real programs. In `glctl`'s
+  fake environment tasks are recorded too and held until a
+  `glctl session wait-tasks` step; `glctl tasks list|show <id> -s s.json`
+  prints them, and `--fixtures DIR` with a `tasks.json`
+  (`[{"match": "scoop update", "output": "…", "exitCode": 1}]`) sets their
+  output.
+
 ### Robustness
 
 The host contains panics in every call into your plugin and gives up on
@@ -330,6 +406,8 @@ error.
 | `Logger()` | A logger. |
 | `Invalidate(viewID)` | Asks the host to pull your open view (or the root results) again; see "Updating what is shown". |
 | `Render(instance, view)` | Pushes new content for an open view instance; see "Pushing views". |
+| `RunProcess(spec, cmd)`, `RunTask(spec, fn)` | Runs long work as a background task of the host; see "Background tasks". |
+| `Toast(t)` | Shows a toast from any goroutine: in the launcher when it is visible, else as a Windows notification. |
 | `Go(fn)` | Runs background work on a goroutine. A panic in `fn` is logged and contained, so it cannot crash the launcher. Always use it instead of `go`; to wait for the work, call `wg.Add(1)` first and `defer wg.Done()` inside `fn`. |
 
 ## Rules enforced by tests
@@ -406,9 +484,11 @@ Write-Output "Hello, $Name!"
   optional one is left out. `percentEncoded` arguments are URL-encoded.
 - **Modes**: `silent` hides the window and runs in the background (failures
   are only logged); `compact` waits up to 25 s and shows the last output line
-  as a toast (red on a non-zero exit code); `fullOutput` opens a view that
-  streams stdout and stderr, shows the exit code and can stop the script;
-  `inline` is treated as `compact`.
+  as a toast (red on a non-zero exit code); `fullOutput` runs the script as
+  a background task and opens it in Background Tasks, which streams stdout
+  and stderr, shows the exit code and can stop or rerun the script (the
+  script's *Show in Background Tasks* action, `Ctrl+T`, opens its last run
+  again); `inline` is treated as `compact`.
 - **Environment**: scripts run in their own folder (or
   `currentDirectoryPath`) without a console window, with `GOLAUNCHER=1`
   set. Stopping a script ends everything it started. Output that is not

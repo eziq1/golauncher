@@ -47,5 +47,7 @@
   "toast.zipFailed": "Could not create the ZIP file",
   "toast.hashCopied": "SHA-256 checksum copied",
   "toast.hashFailed": "Could not compute the checksum",
+  "task.zip": { "one": "Compress “{{.name}}”", "other": "Compress {{.Count}} items" },
+  "toast.zipStarted": "Compressing in the background",
   "toast.stillWorking": "Still working in the background"
 }

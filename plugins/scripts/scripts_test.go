@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -51,11 +52,15 @@ func newEnv(t *testing.T, sys System, files map[string]string) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
+	h.SetTaskRunner(tasks.ProcessRunner{}) // fullOutput scripts run for real too
 	e.h = h
 	if err := e.p.Init(t.Context(), h); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { e.p.Close() })
+	t.Cleanup(func() {
+		h.Tasks.Close()
+		e.p.Close()
+	})
 	return e
 }
 
@@ -103,20 +108,19 @@ func (e *env) run(title string, values map[string]string) plugin.Result {
 	return res
 }
 
-// view renders the output view of a fullOutput result.
-func (e *env) view(res plugin.Result) plugin.Item {
+// task returns the background task a fullOutput result opens, and its
+// output so far.
+func (e *env) task(res plugin.Result) (tasks.Info, string) {
 	e.t.Helper()
-	if res.Push == nil || res.Push.ID != viewOutput {
-		e.t.Fatalf("result = %+v, want a pushed output view", res)
+	if res.Do == nil || res.Do.Kind != plugin.ActionShowTask || res.Do.Target == "" {
+		e.t.Fatalf("result = %+v, want the task shown", res)
 	}
-	v, err := e.p.View(e.t.Context(), *res.Push)
-	if err != nil {
-		e.t.Fatal(err)
+	i, ok := e.h.Tasks.Get(res.Do.Target)
+	if !ok {
+		e.t.Fatalf("no task %q", res.Do.Target)
 	}
-	if len(v.Sections) != 1 || len(v.Sections[0].Items) != 1 {
-		e.t.Fatalf("view = %+v", v)
-	}
-	return v.Sections[0].Items[0]
+	out, _ := e.h.Tasks.Output(i.ID, 0)
+	return i, out
 }
 
 // eventually polls cond for up to 15 seconds.
@@ -264,67 +268,58 @@ func TestRunSilent(t *testing.T) {
 	})
 }
 
-func TestFullOutputStreams(t *testing.T) {
+func TestFullOutputRunsAsTask(t *testing.T) {
 	needCmd(t)
 	e := newEnv(t, RealSystem(), map[string]string{
-		"stream.cmd": "@echo off\r\n:: @raycast.title Stream\r\n:: @raycast.mode fullOutput\r\n" +
+		"stream.cmd": "@echo off\r\n:: @raycast.title Stream\r\n:: @raycast.mode fullOutput\r\n:: @raycast.packageName Demo\r\n" +
 			"echo first\r\nping -n 3 127.0.0.1 >nul\r\necho second\r\n>&2 echo oops\r\nexit /b 2\r\n",
 	})
+	if a := e.item("Stream").Actions; len(a) != 4 || a[3].ID != "show-task" || a[3].Do.Kind != plugin.ActionShowTask || a[3].Do.Target != "" {
+		t.Errorf("actions before a run = %+v", a)
+	}
 	res := e.run("Stream", nil)
-	it := e.view(res)
-	if it.Title != "Running…" || it.Actions[0].ID != "stop" {
-		t.Errorf("while running: %+v", it)
+	info, _ := e.task(res)
+	if info.Title != "Stream" || info.Subtitle != "Demo" || info.Plugin != ID || info.Kind != tasks.KindProcess {
+		t.Errorf("task = %+v", info)
 	}
-	eventually(t, "first line", func() bool { return strings.Contains(e.view(res).Detail.Markdown, "first") })
-	if md := e.view(res).Detail.Markdown; strings.Contains(md, "second") {
-		t.Errorf("second line too early: %s", md)
+	if !strings.HasSuffix(info.Cmd.Argv[0], "stream.cmd") || !slices.Contains(info.Cmd.Env, "GOLAUNCHER=1") {
+		t.Errorf("command = %+v", info.Cmd)
 	}
-	eventually(t, "an output refresh", func() bool { return slices.Contains(e.h.Invalidated(), viewOutput) })
-	eventually(t, "the end", func() bool { return e.view(res).Title != "Running…" })
-	it = e.view(res)
-	if it.Title != "Exited with code 2" || it.Actions[0].ID != "copy-output" {
-		t.Errorf("finished: %+v", it)
+	eventually(t, "first line", func() bool { _, out := e.task(res); return strings.Contains(out, "first") })
+	if _, out := e.task(res); strings.Contains(out, "second") {
+		t.Errorf("second line too early: %s", out)
 	}
-	if want := "```text\nfirst\nsecond\noops\n```"; it.Detail.Markdown != want {
-		t.Errorf("markdown = %q, want %q", it.Detail.Markdown, want)
+	e.h.WaitTasks()
+	info, out := e.task(res)
+	if info.State != plugin.TaskFailed || info.ExitCode != 2 || out != "first\nsecond\noops" {
+		t.Errorf("finished: %+v %q", info, out)
 	}
-	if it.Actions[0].Do.Target != "first\nsecond\noops" {
-		t.Errorf("copy = %q", it.Actions[0].Do.Target)
-	}
-	if n := len(e.h.Invalidated()); n > 40 {
-		t.Errorf("%d invalidations; not throttled", n)
+	// The item's action now shows this run.
+	if a := e.item("Stream").Actions[3]; a.Do.Target != info.ID {
+		t.Errorf("show-task after a run = %+v", a.Do)
 	}
 }
 
-func TestStopKillsProcessTree(t *testing.T) {
+func TestStopFullOutput(t *testing.T) {
 	needCmd(t)
-	old := waitDelay
-	waitDelay = time.Minute // a surviving child would hold the pipe that long
-	t.Cleanup(func() { waitDelay = old })
 	e := newEnv(t, RealSystem(), map[string]string{
 		"long.cmd": "@echo off\r\n:: @raycast.title Long\r\n:: @raycast.mode fullOutput\r\n" +
 			"echo started\r\nping -n 60 127.0.0.1 >nul\r\necho end\r\n",
 	})
 	res := e.run("Long", nil)
-	eventually(t, "start", func() bool { return strings.Contains(e.view(res).Detail.Markdown, "started") })
-	stop := e.view(res).Actions[0]
-	if stop.ID != "stop" {
-		t.Fatalf("actions = %+v", e.view(res).Actions)
-	}
+	eventually(t, "start", func() bool { _, out := e.task(res); return strings.Contains(out, "started") })
 	start := time.Now()
-	r, err := e.p.HandleAction(t.Context(), stop.Do)
-	if err != nil || !r.Refresh {
-		t.Fatalf("stop: %+v %v", r, err)
+	if err := e.h.Tasks.Stop(res.Do.Target); err != nil {
+		t.Fatal(err)
 	}
+	e.h.WaitTasks()
 	if d := time.Since(start); d > 10*time.Second {
-		t.Errorf("stop took %v; the child process was not killed", d)
+		t.Errorf("stop took %v", d)
 	}
-	it := e.view(res)
-	if it.Title != "Stopped" || strings.Contains(it.Detail.Markdown, "end") {
-		t.Errorf("after stop: %+v", it)
+	if info, out := e.task(res); info.State != plugin.TaskCancelled || strings.Contains(out, "end") {
+		t.Errorf("after stop: %+v %q", info, out)
 	}
 }
-
 func TestCompactTimeout(t *testing.T) {
 	needCmd(t)
 	old := compactTimeout
@@ -414,7 +409,7 @@ func TestNewScriptRuns(t *testing.T) {
 	e := newEnv(t, RealSystem(), nil)
 	e.p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdNew})
 	res := e.run("My Script Command 1", map[string]string{"argument1": "Bob"})
-	eventually(t, "the greeting", func() bool { return strings.Contains(e.view(res).Detail.Markdown, "Hello, Bob!") })
+	eventually(t, "the greeting", func() bool { _, out := e.task(res); return strings.Contains(out, "Hello, Bob!") })
 }
 
 func TestNoDirectory(t *testing.T) {
@@ -450,16 +445,5 @@ func TestExpandAndDefaultDirectory(t *testing.T) {
 	}
 	if got := p.expand(`%APPDATA%\x\%NOPE%\%%`); got != appdata+`\x\%NOPE%\%%` {
 		t.Errorf("expand = %q", got)
-	}
-}
-
-func TestViewGone(t *testing.T) {
-	e := newEnv(t, fakeSystem(nil), nil)
-	v, err := e.p.View(t.Context(), plugin.ViewRequest{ID: viewOutput, Payload: plugin.MustPayload(stopPayload{Run: "r99"})})
-	if err != nil || v.EmptyText == "" {
-		t.Errorf("view = %+v %v", v, err)
-	}
-	if _, err := e.p.View(t.Context(), plugin.ViewRequest{ID: "bogus"}); err == nil {
-		t.Error("unknown view accepted")
 	}
 }

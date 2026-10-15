@@ -139,7 +139,20 @@ type Icon struct {
 	Name string `json:"name,omitempty"`
 	// Path is an image file on disk (PNG or SVG).
 	Path string `json:"path,omitempty"`
+	// Tint colors a built-in icon by meaning: TintSuccess, TintDanger,
+	// TintAccent or TintMuted ("" for the text color).
+	Tint IconTint `json:"tint,omitempty"`
 }
+
+// IconTint is the color of a built-in icon.
+type IconTint string
+
+const (
+	TintSuccess IconTint = "success"
+	TintDanger  IconTint = "danger"
+	TintAccent  IconTint = "accent"
+	TintMuted   IconTint = "muted"
+)
 
 // Item is a row in a list.
 type Item struct {
@@ -205,6 +218,12 @@ const (
 	ActionPush       ActionKind = "Push"       // Target: view ID; Payload: passed to ViewRequest
 	ActionRunCommand ActionKind = "RunCommand" // Target: command name of the same plugin
 	ActionCallback   ActionKind = "Callback"   // Target: handler name; Payload: handler data
+	// ActionRunProcess queues a background task (Host.RunProcess) without a
+	// callback. Payload: RunProcessPayload. Needs PermExec.
+	ActionRunProcess ActionKind = "RunProcess"
+	// ActionShowTask opens Background Tasks at the task with ID Target, or
+	// the list of all tasks when Target is empty.
+	ActionShowTask ActionKind = "ShowTask"
 )
 
 // ActionDo is a serializable description of an action. The host executes
@@ -310,6 +329,11 @@ type Result struct {
 	Refresh bool `json:"refresh,omitzero"`
 	// FieldErrors keeps a form open and shows these messages by field ID.
 	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
+	// Do is an action the host carries out after the handler returned, e.g.
+	// ActionShowTask for a task the handler started, or ActionOpen. Only
+	// the host's own kinds are allowed (not Callback or RunCommand). Its
+	// outcome is merged: a Push or Hide of Do applies, Toast is kept.
+	Do *ActionDo `json:"do,omitempty"`
 }
 
 // ToastStyle is the look of a Toast.

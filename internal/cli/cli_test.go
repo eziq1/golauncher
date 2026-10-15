@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"flag"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -118,8 +119,9 @@ func TestSessionConfirmClear(t *testing.T) {
 	golden(t, "session_confirm_done", out)
 }
 
-// TestSessionScoopInstall installs a package from the search view: the fake
-// runner records the scoop command, which the output view shows.
+// TestSessionScoopInstall installs a package from the search view: the
+// command runs as a background task (the fake runner records it), the
+// action returns at once with a toast, and the task view shows the output.
 func TestSessionScoopInstall(t *testing.T) {
 	s := filepath.Join(t.TempDir(), "s.json")
 	glctl(t, "session", "new", "-s", s, "--fixtures", fixtures)
@@ -128,8 +130,22 @@ func TestSessionScoopInstall(t *testing.T) {
 	glctl(t, "session", "type", "-s", s, "lazygit")
 	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
 	golden(t, "session_scoop_install", out)
-	if !strings.Contains(out, "scoop install main/lazygit") {
-		t.Errorf("the output view does not show the install command:\n%s", out)
+	if !strings.Contains(out, "Install lazygit: running in the background") {
+		t.Errorf("no toast:\n%s", out)
+	}
+	if out, code := glctl(t, "session", "wait-tasks", "-s", s); code != 0 || strings.Contains(out, `"tasks"`) {
+		t.Errorf("wait-tasks (%d): the indicator should be gone:\n%s", code, out)
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Ctrl+J")
+	for _, want := range []string{`"title": "Background Tasks"`, `"title": "Install lazygit"`, `"accessory": "✓ 0s"`,
+		"[not run] scoop install main/lazygit", `"value": "scoop install main/lazygit"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the task view lacks %s:\n%s", want, out)
+		}
+	}
+	out, code := glctl(t, "tasks", "list", "-s", s, "--format", "text")
+	if code != 0 || !strings.Contains(out, "succeeded Install lazygit — scoop install main/lazygit") {
+		t.Errorf("tasks list (%d):\n%s", code, out)
 	}
 }
 
@@ -144,14 +160,67 @@ func TestSessionScoopUninstallConfirms(t *testing.T) {
 	if !strings.Contains(out, `"confirm"`) {
 		t.Fatalf("no confirmation:\n%s", out)
 	}
-	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	glctl(t, "session", "key", "-s", s, "Enter")
+	out, _ = glctl(t, "tasks", "list", "-s", s, "--format", "text")
 	if !strings.Contains(out, "scoop uninstall 7zip") {
-		t.Errorf("the output view does not show the uninstall command:\n%s", out)
+		t.Errorf("the uninstall command did not run:\n%s", out)
 	}
 }
 
+// TestTasksFixture configures the fake output of background tasks with
+// tasks.json, shows a failed task with glctl tasks show and the red dot.
+func TestTasksFixture(t *testing.T) {
+	dir := t.TempDir()
+	copyFixtures(t, dir)
+	os.WriteFile(filepath.Join(dir, "tasks.json"), []byte(`[{"match": "scoop update", "output": "Updating Scoop...\nERROR network down", "exitCode": 1}]`), 0o644)
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--fixtures", dir)
+	glctl(t, "session", "type", "-s", s, "update scoop buckets")
+	glctl(t, "session", "key", "-s", s, "Enter")
+	out, _ := glctl(t, "session", "wait-tasks", "-s", s)
+	for _, want := range []string{`"failed": 1`, `"label": "A background task failed"`, `"title": "Update Buckets failed"`, `"message": "ERROR network down"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("after the failure, no %s:\n%s", want, out)
+		}
+	}
+	out, _ = glctl(t, "tasks", "list", "-s", s)
+	id := regexp.MustCompile(`"id": "(t[0-9-]+)"`).FindStringSubmatch(out)
+	if id == nil {
+		t.Fatalf("no task:\n%s", out)
+	}
+	out, code := glctl(t, "tasks", "show", id[1], "-s", s)
+	if code != 0 || !strings.Contains(out, `"output": "Updating Scoop...\nERROR network down"`) || !strings.Contains(out, `"exitCode": 1`) {
+		t.Errorf("tasks show (%d):\n%s", code, out)
+	}
+	if _, code := glctl(t, "tasks", "show", "t-nope", "-s", s); code == 0 {
+		t.Error("an unknown task was shown")
+	}
+}
+
+// copyFixtures copies the fixtures directory to dir.
+func copyFixtures(t *testing.T, dir string) {
+	t.Helper()
+	err := filepath.WalkDir(fixtures, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(fixtures, path)
+		target := filepath.Join(dir, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, b, 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 func TestUsageErrors(t *testing.T) {
-	for _, args := range [][]string{{"bogus"}, {"run"}, {"session", "type"}, {"run", "noslash"}} {
+	for _, args := range [][]string{{"bogus"}, {"run"}, {"session", "type"}, {"run", "noslash"}, {"tasks"}, {"tasks", "show"}} {
 		if _, code := glctl(t, args...); code != 2 {
 			t.Errorf("%v: exit code %d, want 2", args, code)
 		}

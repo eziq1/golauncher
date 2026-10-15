@@ -279,6 +279,24 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.tasks",
+    "name": "Background Tasks",
+    "description": "Shows the background tasks of golauncher and its plugins with their output, and lets you stop or rerun them.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "activity"
+    },
+    "enabled": true,
+    "commands": [
+      {
+        "name": "tasks",
+        "title": "Background Tasks",
+        "mode": "view"
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.scoop",
     "name": "Scoop",
     "description": "Search, install, update and remove apps with the Scoop package manager.",

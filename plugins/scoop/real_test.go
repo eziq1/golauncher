@@ -10,20 +10,21 @@ import (
 
 // TestRealScoop reads the Scoop of this machine, if there is one, and logs
 // how long indexing and searching take (go test -run RealScoop -v). It only
-// reads: no Scoop command is run (the runner is fake).
+// reads: no Scoop command is run (the fake host's task runner is fake).
 func TestRealScoop(t *testing.T) {
 	root, _ := DetectRoot("", os.Getenv)
 	if root == "" || testing.Short() {
 		t.Skip("Scoop is not installed")
 	}
-	runner := &FakeRunner{}
+	var hosts []*hostfake.Host
 	cache := t.TempDir()
 	start := func() (*Plugin, time.Duration) {
-		p := NewWithOptions(Options{Root: root, Global: DetectGlobal(os.Getenv), NoDetect: true, Runner: runner, Sync: true})
+		p := NewWithOptions(Options{Root: root, Global: DetectGlobal(os.Getenv), NoDetect: true, Sync: true})
 		h, err := hostfake.New(p, cache)
 		if err != nil {
 			t.Fatal(err)
 		}
+		hosts = append(hosts, h)
 		begin := time.Now()
 		if err := p.Init(t.Context(), h); err != nil {
 			t.Fatal(err)
@@ -90,7 +91,9 @@ func TestRealScoop(t *testing.T) {
 	if m := ix.Search(t.Context(), "git", 1); len(m) == 0 || m[0].Pkg.Name != "git" {
 		t.Errorf("search git: %+v", m)
 	}
-	if len(runner.Commands()) != 0 {
-		t.Fatalf("commands were started: %q", runner.Commands())
+	for _, h := range hosts {
+		if len(h.Runner.Commands()) != 0 || len(h.Tasks.List()) != 0 {
+			t.Fatalf("commands were started: %+v", h.Runner.Commands())
+		}
 	}
 }

@@ -137,7 +137,10 @@ they are created without a console window.
   `request.instance` identifies the open view for `ui/render`.
 - `handleAction` runs `RunCommand` actions (no-view commands) and
   `Callback` actions. For a form submit, `action.values` holds the field
-  values; for an item or command with arguments, the argument values.
+  values; for an item or command with arguments, the argument values. A
+  `Result` may carry `do`, an action the host carries out afterwards (one of
+  the host's own kinds, e.g. `{"kind": "ShowTask", "target": "<task id>"}`
+  to open a task started with `host/task.runProcess`).
 
 ## 5. Host → plugin notifications
 
@@ -148,6 +151,7 @@ they are created without a console window.
 | `preferencesChanged` | `{preferences}` | The user changed preferences (same form as in `initialize`). |
 | `event` | `{name}` | A host event you subscribed to with `host/subscribe`. |
 | `viewClosed` | `{instance}` | The view instance was closed; release its state. |
+| `taskFinished` | `{result: {id, state, exitCode, error?, lastLine?}}` | A background task you started with `host/task.runProcess` ended. `state` is `succeeded`, `failed` or `cancelled`. Sent only to the process that is running then: a plugin process that was restarted or stopped while idle misses it. |
 
 ## 6. Plugin → host requests
 
@@ -162,6 +166,8 @@ they are created without a console window.
 | `host/clipboard.writeFiles` | `{paths}` | `null` | `clipboard` |
 | `host/subscribe` | `{event}` | `null` | — |
 | `host/log` | `{level, message}` | `null` | — |
+| `host/task.runProcess` | `{spec: TaskSpec, cmd: ProcessSpec}` | `{id}` | `exec` |
+| `host/toast` | `{toast: {style, title, message?}}` | `null` | — |
 
 - Storage is a private key/value store. Text values travel in `value`;
   values that are not valid UTF-8 travel base64-encoded in `base64`.
@@ -171,9 +177,27 @@ they are created without a console window.
   `preferencesChanged`).
 - `level` is `debug`, `info`, `warn` or `error`. `host/log` may also be
   sent as a notification.
+- `host/task.runProcess` queues a **background task** of the host
+  ([docs/background-tasks.md](background-tasks.md)) and returns its ID at
+  once. `spec` is `{title, subtitle?, icon?, queue?, notify?}`: tasks with
+  the same non-empty `queue` run one after the other (also across
+  plugins), others in parallel (at most 4 at once); `notify` is `""`
+  (notify on failure, the default), `"always"` or `"never"`. `cmd` is
+  `{argv, dir?, env?, commandLine?}`: the program runs without a window in
+  a Job Object, `env` entries (`NAME=value`) are added to the host's
+  environment, and `commandLine` is what the user sees instead of `argv`.
+  Its output appears live in Background Tasks (`Ctrl+J`); the outcome comes
+  back as the `taskFinished` notification. Tasks run in Go code (the SDK's
+  `Host.RunTask`) have no protocol method: `rpcserve` runs them in the
+  plugin process, unseen by the launcher.
+- `host/toast` shows a message in the launcher's footer when it is visible,
+  else as a Windows notification. It may also be sent as a notification.
+- The event `task-finished` (no payload) is published after every
+  background task, of any plugin; prefer `taskFinished` for your own tasks.
 - Calling a method whose permission the manifest does not declare fails
-  with code `-32001`. The `network` and `exec` permissions cannot be
-  enforced by the host: the plugin is an ordinary program running with the
+  with code `-32001`. The host enforces `exec` for its own process API
+  (`host/task.runProcess`), but neither `network` nor `exec` can be
+  enforced otherwise: the plugin is an ordinary program running with the
   user's rights. Declare them anyway; Settings shows them.
 
 ## 7. Plugin → host notifications

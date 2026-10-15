@@ -256,34 +256,20 @@ func TestInterpreter(t *testing.T) {
 	}
 }
 
-func TestOutput(t *testing.T) {
-	o := &output{}
-	writes := 0
-	o.onWrite = func() { writes++ }
+func TestOutputLastLine(t *testing.T) {
+	o := newOutput()
 	o.Write([]byte("\x1b[32mgreen\x1b[0m line\r\n"))
 	o.Write([]byte("progress 10%\rprogress 100%\n\n"))
+	if got := o.LastLine(); got != "progress 100%" {
+		t.Errorf("LastLine = %q", got)
+	}
 	o.Write([]byte("part"))
 	o.Write([]byte("ial"))
-	if got, want := o.String(), "green line\nprogress 100%\n\npartial"; got != want {
-		t.Errorf("String = %q, want %q", got, want)
-	}
 	if got := o.LastLine(); got != "partial" {
 		t.Errorf("LastLine = %q", got)
 	}
 	o.Write([]byte("\n  \n"))
 	if got := o.LastLine(); got != "partial" {
 		t.Errorf("LastLine after blank lines = %q", got)
-	}
-	if writes != 5 {
-		t.Errorf("onWrite called %d times", writes)
-	}
-
-	big := &output{}
-	line := strings.Repeat("x", 1000) + "\n"
-	for range 2000 {
-		big.Write([]byte(line))
-	}
-	if s := big.String(); len(s) > maxOutput || !big.Truncated() || !strings.HasPrefix(s, "xxx") {
-		t.Errorf("cap: len=%d truncated=%v", len(s), big.Truncated())
 	}
 }

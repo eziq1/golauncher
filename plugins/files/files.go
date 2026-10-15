@@ -406,13 +406,22 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		if len(pl.Paths) == 0 {
 			return plugin.Result{}, errors.New("files: nothing to compress")
 		}
-		return p.background(ctx, func() plugin.Result {
+		// Compressing a large folder can take a while: run it as a background
+		// task (docs/background-tasks.md), which notifies when it ends.
+		p.h.RunTask(plugin.TaskSpec{
+			Title:  l.N("task.zip", len(pl.Paths), "name", filepath.Base(pl.Paths[0])),
+			Icon:   plugin.Icon{Name: "archive"},
+			Notify: plugin.NotifyAlways,
+		}, func(ctx context.Context, t plugin.Task) error {
+			t.SetProgress(-1)
 			out, err := zipPaths(pl.Dir, pl.Paths)
 			if err != nil {
-				return failure(l.T("toast.zipFailed"), err.Error())
+				return fmt.Errorf("%s: %w", l.T("toast.zipFailed"), err)
 			}
-			return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastSuccess, Title: l.T("toast.created", "name", filepath.Base(out))}}
-		}), nil
+			fmt.Fprintln(t, l.T("toast.created", "name", out))
+			return nil
+		})
+		return plugin.Result{Hide: true, Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.zipStarted")}}, nil
 	case cbSHA256:
 		if len(pl.Paths) != 1 {
 			return plugin.Result{}, errors.New("files: hash one file")
@@ -435,7 +444,8 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 // down, and waits for it while the host waits for the action. If the host
 // gives up first, the work goes on and its result is dropped.
 //
-// TODO(R24): report through a background task instead.
+// Long work belongs in background tasks (Host.RunTask); this is for work
+// that usually finishes at once, such as hashing one file.
 func (p *Plugin) background(ctx context.Context, work func() plugin.Result) plugin.Result {
 	done := make(chan plugin.Result, 1)
 	p.wg.Add(1)

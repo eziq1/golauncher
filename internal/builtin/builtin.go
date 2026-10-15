@@ -26,11 +26,6 @@ import (
 // to their stamped version before calling All.
 var HostVersion = "dev"
 
-// DryRun makes plugins that run external programs to change the system
-// (Scoop) record those commands instead of running them. glctl --real sets
-// it unless --exec is given.
-var DryRun bool
-
 // All returns new instances of the built-in plugins for the real system,
 // followed by the external plugins installed in %APPDATA%\golauncher\plugins
 // and in the directories of GOLAUNCHER_PLUGIN_PATH.
@@ -66,8 +61,9 @@ func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugi
 // would come from the system is read from fixture files in dir when present
 // ("" for none): apps.json (installed applications) and files.json
 // (Everything's file index), scripts/ (script commands) and scoop/ (a Scoop
-// root; Scoop is unavailable without it). No icons are extracted, nothing
-// is opened and no Scoop command is run.
+// root; Scoop is unavailable without it). No icons are extracted and nothing
+// is opened; programs (Scoop commands) run as background tasks, which the
+// fake environment's task runner only records.
 //
 // External plugins are loaded from pluginRoots and GOLAUNCHER_PLUGIN_PATH
 // (never from the user's plugin directory). They start eagerly, so results
@@ -130,20 +126,16 @@ func fakeWhich(name string) string {
 // noOpen stands in for opening files in fake mode.
 func noOpen(string, plugin.OpenOptions) error { return nil }
 
-// realScoop is the Scoop plugin for the real system; with DryRun its
-// commands are only recorded.
-func realScoop() *scoop.Plugin {
-	if DryRun {
-		return scoop.NewWithOptions(scoop.Options{Runner: &scoop.FakeRunner{}})
-	}
-	return scoop.New()
-}
+// realScoop is the Scoop plugin for the real system. Its commands run as
+// background tasks, so glctl --real without --exec only records them (its
+// task runner is fake).
+func realScoop() *scoop.Plugin { return scoop.New() }
 
 // fakeScoop is the Scoop plugin reading the fake Scoop root dir/scoop (with
 // globally installed apps in dir/scoop/global). It never looks at the real
-// Scoop and records commands instead of running them.
+// Scoop; its commands go to the fake task runner.
 func fakeScoop(dir string) *scoop.Plugin {
-	o := scoop.Options{NoDetect: true, Runner: &scoop.FakeRunner{}, Sync: true}
+	o := scoop.Options{NoDetect: true, Sync: true, Shell: "powershell.exe"}
 	if roots := fixtureDirs(dir, "scoop"); len(roots) > 0 {
 		o.Root = roots[0]
 		o.Global = filepath.Join(roots[0], "global")

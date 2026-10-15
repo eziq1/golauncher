@@ -42,6 +42,35 @@
         "title": "Commands",
         "items": [
           {
+            "id": "cmd:tasks",
+            "title": "Background Tasks",
+            "subtitle": "Background Tasks",
+            "icon": {
+              "name": "activity"
+            },
+            "keywords": [
+              "tasks",
+              "jobs",
+              "processes",
+              "output",
+              "running"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "tasks"
+                }
+              }
+            ],
+            "plugin": "builtin.tasks",
+            "key": "builtin.tasks/cmd:tasks"
+          },
+          {
             "id": "cmd:clear",
             "title": "Clear Clipboard History",
             "subtitle": "Clipboard History",

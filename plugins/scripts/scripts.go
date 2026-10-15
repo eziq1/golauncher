@@ -31,8 +31,6 @@ const (
 	cmdNew          = "new"
 	cmdOpenFolder   = "open-folder"
 	callbackRun     = "run"
-	callbackStop    = "stop"
-	viewOutput      = "output"
 )
 
 // DefaultDirectory is the default scripts directory; %VAR% is expanded.
@@ -67,15 +65,16 @@ type Plugin struct {
 	mu      sync.Mutex
 	closed  bool
 	scripts []Script
-	stamp   uint64 // signature of the scanned directories
-	runs    map[string]*run
+	stamp   uint64          // signature of the scanned directories
+	runs    map[string]*run // compact and silent runs
 	runSeq  int
+	// lastTask is the background task of each fullOutput script's last run.
+	lastTask map[string]string
 }
 
 var (
 	_ plugin.Plugin         = (*Plugin)(nil)
 	_ plugin.RootProvider   = (*Plugin)(nil)
-	_ plugin.ViewProvider   = (*Plugin)(nil)
 	_ plugin.ActionHandler  = (*Plugin)(nil)
 	_ plugin.LocaleProvider = (*Plugin)(nil)
 )
@@ -94,7 +93,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Open == nil {
 		o.Open = shell.Open
 	}
-	return &Plugin{opts: o, runs: map[string]*run{}}
+	return &Plugin{opts: o, runs: map[string]*run{}, lastTask: map[string]string{}}
 }
 
 // Manifest implements plugin.Plugin.
@@ -154,8 +153,9 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	return nil
 }
 
-// Close implements plugin.Plugin. It stops running scripts and waits for
-// background work.
+// Close implements plugin.Plugin. It stops running compact and silent
+// scripts and waits for background work. fullOutput scripts are tasks of the
+// host, which stops them when golauncher quits.
 func (p *Plugin) Close() error {
 	p.mu.Lock()
 	if p.closed {
@@ -362,11 +362,6 @@ type runPayload struct {
 	Path string `json:"path"`
 }
 
-// stopPayload is the Payload of the "stop" callback.
-type stopPayload struct {
-	Run string `json:"run"`
-}
-
 // item is the root search entry of s.
 func (p *Plugin) item(t plugin.Localizer, s *Script, group string) plugin.Item {
 	name := filepath.Base(s.Path)
@@ -377,6 +372,27 @@ func (p *Plugin) item(t plugin.Localizer, s *Script, group string) plugin.Item {
 	if s.NeedsConfirmation {
 		run.Style = plugin.StyleDestructive
 	}
+	actions := []plugin.Action{
+		run,
+		{
+			ID: "reveal", Title: t.T("action.reveal"), Shortcut: "Ctrl+Shift+F",
+			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: s.Path, Payload: plugin.MustPayload(plugin.OpenOptions{Reveal: true})},
+		},
+		{
+			ID: "copy-path", Title: t.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
+			Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: s.Path},
+		},
+	}
+	if s.Mode == modeFullOutput {
+		// The output of the last run (or, before one, all tasks).
+		p.mu.Lock()
+		last := p.lastTask[s.Path]
+		p.mu.Unlock()
+		actions = append(actions, plugin.Action{
+			ID: "show-task", Title: t.T("action.showTask"), Shortcut: "Ctrl+T",
+			Do: plugin.ActionDo{Kind: plugin.ActionShowTask, Target: last},
+		})
+	}
 	return plugin.Item{
 		ID:        s.Path,
 		Title:     s.Title,
@@ -385,17 +401,7 @@ func (p *Plugin) item(t plugin.Localizer, s *Script, group string) plugin.Item {
 		Keywords:  []string{strings.TrimSuffix(name, filepath.Ext(name))},
 		Group:     group,
 		Arguments: s.pluginArguments(),
-		Actions: []plugin.Action{
-			run,
-			{
-				ID: "reveal", Title: t.T("action.reveal"), Shortcut: "Ctrl+Shift+F",
-				Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: s.Path, Payload: plugin.MustPayload(plugin.OpenOptions{Reveal: true})},
-			},
-			{
-				ID: "copy-path", Title: t.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
-				Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: s.Path},
-			},
-		},
+		Actions:   actions,
 	}
 }
 
@@ -412,19 +418,6 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 			return plugin.Result{}, fmt.Errorf("scripts: bad run payload %q", a.Payload)
 		}
 		return p.runScript(ctx, rp.Path, a.Values)
-	case a.Kind == plugin.ActionCallback && a.Target == callbackStop:
-		var sp stopPayload
-		if err := json.Unmarshal(a.Payload, &sp); err != nil {
-			return plugin.Result{}, fmt.Errorf("scripts: bad stop payload %q", a.Payload)
-		}
-		p.mu.Lock()
-		r := p.runs[sp.Run]
-		p.mu.Unlock()
-		if r != nil {
-			r.stop()
-			r.wait()
-		}
-		return plugin.Result{Refresh: true}, nil
 	}
 	return plugin.Result{}, fmt.Errorf("scripts: unknown action %s %q", a.Kind, a.Target)
 }

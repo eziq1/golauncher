@@ -1,65 +1,107 @@
 {
   "step": "key \"Enter\"",
   "outcome": {
-    "push": {
-      "plugin": "builtin.scoop",
-      "request": {
-        "id": "output",
-        "payload": {
-          "op": "op1"
-        },
-        "query": {
-          "text": ""
-        }
-      }
+    "toast": {
+      "style": "info",
+      "title": "Install lazygit: running in the background",
+      "message": "You can keep working. Press Ctrl+J to see the output."
     }
   },
   "snapshot": {
-    "depth": 2,
-    "title": "Install lazygit",
-    "placeholder": "Search…",
-    "text": "",
+    "depth": 1,
+    "title": "Search Scoop Packages",
+    "placeholder": "Search packages by name, command or description…",
+    "text": "lazygit",
     "sections": [
       {
         "items": [
           {
-            "id": "output",
-            "title": "Done",
-            "subtitle": "Install lazygit",
+            "id": "pkg/main/lazygit",
+            "title": "lazygit",
+            "subtitle": "A simple terminal UI for git commands",
             "icon": {
               "name": "package"
             },
-            "accessory": "0s",
+            "keywords": [
+              "lazygit"
+            ],
+            "accessory": "0.44.1 · main",
             "actions": [
               {
-                "id": "copy-output",
-                "title": "Copy Output",
+                "id": "install",
+                "title": "Install",
+                "do": {
+                  "kind": "Callback",
+                  "target": "op",
+                  "payload": {
+                    "kind": "install",
+                    "name": "lazygit",
+                    "bucket": "main"
+                  }
+                }
+              },
+              {
+                "id": "homepage",
+                "title": "Open Homepage",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/jesseduffield/lazygit"
+                }
+              },
+              {
+                "id": "copy-install",
+                "title": "Copy Install Command",
                 "shortcut": "Ctrl+Shift+C",
                 "do": {
                   "kind": "CopyText",
-                  "target": "> scoop install main/lazygit\n[not run] scoop install main/lazygit"
+                  "target": "scoop install main/lazygit"
+                }
+              },
+              {
+                "id": "reveal-manifest",
+                "title": "Show Manifest in File Explorer",
+                "shortcut": "Ctrl+Shift+M",
+                "do": {
+                  "kind": "Open",
+                  "target": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\lazygit.json",
+                  "payload": {
+                    "reveal": true
+                  }
                 }
               }
             ],
             "detail": {
-              "markdown": "```text\n> scoop install main/lazygit\n[not run] scoop install main/lazygit\n```",
+              "markdown": "## lazygit\n\nA simple terminal UI for git commands",
               "metadata": [
                 {
-                  "label": "Status",
-                  "value": "Done"
+                  "label": "Version",
+                  "value": "0.44.1"
                 },
                 {
-                  "label": "Command",
-                  "value": "scoop install main/lazygit"
+                  "label": "Bucket",
+                  "value": "main"
                 },
                 {
-                  "label": "Duration",
-                  "value": "0s"
+                  "label": "License",
+                  "value": "MIT"
+                },
+                {
+                  "label": "Homepage",
+                  "value": "https://github.com/jesseduffield/lazygit"
+                },
+                {
+                  "label": "Commands",
+                  "value": "lazygit"
+                },
+                {
+                  "label": "Manifest",
+                  "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\lazygit.json"
                 }
               ]
             },
             "plugin": "builtin.scoop",
-            "key": "builtin.scoop/output"
+            "key": "builtin.scoop/pkg/main/lazygit"
           }
         ]
       }
@@ -67,22 +109,43 @@
     "selected": 0,
     "showDetail": true,
     "detail": {
-      "markdown": "```text\n> scoop install main/lazygit\n[not run] scoop install main/lazygit\n```",
+      "markdown": "## lazygit\n\nA simple terminal UI for git commands",
       "metadata": [
         {
-          "label": "Status",
-          "value": "Done"
+          "label": "Version",
+          "value": "0.44.1"
         },
         {
-          "label": "Command",
-          "value": "scoop install main/lazygit"
+          "label": "Bucket",
+          "value": "main"
         },
         {
-          "label": "Duration",
-          "value": "0s"
+          "label": "License",
+          "value": "MIT"
+        },
+        {
+          "label": "Homepage",
+          "value": "https://github.com/jesseduffield/lazygit"
+        },
+        {
+          "label": "Commands",
+          "value": "lazygit"
+        },
+        {
+          "label": "Manifest",
+          "value": "..\\..\\testdata\\fixtures\\scoop\\buckets\\main\\bucket\\lazygit.json"
         }
       ]
     },
-    "emptyText": "No results"
+    "emptyText": "No matching packages. Add a bucket or update the buckets to find more.",
+    "toast": {
+      "style": "info",
+      "title": "Install lazygit: running in the background",
+      "message": "You can keep working. Press Ctrl+J to see the output."
+    },
+    "tasks": {
+      "active": 1,
+      "label": "1 background task running"
+    }
   }
 }

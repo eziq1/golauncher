@@ -11,6 +11,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/config"
@@ -18,6 +20,7 @@ import (
 	"github.com/eziq1/golauncher/internal/host"
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/store"
+	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -48,6 +51,15 @@ type Options struct {
 	// Manager, in memory when Fake).
 	Secrets host.Secrets
 	Log     *slog.Logger
+	// TaskRunner starts the programs of background tasks (default: for
+	// real, or a tasks.FakeRunner when Fake).
+	TaskRunner tasks.Runner
+	// TasksDir keeps the logs of background tasks (default
+	// %LOCALAPPDATA%\golauncher\tasks, i.e. CacheDir\tasks).
+	TasksDir string
+	// TasksReadOnly reads the task history but writes no logs (glctl --real
+	// without --exec).
+	TasksReadOnly bool
 }
 
 // Env is a running launcher environment.
@@ -57,9 +69,13 @@ type Env struct {
 	Services   *host.Services
 	Config     *config.Store
 	I18n       *i18n.Manager
+	// Tasks is the background task manager; the builtin.tasks plugin shows
+	// its tasks.
+	Tasks *tasks.Manager
 
 	tempDir   string
 	manifests []plugin.Manifest
+	engine    atomic.Pointer[core.Engine] // for the tasks' notifications
 }
 
 // DefaultConfigDir returns %APPDATA%\golauncher.
@@ -180,23 +196,67 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		env.Config.OnChange(func(c config.Config) { env.I18n.SetLocale(c.Language) })
 	}
 
+	env.Tasks = env.newTasks(o, cacheDir, now, log)
+	env.Services.Tasks = env.Tasks
+	plugins := append(slices.Clone(o.Plugins), tasks.NewPlugin(env.Tasks))
 	env.Engine, err = core.New(ctx, core.Options{
-		Plugins:  o.Plugins,
+		Plugins:  plugins,
 		Services: env.Services,
 		Config:   env.Config,
 		System:   o.System,
+		Tasks:    env.Tasks,
 	})
 	if err != nil {
+		env.Tasks.Close()
 		db.Close()
 		return nil, err
 	}
+	env.engine.Store(env.Engine)
 	env.Controller = core.NewController(env.Engine)
 	return env, nil
 }
 
-// Close shuts the plugins down and releases resources.
+// newTasks creates the background task manager. A finished task publishes
+// plugin.EventTaskFinished and is notified according to its policy.
+func (e *Env) newTasks(o Options, cacheDir string, now func() time.Time, log *slog.Logger) *tasks.Manager {
+	runner := o.TaskRunner
+	if runner == nil {
+		if o.Fake {
+			runner = &tasks.FakeRunner{}
+		} else {
+			runner = tasks.ProcessRunner{}
+		}
+	}
+	dir := o.TasksDir
+	if dir == "" {
+		dir = filepath.Join(cacheDir, "tasks")
+	}
+	exec := map[string]bool{tasks.PluginID: true}
+	for _, m := range e.manifests {
+		exec[m.ID] = slices.Contains(m.Permissions, plugin.PermExec)
+	}
+	loc := e.I18n.Localizer(i18n.CoreNamespace)
+	return tasks.New(tasks.Options{
+		Dir:      dir,
+		ReadOnly: o.TasksReadOnly,
+		Runner:   runner,
+		Now:      now,
+		Log:      log,
+		Loc:      loc,
+		Allowed:  func(id string) bool { return exec[id] },
+		OnFinished: func(info tasks.Info) {
+			e.Services.Bus.Publish(plugin.EventTaskFinished)
+			if eng := e.engine.Load(); eng != nil && tasks.ShouldNotify(info) {
+				eng.Notify(core.Notice{Toast: tasks.FinishToast(loc, info), Plugin: info.Plugin, TaskID: info.ID})
+			}
+		},
+	})
+}
+
+// Close stops the background tasks, shuts the plugins down and releases
+// resources.
 func (e *Env) Close() error {
-	err := errors.Join(e.Engine.Close(), e.Services.DB.Close())
+	err := errors.Join(e.Tasks.Close(), e.Engine.Close(), e.Services.DB.Close())
 	if e.tempDir != "" {
 		err = errors.Join(err, os.RemoveAll(e.tempDir))
 	}

@@ -267,12 +267,21 @@ func TestZip(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "report.txt"), []byte("hello"), 0o644)
 	os.MkdirAll(filepath.Join(dir, "data", "deep"), 0o755)
 	os.WriteFile(filepath.Join(dir, "data", "deep", "a.csv"), []byte("1,2"), 0o644)
-	p, _ := newPlugin(t)
+	p, h := newPlugin(t)
 	sel := []string{filepath.Join(dir, "report.txt"), filepath.Join(dir, "data")}
 	for _, want := range []string{"report.zip", "report (2).zip"} {
+		// The action returns at once; the archive is made by a background task.
 		r := run(t, p, cbZip, payload{Dir: dir, Paths: sel}, nil)
-		if r.Toast == nil || r.Toast.Style != plugin.ToastSuccess || r.Toast.Title != "Created “"+want+"”" {
-			t.Fatalf("result %+v", r.Toast)
+		if r.Toast == nil || r.Toast.Style != plugin.ToastInfo || !r.Hide {
+			t.Fatalf("result %+v", r)
+		}
+		h.WaitTasks()
+		last := h.Tasks.List()[0]
+		if last.State != plugin.TaskSucceeded || last.Title != "Compress 2 items" || last.Notify != plugin.NotifyAlways {
+			t.Fatalf("task %+v", last)
+		}
+		if _, err := os.Stat(filepath.Join(dir, want)); err != nil {
+			t.Fatalf("%s not created: %v", want, err)
 		}
 	}
 	zr, err := zip.OpenReader(filepath.Join(dir, "report.zip"))
@@ -296,9 +305,10 @@ func TestZip(t *testing.T) {
 	}
 
 	// A folder is named after itself, and a failure leaves no archive.
-	r := run(t, p, cbZip, payload{Dir: dir, Paths: []string{filepath.Join(dir, "data"), filepath.Join(dir, "missing")}}, nil)
-	if r.Toast == nil || r.Toast.Style != plugin.ToastFailure {
-		t.Errorf("missing file: %+v", r.Toast)
+	run(t, p, cbZip, payload{Dir: dir, Paths: []string{filepath.Join(dir, "data"), filepath.Join(dir, "missing")}}, nil)
+	h.WaitTasks()
+	if last := h.Tasks.List()[0]; last.State != plugin.TaskFailed || !strings.Contains(last.Error, "Could not create the ZIP file") {
+		t.Errorf("missing file: task %+v", last)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "data.zip")); err == nil {
 		t.Error("a failed compression left data.zip behind")

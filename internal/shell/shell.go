@@ -103,6 +103,11 @@ type Shell struct {
 	failedKey   string // the launcher hotkey last reported as failing
 	suspended   bool   // hotkeys are off while one is being recorded
 	quitting    bool   // windows close for good
+	// quitConfirmed is set once the user agreed to stop the running
+	// background tasks (or the quit came from another instance);
+	// askingQuit while the question shows.
+	quitConfirmed bool
+	askingQuit    bool
 
 	keepLoginItem bool // see Options
 
@@ -172,7 +177,8 @@ func Run(o Options) error {
 		s.handle(parseArgs(args))
 	})
 	// Closing a window only hides it, except when quitting.
-	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) { s.quitting = true })
+	// Quitting while background tasks run asks first.
+	mygo.App.OnBeforeQuit(s.beforeQuit)
 	mygo.App.OnWillQuit(func(*mygo.QuitEvent) { s.shutdown() })
 	mygo.App.WhenReady(func() { s.ready(action) })
 	err = mygo.App.Run()
@@ -244,6 +250,7 @@ func (s *Shell) ready(action string) {
 	}
 
 	s.setUpTray()
+	s.setUpTasks()
 	if err := s.env.Config.Recovered(); err != nil {
 		s.configRecovered(err)
 	}
@@ -270,6 +277,8 @@ func (s *Shell) post(fn func()) {
 func (s *Shell) handle(action string) {
 	switch action {
 	case actionQuit:
+		// From another instance (e.g. the installer): no question.
+		s.quitConfirmed = true
 		mygo.App.Quit()
 	case actionSettings:
 		s.showSettings(ui.PageGeneral)
@@ -291,7 +300,11 @@ func (s *Shell) shutdown() {
 
 // showLauncher shows the launcher panel on the display with the pointer,
 // centered, a third of the way down, ready to search.
-func (s *Shell) showLauncher() {
+func (s *Shell) showLauncher() { s.showLauncherThen(nil) }
+
+// showLauncherThen is showLauncher; then (if not nil) runs on the main
+// thread once the launcher was reset for showing.
+func (s *Shell) showLauncherThen(then func()) {
 	if s.panel == nil {
 		return
 	}
@@ -304,7 +317,14 @@ func (s *Shell) showLauncher() {
 		d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
 		w, h := s.panel.Size()
 		s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
-		mygo.RunOnMain(s.launcher.Shown)
+		mygo.RunOnMain(func() {
+			s.launcher.Shown()
+			if then != nil {
+				then()
+			}
+		})
+	} else if then != nil {
+		then()
 	}
 	s.panel.Show()
 	s.panel.Focus()
@@ -499,7 +519,7 @@ func (s *Shell) configRecovered(err error) {
 }
 
 func (s *Shell) setUpTray() {
-	tray, err := mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: s.loc.T("tray.tooltip")})
+	tray, err := mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: trayToolTip(s.loc, s.env.Tasks.Active())})
 	if err != nil {
 		s.log.Error("tray icon", "err", err)
 		return
@@ -512,7 +532,7 @@ func (s *Shell) updateTrayMenu() {
 	if s.tray == nil {
 		return
 	}
-	s.tray.SetToolTip(s.loc.T("tray.tooltip"))
+	s.updateTrayToolTip()
 	s.tray.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 		{Label: s.loc.T("tray.open"), Accelerator: accelerator(s.hotkey), Click: func(*mygo.MenuItem, *mygo.Window) { s.showLauncher() }},
 		{Label: s.loc.T("tray.settings"), Click: func(*mygo.MenuItem, *mygo.Window) { s.showSettings(ui.PageGeneral) }},

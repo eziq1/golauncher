@@ -35,6 +35,12 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **World Clock**: type `time` (or `tz`) for your local time and major cities;
   `time bj`, `time 北京` or `time utc+8` find a city. The clocks tick every
   second; favorite cities stay on top. 185 cities, time zone data built in.
+- **Background tasks**: long operations (Scoop updates, long scripts,
+  compressing folders) run in the background. A spinner and count in the
+  launcher's footer show running tasks (a red dot for unseen failures);
+  `Ctrl+J` or *Background Tasks* lists them with live console output, stop,
+  rerun and full logs. A notification tells you when a task ends. Plugins use
+  `Host.RunProcess` / `Host.RunTask`; external plugins `host/task.runProcess`.
 - **Context awareness**: golauncher notices where you were when you opened it.
   From File Explorer (including the active Windows 11 tab), the desktop, or a
   window whose title shows a path, the launcher offers actions for that

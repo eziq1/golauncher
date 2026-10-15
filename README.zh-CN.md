@@ -112,7 +112,7 @@ ipconfig /flushdns | Select-Object -Last 1
 | Scoop Buckets | 已添加的和推荐的 bucket，可以添加、删除，也可以按 URL 添加自定义 bucket |
 | Clean Up Scoop | 先显示旧版本和下载缓存占了多少空间，再执行 `scoop cleanup *` 和 `scoop cache rm *` |
 
-搜索直接读 Scoop 的本地文件（约 6000 个清单，每次搜索不到 1 毫秒），不启动 PowerShell。安装、升级等操作调用 `scoop` 命令行，一次只执行一个，在输出视图里实时显示，可以停止、复制输出。打开"Search packages from the main search"后，可以在主搜索里输入 `scoop <名称>` 或 `sc <名称>` 直接搜索。全局安装（`-g`）的软件只读显示。
+搜索直接读 Scoop 的本地文件（约 6000 个清单，每次搜索不到 1 毫秒），不启动 PowerShell。安装、升级等操作调用 `scoop` 命令行，作为后台任务一次执行一个：启动器不用等，按 `Ctrl+J`（或点底栏的转圈图标）打开 Background Tasks 查看实时输出，可以停止、复制输出，结束时会弹出通知。打开"Search packages from the main search"后，可以在主搜索里输入 `scoop <名称>` 或 `sc <名称>` 直接搜索。全局安装（`-g`）的软件只读显示。
 
 ## 编写插件
 

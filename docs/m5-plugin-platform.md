@@ -486,3 +486,11 @@ func main() { rpcserve.Serve(hello.New()) }
 | Scoop、Script Commands | `Result` 不能携带让宿主执行的动作（比如"打开文件"），插件只好自己调用 `shell.Open` | `Result.Do *ActionDo`：处理完回调后，宿主再执行这个动作 |
 | Scoop | 宿主的确认对话框只能显示固定文案，没法带上"可以释放 8.3 GB"这类动态信息 | `Action.Confirm *ConfirmText`：由插件提供确认对话框的标题和说明 |
 | 世界时钟（R23） | "最近使用"保存的是条目快照，时钟条目在那里会一直显示被使用那一刻的时间（动作本身是正确的） | 允许插件声明条目不进入最近使用（`Item.NoRecent`），或者显示最近使用时由插件刷新条目内容 |
+
+| 来源 | 缺口 | 建议 | 状态 |
+|------|------|------|------|
+| Scoop（R22） | 长时间操作在动作返回后才完成，插件没法在完成时弹出提示 | 新增 `Host.Toast(t Toast)`：插件在后台任务里也能调用；宿主显示在启动器底栏，窗口隐藏时改用系统通知 | ✅ 已解决（R24，[background-tasks.md](background-tasks.md)）：`Host.Toast` 按建议实现；长操作改用宿主后台任务 `Host.RunProcess`/`RunTask`，结束时宿主按 `TaskSpec.Notify` 统一通知，插件用 `TaskSpec.OnDone` 得到结果 |
+| Scoop、Script Commands | `Result` 不能携带让宿主执行的动作（比如"打开文件"），插件只好自己调用 `shell.Open` | `Result.Do *ActionDo`：处理完回调后，宿主再执行这个动作 | ✅ 已解决（R24）：`Result.Do` 只允许宿主自己的动作类型（不能是 `Callback`/`RunCommand`，避免循环），结果合并：`Do` 的 `Push`/`Hide` 生效，`Toast` 以插件的为准。Script Commands 的 `fullOutput` 用它打开刚启动的任务（`ActionShowTask`）|
+| Scoop | 宿主的确认对话框只能显示固定文案，没法带上"可以释放 8.3 GB"这类动态信息 | `Action.Confirm *ConfirmText`：由插件提供确认对话框的标题和说明 | 未做 |
+
+> **R24 对 §6 的影响**：Script Commands 的 `fullOutput` 模式不再有自己的 `output` 视图（§6.1 中"输出视图"一条和 `run.go`/`output.go`/`proc_windows.go` 的描述已过时）。现在它用 `Host.RunProcess` 作为宿主后台任务运行，`Result.Do` 打开这个任务（Background Tasks 实时显示输出，可停止、重新运行）；脚本条目多了"Show in Background Tasks"动作（`Ctrl+T`，打开最近一次运行，还没运行过时打开任务列表）。`compact`、`silent` 不变，只是进程代码换成了共享的 `internal/winapi/proc`（批处理的 cmd.exe 引号规则也移到了那里）。

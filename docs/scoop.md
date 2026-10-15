@@ -166,3 +166,15 @@
 - `internal/builtin/builtin.go`：`All` 和 `Fake` 各加了一个插件，新增 `DryRun`、`realScoop`、`fakeScoop`。
 - `internal/cli/cli.go`、`platform.go`：`realPlugins(extra, exec)` 多了 `exec` 参数。
 - golden：`plugin_list`、`session_confirm_done` 已更新；新增 5 个 golden。其他分支如果也往根列表里加命令，这两个 golden 需要重新生成。
+
+## 9. 迁移到宿主后台任务（R24）
+
+> 设计见 [background-tasks.md](background-tasks.md)。本节说明 Scoop 插件因此发生的变化；上面 §4 和 §8 中关于"插件内部队列""输出视图""Scoop Operations 分组""操作结束后不弹 Toast""`builtin.DryRun`""`Sync` 让动作等待"的描述已经过时，以本节为准。
+
+- **执行**：每个操作（可能包含多条 scoop 命令，比如"全部升级"是 `scoop update` 再 `scoop update *`，"清理"是 `scoop cleanup *` 再 `scoop cache rm *`）变成**一个**宿主后台任务：`Host.RunProcess(TaskSpec{Title: "Install git", Queue: "scoop", Notify: NotifyAlways, OnDone: ...}, ProcessSpec{...})`。多条命令写进同一个 PowerShell 脚本（仍然用 `-EncodedCommand`），每条命令前输出 `> scoop ...`，某条失败就以它的退出码结束、后面的不再执行。`<root>\shims` 放到 PATH 最前面和 `SCOOP=<root>` 现在在脚本里设置，`ProcessSpec.Env` 为空。`ProcessSpec.CommandLine` 是给用户看的 `scoop update && scoop update *`，任务视图和假执行器都显示它。
+- **串行**：插件自己的队列删掉了，改用宿主的队列 `"scoop"`：同一队列的任务按顺序执行（Background Tasks 里显示"排队中"），停止、复制输出、重新运行、打开完整日志都由宿主提供。
+- **动作立即返回**：返回一条 Info Toast "Install git: running in the background"（提示按 `Ctrl+J` 查看输出），不再推入输出视图。任务结束时宿主按 `NotifyAlways` 通知（启动器可见时在底栏显示，否则发 Windows 通知，点通知打开这个任务）。这就解决了 §8 第 2 条"操作结束后不弹 Toast"。
+- **结束后重建索引**：用 `TaskSpec.OnDone`（而不是订阅没有载荷的 `task-finished` 事件），在回调里清空清理空间的缓存并刷新索引；`Sync` 时同步刷新，所以 `glctl` 的 `wait-tasks` 之后视图已经是新的。从任务视图"重新运行"时同一个 `OnDone` 会再次被调用。
+- **删除的代码**：`queue.go`（队列、停止、输出刷新）、`output.go`、`proc_windows.go`/`proc_other.go`（进程代码移到共享的 `internal/winapi/proc`，宿主任务管理器和 Script Commands 共用）、`runner.go` 里的 `Runner`/`Process`/`PowerShell`/`FakeRunner`；`views.go` 里的输出视图和 "Scoop Operations" 分组；`Options.Runner`（换成 `Options.Shell`，指定 PowerShell 路径，默认 pwsh 优先）；回调 `stop`；相关文案（`section.operations`、`view.output.*`、`status.*` 等）。新增 `ops.go`（操作的规划和启动）。
+- **`glctl`**：`builtin.DryRun` 删掉了。`--real` 不带 `--exec` 时，`glctl` 给整个环境一个假的任务执行器（只记录命令，输出 `[not run] scoop ...`），并以只读方式读取真实的任务历史。假环境里任务被"按住"，直到 `glctl session wait-tasks`，所以快照不依赖时序；`glctl tasks list|show <id> -s FILE` 查看任务。
+- **测试**：`scoop_test.go` 用 hostfake 的任务管理器和假执行器：每个动作生成的命令行、任务的标题/队列/通知方式、非法请求不产生任务、三个操作串行执行（同时最多一个）、失败的操作、操作结束后索引刷新（`OnDone`）。`runner_windows_test.go` 用 `internal/winapi/proc` 真实运行插件生成的 PowerShell 命令（假的 `scoop.ps1` shim）：参数原样到达、多步骤在失败处停止、UTF-8、`SCOOP` 变量、Stop 结束进程树。golden `session_scoop_install` 变成"搜索视图 + Toast + 指示灯显示 1 个任务在运行"。

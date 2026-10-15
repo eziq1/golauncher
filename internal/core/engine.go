@@ -43,6 +43,28 @@ type Options struct {
 	System   System
 	// RootTimeout bounds each plugin's RootItems call (default 150ms).
 	RootTimeout time.Duration
+	// Tasks is the background task manager (nil: no background tasks).
+	Tasks TaskService
+}
+
+// TaskService is the host's background task manager (internal/tasks), as
+// the engine sees it.
+type TaskService interface {
+	// RunProcess queues a process task of plugin pluginID (ActionRunProcess).
+	RunProcess(pluginID string, spec plugin.TaskSpec, cmd plugin.ProcessSpec) string
+	// Indicator returns the number of queued and running tasks and of
+	// failed tasks the user has not seen yet.
+	Indicator() (active, failed int)
+	// View returns the view showing task id, or all tasks for "".
+	View(id string) (pluginID string, req plugin.ViewRequest)
+}
+
+// Notice is a message for the user that is not the outcome of an action:
+// a plugin's Host.Toast, or a finished background task (TaskID).
+type Notice struct {
+	Toast  plugin.Toast `json:"toast"`
+	Plugin string       `json:"plugin,omitempty"`
+	TaskID string       `json:"taskId,omitempty"`
 }
 
 // Engine runs plugins and actions. It is safe for concurrent use.
@@ -53,6 +75,10 @@ type Engine struct {
 	log         *slog.Logger
 	core        *i18n.Localizer
 	rootTimeout time.Duration
+	tasks       TaskService
+
+	notifyMu sync.Mutex
+	notifier func(Notice)
 
 	plugins     []*loaded
 	byID        map[string]*loaded
@@ -104,12 +130,14 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		log:         o.Services.Log,
 		core:        o.Services.I18n.Localizer(i18n.CoreNamespace),
 		rootTimeout: cmp.Or(o.RootTimeout, 150*time.Millisecond),
+		tasks:       o.Tasks,
 		byID:        map[string]*loaded{},
 	}
 	// Before any plugin is initialized: Init may already start background
 	// work that invalidates.
 	o.Services.OnInvalidate = e.invalidate
 	o.Services.OnRender = e.render
+	o.Services.OnToast = func(pluginID string, t plugin.Toast) { e.Notify(Notice{Toast: t, Plugin: pluginID}) }
 	cfg := o.Config.Get()
 	for _, p := range o.Plugins {
 		m := p.Manifest()
@@ -186,6 +214,32 @@ func (e *Engine) render(pluginID, instance string, v plugin.View) {
 		c.push(pluginID, instance, v)
 	}
 }
+
+// SetNotifier sets fn to show notices instead of the default, which shows
+// them as a toast in the controllers. The GUI shows them in the launcher
+// when it is visible and as Windows notifications otherwise.
+func (e *Engine) SetNotifier(fn func(Notice)) {
+	e.notifyMu.Lock()
+	e.notifier = fn
+	e.notifyMu.Unlock()
+}
+
+// Notify shows a notice to the user. It is safe from any goroutine.
+func (e *Engine) Notify(n Notice) {
+	e.notifyMu.Lock()
+	fn := e.notifier
+	e.notifyMu.Unlock()
+	if fn != nil {
+		fn(n)
+		return
+	}
+	for _, c := range e.subscribers() {
+		c.ShowToast(n.Toast)
+	}
+}
+
+// Tasks returns the background task manager, or nil.
+func (e *Engine) Tasks() TaskService { return e.tasks }
 
 // OnViewClosed registers fn to be called (on a background goroutine) when a
 // view instance (plugin.ViewRequest.Instance) is closed, so that a plugin
@@ -347,6 +401,23 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 		return Outcome{Push: &Nav{Plugin: entry.Plugin, Request: req}}, nil
 	case plugin.ActionRunCommand, plugin.ActionCallback:
 		return e.handle(ctx, entry.Plugin, do)
+	case plugin.ActionRunProcess:
+		if e.tasks == nil {
+			return Outcome{}, errors.New("core: background tasks are not available")
+		}
+		var p plugin.RunProcessPayload
+		if err := json.Unmarshal(do.Payload, &p); err != nil {
+			return Outcome{}, err
+		}
+		e.tasks.RunProcess(entry.Plugin, p.Spec, p.Cmd)
+		return Outcome{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: e.core.T("tasks.toast.started", "title", p.Spec.Title),
+			Message: e.core.T("tasks.toast.startedHint")}}, nil
+	case plugin.ActionShowTask:
+		if e.tasks == nil {
+			return Outcome{}, errors.New("core: background tasks are not available")
+		}
+		id, req := e.tasks.View(do.Target)
+		return Outcome{Push: &Nav{Plugin: id, Request: req}}, nil
 	default:
 		return Outcome{}, fmt.Errorf("core: unknown action kind %q", do.Kind)
 	}
@@ -365,8 +436,23 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 	if err != nil {
 		return Outcome{}, err
 	}
-	return Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast,
-		FieldErrors: r.FieldErrors}, nil
+	out := Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast,
+		FieldErrors: r.FieldErrors}
+	if r.Do != nil && len(r.FieldErrors) == 0 {
+		// The follow-up action of the result (m5 §14): only the host's own
+		// kinds, so a plugin cannot loop through its own callbacks.
+		if k := r.Do.Kind; k == plugin.ActionCallback || k == plugin.ActionRunCommand {
+			return out, fmt.Errorf("core: plugin %q returned a %s action in Result.Do", pluginID, k)
+		}
+		more, err := e.Run(ctx, Entry{Plugin: pluginID}, plugin.Action{ID: "result", Do: *r.Do}, false)
+		if err != nil {
+			return out, err
+		}
+		out.Hide = out.Hide || more.Hide
+		out.Push = cmp.Or(more.Push, out.Push)
+		out.Toast = cmp.Or(out.Toast, more.Toast)
+	}
+	return out, nil
 }
 
 // stringValues turns ActionDo.Values into ViewRequest.Arguments: JSON

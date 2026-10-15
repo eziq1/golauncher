@@ -161,7 +161,9 @@ or the folder set in the plugin settings), these commands appear:
 
 Searching reads Scoop's files directly (about 6,000 manifests in well under a
 millisecond per query), so it does not start PowerShell. Changes run `scoop`
-one at a time, in a view with live output, a Stop action and Copy Output.
+as background tasks, one at a time: the launcher stays usable, *Background Tasks*
+(`Ctrl+J`, or the spinner in the footer) shows their live output, and a
+notification tells when they finished.
 Turn on *Search packages from the main search* to type `scoop <name>` or
 `sc <name>` in the main search. Apps installed for all users (`-g`) are shown
 read-only.
