@@ -1,0 +1,17 @@
+{
+  "plugin.name": "Applications",
+  "plugin.description": "Search and launch installed applications",
+  "command.reload.title": "Reload Applications",
+  "pref.hiddenApps.title": "Hidden Applications",
+  "pref.hiddenApps.description": "IDs of applications that are not shown in search",
+  "accessory": "Application",
+  "group": "Applications",
+  "action.open": "Open",
+  "action.runAsAdmin": "Run as Administrator",
+  "action.reveal": "Show in File Explorer",
+  "action.copyPath": "Copy Path",
+  "action.hide": "Hide Application",
+  "toast.reloaded": { "one": "Found {{.Count}} application", "other": "Found {{.Count}} applications" },
+  "toast.reloadFailed": "Could not reload applications",
+  "toast.hidden": "{{.name}} is now hidden"
+}
