@@ -18,3 +18,6 @@ func Running() bool { return false }
 
 // Start launches Everything. It is only supported on Windows.
 func Start(exePath string) error { return errors.ErrUnsupported }
+
+// UserFolders returns the user's known folders; none on this platform.
+func UserFolders() []string { return nil }
