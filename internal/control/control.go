@@ -126,7 +126,7 @@ type Client struct {
 func Dial(path string) (*Client, error) {
 	conn, err := net.DialTimeout("unix", path, 2*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("control: is golauncher running? %w", err)
+		return nil, fmt.Errorf("control: is golauncher running with GOLAUNCHER_CONTROL=1? %w", err)
 	}
 	return &Client{conn: conn, r: bufio.NewReader(conn)}, nil
 }

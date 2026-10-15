@@ -114,6 +114,34 @@
             ],
             "plugin": "builtin.clipboard",
             "key": "builtin.clipboard/cmd:history"
+          },
+          {
+            "id": "cmd:search",
+            "title": "Search Files",
+            "subtitle": "File Search (Everything)",
+            "icon": {
+              "name": "file"
+            },
+            "keywords": [
+              "files",
+              "find",
+              "everything",
+              "文件"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "search"
+                }
+              }
+            ],
+            "plugin": "builtin.everything",
+            "key": "builtin.everything/cmd:search"
           }
         ]
       }

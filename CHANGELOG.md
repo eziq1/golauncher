@@ -30,21 +30,31 @@ WebView2).
   - Applications: finds and launches installed apps.
   - Calculator: evaluates expressions inline, with base conversion
     (`255 in hex`).
-  - Clipboard history (`Ctrl+Shift+V`): searchable history with paste, pin
+  - Clipboard history (`Alt+Shift+V`): searchable history with paste, pin
     and delete actions.
+  - File search powered by [Everything](https://www.voidtools.com/), talking
+    to an installed Everything over its IPC protocol (no DLL). The plugin is
+    disabled, with the reason shown in Settings, when Everything is not
+    installed.
 - **Settings window** (`Ctrl+,` or tray › Settings…): General, Plugins
   (enablement and per-plugin preferences), Advanced and About pages.
+  Password preferences are stored in Windows Credential Manager, never in
+  `config.json`. Settings can be exported to and imported from a file.
+- **Data locations**: `config.json` in `%APPDATA%\golauncher`; databases and
+  clipboard history in `%LOCALAPPDATA%\golauncher\data` so they never roam.
+  A corrupt `config.json` is set aside and the defaults are used.
 - **Destructive-action confirmation**: commands and actions marked
   destructive ask for confirmation in the GUI and in `glctl` sessions.
 - **`glctl`**, a headless CLI for agents and tests: `query`, `run`,
   `session` (multi-step replayable sessions), `plugin`, `config`, `i18n`,
-  `attach` (drives the running GUI through its control channel), `bench` and
+  `attach` (drives a GUI started with `GOLAUNCHER_CONTROL=1`), `bench` and
   `version`. Runs in an isolated fake environment by default (fixtures, fixed
   clock, recorded side effects); `--real` and `--exec` opt into the real
   environment. JSON output by default, covered by golden tests.
 - **Internationalization pipeline**: message catalogs for every UI string,
   the `en` locale and the `en-XA` pseudo-locale for layout testing, and
-  `glctl i18n check` to verify catalogs and key references.
+  `glctl i18n check` to verify catalogs and key references. Tests enforce that
+  plugins use only the public SDK and that no UI string is hard-coded.
 - Application icon, Windows manifest (per-monitor DPI v2, UTF-8 code page)
   and version information embedded in both executables.
 - CI on Windows (gofmt, vet, tests, race tests, i18n check) and a release
@@ -54,15 +64,12 @@ WebView2).
 ### Known limitations
 
 - External (out-of-process) plugins over JSON-RPC are not implemented yet.
-- The i18n lint analyzer and the depguard rule that keeps plugins from
-  importing `internal/core` are not implemented yet.
 - The calculator has no `ans`, unit or currency conversion yet.
 - `Tab` does not yet move into command arguments.
 - Hotkey display names are not localized.
 - The UI ships in English only (plus the `en-XA` pseudo-locale).
 - No installer and no auto-update: unzip and run `golauncher.exe`.
 - The executables are not code-signed, so SmartScreen may warn on first run.
-- The Acrylic background has only been verified in off-screen rendering.
 
 [Unreleased]: https://github.com/eziq1/golauncher/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/eziq1/golauncher/releases/tag/v0.1.0

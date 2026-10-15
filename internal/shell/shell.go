@@ -168,6 +168,9 @@ func Run(o Options) error {
 	return err
 }
 
+// ControlEnv enables the E2E control channel (glctl attach) when set to 1.
+const ControlEnv = "GOLAUNCHER_CONTROL"
+
 // ready creates the windows, the tray icon and the hotkeys.
 func (s *Shell) ready(action string) {
 	s.panel = mygo.NewWindow(mygo.WindowOptions{
@@ -212,14 +215,22 @@ func (s *Shell) ready(action string) {
 		s.stopClip = stop
 	}
 
-	dataDir := filepath.Dir(s.env.Services.DataRoot)
-	go func() {
-		if err := control.Serve(s.ctx, filepath.Join(dataDir, "control.sock"), s.env.Controller, controlWindow{s}); err != nil {
-			s.log.Warn("control channel", "err", err)
-		}
-	}()
+	// The control channel lets any local process drive the launcher (and read
+	// clipboard history through snapshots), so it is only for E2E tests.
+	if os.Getenv(ControlEnv) == "1" {
+		dataDir := filepath.Dir(s.env.Services.DataRoot)
+		s.log.Warn("control channel enabled", "env", ControlEnv)
+		go func() {
+			if err := control.Serve(s.ctx, filepath.Join(dataDir, "control.sock"), s.env.Controller, controlWindow{s}); err != nil {
+				s.log.Warn("control channel", "err", err)
+			}
+		}()
+	}
 
 	s.setUpTray()
+	if err := s.env.Config.Recovered(); err != nil {
+		s.configRecovered(err)
+	}
 	s.syncLoginItem(s.env.Config.Get())
 	s.registerHotkeys()
 	switch {
@@ -447,6 +458,23 @@ func (s *Shell) hotkeyFailed(hotkey string) {
 		}
 	}()
 	s.showSettings(ui.PageGeneral)
+}
+
+// configRecovered tells the user that config.json could not be read and was
+// replaced by the defaults (the old file is kept as config.json.bad).
+func (s *Shell) configRecovered(err error) {
+	s.log.Error("config file unusable; using defaults", "err", err)
+	n := mygo.NewNotification(mygo.NotificationOptions{
+		ID:    "config-recovered",
+		Title: s.loc.T("notify.configRecovered.title"),
+		Body:  s.loc.T("notify.configRecovered.body", "path", s.env.Config.Path()+".bad"),
+	})
+	n.OnClick(func() { s.showSettings(ui.PageAdvanced) })
+	go func() {
+		if err := n.Show(); err != nil {
+			s.log.Warn("notification", "err", err)
+		}
+	}()
 }
 
 func (s *Shell) setUpTray() {

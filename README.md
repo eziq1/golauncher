@@ -13,7 +13,7 @@ A Raycast-style launcher for Windows, written in Go with the
     matching (`wx` finds 微信).
   - **Calculator**: exact decimal arithmetic, functions, and base conversion
     (`255 in hex`).
-  - **Clipboard History** (`Ctrl+Shift+V`): text, images and files, with full-text
+  - **Clipboard History** (`Alt+Shift+V`): text, images and files, with full-text
     search. Copies from password managers are skipped.
   - **File Search**: powered by [Everything](https://www.voidtools.com/), when it
     is installed.
@@ -46,7 +46,7 @@ golauncher.exe --quit       # quit the running instance
 | What | Where |
 |------|-------|
 | Configuration | `%APPDATA%\golauncher\config.json` |
-| Database | `%APPDATA%\golauncher\golauncher.db` |
+| Databases, clipboard history | `%LOCALAPPDATA%\golauncher\data\` (never roams) |
 | Logs | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
 
 ## Keyboard
@@ -81,9 +81,12 @@ go test -race ./internal/... ./plugins/...     # needs a C compiler for -race
 go test ./internal/cli -update                 # refresh golden files after an intended output change
 ```
 
-The end-to-end test needs the GUI running:
+Tests that touch the real clipboard are skipped unless you opt in with `$env:GOLAUNCHER_CLIPBOARD_TESTS=1` (they restore the clipboard afterwards).
+
+The end-to-end test drives a running GUI through a local control socket, which is only enabled when golauncher is started with `GOLAUNCHER_CONTROL=1`:
 
 ```powershell
+$env:GOLAUNCHER_CONTROL=1; .\golauncher.exe
 $env:GOLAUNCHER_E2E=1; go test ./internal/shell -run RunningInstance
 ```
 
@@ -97,7 +100,7 @@ glctl session new  -s s.json --fixtures testdata/fixtures
 glctl session type -s s.json "clipboard history"
 glctl session key  -s s.json Enter
 glctl i18n check
-glctl attach type vsc           # drive the running GUI
+glctl attach type vsc           # drive a GUI started with GOLAUNCHER_CONTROL=1
 ```
 
 By default `glctl` runs in an isolated, in-memory environment with a fixed

@@ -21,6 +21,14 @@ var ErrBusy = errors.New("clip: clipboard is busy")
 // be brought to the foreground.
 var ErrNotForeground = errors.New("clip: target window did not become the foreground window")
 
+// ReadOptions selects what ReadWith fetches.
+type ReadOptions struct {
+	// Images requests an image when the clipboard holds neither text nor
+	// files. Without it no image format is requested at all, so programs
+	// that render images on demand are not asked to.
+	Images bool
+}
+
 // debounceDelay is how long Watch waits for the clipboard to settle; some
 // programs update it several times in a row for a single copy.
 const debounceDelay = 50 * time.Millisecond

@@ -27,10 +27,15 @@ type Options struct {
 	// Fake keeps everything in memory or in a temporary directory: no user
 	// configuration, database or clipboard is touched.
 	Fake bool
-	// DataDir and CacheDir default to %APPDATA%\golauncher and
-	// %LOCALAPPDATA%\golauncher (a temporary directory when Fake).
-	DataDir  string
-	CacheDir string
+	// ConfigDir holds config.json (default %APPDATA%\golauncher, which may
+	// roam). DataDir holds the databases and plugin data (default
+	// %LOCALAPPDATA%\golauncher\data: clipboard history must never roam, and
+	// SQLite WAL does not work on network shares). CacheDir holds rebuildable
+	// data (default %LOCALAPPDATA%\golauncher). ConfigDir defaults to DataDir
+	// when only DataDir is given; Fake uses a temporary directory.
+	ConfigDir string
+	DataDir   string
+	CacheDir  string
 	// Now fixes the clock (default time.Now).
 	Now func() time.Time
 	// Locale overrides the configured language when set.
@@ -57,10 +62,16 @@ type Env struct {
 	manifests []plugin.Manifest
 }
 
-// DefaultDataDir returns %APPDATA%\golauncher.
-func DefaultDataDir() (string, error) {
+// DefaultConfigDir returns %APPDATA%\golauncher.
+func DefaultConfigDir() (string, error) {
 	d, err := os.UserConfigDir()
 	return filepath.Join(d, "golauncher"), err
+}
+
+// DefaultDataDir returns %LOCALAPPDATA%\golauncher\data.
+func DefaultDataDir() (string, error) {
+	d, err := os.UserCacheDir()
+	return filepath.Join(d, "golauncher", "data"), err
 }
 
 // DefaultCacheDir returns %LOCALAPPDATA%\golauncher.
@@ -81,7 +92,7 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		now = time.Now
 	}
 
-	dataDir, cacheDir := o.DataDir, o.CacheDir
+	configDir, dataDir, cacheDir := cmp.Or(o.ConfigDir, o.DataDir), o.DataDir, o.CacheDir
 	var err error
 	if o.Fake && (dataDir == "" || cacheDir == "") {
 		if env.tempDir, err = os.MkdirTemp("", "golauncher-fake-"); err != nil {
@@ -90,9 +101,17 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		dataDir = cmp.Or(dataDir, filepath.Join(env.tempDir, "data"))
 		cacheDir = cmp.Or(cacheDir, filepath.Join(env.tempDir, "cache"))
 	}
+	if configDir == "" && !o.Fake {
+		if configDir, err = DefaultConfigDir(); err != nil {
+			return nil, err
+		}
+	}
 	if dataDir == "" {
 		if dataDir, err = DefaultDataDir(); err != nil {
 			return nil, err
+		}
+		if !o.Fake {
+			moveLegacyData(configDir, dataDir, log)
 		}
 	}
 	if cacheDir == "" {
@@ -111,7 +130,7 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		env.Config = config.NewMemory(config.Default())
 		db, err = store.Open(":memory:")
 	} else {
-		if env.Config, err = config.Open(filepath.Join(dataDir, "config.json")); err != nil {
+		if env.Config, err = config.Open(filepath.Join(configDir, "config.json")); err != nil {
 			return nil, err
 		}
 		db, err = store.Open(filepath.Join(dataDir, "golauncher.db"))

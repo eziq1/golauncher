@@ -118,3 +118,24 @@ func TestGetIsACopy(t *testing.T) {
 		t.Fatal("Get leaked internal map")
 	}
 }
+
+func TestOpenRecoversFromBadFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	os.WriteFile(path, []byte(`{"theme": `), 0o644)
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Recovered() == nil || s.Get().Hotkey != DefaultHotkey {
+		t.Fatalf("recovered = %v, cfg = %+v", s.Recovered(), s.Get())
+	}
+	if b, err := os.ReadFile(path + ".bad"); err != nil || string(b) != `{"theme": ` {
+		t.Fatalf("bad file not kept: %q %v", b, err)
+	}
+	if err := s.Update(func(c *Config) { c.Theme = "dark" }); err != nil {
+		t.Fatal(err)
+	}
+	if c, err := Load(path); err != nil || c.Theme != "dark" {
+		t.Fatalf("reload = %+v %v", c, err)
+	}
+}

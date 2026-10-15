@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -564,6 +565,146 @@ func TestConcurrentRecordAndView(t *testing.T) {
 	}
 }
 
+func TestLargeText(t *testing.T) {
+	e := setup(t)
+	e.copyText(strings.Repeat("x", maxTextBytes+1))
+	if n := len(items(e.view(""))); n != 0 {
+		t.Fatalf("%d items after an oversized copy", n)
+	}
+
+	// A text at the limit is recorded; the detail shows only its start, the
+	// actions carry all of it and only its start is searchable.
+	head := "first line\n" + strings.Repeat("é", maxIndexBytes/2)
+	text := head + strings.Repeat("y", maxTextBytes-len(head)-len("needle")) + "needle"
+	e.copyText(text)
+	it := items(e.view(""))[0]
+	if it.Title != "first line" {
+		t.Errorf("title = %q", it.Title)
+	}
+	md := it.Detail.Markdown
+	total := utf8.RuneCountInString(text)
+	if !strings.HasSuffix(md, "characters in total)*") || !strings.Contains(md, e.h.I18n().Number(float64(total))) ||
+		utf8.RuneCountInString(md) > maxDetailRunes+200 {
+		t.Errorf("markdown (%d runes) ends %q", utf8.RuneCountInString(md), md[max(0, len(md)-80):])
+	}
+	if got := meta(it, "Characters"); got != e.h.I18n().Number(float64(total)) {
+		t.Errorf("Characters = %q", got)
+	}
+	if p, c := e.action(it, "paste").Do, e.action(it, "copy").Do; p.Target != text || c.Target != text {
+		t.Error("actions do not carry the full text")
+	}
+	if got := e.titles("first line"); len(got) != 1 {
+		t.Errorf("search for the start = %q", got)
+	}
+	if got := e.titles("needle"); len(got) != 0 {
+		t.Errorf("text beyond the index limit was searchable: %q", got)
+	}
+	// Short texts are shown in full without a note.
+	e.copyText("short")
+	if md := items(e.view(""))[0].Detail.Markdown; md != "```\nshort\n```" {
+		t.Errorf("markdown = %q", md)
+	}
+}
+
+func TestFTSBody(t *testing.T) {
+	s := strings.Repeat("a", maxIndexBytes-1) + "é" // é straddles the limit
+	if got := ftsBody(s); len(got) != maxIndexBytes-1 || !utf8.ValidString(got) {
+		t.Fatalf("len %d, valid %v", len(got), utf8.ValidString(got))
+	}
+	if got := ftsBody("short"); got != "short" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestPruneOnConfigChange(t *testing.T) {
+	e := setup(t)
+	e.copyText("old", "a", "b")
+	e.now = e.now.Add(3 * 24 * time.Hour)
+	e.pref("maxDays", 2)
+	e.h.Bus.PublishSync(plugin.EventConfigChanged)
+	if got := e.titles(""); len(got) != 0 {
+		t.Fatalf("titles after maxDays change = %v", got)
+	}
+	e.copyText("1", "2", "3")
+	e.pref("maxItems", 1)
+	e.h.Bus.PublishSync(plugin.EventConfigChanged)
+	if got := e.titles(""); !slices.Equal(got, []string{"3"}) {
+		t.Fatalf("titles after maxItems change = %v", got)
+	}
+}
+
+func TestPruneOnInit(t *testing.T) {
+	dir := t.TempDir()
+	now := hostfake.Fixed
+	open := func() (*Plugin, *hostfake.Host) {
+		p := New()
+		h, err := hostfake.New(p, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.Clock = func() time.Time { return now }
+		h.Prefs.Set("maxDays", jsontext.Value(plugin.MustPayload(2)))
+		if err := p.Init(t.Context(), h); err != nil {
+			t.Fatal(err)
+		}
+		return p, h
+	}
+	p, h := open()
+	h.Clip.Set(plugin.ClipboardContent{Image: pngBytes(t, 2, 2)})
+	h.Bus.PublishSync(plugin.EventClipboardChanged)
+	if err := p.Close(); err != nil {
+		t.Fatal(err)
+	}
+	imgs, _ := filepath.Glob(filepath.Join(dir, "data", "images", "*.png"))
+	if len(imgs) != 1 {
+		t.Fatalf("images = %v", imgs)
+	}
+
+	now = now.Add(3 * 24 * time.Hour)
+	p, _ = open()
+	defer p.Close()
+	v, err := p.View(t.Context(), plugin.ViewRequest{ID: "history"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := items(v); len(got) != 0 {
+		t.Fatalf("expired clips survived Init: %+v", got)
+	}
+	if _, err := os.Stat(imgs[0]); !os.IsNotExist(err) {
+		t.Fatalf("image of expired clip not removed: %v", err)
+	}
+}
+
+func TestStorePathEscaping(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "a#b%41 c")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "clipboard.db")
+	s, err := openStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.add(clip{Kind: kindText, Text: "x"}, "h", "x", hostfake.Fixed); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Stat(path); err != nil || fi.Size() == 0 {
+		t.Fatalf("database not at %s: %v", path, err)
+	}
+	// Nothing was created at a truncated or decoded path.
+	entries, _ := os.ReadDir(filepath.Dir(dir))
+	if len(entries) != 1 {
+		t.Fatalf("unexpected entries next to the directory: %v", entries)
+	}
+	dsn, err := storeDSN(path)
+	if err != nil || !strings.HasPrefix(dsn, "file:///") || strings.Contains(dsn, "#") {
+		t.Fatalf("dsn = %q (%v)", dsn, err)
+	}
+}
+
 // TestI18nKeys checks that every message key used in the code and manifest
 // exists in en.json and that en.json has no unused keys.
 func TestI18nKeys(t *testing.T) {
@@ -613,7 +754,7 @@ func TestManifest(t *testing.T) {
 	if m.ID != "builtin.clipboard" || m.Icon.Name != "clipboard" || len(m.Commands) != 2 {
 		t.Fatalf("manifest = %+v", m)
 	}
-	if c := m.Commands[0]; c.Name != "history" || c.Mode != plugin.ModeView || c.DefaultHotkey != "Ctrl+Shift+V" {
+	if c := m.Commands[0]; c.Name != "history" || c.Mode != plugin.ModeView || c.DefaultHotkey != "Alt+Shift+V" {
 		t.Errorf("history command = %+v", c)
 	}
 	if c := m.Commands[1]; c.Name != "clear" || c.Mode != plugin.ModeNoView {

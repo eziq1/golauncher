@@ -1,0 +1,122 @@
+{
+  "step": "run builtin.everything/search",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.everything",
+      "request": {
+        "id": "search",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search Files",
+    "placeholder": "Search files and folders…",
+    "text": "report q3",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx",
+            "title": "Quarterly Report Q3.xlsx",
+            "subtitle": "C:\\Users\\demo\\Documents\\Reports",
+            "icon": {
+              "name": "file"
+            },
+            "accessory": "3 days ago",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+                }
+              },
+              {
+                "id": "reveal",
+                "title": "Show in File Explorer",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Path",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+                }
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy File",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyFiles",
+                  "payload": [
+                    "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+                  ]
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Path",
+                  "value": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+                },
+                {
+                  "label": "Kind",
+                  "value": "File"
+                },
+                {
+                  "label": "Size",
+                  "value": "82.2 KB"
+                },
+                {
+                  "label": "Modified",
+                  "value": "2026-10-10 16:45 (3 days ago)"
+                }
+              ]
+            },
+            "plugin": "builtin.everything",
+            "key": "builtin.everything/C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "metadata": [
+        {
+          "label": "Path",
+          "value": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx"
+        },
+        {
+          "label": "Kind",
+          "value": "File"
+        },
+        {
+          "label": "Size",
+          "value": "82.2 KB"
+        },
+        {
+          "label": "Modified",
+          "value": "2026-10-10 16:45 (3 days ago)"
+        }
+      ]
+    },
+    "emptyText": "No matching files"
+  }
+}

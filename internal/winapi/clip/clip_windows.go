@@ -184,65 +184,87 @@ func setData(format uintptr, data []byte) error {
 	return nil
 }
 
-// Read returns the current clipboard content: Unicode text, an image as PNG
-// (the registered "PNG" format, else a converted CF_DIBV5/CF_DIB) and a file
-// list (CF_HDROP). Content that asks not to be recorded in clipboard history
-// only has SourceApp and Exclude set.
+// Read returns the current clipboard content: Unicode text and a file list
+// (CF_HDROP) and, only when there is neither, an image as PNG (the
+// registered "PNG" format, else a converted CF_DIBV5/CF_DIB). Content that
+// asks not to be recorded in clipboard history only has SourceApp and
+// Exclude set. It is ReadWith(ReadOptions{Images: true}).
 func Read() (plugin.ClipboardContent, error) {
-	var c plugin.ClipboardContent
+	return ReadWith(ReadOptions{Images: true})
+}
+
+// ReadWith is Read with options. The clipboard is held open only while raw
+// bytes are copied; image formats are requested only when they will be
+// used, since that can force the source program to render them (delayed
+// rendering, e.g. Excel), and conversion to PNG happens after the clipboard
+// is closed.
+func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
+	var (
+		c    plugin.ClipboardContent
+		pid  uint32
+		text []byte
+		img  rawImage
+	)
 	err := withClipboard(func() error {
-		f := formats()
-		c.SourceApp = ownerApp()
-		if available(f.exclude) || available(f.viewerIgnore) {
-			c.Exclude = true
-		} else if available(f.history) {
-			if b, ok := getData(f.history); ok && len(b) >= 4 && binary.LittleEndian.Uint32(b) == 0 {
-				c.Exclude = true
-			}
-		}
-		if c.Exclude {
+		pid = ownerPID()
+		if c.Exclude = excluded(); c.Exclude {
 			return nil
 		}
 		if available(cfUnicodeText) {
-			if b, ok := getData(cfUnicodeText); ok {
-				c.Text = utf16String(b)
-			}
+			text, _ = getData(cfUnicodeText)
 		}
 		if available(cfHDROP) {
 			c.Files = hdropFiles()
 		}
-		c.Image = readImage(f.png)
+		if opts.Images && len(c.Files) == 0 && utf16Blank(text) {
+			img = readRawImage()
+		}
 		return nil
 	})
-	return c, err
+	if err != nil {
+		return plugin.ClipboardContent{}, err
+	}
+	if pid != 0 {
+		c.SourceApp = processName(pid)
+	}
+	c.Text = utf16String(text)
+	c.Image = img.toPNG()
+	return c, nil
 }
 
-func readImage(pngFormat uintptr) []byte {
-	if available(pngFormat) {
-		if b, ok := getData(pngFormat); ok {
-			if b, ok := trimPNG(b); ok {
-				return b
-			}
+// excluded reports whether the open clipboard's content asks not to be
+// recorded in clipboard history.
+func excluded() bool {
+	f := formats()
+	if available(f.exclude) || available(f.viewerIgnore) {
+		return true
+	}
+	if available(f.history) {
+		if b, ok := getData(f.history); ok && len(b) >= 4 && binary.LittleEndian.Uint32(b) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// readRawImage copies the first usable image format from the open
+// clipboard without decoding it: the registered "PNG" format, else
+// CF_DIBV5, else CF_DIB. Only headers are checked here.
+func readRawImage() rawImage {
+	if f := formats().png; available(f) {
+		if b, ok := getData(f); ok && bytes.HasPrefix(b, pngSignature) {
+			return rawImage{data: b, isPNG: true}
 		}
 	}
 	for _, f := range []uintptr{cfDIBV5, cfDIB} {
 		if !available(f) {
 			continue
 		}
-		b, ok := getData(f)
-		if !ok {
-			continue
-		}
-		img := dibToImage(b)
-		if img == nil {
-			continue
-		}
-		var buf bytes.Buffer
-		if png.Encode(&buf, img) == nil {
-			return buf.Bytes()
+		if b, ok := getData(f); ok && dibSupported(b) {
+			return rawImage{data: b}
 		}
 	}
-	return nil
+	return rawImage{}
 }
 
 func hdropFiles() []string {
@@ -274,13 +296,6 @@ func ownerPID() uint32 {
 		return 0
 	}
 	return pid
-}
-
-func ownerApp() string {
-	if pid := ownerPID(); pid != 0 {
-		return processName(pid)
-	}
-	return ""
 }
 
 // processName returns the executable base name of process pid, or "".
@@ -603,27 +618,58 @@ func activate(hwnd uintptr) error {
 	return nil
 }
 
-// keyInput is a Win32 INPUT holding a KEYBDINPUT; the padding makes it as
-// large as the union's biggest member (MOUSEINPUT).
-type keyInput struct {
-	Type      uint32
+// mouseInput mirrors Win32 MOUSEINPUT, the largest member of the INPUT
+// union; it is only used for its size.
+type mouseInput struct {
+	Dx, Dy    int32
+	MouseData uint32
+	Flags     uint32
+	Time      uint32
+	ExtraInfo uintptr
+}
+
+// keybdInput mirrors Win32 KEYBDINPUT.
+type keybdInput struct {
 	Vk        uint16
 	Scan      uint16
 	Flags     uint32
 	Time      uint32
 	ExtraInfo uintptr
-	_         [8]byte
 }
 
-func key(vk uint16, up bool) keyInput {
-	in := keyInput{Type: inputKeybd, Vk: vk}
+// input mirrors Win32 INPUT holding a KEYBDINPUT. Go's alignment rules
+// place the union where C does (offset 8 on 64-bit, 4 on 32-bit), and the
+// padding makes the union as large as MOUSEINPUT: 40 bytes on amd64/arm64,
+// 28 on 386. SendInput rejects any other size.
+type input struct {
+	Type uint32
+	Ki   keybdInput
+	_    [unsafe.Sizeof(mouseInput{}) - unsafe.Sizeof(keybdInput{})]byte
+}
+
+func key(vk uint16, up bool) input {
+	in := input{Type: inputKeybd, Ki: keybdInput{Vk: vk}}
 	if up {
-		in.Flags |= keyUp
+		in.Ki.Flags |= keyUp
 	}
 	if vk == vkLWin || vk == vkRWin {
-		in.Flags |= keyExtended
+		in.Ki.Flags |= keyExtended
 	}
 	return in
+}
+
+// sendInput injects in and returns an error unless every event was
+// inserted. Events are rejected as a whole when blocked by UIPI (the target
+// runs elevated) or when another thread blocks input.
+func sendInput(in []input) error {
+	n, _, err := procSendInput.Call(uintptr(len(in)), uintptr(unsafe.Pointer(&in[0])), unsafe.Sizeof(input{}))
+	if int(n) == len(in) {
+		return nil
+	}
+	if errno, ok := errors.AsType[syscall.Errno](err); ok && errno != 0 {
+		return fmt.Errorf("clip: SendInput inserted %d of %d events: %w", n, len(in), err)
+	}
+	return fmt.Errorf("clip: SendInput inserted %d of %d events (input blocked, e.g. the target runs elevated)", n, len(in))
 }
 
 func keyHeld(vk uint16) bool {
@@ -641,16 +687,17 @@ func PasteTo(hwnd uintptr) error {
 	if err := activate(hwnd); err != nil {
 		return err
 	}
-	in := []keyInput{key(vkControl, false)}
+	in := []input{key(vkControl, false)}
 	for _, vk := range []uint16{vkMenu, vkShift, vkLWin, vkRWin} {
 		if keyHeld(vk) {
 			in = append(in, key(vk, true))
 		}
 	}
 	in = append(in, key(vkV, false), key(vkV, true), key(vkControl, true))
-	n, _, err := procSendInput.Call(uintptr(len(in)), uintptr(unsafe.Pointer(&in[0])), unsafe.Sizeof(in[0]))
-	if int(n) != len(in) {
-		return fmt.Errorf("clip: SendInput: %w", err)
+	if err := sendInput(in); err != nil {
+		// Do not leave Ctrl or V stuck down if only part was inserted.
+		_ = sendInput([]input{key(vkV, true), key(vkControl, true)})
+		return err
 	}
 	return nil
 }

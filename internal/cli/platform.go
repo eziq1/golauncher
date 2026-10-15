@@ -28,17 +28,10 @@ func realPlatform(bool) (platform, error) {
 
 func realPlugins() []plugin.Plugin { return builtin.All() }
 
-// fakePlugins returns the built-in plugins with the apps index taken from
-// dir/apps.json, or empty when there is no fixture.
+// fakePlugins returns the built-in plugins fed from the fixtures in dir
+// (apps.json, files.json; see testdata/fixtures).
 func fakePlugins(dir string) ([]plugin.Plugin, error) {
-	apps := ""
-	if dir != "" {
-		apps = filepath.Join(dir, "apps.json")
-		if _, err := os.Stat(apps); errors.Is(err, fs.ErrNotExist) {
-			apps = ""
-		}
-	}
-	return builtin.Fake(apps), nil
+	return builtin.Fake(dir), nil
 }
 
 // clipFixture is one entry of clipboard.json: content copied at a time.

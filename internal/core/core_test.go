@@ -2,8 +2,10 @@ package core_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,7 +18,8 @@ import (
 
 // testPlugin offers a few root items, a view command and a no-view command.
 type testPlugin struct {
-	handled []plugin.ActionDo
+	handled  []plugin.ActionDo
+	failView bool
 }
 
 func (p *testPlugin) Manifest() plugin.Manifest {
@@ -54,6 +57,9 @@ func item(id, title string) plugin.Item {
 }
 
 func (p *testPlugin) View(_ context.Context, req plugin.ViewRequest) (plugin.View, error) {
+	if p.failView {
+		return plugin.View{}, errors.New("backend unavailable")
+	}
 	var items []plugin.Item
 	for _, f := range []string{"Apple", "Banana", "Cherry"} {
 		if req.Query.Text == "" || strings.Contains(strings.ToLower(f), strings.ToLower(req.Query.Text)) {
@@ -358,6 +364,43 @@ func TestUnavailablePlugin(t *testing.T) {
 	env.Controller.Wait()
 	if s := env.Controller.Snapshot(); len(s.Sections) != 0 {
 		t.Fatalf("unavailable plugin's commands are searchable: %+v", s.Sections)
+	}
+}
+
+// TestConcurrentWait guards against Wait racing new searches (the GUI and the
+// control channel drive the controller from different goroutines).
+func TestConcurrentWait(t *testing.T) {
+	e := newEnv(t)
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for range 200 {
+				e.Controller.Wait()
+			}
+		})
+	}
+	wg.Go(func() {
+		for i := range 200 {
+			e.Controller.SetText(t.Context(), fmt.Sprint("w", i))
+			e.Controller.Wait()
+		}
+	})
+	wg.Wait()
+}
+
+func TestSearchErrorClearsResults(t *testing.T) {
+	e := newEnv(t)
+	if _, err := e.Controller.OpenCommand(t.Context(), "test", "list"); err != nil {
+		t.Fatal(err)
+	}
+	e.Controller.Wait()
+	if len(titles(e.Controller.Snapshot())) == 0 {
+		t.Fatal("view has no items")
+	}
+	e.tp.failView = true
+	s := e.typeText(t, "a")
+	if s.Error == "" || len(s.Sections) != 0 {
+		t.Fatalf("after a failed search: error %q, sections %v", s.Error, titles(s))
 	}
 }
 

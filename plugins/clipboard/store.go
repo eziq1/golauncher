@@ -6,6 +6,8 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -71,8 +73,28 @@ type store struct {
 	db *sql.DB
 }
 
+// storeDSN returns the database URI for the file at path. The path is
+// percent-encoded so that characters such as '#', '%' and '?' in directory
+// names are not taken for URI syntax; on Windows this gives the
+// "file:///C:/..." form that SQLite documents.
+func storeDSN(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	p := filepath.ToSlash(abs)
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	u := url.URL{Scheme: "file", Path: p}
+	return u.String() + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_txlock=immediate", nil
+}
+
 func openStore(path string) (*store, error) {
-	dsn := "file:" + path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_txlock=immediate"
+	dsn, err := storeDSN(path)
+	if err != nil {
+		return nil, err
+	}
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -113,6 +135,24 @@ func (s *store) migrate() error {
 		}
 	}
 	return nil
+}
+
+// maxIndexBytes bounds the text indexed for search. Trigram indexes grow
+// with about three entries per character, so only the start of long clips
+// is searchable.
+const maxIndexBytes = 64 << 10
+
+// ftsBody returns the part of s that is indexed for search: at most
+// maxIndexBytes, cut at a character boundary.
+func ftsBody(s string) string {
+	if len(s) <= maxIndexBytes {
+		return s
+	}
+	n := maxIndexBytes
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }
 
 // add inserts c, or, if a clip with the same hash exists, only updates its

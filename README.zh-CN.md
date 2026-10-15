@@ -9,7 +9,7 @@
 - **内置插件**
   - **应用启动器**：开始菜单里的应用，包括商店应用；支持拼音搜索，`wx` 能找到微信。
   - **计算器**：精确的十进制运算，支持函数和进制转换，比如 `255 in hex`。
-  - **剪贴板历史**（`Ctrl+Shift+V`）：记录文字、图片和文件，支持全文搜索；不记录密码管理器复制的内容。
+  - **剪贴板历史**（`Alt+Shift+V`）：记录文字、图片和文件，支持全文搜索；不记录密码管理器复制的内容。
   - **文件搜索**：基于 [Everything](https://www.voidtools.com/)，需要系统里已经安装 Everything。
 - **设置窗口**（`Ctrl+,`）：快捷键、别名、插件偏好、主题。
 - **`glctl`**：无头 CLI，驱动的是同一个引擎，你或 AI Agent 不打开界面也能测试所有交互流程。
@@ -32,7 +32,7 @@ golauncher.exe --quit       # 退出正在运行的实例
 | 内容 | 位置 |
 |------|------|
 | 配置 | `%APPDATA%\golauncher\config.json` |
-| 数据库 | `%APPDATA%\golauncher\golauncher.db` |
+| 数据库、剪贴板历史 | `%LOCALAPPDATA%\golauncher\data\`（不会漫游同步） |
 | 日志 | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
 
 ## 快捷键
@@ -64,6 +64,8 @@ go test -race ./internal/... ./plugins/...     # -race 需要 C 编译器
 go test ./internal/cli -update                 # 输出格式有意变更后，更新 golden 文件
 ```
 
+会读写真实剪贴板的测试默认跳过，需要设置 `GOLAUNCHER_CLIPBOARD_TESTS=1` 才运行（运行完会恢复剪贴板）。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
+
 ## glctl：无头 CLI
 
 ```powershell
@@ -72,7 +74,7 @@ glctl session new  -s s.json --fixtures testdata/fixtures
 glctl session type -s s.json "clipboard history"
 glctl session key  -s s.json Enter
 glctl i18n check
-glctl attach type vsc           # 驱动正在运行的 GUI
+glctl attach type vsc           # 驱动以 GOLAUNCHER_CONTROL=1 启动的 GUI
 ```
 
 `glctl` 默认在隔离的内存环境中运行，时钟固定，动作只记录、不执行。要用真实的配置和数据，加 `--real`；要真正执行动作，再加 `--exec`。

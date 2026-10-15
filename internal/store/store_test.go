@@ -1,7 +1,11 @@
 package store
 
 import (
+	"errors"
+	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -50,5 +54,55 @@ func TestFrecencyDecay(t *testing.T) {
 	recent, _ := db.Recent(10)
 	if len(recent) != 2 {
 		t.Fatalf("Recent = %d items", len(recent))
+	}
+}
+
+func TestOpenPathWithSpecialCharacters(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "a#b%41 c")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "x.db")
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.KV("n").Set("k", []byte("v")); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("database not created at %s: %v", path, err)
+	}
+}
+
+func TestMigrations(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "m.db")
+	// A database from before versioning: tables exist, user_version is 0.
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.KV("n").Set("k", []byte("v"))
+	db.db.Exec(`PRAGMA user_version = 0`)
+	db.Close()
+
+	db, err = Open(path)
+	if err != nil {
+		t.Fatalf("reopening an unversioned database: %v", err)
+	}
+	var v int
+	db.db.QueryRow(`PRAGMA user_version`).Scan(&v)
+	if v != SchemaVersion {
+		t.Fatalf("user_version = %d, want %d", v, SchemaVersion)
+	}
+	if got, ok, _ := db.KV("n").Get("k"); !ok || string(got) != "v" {
+		t.Fatal("migration lost data")
+	}
+	// A database from a newer golauncher is refused rather than damaged.
+	db.db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, SchemaVersion+1))
+	db.Close()
+	if _, err := Open(path); !errors.Is(err, ErrNewerSchema) {
+		t.Fatalf("Open newer = %v, want ErrNewerSchema", err)
 	}
 }

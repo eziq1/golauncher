@@ -5,7 +5,9 @@ import (
 	"encoding/binary"
 	"image"
 	"image/color"
+	"image/png"
 	"math/bits"
+	"unicode"
 	"unicode/utf16"
 )
 
@@ -22,7 +24,7 @@ const (
 // (BITMAPINFOHEADER, V4 or V5 header). It returns nil for unsupported data.
 // Adapted from MyGo (MIT), extended with bit masks and color-table offsets.
 func dibToImage(dib []byte) image.Image {
-	if len(dib) < 40 {
+	if !dibSupported(dib) {
 		return nil
 	}
 	le := binary.LittleEndian
@@ -30,10 +32,6 @@ func dibToImage(dib []byte) image.Image {
 	width, height := int(int32(le.Uint32(dib[4:]))), int(int32(le.Uint32(dib[8:])))
 	bpp, compression := int(le.Uint16(dib[14:])), le.Uint32(dib[16:])
 	clrUsed := int(le.Uint32(dib[32:]))
-	if headerSize < 40 || headerSize > len(dib) || width <= 0 || height == 0 ||
-		(bpp != 24 && bpp != 32) || (compression != biRGB && compression != biBitfields) {
-		return nil
-	}
 	// Default masks for BI_RGB.
 	rm, gm, bm, am := uint32(0x00ff0000), uint32(0x0000ff00), uint32(0x000000ff), uint32(0)
 	if bpp == 32 && headerSize > 40 {
@@ -103,6 +101,64 @@ func dibToImage(dib []byte) image.Image {
 		}
 	}
 	return img
+}
+
+// dibSupported reports whether the header of dib describes a bitmap that
+// dibToImage may decode. It only looks at the header, so it is cheap enough
+// to call while the clipboard is open.
+func dibSupported(dib []byte) bool {
+	if len(dib) < 40 {
+		return false
+	}
+	le := binary.LittleEndian
+	headerSize := le.Uint32(dib)
+	width, height := int32(le.Uint32(dib[4:])), int32(le.Uint32(dib[8:]))
+	bpp, compression := le.Uint16(dib[14:]), le.Uint32(dib[16:])
+	return headerSize >= 40 && uint64(headerSize) <= uint64(len(dib)) && width > 0 && height != 0 &&
+		(bpp == 24 || bpp == 32) &&
+		(compression == biRGB || compression == biBitfields && bpp == 32)
+}
+
+// rawImage is image data copied from the clipboard: a PNG file or a DIB.
+type rawImage struct {
+	data  []byte
+	isPNG bool
+}
+
+// toPNG returns the image as PNG, converting a DIB, or nil if there is no
+// usable image.
+func (r rawImage) toPNG() []byte {
+	if len(r.data) == 0 {
+		return nil
+	}
+	if r.isPNG {
+		b, _ := trimPNG(r.data)
+		return b
+	}
+	img := dibToImage(r.data)
+	if img == nil {
+		return nil
+	}
+	var buf bytes.Buffer
+	if png.Encode(&buf, img) != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// utf16Blank reports whether NUL-terminated little-endian UTF-16 text b is
+// empty or only white space. It does not allocate.
+func utf16Blank(b []byte) bool {
+	for i := 0; i+1 < len(b); i += 2 {
+		c := binary.LittleEndian.Uint16(b[i:])
+		if c == 0 {
+			break
+		}
+		if utf16.IsSurrogate(rune(c)) || !unicode.IsSpace(rune(c)) {
+			return false
+		}
+	}
+	return true
 }
 
 // channel extracts the bits of mask from v and scales them to 8 bits.

@@ -56,8 +56,8 @@
         "name": "history",
         "title": "Search Clipboard History",
         "mode": "view",
-        "defaultHotkey": "Ctrl+Shift+V",
-        "hotkey": "Ctrl+Shift+V"
+        "defaultHotkey": "Alt+Shift+V",
+        "hotkey": "Alt+Shift+V"
       },
       {
         "name": "clear",
@@ -98,6 +98,49 @@
           "Bitwarden.exe",
           "KeePass.exe"
         ]
+      }
+    ]
+  },
+  {
+    "id": "builtin.everything",
+    "name": "File Search (Everything)",
+    "description": "Find files and folders on this computer instantly with voidtools Everything.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "file"
+    },
+    "enabled": true,
+    "permissions": [
+      "exec"
+    ],
+    "commands": [
+      {
+        "name": "search",
+        "title": "Search Files",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "maxResults",
+        "type": "number",
+        "title": "Maximum results",
+        "description": "Number of files shown for a search (at most 1000).",
+        "default": 100
+      },
+      {
+        "name": "matchPath",
+        "type": "bool",
+        "title": "Match full path",
+        "description": "Match the search text against the whole path, not just the name.",
+        "default": false
+      },
+      {
+        "name": "showInRoot",
+        "type": "bool",
+        "title": "Show files in the main search",
+        "description": "List up to 5 matching files below apps and commands for searches of 3 or more characters.",
+        "default": false
       }
     ]
   }

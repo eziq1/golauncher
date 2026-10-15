@@ -28,6 +28,7 @@
   "meta.dimensions": "Dimensions",
   "meta.dimensionsValue": "{{.width}} × {{.height}}",
   "meta.files": "Files",
+  "detail.truncated": "… (truncated, {{.count}} characters in total)",
   "size.bytes": { "one": "{{.Count}} byte", "other": "{{.Count}} bytes" },
   "size.kb": "{{.size}} KB",
   "size.mb": "{{.size}} MB",

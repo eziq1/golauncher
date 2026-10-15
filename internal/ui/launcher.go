@@ -622,12 +622,11 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 			}
 			row.Children(func() {
 				mui.Text(c, a.Title).TextColor(fg).SingleLine().Grow(1).Shrink(1)
+				// In the panel, Enter runs the selected row; other rows show
+				// their own shortcut, which the panel also accepts.
 				shortcut := a.Shortcut
-				switch i {
-				case 0:
+				if i == p.Selected {
 					shortcut = "Enter"
-				case 1:
-					shortcut = "Ctrl+Enter"
 				}
 				if shortcut != "" {
 					keyCapsView(c, shortcut)

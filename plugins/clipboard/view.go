@@ -16,6 +16,8 @@ import (
 const (
 	viewLimit     = 200
 	maxTitleRunes = 80
+	// maxDetailRunes bounds the text shown in the detail pane.
+	maxDetailRunes = 4000
 )
 
 // View implements plugin.ViewProvider for the "history" view.
@@ -100,10 +102,18 @@ func (p *Plugin) item(h plugin.Host, c clip) plugin.Item {
 		paste = plugin.ActionDo{Kind: plugin.ActionPaste, Payload: plugin.MustPayload(plugin.PasteContent{Files: c.Files})}
 		copyDo = plugin.ActionDo{Kind: plugin.ActionCopyFiles, Payload: plugin.MustPayload(c.Files)}
 	default:
-		it.Title = textTitle(c.Text)
+		// Title and detail only use the start of long texts; the actions
+		// carry the full text (at most maxTextBytes), since the host pastes
+		// Target directly.
+		preview, cut := prefixRunes(c.Text, maxDetailRunes)
+		n := utf8.RuneCountInString(c.Text)
+		it.Title = textTitle(preview)
 		it.Icon = plugin.Icon{Name: "text"}
-		it.Detail.Markdown = fenced(c.Text)
-		meta = append(meta, plugin.Metadata{Label: l.T("meta.characters"), Value: l.Number(float64(utf8.RuneCountInString(c.Text)))})
+		it.Detail.Markdown = fenced(preview)
+		if cut {
+			it.Detail.Markdown += "\n\n*" + escapeMarkdown(l.T("detail.truncated", "count", l.Number(float64(n)))) + "*"
+		}
+		meta = append(meta, plugin.Metadata{Label: l.T("meta.characters"), Value: l.Number(float64(n))})
 		paste = plugin.ActionDo{Kind: plugin.ActionPaste, Target: c.Text}
 		copyDo = plugin.ActionDo{Kind: plugin.ActionCopyText, Target: c.Text}
 	}
@@ -192,6 +202,18 @@ func textTitle(s string) string {
 		}
 	}
 	return ""
+}
+
+// prefixRunes returns the first n characters of s and whether s is longer.
+func prefixRunes(s string, n int) (string, bool) {
+	i := 0
+	for pos := range s {
+		if i == n {
+			return s[:pos], true
+		}
+		i++
+	}
+	return s, false
 }
 
 func truncate(s string, n int) string {

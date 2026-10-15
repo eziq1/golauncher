@@ -13,6 +13,11 @@ func Read() (plugin.ClipboardContent, error) {
 	return plugin.ClipboardContent{}, errors.ErrUnsupported
 }
 
+// ReadWith is Read with options.
+func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
+	return plugin.ClipboardContent{}, errors.ErrUnsupported
+}
+
 // WriteText replaces the clipboard content with text.
 func WriteText(s string) error { return errors.ErrUnsupported }
 

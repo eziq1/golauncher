@@ -110,6 +110,8 @@
   "tray.settings": "Settings…",
   "tray.quit": "Quit",
 
+  "notify.configRecovered.title": "Settings were reset",
+  "notify.configRecovered.body": "Your settings file could not be read, so the defaults are in use. The old file was kept as {{.path}}.",
   "notify.hotkeyFailed.title": "Hotkey unavailable",
   "notify.hotkeyFailed.body": "{{.hotkey}} is used by another app. Choose another shortcut in Settings, such as Ctrl+Space or Alt+Shift+Space."
 }

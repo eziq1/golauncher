@@ -73,7 +73,9 @@ func (p *Plugin) Manifest() plugin.Manifest {
 					"%command.history.keyword.paste%",
 					"%command.history.keyword.history%",
 				},
-				DefaultHotkey: "Ctrl+Shift+V",
+				// Not Ctrl+Shift+V: a global hotkey would steal "paste as
+				// plain text" from every application.
+				DefaultHotkey: "Alt+Shift+V",
 			},
 			{
 				Name:        "clear",
@@ -116,12 +118,18 @@ func (p *Plugin) Init(ctx context.Context, h plugin.Host) error {
 	if err != nil {
 		return err
 	}
+	// Limits may have been lowered, or time may have passed, while the
+	// plugin was not running.
+	if err := p.prune(h, db); err != nil {
+		h.Logger().Warn("clipboard: prune failed", "err", err)
+	}
 	p.mu.Lock()
 	p.h, p.db = h, db
 	p.mu.Unlock()
-	unsub := h.Events().Subscribe(plugin.EventClipboardChanged, p.onClipboardChanged)
+	unsubClip := h.Events().Subscribe(plugin.EventClipboardChanged, p.onClipboardChanged)
+	unsubConfig := h.Events().Subscribe(plugin.EventConfigChanged, p.onConfigChanged)
 	p.mu.Lock()
-	p.unsub = unsub
+	p.unsub = func() { unsubClip(); unsubConfig() }
 	p.mu.Unlock()
 	return nil
 }
@@ -169,6 +177,32 @@ func (p *Plugin) onClipboardChanged() {
 	}
 }
 
+// onConfigChanged applies possibly changed history limits.
+func (p *Plugin) onConfigChanged() {
+	h, db, err := p.state()
+	if err != nil {
+		return
+	}
+	p.recordMu.Lock()
+	defer p.recordMu.Unlock()
+	if err := p.prune(h, db); err != nil {
+		h.Logger().Warn("clipboard: prune failed", "err", err)
+	}
+}
+
+// prune enforces the maxItems and maxDays preferences and removes the
+// image files of deleted clips. Callers other than Init hold recordMu.
+func (p *Plugin) prune(h plugin.Host, db *store) error {
+	prefs := h.Preferences()
+	images, err := db.prune(h.Now(), prefs.Int("maxItems"), prefs.Int("maxDays"))
+	removeImages(h, images)
+	return err
+}
+
+// maxTextBytes is the largest text that is recorded; larger copies are
+// skipped so that the database and every list view stay bounded.
+const maxTextBytes = 1 << 20
+
 // record stores c in the history unless it is filtered out.
 func (p *Plugin) record(h plugin.Host, db *store, c plugin.ClipboardContent) error {
 	prefs := h.Preferences()
@@ -190,11 +224,15 @@ func (p *Plugin) record(h plugin.Host, db *store, c plugin.ClipboardContent) err
 	switch {
 	case len(c.Files) > 0:
 		e.Kind, e.Files, e.Size = kindFiles, c.Files, int64(len(c.Files))
-		body = strings.Join(c.Files, "\n")
+		body = ftsBody(strings.Join(c.Files, "\n"))
 		sum = hash(kindFiles, []byte(strings.Join(c.Files, "\x00")))
 	case strings.TrimSpace(c.Text) != "":
+		if len(c.Text) > maxTextBytes {
+			h.Logger().Info("clipboard: text too large, not recorded", "bytes", len(c.Text), "limit", maxTextBytes)
+			return nil
+		}
 		e.Kind, e.Text, e.Size = kindText, c.Text, int64(len(c.Text))
-		body = c.Text
+		body = ftsBody(c.Text)
 		sum = hash(kindText, []byte(c.Text))
 	case len(c.Image) > 0:
 		if !prefs.Bool("recordImages") {
@@ -225,9 +263,7 @@ func (p *Plugin) record(h plugin.Host, db *store, c plugin.ClipboardContent) err
 	if err != nil || !added {
 		return err
 	}
-	images, err := db.prune(now, prefs.Int("maxItems"), prefs.Int("maxDays"))
-	removeImages(h, images)
-	return err
+	return p.prune(h, db)
 }
 
 func hash(kind string, data []byte) [sha256.Size]byte {

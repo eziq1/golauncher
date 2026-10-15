@@ -1,0 +1,114 @@
+{
+  "step": "run builtin.everything/search",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.everything",
+      "request": {
+        "id": "search",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search Files",
+    "placeholder": "Search files and folders…",
+    "text": "工作",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "C:\\Users\\demo\\Documents\\工作",
+            "title": "工作",
+            "subtitle": "C:\\Users\\demo\\Documents",
+            "icon": {
+              "name": "folder"
+            },
+            "accessory": "1 hour ago",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Users\\demo\\Documents\\工作"
+                }
+              },
+              {
+                "id": "reveal",
+                "title": "Show in File Explorer",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Users\\demo\\Documents\\工作",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Path",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "C:\\Users\\demo\\Documents\\工作"
+                }
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy File",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyFiles",
+                  "payload": [
+                    "C:\\Users\\demo\\Documents\\工作"
+                  ]
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Path",
+                  "value": "C:\\Users\\demo\\Documents\\工作"
+                },
+                {
+                  "label": "Kind",
+                  "value": "Folder"
+                },
+                {
+                  "label": "Modified",
+                  "value": "2026-10-14 08:30 (1 hour ago)"
+                }
+              ]
+            },
+            "plugin": "builtin.everything",
+            "key": "builtin.everything/C:\\Users\\demo\\Documents\\工作"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "metadata": [
+        {
+          "label": "Path",
+          "value": "C:\\Users\\demo\\Documents\\工作"
+        },
+        {
+          "label": "Kind",
+          "value": "Folder"
+        },
+        {
+          "label": "Modified",
+          "value": "2026-10-14 08:30 (1 hour ago)"
+        }
+      ]
+    },
+    "emptyText": "No matching files"
+  }
+}

@@ -1,0 +1,19 @@
+[
+  {"name": "notepad.exe", "path": "C:\\Windows\\System32\\notepad.exe", "size": 360448, "modified": "2026-08-12T09:14:03Z"},
+  {"name": "notepad.exe", "path": "C:\\Windows\\notepad.exe", "size": 360448, "modified": "2026-08-12T09:14:03Z"},
+  {"name": "Documents", "path": "C:\\Users\\demo\\Documents", "isFolder": true, "size": -1, "modified": "2026-10-13T18:02:41Z"},
+  {"name": "Quarterly Report Q3.xlsx", "path": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q3.xlsx", "size": 84213, "modified": "2026-10-10T16:45:00Z"},
+  {"name": "Quarterly Report Q2.pdf", "path": "C:\\Users\\demo\\Documents\\Reports\\Quarterly Report Q2.pdf", "size": 1532904, "modified": "2026-07-08T11:20:00Z"},
+  {"name": "项目计划书.docx", "path": "C:\\Users\\demo\\Documents\\工作\\项目计划书.docx", "size": 45120, "modified": "2026-10-14T08:30:00Z"},
+  {"name": "工作", "path": "C:\\Users\\demo\\Documents\\工作", "isFolder": true, "size": -1, "modified": "2026-10-14T08:30:00Z"},
+  {"name": "会议纪要 2026-10-09.md", "path": "C:\\Users\\demo\\Documents\\工作\\会议纪要 2026-10-09.md", "size": 2871, "modified": "2026-10-09T15:05:12Z"},
+  {"name": "旅行照片", "path": "D:\\Photos\\旅行照片", "isFolder": true, "size": -1, "modified": "2026-05-02T10:00:00Z"},
+  {"name": "IMG_20260501_101530.jpg", "path": "D:\\Photos\\旅行照片\\IMG_20260501_101530.jpg", "size": 4823011, "modified": "2026-05-01T10:15:30Z"},
+  {"name": "main.go", "path": "C:\\Users\\demo\\Sources\\golauncher\\cmd\\golauncher\\main.go", "size": 1834, "modified": "2026-10-14T09:12:00Z"},
+  {"name": "go.mod", "path": "C:\\Users\\demo\\Sources\\golauncher\\go.mod", "size": 812, "modified": "2026-10-13T22:40:00Z"},
+  {"name": "golauncher", "path": "C:\\Users\\demo\\Sources\\golauncher", "isFolder": true, "size": -1, "modified": "2026-10-14T09:12:00Z"},
+  {"name": "setup-x64.msi", "path": "C:\\Users\\demo\\Downloads\\setup-x64.msi", "size": 73400320, "modified": "2026-09-30T20:11:09Z"},
+  {"name": "Everything-1.4.1.1032.x64.zip", "path": "C:\\Users\\demo\\Downloads\\Everything-1.4.1.1032.x64.zip", "size": 1867431, "modified": "2026-09-21T07:55:00Z"},
+  {"name": "hosts", "path": "C:\\Windows\\System32\\drivers\\etc\\hosts", "size": 824, "modified": "2025-12-01T03:00:00Z"},
+  {"name": "C:", "path": "C:\\", "isFolder": true, "size": -1}
+]

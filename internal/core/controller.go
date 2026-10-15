@@ -26,9 +26,12 @@ type Controller struct {
 	toast    *plugin.Toast
 	onChange func()
 
-	gen     int // incremented for every search; stale results are dropped
-	cancel  context.CancelFunc
-	pending sync.WaitGroup
+	gen    int // incremented for every search; stale results are dropped
+	cancel context.CancelFunc
+	// running counts searches in flight; idle is signalled when it drops to
+	// zero. (A WaitGroup cannot be used: Wait may run concurrently with Add.)
+	running int
+	idle    *sync.Cond
 }
 
 // frame is one level of the navigation stack.
@@ -57,7 +60,9 @@ type pending struct {
 
 // NewController returns a Controller showing the root search.
 func NewController(eng *Engine) *Controller {
-	return &Controller{eng: eng, stack: []*frame{{}}}
+	c := &Controller{eng: eng, stack: []*frame{{}}}
+	c.idle = sync.NewCond(&c.mu)
+	return c
 }
 
 // OnChange sets fn to be called (on a background goroutine) whenever the
@@ -71,7 +76,21 @@ func (c *Controller) OnChange(fn func()) {
 func (c *Controller) top() *frame { return c.stack[len(c.stack)-1] }
 
 // Wait blocks until pending searches have finished.
-func (c *Controller) Wait() { c.pending.Wait() }
+func (c *Controller) Wait() {
+	c.mu.Lock()
+	for c.running > 0 {
+		c.idle.Wait()
+	}
+	c.mu.Unlock()
+}
+
+// searchDone marks one search finished. c.mu must be held.
+func (c *Controller) searchDone() {
+	c.running--
+	if c.running == 0 {
+		c.idle.Broadcast()
+	}
+}
 
 // Reset pops to the root, clears the text and closes the panel. Front ends
 // call it when the window is shown.
@@ -125,11 +144,10 @@ func (c *Controller) refresh(ctx context.Context) {
 	text, nav := f.text, f.nav
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	c.cancel = cancel
-	c.pending.Add(1)
+	c.running++
 	c.mu.Unlock()
 
 	go func() {
-		defer c.pending.Done()
 		defer cancel()
 		var (
 			sections []Section
@@ -148,25 +166,31 @@ func (c *Controller) refresh(ctx context.Context) {
 				sections = viewSections(nav.Plugin, v)
 			}
 		}
+		// Notify outside the lock but before counting the search as done, so
+		// Wait returns only after the front end has been told.
+		var notify func()
 		c.mu.Lock()
-		if gen != c.gen || ctx.Err() != nil {
-			c.mu.Unlock()
-			return
+		if gen == c.gen && ctx.Err() == nil {
+			f.loading = false
+			f.err = ""
+			if err != nil {
+				// Don't leave the previous results selectable under an error.
+				f.err = err.Error()
+				f.sections = nil
+				c.eng.log.Warn("search failed", "err", err)
+			} else {
+				f.sections, f.view = sections, view
+			}
+			f.sel = min(f.sel, max(0, countItems(c.visible(f))-1))
+			notify = c.onChange
 		}
-		f.loading = false
-		f.err = ""
-		if err != nil {
-			f.err = err.Error()
-			c.eng.log.Warn("search failed", "err", err)
-		} else {
-			f.sections, f.view = sections, view
-		}
-		f.sel = min(f.sel, max(0, countItems(c.visible(f))-1))
-		fn := c.onChange
 		c.mu.Unlock()
-		if fn != nil {
-			fn()
+		if notify != nil {
+			notify()
 		}
+		c.mu.Lock()
+		c.searchDone()
+		c.mu.Unlock()
 	}()
 }
 

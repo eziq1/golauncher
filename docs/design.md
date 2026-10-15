@@ -181,7 +181,7 @@ Raycast 的"进入命令 → 子视图 → 返回"模型由 Engine 维护的 `[]
       "title": "%command.history.title%",
       "mode": "view",
       "keywords": ["%command.history.keywords%"],
-      "defaultHotkey": "Ctrl+Shift+V"
+      "defaultHotkey": "Alt+Shift+V"
     }
   ],
   "preferences": [
@@ -513,7 +513,7 @@ glctl session action -s s.json builtin.clipboard/1 pin
 - 最多保留条数和天数
 - 是否记录图片
 - 忽略的应用
-- 独立呼出快捷键（默认 `Ctrl+Shift+V`，直接打开历史视图）
+- 独立呼出快捷键（默认 `Alt+Shift+V`，直接打开历史视图；不用 `Ctrl+Shift+V`，因为全局注册会抢走各应用的"粘贴为纯文本"）
 
 **隐私（已确定：不加密）**：
 
@@ -666,14 +666,25 @@ type Localizer interface {
 - I18N 用自研的消息目录，没有用 go-i18n（§10.2）。
 - 新增 Destructive 命令和动作的确认流程（§5.3）。
 
+**v0.1.0 发布前补充完成**：
+
+- 新增 Everything 文件搜索插件：纯 Go 实现 IPC，不需要 DLL；没装 Everything 时插件不启用（SDK 新增 `plugin.ErrUnavailable`），设置页显示原因。
+- `password` 偏好改存 Windows 凭据管理器；设置页支持配置的导出和导入。
+- 规范检查（§5.1、§10.5）：用基于 `go/ast` 的测试实现（`internal/lint`），没有引入 go/analysis 依赖。
+- 修复发布前审查发现的问题：
+  - 粘贴失败：`SendInput` 的结构体布局错误。
+  - 并发调用 `Controller.Wait` 时崩溃。
+  - SQLite 路径含 `#`、`%` 时出错。
+  - `config.json` 损坏时程序无法启动；现在会自动恢复为默认配置，并弹通知。
+  - 数据库和剪贴板历史从漫游目录移到 `%LOCALAPPDATA%`。
+  - E2E 控制通道改为只在设置 `GOLAUNCHER_CONTROL=1` 时开启。
+  - 剪贴板历史的默认快捷键改为 `Alt+Shift+V`：全局注册 `Ctrl+Shift+V` 会抢走各应用的"粘贴为纯文本"。
+- 发布工程：版本号注入、图标和版本资源、CI、tag 触发的自动发布（amd64 和 arm64）。
+
 **尚未实现 / 已知限制**：
 
-1. 外部插件（M5：JSON-RPC、`extproc`、`rpcserve`）。
-2. §10.5 的 lint 分析器，以及 §5.1 的 depguard 规则（禁止插件 import `internal/core`）。
-3. `password` 类型的偏好目前明文写入 config.json，未接入 Windows 凭据管理器（§6）。
-4. 设置页还没有配置的导出和导入。
-5. 计算器的 `ans`、单位和汇率换算。
-6. `Tab` 进入命令参数。
-7. 快捷键的显示名没有本地化。
-8. 打包和自动更新（M6）。
-9. Acrylic 背景只在离屏渲染里验证过，没有人眼确认真实窗口的效果。
+1. 外部插件（M5：JSON-RPC、`extproc`、`rpcserve`），以及插件自定义设置表单（按钮型设置项、动态选项、`Form` 视图）。
+2. 计算器的 `ans`、单位和汇率换算。
+3. `Tab` 进入命令参数。
+4. 快捷键的显示名没有本地化。
+5. 安装包、自动更新和代码签名（M6）。

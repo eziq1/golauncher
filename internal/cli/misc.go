@@ -17,7 +17,7 @@ import (
 )
 
 func configPath() (string, error) {
-	dir, err := app.DefaultDataDir()
+	dir, err := app.DefaultConfigDir()
 	return filepath.Join(dir, "config.json"), err
 }
 

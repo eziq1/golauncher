@@ -147,7 +147,15 @@ func Save(path string, cfg Config) error {
 		return err
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, append(data, '\n'), 0o644); err != nil {
+	f, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(append(data, '\n'))
+	// Sync before the rename so a crash can't leave an empty config.
+	err = errors.Join(err, f.Sync(), f.Close())
+	if err != nil {
+		os.Remove(tmp)
 		return err
 	}
 	return os.Rename(tmp, path)
@@ -160,16 +168,29 @@ type Store struct {
 	path      string // "" keeps the configuration in memory only
 	cfg       Config
 	listeners []func(Config)
+	recovered error // why the file on disk could not be used, see Open
 }
 
-// Open loads the configuration at path into a Store.
+// Open loads the configuration at path into a Store. A file that cannot be
+// parsed (hand edits, a newer schema after a downgrade) does not stop the app:
+// it is moved aside to "<path>.bad", the defaults are used, and Recovered
+// reports what happened so the user can be told.
 func Open(path string) (*Store, error) {
 	cfg, err := Load(path)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return &Store{path: path, cfg: cfg}, nil
 	}
-	return &Store{path: path, cfg: cfg}, nil
+	if _, statErr := os.Stat(path); statErr != nil {
+		return nil, err // unreadable for another reason, e.g. permissions
+	}
+	if mvErr := os.Rename(path, path+".bad"); mvErr != nil {
+		return nil, errors.Join(err, mvErr)
+	}
+	return &Store{path: path, cfg: Default(), recovered: err}, nil
 }
+
+// Recovered returns the error that made Open fall back to the defaults, or nil.
+func (s *Store) Recovered() error { return s.recovered }
 
 // NewMemory returns a Store that is never written to disk.
 func NewMemory(cfg Config) *Store { return &Store{cfg: cfg} }

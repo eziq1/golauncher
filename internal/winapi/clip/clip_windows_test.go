@@ -1,5 +1,16 @@
 //go:build windows
 
+// Tests that read or write the real clipboard (and TestWatchOtherProcess,
+// which also runs clip.exe) are opt-in: they run only when
+// GOLAUNCHER_CLIPBOARD_TESTS=1 is set and -short is not given, e.g.
+//
+//	$env:GOLAUNCHER_CLIPBOARD_TESTS=1; go test ./internal/winapi/clip
+//
+// When they run, every memory-based clipboard format present before the
+// test (text, PNG, DIB, file lists, private formats, ...) is snapshotted and
+// put back afterwards. GDI handle formats (CF_BITMAP, metafiles, palettes)
+// cannot be copied, but Windows synthesizes CF_BITMAP from the restored DIB.
+
 package clip
 
 import (
@@ -13,24 +24,97 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unsafe"
 )
 
-// realClipboard skips the test in -short mode and restores the user's
-// clipboard text when the test ends.
+// clipboardTestsEnv enables the tests that use the real clipboard.
+const clipboardTestsEnv = "GOLAUNCHER_CLIPBOARD_TESTS"
+
+var procEnumClipboardFormats = user32.NewProc("EnumClipboardFormats")
+
+// handleFormat reports whether clipboard format f holds a GDI or other
+// handle rather than global memory, so its data cannot be copied as bytes.
+func handleFormat(f uintptr) bool {
+	switch f {
+	case 2, 3, 9, 14, // CF_BITMAP, CF_METAFILEPICT, CF_PALETTE, CF_ENHMETAFILE
+		0x80, 0x82, 0x83, 0x8E: // CF_OWNERDISPLAY, CF_DSP{BITMAP,METAFILEPICT,ENHMETAFILE}
+		return true
+	}
+	return f >= 0x300 && f <= 0x3FF // CF_GDIOBJFIRST..CF_GDIOBJLAST
+}
+
+// snapshot copies every memory-based format on the clipboard.
+func snapshot() ([]clipData, error) {
+	var out []clipData
+	err := withClipboard(func() error {
+		for f := uintptr(0); ; {
+			r, _, _ := procEnumClipboardFormats.Call(f)
+			if r == 0 {
+				return nil
+			}
+			f = r
+			if handleFormat(f) {
+				continue
+			}
+			if b, ok := getData(f); ok {
+				out = append(out, clipData{f, b})
+			}
+		}
+	})
+	return out, err
+}
+
+// restore replaces the clipboard content with items, best effort.
+func restore(items []clipData) error {
+	return withClipboard(func() error {
+		procEmptyClipboard.Call()
+		for _, it := range items {
+			_ = setData(it.format, it.data)
+		}
+		return nil
+	})
+}
+
+// realClipboard skips the test unless real-clipboard tests are enabled and
+// restores the user's clipboard when the test ends.
 func realClipboard(t *testing.T) {
 	t.Helper()
+	if os.Getenv(clipboardTestsEnv) != "1" {
+		t.Skipf("uses the real clipboard; set %s=1 to run", clipboardTestsEnv)
+	}
 	if testing.Short() {
 		t.Skip("uses the real clipboard")
 	}
-	orig, err := Read()
+	orig, err := snapshot()
 	if err != nil {
 		t.Skipf("clipboard unavailable: %v", err)
 	}
 	t.Cleanup(func() {
-		if orig.Text != "" && !orig.Exclude {
-			_ = WriteText(orig.Text)
+		if err := restore(orig); err != nil {
+			t.Errorf("restore clipboard: %v", err)
 		}
 	})
+}
+
+func TestInputLayout(t *testing.T) {
+	// Win32 INPUT: 40 bytes with the union at 8 on 64-bit, 28 and 4 on 386.
+	size, offset, extra := uintptr(40), uintptr(8), uintptr(16)
+	if unsafe.Sizeof(uintptr(0)) == 4 {
+		size, offset, extra = 28, 4, 12
+	}
+	if got := unsafe.Sizeof(input{}); got != size {
+		t.Errorf("sizeof(INPUT) = %d, want %d", got, size)
+	}
+	if got := unsafe.Offsetof(input{}.Ki) + unsafe.Offsetof(keybdInput{}.Vk); got != offset {
+		t.Errorf("offsetof(INPUT.ki.wVk) = %d, want %d", got, offset)
+	}
+	if got := unsafe.Offsetof(keybdInput{}.ExtraInfo); got != extra {
+		t.Errorf("offsetof(KEYBDINPUT.dwExtraInfo) = %d, want %d", got, extra)
+	}
+	in := key(vkLWin, true)
+	if in.Type != inputKeybd || in.Ki.Vk != vkLWin || in.Ki.Flags != keyUp|keyExtended {
+		t.Errorf("key(LWin, up) = %+v", in)
+	}
 }
 
 func TestTextRoundTrip(t *testing.T) {

@@ -175,6 +175,71 @@ func TestUTF16(t *testing.T) {
 	}
 }
 
+func TestUTF16Blank(t *testing.T) {
+	for _, tc := range []struct {
+		b    []byte
+		want bool
+	}{
+		{nil, true},
+		{[]byte{0}, true}, // odd length
+		{utf16Bytes(""), true},
+		{utf16Bytes(" \r\n\t　"), true},
+		{utf16Bytes("  x "), false},
+		{utf16Bytes("🎉"), false},
+		{append(utf16Bytes(" "), utf16Bytes("after NUL")...), true},
+	} {
+		if got := utf16Blank(tc.b); got != tc.want {
+			t.Errorf("utf16Blank(%q) = %v, want %v", utf16String(tc.b), got, tc.want)
+		}
+	}
+}
+
+func TestDIBSupported(t *testing.T) {
+	if !dibSupported(imageToDIB(testImage(2, 2))) || !dibSupported(v5DIB(1, 1, color.NRGBA{})) {
+		t.Fatal("valid DIB rejected")
+	}
+	le := binary.LittleEndian
+	bad := func(f func(b []byte)) []byte {
+		b := imageToDIB(testImage(2, 2))
+		f(b)
+		return b
+	}
+	for name, dib := range map[string][]byte{
+		"short":        make([]byte, 39),
+		"header size":  bad(func(b []byte) { le.PutUint32(b, 1000) }),
+		"zero width":   bad(func(b []byte) { le.PutUint32(b[4:], 0) }),
+		"zero height":  bad(func(b []byte) { le.PutUint32(b[8:], 0) }),
+		"8 bpp":        bad(func(b []byte) { le.PutUint16(b[14:], 8) }),
+		"jpeg":         bad(func(b []byte) { le.PutUint32(b[16:], 4) }),
+		"24bpp fields": bad(func(b []byte) { le.PutUint16(b[14:], 24); le.PutUint32(b[16:], biBitfields) }),
+	} {
+		if dibSupported(dib) {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+func TestRawImageToPNG(t *testing.T) {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, testImage(3, 2)); err != nil {
+		t.Fatal(err)
+	}
+	padded := append(bytes.Clone(buf.Bytes()), 0, 0)
+	if got := (rawImage{data: padded, isPNG: true}).toPNG(); !bytes.Equal(got, buf.Bytes()) {
+		t.Fatal("PNG not trimmed and returned unchanged")
+	}
+	img, err := png.Decode(bytes.NewReader(rawImage{data: imageToDIB(testImage(3, 2))}.toPNG()))
+	if err != nil {
+		t.Fatalf("converted DIB: %v", err)
+	}
+	if b := img.Bounds(); b.Dx() != 3 || b.Dy() != 2 {
+		t.Fatalf("size %v", b)
+	}
+	if (rawImage{}).toPNG() != nil || (rawImage{data: make([]byte, 40)}).toPNG() != nil {
+		t.Fatal("unusable data converted")
+	}
+}
+
 func TestDropFiles(t *testing.T) {
 	b := dropFiles([]string{`C:\a.txt`, `D:\文件.png`})
 	if binary.LittleEndian.Uint32(b) != 20 || binary.LittleEndian.Uint32(b[16:]) != 1 {

@@ -7,6 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
+	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -19,7 +22,13 @@ type DB struct {
 	db *sql.DB
 }
 
-const schema = `
+// migrations[v] upgrades the schema from version v-1 to v; the version is
+// kept in PRAGMA user_version. Append new migrations, never edit released
+// ones. Statements must be idempotent (IF NOT EXISTS, …) so that databases
+// created before versioning (user_version 0, tables present) upgrade cleanly.
+var migrations = []string{
+	0: ``,
+	1: `
 CREATE TABLE IF NOT EXISTS kv (
 	ns    TEXT NOT NULL,
 	key   TEXT NOT NULL,
@@ -28,16 +37,54 @@ CREATE TABLE IF NOT EXISTS kv (
 );
 CREATE TABLE IF NOT EXISTS usage (
 	item_id   TEXT PRIMARY KEY,
-	score     REAL NOT NULL,   -- decayed use count as of last_used
+	score     REAL NOT NULL,    -- decayed use count as of last_used
 	last_used INTEGER NOT NULL, -- unix milliseconds
-	item      BLOB NOT NULL     -- JSON of the item, for the recent list
+	item      BLOB NOT NULL     -- JSON of the entry, for the recent list
 );
-`
+`,
+}
+
+// SchemaVersion is the schema version this build creates and understands.
+var SchemaVersion = len(migrations) - 1
+
+// ErrNewerSchema is returned by Open for a database written by a newer
+// version of golauncher.
+var ErrNewerSchema = errors.New("store: database was created by a newer version of golauncher")
+
+// migrate upgrades db to the latest schema, one transaction per version.
+func migrate(db *sql.DB) error {
+	var v int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&v); err != nil {
+		return err
+	}
+	if v > SchemaVersion {
+		return fmt.Errorf("%w (version %d, supported %d)", ErrNewerSchema, v, SchemaVersion)
+	}
+	for next := v + 1; next <= SchemaVersion; next++ {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(migrations[next]); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("store: migrate to version %d: %w", next, err)
+		}
+		// PRAGMA does not take bound parameters; next is an int.
+		if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, next)); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // Open opens (creating if needed) the database at path. ":memory:" gives a
 // private in-memory database.
 func Open(path string) (*DB, error) {
-	dsn := "file:" + path + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	dsn := fileURI(path) + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	if path == ":memory:" {
 		dsn = ":memory:"
 	}
@@ -49,11 +96,24 @@ func Open(path string) (*DB, error) {
 		// Every connection would get its own empty in-memory database.
 		db.SetMaxOpenConns(1)
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("store: init schema: %w", err)
+		return nil, err
 	}
 	return &DB{db: db}, nil
+}
+
+// fileURI returns a SQLite file: URI for path with special characters such
+// as '#' and '%' escaped (they are legal in Windows paths and user names).
+func fileURI(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	p := filepath.ToSlash(path)
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p // C:/x -> /C:/x
+	}
+	return (&url.URL{Scheme: "file", Path: p}).String()
 }
 
 // Close closes the database.
