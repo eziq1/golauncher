@@ -73,16 +73,23 @@ golauncher/
 │   └── glctl/             # 无头 CLI 入口
 ├── pkg/plugin/            # 插件 SDK（对外稳定 API）
 ├── internal/
-│   ├── core/              # Engine、Ranker、Session、导航栈
+│   ├── core/              # Engine（排序、执行动作）+ Controller（输入/选中/动作面板/确认/导航栈状态机）
+│   ├── app/               # 装配：配置、数据库、I18N、Host、Engine；真实/假环境共用；Recorder
+│   ├── builtin/           # 内置插件注册表（All / Fake）
+│   ├── match/             # 模糊匹配 + 拼音
+│   ├── cli/               # glctl 实现
+│   ├── control/           # GUI 的 E2E 控制通道（unix socket）
 │   ├── shell/             # MyGo 适配层：窗口、托盘、热键、单实例
 │   ├── ui/                # 启动器视图、设置视图、组件
-│   ├── host/              # Host API 实现 + fake 实现
+│   ├── host/              # Host API 实现；hostfake 为插件测试用的内存实现
 │   ├── config/            # 配置加载、迁移、schema
-│   ├── store/             # SQLite (modernc.org/sqlite, 纯 Go)
-│   ├── i18n/              # Localizer、语言匹配、格式化（§10）
+│   ├── store/             # SQLite (modernc.org/sqlite, 纯 Go)：插件 KV、frecency、最近使用
+│   ├── i18n/              # 消息目录、语言匹配、格式化（§10）
 │   │   └── locales/       # en.json（第一版唯一语言）；en-XA 伪语言由代码生成
-│   ├── extproc/           # 外部插件进程管理 + JSON-RPC（阶段 2）
-│   └── winapi/            # Win32/COM 封装
+│   ├── extproc/           # 外部插件进程管理 + JSON-RPC（阶段 2，未实现）
+│   └── winapi/
+│       ├── shell/         # 应用枚举、图标、ShellExecute（COM，无 cgo）
+│       └── clip/          # 剪贴板读写、变化监听、粘贴到前一个窗口
 ├── plugins/
 │   ├── apps/
 │   ├── calc/
@@ -94,8 +101,10 @@ golauncher/
 ### 3.2 进程与线程模型
 
 - 单进程常驻。启动时用 `RequestSingleInstanceLock` 保证单实例；后启动的实例通过 `OnSecondInstance` 把参数转发给已运行的实例（比如 `golauncher --show`、`golauncher --settings`）。
-- MyGo 的回调在主线程执行。插件的 `Search` 一律在 worker goroutine 中运行，带 `context.Context` 超时和取消。结果通过 channel 回到 Engine，再用 `Window.Invalidate()` 触发重绘。
-- 用户每输入一个字符，取消上一轮查询的 context。Engine 做 30ms 去抖，并按插件分批流式合并结果：快的插件先出，慢的插件后补，列表不会闪动。
+- MyGo 的回调在主线程执行。搜索由 `Controller` 在后台 goroutine 中运行，带 `context.Context` 取消；完成后调用 `OnChange`，GUI 再用 `Window.Invalidate()` 触发重绘。
+- 用户每输入一个字符，就取消上一轮查询（按代数丢弃过期结果）。根搜索并发调用各插件的 `RootItems`，单个插件超过 150ms 的结果直接丢弃。
+- 按键（可能执行插件动作、启动程序）通过 GUI 的单个串行 worker goroutine 交给 `Controller.Key`，既不阻塞主线程，又保证按键顺序。
+- 第一版未实现"按插件分批流式合并"和输入去抖；按 §11 的基准，同步合并已经足够快，需要时再加。
 
 ## 4. GUI 设计（类 Raycast）
 
@@ -192,9 +201,9 @@ Raycast 的"进入命令 → 子视图 → 返回"模型由 Engine 维护的 `[]
 
 ### 5.3 Go SDK（`pkg/plugin`）
 
-```go
-package plugin
+以下是已实现的接口摘要，完整定义见 [pkg/plugin](../pkg/plugin/)。
 
+```go
 type Plugin interface {
     Manifest() Manifest
     Init(ctx context.Context, h Host) error
@@ -202,90 +211,91 @@ type Plugin interface {
 }
 
 // 可选能力：插件按需实现
-type RootProvider interface { // 往根搜索里贡献条目（应用、计算结果…）
+type RootProvider interface {   // 往根搜索里贡献条目（应用、计算结果…）
     RootItems(ctx context.Context, q Query) ([]Item, error)
 }
-type CommandRunner interface { // 执行 manifest 中的命令
-    RunCommand(ctx context.Context, name string, args Args) (Result, error)
+type ViewProvider interface {   // 渲染 view 命令和 Push 动作打开的视图；每次输入都会再调用
+    View(ctx context.Context, req ViewRequest) (View, error)
 }
-type SearchableView interface { // 视图内的增量搜索
-    Search(ctx context.Context, viewID string, q Query) (View, error)
+type ActionHandler interface {  // 执行 no-view 命令（RunCommand）和插件回调（Callback）
+    HandleAction(ctx context.Context, a ActionDo) (Result, error)
 }
-
-type Query struct {
-    Text  string
-    Words []string
+type LocaleProvider interface { // 插件自带的消息目录（en.json …）
+    Locales() fs.FS
 }
 
 type Item struct {
-    ID        string
-    Title     string
-    Subtitle  string
-    Icon      Icon       // 内置 SVG / 文件路径 / 应用图标引用 / data URI
-    Accessory []Tag
+    ID, Title, Subtitle string
+    Icon      Icon     // 内置图标名或图片文件路径
     Keywords  []string
-    Score     float64    // 插件自身的相关度，0~1，最终排序由 Ranker 融合
-    Actions   []Action   // 第一个为主动作
-    Detail    *Detail    // 可选右侧预览（Markdown + 元数据）
+    Accessory string   // 右侧附注，如 "Application"
+    Group     string   // 根搜索里的分组标题
+    Score     float64  // 0 表示交给宿主做模糊匹配；>0 表示插件已判定匹配（如计算结果）
+    Actions   []Action // 第一个是主动作（Enter），第二个是次动作（Ctrl+Enter）
+    Detail    *Detail  // 右侧预览：Markdown、图片、元数据
 }
 
 type Action struct {
-    ID       string
-    Title    string
-    Shortcut string        // "Ctrl+C"
-    Style    ActionStyle   // Default / Destructive
-    Do       ActionDo      // 见下
+    ID, Title string
+    Shortcut  string      // "Ctrl+Shift+C"
+    Style     ActionStyle // Destructive：红色显示，并且执行前要求确认
+    Do        ActionDo
 }
 
-// ActionDo 是可序列化的"意图"，由宿主执行，便于 CLI 观测与外部插件复用
+// ActionDo 是可序列化的"意图"，由宿主执行
 type ActionDo struct {
-    Kind    ActionKind // Open, CopyText, Paste, Push, RunCommand, Callback, ...
+    Kind    ActionKind // Open, CopyText, CopyImage, CopyFiles, Paste, Push, RunCommand, Callback
     Target  string
-    Payload json.RawMessage
+    Payload jsontext.Value
 }
 
 type View struct {
-    Kind     ViewKind // List / Grid / Detail / Form
-    ID       string
-    Title    string
-    Sections []Section
-    Detail   *Detail
-    Form     *Form
-    Loading  bool
+    Kind          ViewKind // list / detail
+    Title, Placeholder, EmptyText string
+    Sections      []Section
+    FilterLocally bool     // 由宿主在本地模糊过滤，不再每次输入都调用插件
+    ShowDetail    bool     // 在列表右侧显示选中项的 Detail
 }
 
 type Result struct {
-    View    *View
-    Toast   *Toast
-    Hide    bool
-    PopToRoot bool
+    Push      *ViewRequest
+    Toast     *Toast
+    Hide, PopToRoot, Refresh bool
 }
 ```
 
-**为什么动作是"意图"而不是闭包**：大多数动作（打开、复制、粘贴、跳转视图）都由宿主统一执行。这样 CLI 只用 `--dry-run` 就能打印出"将要执行什么"，不会产生副作用；外部插件也能用纯 JSON 表达动作。需要插件自己处理的逻辑，用 `Kind=Callback` 回调到插件的 `RunCommand`。
+`Command` 有 `Destructive` 标记（例如"清空剪贴板历史"）。这类命令和 Destructive 动作一样，执行前由 Controller 要求确认：Enter 确认，Escape 取消。同分时它们排在普通条目后面。
+
+**为什么动作是"意图"而不是闭包**：打开、复制、粘贴、跳转视图这些动作都由宿主统一执行。好处有两个：
+
+- 测试时宿主用 `Recorder` 只记录"将要执行什么"，不产生副作用，`glctl` 默认就是这样。
+- 外部插件可以用纯 JSON 表达动作。
+
+需要插件自己处理的逻辑，用 `Kind=Callback` 回调到插件的 `HandleAction`。
 
 ### 5.4 Host API
 
 ```go
 type Host interface {
     Logger() *slog.Logger
-    Storage() KV                    // 每个插件独立的命名空间，SQLite 落盘
-    Preferences() Preferences       // 读取设置界面填写的偏好
-    Clipboard() Clipboard           // 需要 clipboard 权限
-    Open(target string) error       // 文件 / URL / shell: 路径 / AUMID
-    Notify(t Toast)
-    HideWindow()
-    Paste(text string) error        // 写剪贴板 → 隐藏窗口 → 向前一个前台窗口发送 Ctrl+V
-    I18n() Localizer                // 当前语言下、限定在本插件命名空间的翻译与格式化（§10）
-    Events() EventBus               // 订阅 window-shown、clipboard-changed 等宿主事件
+    Now() time.Time           // 测试和 glctl --now 可以固定时钟
+    Storage() KV              // 每个插件独立的命名空间，SQLite 落盘
+    Preferences() Preferences // 读取设置界面填写的偏好，缺省时取 manifest 默认值
+    Clipboard() Clipboard     // 读写系统剪贴板
+    Events() Events           // 订阅 clipboard-changed、window-shown、locale-changed、config-changed
+    I18n() Localizer          // 限定在本插件命名空间的翻译与格式化（§10）
     DataDir() string
+    CacheDir() string
 }
 ```
 
-`internal/host` 有两套实现：
+和最初的设计相比，`Open`、`Paste`、`Notify`、`HideWindow` 不在 Host 上。插件通过返回 `ActionDo` 或 `Result`（Toast、Hide）来表达这些意图，由宿主统一执行，这样所有副作用都能在 CLI 里观测到。
 
-- **真实实现**：调用 MyGo 和 `winapi`
-- **`hostfake`**：内存实现，供单元测试和 `glctl --fake` 使用
+`internal/host` 的实现：
+
+- **`host.Services` / `host.Host`**：真实实现，每个插件一份，`internal/app` 负责装配。
+- **`hostfake`**：内存实现，供插件单元测试使用。
+- **假环境**：`glctl` 和 `core` 的测试用 `app.Build(Fake: true)` 构建，里面是内存数据库、内存配置和假剪贴板。
 
 ### 5.5 外部插件（阶段 2）
 
@@ -338,66 +348,55 @@ type Host interface {
 
 ### 7.1 设计原则
 
-- **无头**：直接实例化 `core.Engine` 和插件，不需要 GUI 进程，也不依赖 WebView2 或桌面会话。CI 和 Agent 沙箱都能跑。
+- **无头**：直接构建 `core.Engine`、`core.Controller` 和插件，不需要 GUI 进程，也不依赖 WebView2 或桌面会话。CI 和 Agent 沙箱都能跑。
+- **默认隔离**：默认就是假环境，包括内存配置、内存数据库、假剪贴板和临时数据目录，不会碰用户的真实数据。要用真实环境必须显式加 `--real`。
 - **确定性**：
-  - `--fake` 使用 `hostfake`（内存剪贴板、内存存储）
-  - `--fixtures dir` 注入固定数据（如一组假的应用列表）
-  - `--now 2026-10-14T10:00:00Z` 固定时钟，保证 frecency 可复现
-  - `--locale en` 固定语言，不读取系统语言；默认值就是 `en`，保证 golden 文件与机器无关
-- **机器可读**：默认输出 JSON，与插件 SDK 的类型同构。`--format text` 输出人类可读格式。
-- **无副作用**：执行动作默认是 dry-run，只打印 `ActionDo`。需要真实执行时加 `--exec`。
+  - `--fixtures DIR`：从 `apps.json` 读取应用列表；`clipboard.json` 按时间顺序回放进假剪贴板，每条都触发 `clipboard-changed`。示例在 `testdata/fixtures/`。
+  - `--now`：假环境下默认固定为 `2026-10-14T10:00:00Z`，保证 frecency 和相对时间可复现。
+  - `--locale en`：默认值，不读系统语言，保证 golden 文件与机器无关。
+- **机器可读**：默认输出 JSON，与 `core.Snapshot`、`core.Section` 同构。`--format text` 输出人类可读格式。
+- **无副作用**：动作的副作用由 `Recorder` 记录，作为 `effects` 输出，并不真正执行。只有 `--real --exec` 才真正打开程序、写剪贴板。
 
 ### 7.2 命令
 
 ```text
-glctl query <text>                       # 根搜索，输出排序后的 Item 列表
-glctl run <plugin>/<command> [--arg k=v] # 执行命令，输出 Result/View
-glctl action <itemID> [<actionID>]       # 对上次查询结果执行动作（会话见下）
-glctl session new|step|show              # 多步交互：模拟 输入→选择→Push→搜索→返回
-glctl plugin list|info <id>|validate <dir>
-glctl config get|set|path|schema
-glctl index rebuild apps                 # 触发应用索引重建并输出统计
-glctl ui snapshot --query "vsc" -o a.png # 用 ui.Render 离屏渲染启动器截图（视觉回归）
-glctl i18n check [--plugin <id>]         # 检查缺失 / 多余的翻译 key 和占位符参数（§10.5）
-glctl attach <subcmd>                    # 通过命名管道连接正在运行的 GUI 实例（端到端）
+glctl query <text>                         # 根搜索，输出排序后的分组结果
+glctl run <plugin>/<command> [--text t]    # 运行命令，输出 outcome、effects 和视图快照
+glctl session new -s FILE [env flags]      # 开始多步会话
+glctl session type|key|select|action|show -s FILE [args]
+glctl plugin list | plugin info <id>
+glctl config path | get [key] | set <key> <value>   # 总是读写真实配置文件；key 是点分路径
+glctl i18n check [--src DIR]               # 检查消息目录和代码里的 key 引用（§10.5）
+glctl attach show|hide|type|key|select|snapshot [arg]  # 通过 unix socket 驱动正在运行的 GUI
+glctl bench [--n N] [queries...]           # 根搜索延迟 p50/p95
 ```
+
+第一版没有做 `ui snapshot`、`index rebuild`、`plugin validate`：
+- UI 截图在 `internal/ui` 的测试里用 `ui.Render` 生成。
+- 重建应用索引可以用 `glctl run builtin.apps/reload`。
 
 ### 7.3 输出示例
 
-```bash
-$ glctl query "12*3+4" --fake
+```text
+$ glctl query "12*3+4" --format text
+[Calculator]
+> 40 — 12*3+4   builtin.calc/result  [copy, copy-expression Ctrl+Shift+C, paste Ctrl+Shift+V]
 ```
 
-```json
-{
-  "query": "12*3+4",
-  "elapsedMs": 3,
-  "items": [
-    {
-      "id": "builtin.calc/result",
-      "plugin": "builtin.calc",
-      "title": "40",
-      "subtitle": "12*3+4",
-      "score": 0.98,
-      "actions": [
-        {"id": "copy", "title": "Copy Result", "shortcut": "Enter",
-         "do": {"kind": "CopyText", "target": "40"}}
-      ]
-    }
-  ]
-}
-```
+JSON 输出的完整样例见 `internal/cli/testdata/golden/`。
 
 ### 7.4 会话（多步交互）
 
-`glctl session` 把导航栈序列化到 `--session file.json`，每次 `step` 读取、执行、写回。Agent 可以写出这样的测试脚本：
+会话文件只保存环境参数和步骤列表。每次调用都会重建假环境，把所有步骤重放一遍，再执行新步骤，最后输出这一步的 outcome、effects 和快照。因为环境是确定的，重放的结果和"真的一直开着"完全一样，而且会话文件可以直接提交，作为测试脚本。
 
 ```bash
-glctl session new -s s.json --fake --fixtures testdata/clip
-glctl session step -s s.json type "Search Clipboard History"
-glctl session step -s s.json key Enter       # Push 到剪贴板视图
-glctl session step -s s.json type "hello"
-glctl session show -s s.json                 # 断言视图内容
+glctl session new -s s.json --fixtures testdata/fixtures
+glctl session type -s s.json "clipboard history"
+glctl session key  -s s.json Enter          # Push 到剪贴板视图
+glctl session type -s s.json "git"
+glctl session key  -s s.json Enter          # effects: Paste "…"，outcome: hide
+glctl session key  -s s.json Ctrl+K         # 打开动作面板
+glctl session action -s s.json builtin.clipboard/1 pin
 ```
 
 ### 7.5 测试分层
@@ -405,9 +404,9 @@ glctl session show -s s.json                 # 断言视图内容
 | 层级 | 工具 | 运行环境 |
 |------|------|----------|
 | 插件单元测试 | `go test` + `hostfake` | 任意 |
-| 引擎与集成测试 | `glctl` + golden JSON（`testdata/golden/*.json`，`-update` 更新） | 任意 |
+| 引擎与集成测试 | `core` 测试 + `glctl` golden JSON（`internal/cli/testdata/golden/*.json`，`go test ./internal/cli -update` 更新） | 任意 |
 | UI 组件测试 | `ui.NewTester`（`Type`/`Key`/`Find`） + `ui.Render` 截图比对 | 任意（离屏） |
-| 端到端测试 | `glctl attach` 连接真实 GUI 实例 | Windows 桌面会话 / `windows-latest` CI |
+| 端到端测试 | `glctl attach` 通过 `%APPDATA%\golauncher\control.sock` 连接真实 GUI 实例 | Windows 桌面会话 / `windows-latest` CI |
 
 `glctl` 的 JSON 输出格式视为对外契约：变更时必须更新 golden 文件，并在 CHANGELOG 里记录。
 
@@ -441,7 +440,7 @@ glctl session show -s s.json                 # 断言视图内容
 
 | 动作 | 快捷键 | 实现 |
 |------|--------|------|
-| 打开 | `Enter` | `ShellExecuteExW`；UWP 用 `IApplicationActivationManager::ActivateApplication` |
+| 打开 | `Enter` | 和开始菜单一致：有快捷方式就打开 `.lnk`（保留工作目录、参数和任务栏分组），否则打开 `shell:AppsFolder\<AUMID>` |
 | 以管理员身份运行 | `Ctrl+Shift+Enter` | `ShellExecuteExW` + `runas` |
 | 在资源管理器中显示 | `Ctrl+Shift+F` | — |
 | 复制路径 | `Ctrl+Shift+C` | — |
@@ -459,7 +458,7 @@ glctl session show -s s.json                 # 断言视图内容
   - 常量 `pi`、`e`
   - 函数 `sqrt`、`sin`、`cos`、`tan`、`log`、`ln`、`abs`、`round`、`floor`、`ceil`
   - 进制 `0x`/`0b` 及转换（`255 in hex`）
-  - 千分位格式化，以及 `ans`（上一次结果）
+  - 千分位格式化；整数在 1e21 以内精确显示（如 `2^64`）。`ans`（上一次结果）第一版未实现
 - **与语言的关系**：
   - 输入语法与语言无关，固定用 `.` 作小数点、英文函数名，保证表达式在任何语言下含义不变。
   - 结果显示按当前语言格式化（千分位、小数点），由 `Localizer` 的数字格式化负责。
@@ -552,7 +551,7 @@ glctl session show -s s.json                 # 断言视图内容
 
 | 部分 | 方案 |
 |------|------|
-| 消息库 | [`github.com/nicksnyder/go-i18n/v2`](https://github.com/nicksnyder/go-i18n)：JSON 资源、CLDR 复数规则、命名参数 |
+| 消息库 | 自研的小型消息目录（`internal/i18n`）：JSON 资源，值为字符串或 CLDR 复数形式对象；`text/template` 命名参数（`{{.name}}`、`{{.Count}}`）；复数规则来自 `golang.org/x/text/feature/plural`。没有用 go-i18n，这样 key 检查和伪语言生成更容易控制 |
 | 语言匹配 | `golang.org/x/text/language` 的 `Matcher`。系统语言来自 `GetUserPreferredUILanguages`，与可用资源匹配，匹配不上时用 `en` |
 | 数字 / 日期格式化 | `golang.org/x/text/message` + `x/text/number`；相对时间用自己的小模块（CLDR 字符串放在资源文件里） |
 | 资源打包 | `//go:embed locales/*.json`，编进二进制文件；外部插件的资源从插件目录读取 |
