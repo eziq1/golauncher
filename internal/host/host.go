@@ -20,6 +20,9 @@ type Services struct {
 	Bus       *Bus
 	I18n      *i18n.Manager
 	Clipboard plugin.Clipboard
+	// Secrets holds the values of password preferences; nil keeps them in
+	// memory only.
+	Secrets Secrets
 	// DataRoot and CacheRoot contain one subdirectory per plugin.
 	DataRoot  string
 	CacheRoot string
@@ -45,6 +48,9 @@ func (s *Services) NewHost(m plugin.Manifest, prefs map[string]jsontext.Value) (
 		prefs: NewPrefs(m.Preferences, prefs),
 		data:  filepath.Join(s.DataRoot, m.ID),
 		cache: filepath.Join(s.CacheRoot, m.ID),
+	}
+	if s.Secrets != nil {
+		h.prefs = newSecretPrefs(m.ID, m.Preferences, prefs, s.Secrets, s.Log)
 	}
 	for _, d := range []string{h.data, h.cache} {
 		if err := os.MkdirAll(d, 0o755); err != nil {

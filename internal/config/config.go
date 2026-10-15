@@ -111,9 +111,35 @@ func migrate(cfg Config) (Config, error) {
 	return cfg, nil
 }
 
+// marshal encodes cfg as indented JSON with sorted keys.
+func marshal(cfg Config) ([]byte, error) {
+	return json.Marshal(cfg, jsontext.WithIndent("  "), json.Deterministic(true))
+}
+
+// Export encodes cfg for a settings file the user keeps or moves to another
+// computer. It holds no secrets: password preferences are never in Config.
+func Export(cfg Config) ([]byte, error) {
+	data, err := marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return append(data, '\n'), nil
+}
+
+// Import decodes a settings file made by Export into a complete
+// configuration: what it leaves out has its default value. Unknown fields
+// and a schema version newer than SchemaVersion are rejected.
+func Import(data []byte) (Config, error) {
+	cfg := Default()
+	if err := json.Unmarshal(data, &cfg, json.RejectUnknownMembers(true)); err != nil {
+		return Config{}, fmt.Errorf("config: import: %w", err)
+	}
+	return migrate(cfg)
+}
+
 // Save writes cfg to path atomically.
 func Save(path string, cfg Config) error {
-	data, err := json.Marshal(cfg, jsontext.WithIndent("  "), json.Deterministic(true))
+	data, err := marshal(cfg)
 	if err != nil {
 		return err
 	}

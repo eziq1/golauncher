@@ -39,7 +39,10 @@ type Options struct {
 	System core.System
 	// Clipboard is the system clipboard. Required.
 	Clipboard plugin.Clipboard
-	Log       *slog.Logger
+	// Secrets stores password preferences (default: the Windows Credential
+	// Manager, in memory when Fake).
+	Secrets host.Secrets
+	Log     *slog.Logger
 }
 
 // Env is a running launcher environment.
@@ -50,7 +53,8 @@ type Env struct {
 	Config     *config.Store
 	I18n       *i18n.Manager
 
-	tempDir string
+	tempDir   string
+	manifests []plugin.Manifest
 }
 
 // DefaultDataDir returns %APPDATA%\golauncher.
@@ -116,6 +120,21 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		return nil, err
 	}
 
+	for _, p := range o.Plugins {
+		env.manifests = append(env.manifests, p.Manifest())
+	}
+	secrets := o.Secrets
+	switch {
+	case secrets != nil:
+	case o.Fake:
+		secrets = host.NewMemorySecrets()
+	default:
+		secrets = host.CredentialSecrets{}
+	}
+	if !o.Fake {
+		env.migrateSecrets(secrets, log)
+	}
+
 	cfg := env.Config.Get()
 	env.I18n = i18n.NewManager(i18n.Source, log)
 	if err := env.I18n.Register(i18n.CoreNamespace, i18n.CoreLocales()); err != nil {
@@ -132,6 +151,7 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		Bus:       bus,
 		I18n:      env.I18n,
 		Clipboard: o.Clipboard,
+		Secrets:   secrets,
 		DataRoot:  filepath.Join(dataDir, "plugins"),
 		CacheRoot: filepath.Join(cacheDir, "plugins"),
 	}

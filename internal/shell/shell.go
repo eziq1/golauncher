@@ -10,6 +10,7 @@ import (
 	"flag"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -492,6 +493,57 @@ func (h settingsHost) OpenPath(path string) error { return wshell.Open(path, plu
 func (h settingsHost) SuspendHotkeys(suspend bool) {
 	h.s.suspended = suspend
 	h.s.registerHotkeys()
+}
+
+func (h settingsHost) ChooseExportFile(name string, done func(string, error)) {
+	s := h.s
+	if home, err := os.UserHomeDir(); err == nil {
+		name = filepath.Join(home, "Documents", name) // the dialog starts in the last folder used if this one is missing
+	}
+	opts := mygo.SaveDialogOptions{
+		Parent:      s.settingsWin,
+		Title:       s.loc.T("settings.advanced.exportTitle"),
+		DefaultPath: name,
+		Filters:     h.jsonFilters(),
+	}
+	go func() {
+		path, err := mygo.Dialog.Save(opts)
+		if path != "" && filepath.Ext(path) == "" {
+			path += ".json" // the dialog adds no extension of its own
+		}
+		h.finish(func() { done(path, err) })
+	}()
+}
+
+func (h settingsHost) ChooseImportFile(done func(string, error)) {
+	s := h.s
+	opts := mygo.OpenDialogOptions{
+		Parent:  s.settingsWin,
+		Title:   s.loc.T("settings.advanced.importTitle"),
+		Filters: h.jsonFilters(),
+	}
+	go func() {
+		paths, err := mygo.Dialog.Open(opts)
+		path := ""
+		if len(paths) > 0 {
+			path = paths[0]
+		}
+		h.finish(func() { done(path, err) })
+	}()
+}
+
+func (h settingsHost) jsonFilters() []mygo.FileFilter {
+	return []mygo.FileFilter{{Name: h.s.loc.T("settings.advanced.jsonFiles"), Extensions: []string{"json"}}}
+}
+
+// finish runs fn on the main thread and redraws the settings.
+func (h settingsHost) finish(fn func()) {
+	h.s.post(func() {
+		fn()
+		if h.s.settingsWin != nil {
+			h.s.settingsWin.Invalidate()
+		}
+	})
 }
 
 // controlWindow is the launcher panel as the control channel sees it.

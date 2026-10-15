@@ -3,6 +3,7 @@ package ui_test
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -33,6 +34,7 @@ func (testPlugin) Manifest() plugin.Manifest {
 		Preferences: []plugin.Preference{
 			{Name: "max", Type: plugin.PrefNumber, Title: "Maximum items", Default: []byte("10")},
 			{Name: "images", Type: plugin.PrefBool, Title: "Keep images", Default: []byte("true")},
+			{Name: "token", Type: plugin.PrefPassword, Title: "API token"},
 		},
 	}
 }
@@ -71,6 +73,22 @@ func (testPlugin) HandleAction(context.Context, plugin.ActionDo) (plugin.Result,
 
 type fakeHost struct {
 	hidden, settings atomic.Int32
+
+	// The file dialogs answer with these paths ("" cancels).
+	exportPath, importPath string
+	exportName             string // the name suggested for the export
+	exports, imports       int    // the dialogs shown
+}
+
+func (h *fakeHost) ChooseExportFile(name string, done func(string, error)) {
+	h.exports++
+	h.exportName = name
+	done(h.exportPath, nil)
+}
+
+func (h *fakeHost) ChooseImportFile(done func(string, error)) {
+	h.imports++
+	done(h.importPath, nil)
 }
 
 func (h *fakeHost) Hide()         { h.hidden.Add(1) }
@@ -303,9 +321,188 @@ func TestClickActivates(t *testing.T) {
 }
 
 func newSettings(t *testing.T, locale string) (*app.Env, *ui.Settings, *mui.Tester) {
+	return newSettingsWith(t, locale, &fakeHost{})
+}
+
+func newSettingsWith(t *testing.T, locale string, host *fakeHost) (*app.Env, *ui.Settings, *mui.Tester) {
 	env, _ := newEnv(t, locale)
-	s := ui.NewSettings(env, &fakeHost{}, "1.0.0-test")
+	s := ui.NewSettings(env, host, "1.0.0-test")
 	return env, s, mui.NewTester(s.View, ui.SettingsWidth, ui.SettingsHeight)
+}
+
+// missingPlugin cannot start on this system.
+type missingPlugin struct{}
+
+func (missingPlugin) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "missing", Name: "Missing", Version: "0.1.0"}
+}
+
+func (missingPlugin) Init(context.Context, plugin.Host) error {
+	return fmt.Errorf("thing is not installed: %w", plugin.ErrUnavailable)
+}
+func (missingPlugin) Close() error { return nil }
+
+func TestSettingsUnavailablePlugin(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{missingPlugin{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { env.Close() })
+	s := ui.NewSettings(env, &fakeHost{}, "1.0.0-test")
+	tt := mui.NewTester(s.View, ui.SettingsWidth, ui.SettingsHeight)
+	s.ShowPage(ui.PagePlugins)
+	tt.Frame()
+	if !tt.HasText("Not available on this system: thing is not installed") {
+		t.Fatalf("texts = %q", tt.Texts())
+	}
+	if tt.HasText("Configure") {
+		t.Fatal("an unavailable plugin cannot be configured")
+	}
+	if err := tt.Click("Enable Missing"); err == nil {
+		tt.Frame()
+	}
+	if env.Config.Get().Plugin("missing").Disabled {
+		t.Fatal("the disabled switch changed the configuration")
+	}
+}
+
+func TestSettingsPassword(t *testing.T) {
+	env, s, tt := newSettings(t, "en")
+	tt.SetSize(ui.SettingsWidth, 1400) // the whole plugin page, without scrolling
+	s.ShowPage(ui.PagePlugins)
+	tt.Frame()
+	if err := tt.Click("Configure"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	for _, want := range []string{"API token", "Not set", "Stored in Windows Credential Manager, not in the configuration file."} {
+		if !tt.HasText(want) {
+			t.Fatalf("no %q in %q", want, tt.Texts())
+		}
+	}
+	if err := tt.Click("API token"); err != nil { // the label focuses the input
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Type("s3cret")
+	tt.Frame()
+	if err := tt.Click("Save"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	secrets := env.Services.Secrets
+	if got, ok, _ := secrets.Get("test", "token"); !ok || got != "s3cret" {
+		t.Fatalf("secret = %q, %v", got, ok)
+	}
+	if !tt.HasText("Saved") {
+		t.Fatalf("no Saved status in %q", tt.Texts())
+	}
+	data, err := config.Export(env.Config.Get())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "s3cret") || strings.Contains(string(data), "token") {
+		t.Fatalf("the configuration has the password:\n%s", data)
+	}
+
+	// The input starts empty again; Enter saves too.
+	if err := tt.Click("API token"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Type("other")
+	tt.Key(0, mui.KeyEnter)
+	tt.Frame()
+	if got, _, _ := secrets.Get("test", "token"); got != "other" {
+		t.Fatalf("secret after Enter = %q", got)
+	}
+
+	if err := tt.Click("Clear"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if _, ok, _ := secrets.Get("test", "token"); ok {
+		t.Fatal("Clear should delete the secret")
+	}
+	if !tt.HasText("Not set") {
+		t.Fatalf("no Not set status in %q", tt.Texts())
+	}
+}
+
+func TestSettingsExportImport(t *testing.T) {
+	dir := t.TempDir()
+	host := &fakeHost{exportPath: filepath.Join(dir, "out.json")}
+	env, s, tt := newSettingsWith(t, "en", host)
+	env.Config.Update(func(c *config.Config) { c.Theme = "dark"; c.Hotkey = "Ctrl+Space" })
+	s.ShowPage(ui.PageAdvanced)
+	tt.Frame()
+
+	if err := tt.Click("Export settings…"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if host.exports != 1 || host.exportName != ui.ExportFileName {
+		t.Fatalf("export dialog: %d, %q", host.exports, host.exportName)
+	}
+	if !tt.HasText("Settings exported to " + host.exportPath + ".") {
+		t.Fatalf("texts = %q", tt.Texts())
+	}
+	data, err := os.ReadFile(host.exportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := config.Import(data); err != nil || got.Theme != "dark" || got.Hotkey != "Ctrl+Space" {
+		t.Fatalf("exported %+v, %v", got, err)
+	}
+
+	// Import replaces everything: what the file leaves out is reset.
+	host.importPath = filepath.Join(dir, "in.json")
+	os.WriteFile(host.importPath, []byte(`{"schemaVersion": 1, "theme": "light",
+		"plugins": {"test": {"preferences": {"max": 5, "token": "old-secret"}}}}`), 0o644)
+	if err := tt.Click("Import settings…"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Settings imported from " + host.importPath + ".") {
+		t.Fatalf("texts = %q", tt.Texts())
+	}
+	cfg := env.Config.Get()
+	if cfg.Theme != "light" || cfg.Hotkey != config.DefaultHotkey || string(cfg.Plugin("test").Preferences["max"]) != "5" {
+		t.Fatalf("imported config = %+v", cfg)
+	}
+	if _, ok := cfg.Plugin("test").Preferences["token"]; ok {
+		t.Fatal("an imported password stayed in the configuration")
+	}
+	if got, _, _ := env.Services.Secrets.Get("test", "token"); got != "old-secret" {
+		t.Fatalf("imported secret = %q", got)
+	}
+
+	// A bad file changes nothing and says why.
+	os.WriteFile(host.importPath, []byte(`{"schemaVersion": 99}`), 0o644)
+	if err := tt.Click("Import settings…"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !slices.ContainsFunc(tt.Texts(), func(s string) bool { return strings.HasPrefix(s, "Could not import the settings:") }) {
+		t.Fatalf("texts = %q", tt.Texts())
+	}
+	if env.Config.Get().Theme != "light" {
+		t.Fatal("a failed import changed the configuration")
+	}
+
+	// Canceling does nothing.
+	host.importPath = ""
+	if err := tt.Click("Import settings…"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if host.imports != 3 || env.Config.Get().Theme != "light" {
+		t.Fatalf("imports = %d", host.imports)
+	}
 }
 
 func TestSettingsGeneral(t *testing.T) {

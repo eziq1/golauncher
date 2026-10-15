@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json/jsontext"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -48,6 +50,62 @@ func TestNewerSchemaRejected(t *testing.T) {
 	os.WriteFile(path, []byte(`{"schemaVersion": 99}`), 0o644)
 	if _, err := Load(path); err == nil {
 		t.Fatal("want error for newer schema")
+	}
+}
+
+func TestExportImportRoundTrip(t *testing.T) {
+	cfg := Default()
+	cfg.Theme, cfg.Hotkey, cfg.LogLevel = "dark", "Ctrl+Space", "debug"
+	cfg.Plugins = map[string]PluginConfig{"x": {
+		Disabled:    true,
+		Preferences: map[string]jsontext.Value{"n": jsontext.Value("3")},
+		Commands:    map[string]CommandConfig{"a": {Alias: "aa", Hotkey: HotkeyNone}},
+	}}
+	data, err := Export(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "\n  \"") {
+		t.Fatalf("export is not indented: %s", data)
+	}
+	got, err := Import(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, _ := Export(got)
+	if string(again) != string(data) {
+		t.Fatalf("round trip changed the config:\n%s\n%s", data, again)
+	}
+}
+
+func TestImportFillsDefaults(t *testing.T) {
+	got, err := Import([]byte(`{"schemaVersion": 1, "theme": "light"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := Default()
+	want.Theme = "light"
+	if got.Theme != "light" || got.Hotkey != DefaultHotkey || !got.HideOnBlur || got.Language != want.Language {
+		t.Fatalf("imported = %+v", got)
+	}
+	if got, err := Import([]byte(`{}`)); err != nil || got.SchemaVersion != SchemaVersion {
+		t.Fatalf("import of {} = %+v, %v", got, err)
+	}
+}
+
+func TestImportRejects(t *testing.T) {
+	for name, data := range map[string]string{
+		"newer schema":   `{"schemaVersion": 99}`,
+		"unknown field":  `{"schemaVersion": 1, "colour": "red"}`,
+		"unknown nested": `{"schemaVersion": 1, "plugins": {"x": {"bogus": true}}}`,
+		"invalid json":   `{"schemaVersion": 1,`,
+		"not an object":  `[1, 2]`,
+		"empty":          ``,
+		"wrong type":     `{"hideOnBlur": "yes"}`,
+	} {
+		if _, err := Import([]byte(data)); err == nil {
+			t.Errorf("%s: want an error", name)
+		}
 	}
 }
 

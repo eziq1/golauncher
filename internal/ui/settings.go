@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -40,7 +41,16 @@ type SettingsHost interface {
 	// SuspendHotkeys turns the global hotkeys off while a hotkey is being
 	// recorded, so that the keys reach the window, and on again.
 	SuspendHotkeys(suspend bool)
+	// ChooseExportFile asks where to save exported settings, suggesting the
+	// file name name. ChooseImportFile asks for a settings file to import.
+	// Both show *.json files and return at once; done runs later on the UI
+	// thread with the chosen path, or "" when the user canceled.
+	ChooseExportFile(name string, done func(path string, err error))
+	ChooseImportFile(done func(path string, err error))
 }
+
+// ExportFileName is the file name suggested for exported settings.
+const ExportFileName = "golauncher-settings.json"
 
 // Settings is the settings window's view (design §6). Every change is
 // written through config.Store.Update and takes effect at once.
@@ -57,7 +67,9 @@ type Settings struct {
 	recording string             // the hotkey recorder that is recording, "" for none
 	bufs      map[string]*string // text being edited, by field
 	errs      map[string]string  // validation errors, by field
+	stored    map[string]bool    // whether a password preference has a secret, by field
 	notice    string             // a message on the current page
+	noticeErr bool               // the notice reports a failure
 	saveErr   string
 	hotkeyErr string
 }
@@ -73,12 +85,14 @@ func NewSettings(env *app.Env, host SettingsHost, version string) *Settings {
 		sidebar: 200,
 		bufs:    map[string]*string{},
 		errs:    map[string]string{},
+		stored:  map[string]bool{},
 	}
 }
 
 // ShowPage switches to page (PageGeneral, …). UI thread only.
 func (s *Settings) ShowPage(page string) {
-	s.page, s.plugin, s.notice = page, "", ""
+	s.page, s.plugin = page, ""
+	s.setNotice("", false)
 	s.stopRecording()
 }
 
@@ -86,6 +100,24 @@ func (s *Settings) ShowPage(page string) {
 // ("" when it was). UI thread only.
 func (s *Settings) SetHotkeyError(hotkey string) {
 	s.hotkeyErr = hotkey
+}
+
+// setNotice shows msg on the current page, as a failure when failed.
+func (s *Settings) setNotice(msg string, failed bool) {
+	s.notice, s.noticeErr = msg, failed
+}
+
+// noticeView shows the notice of the page, if any.
+func (s *Settings) noticeView(c *mui.Context) {
+	if s.notice == "" {
+		return
+	}
+	t := c.Theme()
+	color := t.TextMuted
+	if s.noticeErr {
+		color = t.Danger
+	}
+	mui.Text(c, s.notice).FontSize(12).TextColor(color)
 }
 
 // update changes the configuration and remembers a failure to save it.
@@ -276,11 +308,21 @@ func (s *Settings) pluginsPage(c *mui.Context) {
 				if p.Description != "" {
 					mui.Text(c, p.Description).FontSize(12).TextColor(t.TextMuted)
 				}
+				if p.Unavailable != "" {
+					mui.Text(c, s.loc.T("settings.plugins.unavailable", "reason", p.Unavailable)).FontSize(12).TextColor(t.TextMuted)
+				}
 			})
+			if p.Unavailable != "" {
+				off := false
+				mui.Switch(c, &off).Label(s.loc.T("settings.plugins.enabled", "name", p.Name)).Disabled(true)
+				return
+			}
 			if button(c, s.loc.T("settings.plugins.configure")) {
-				s.plugin, s.notice = p.ID, ""
+				s.plugin = p.ID
+				s.setNotice("", false)
 				clear(s.bufs)
 				clear(s.errs)
+				clear(s.stored)
 			}
 			on := p.Enabled
 			if mui.Switch(c, &on).Label(s.loc.T("settings.plugins.enabled", "name", p.Name)).Changed() {
@@ -307,13 +349,18 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 	mui.Row(c).Gap(12).AlignItems(mui.Center).Children(func() {
 		mui.Text(c, p.Name).FontSize(20).Bold().Level(1).Grow(1)
 		on := p.Enabled
-		if mui.Switch(c, &on).Label(s.loc.T("settings.plugins.enabled", "name", p.Name)).Changed() {
+		sw := mui.Switch(c, &on).Label(s.loc.T("settings.plugins.enabled", "name", p.Name)).Disabled(p.Unavailable != "")
+		if p.Unavailable == "" && sw.Changed() {
 			s.updatePlugin(p.ID, func(pc *config.PluginConfig) { pc.Disabled = !on })
 		}
 	})
 	mui.Text(c, s.loc.T("settings.plugins.version", "version", p.Version)).FontSize(12).TextColor(t.TextMuted)
 	if p.Description != "" {
 		mui.Text(c, p.Description)
+	}
+	if p.Unavailable != "" {
+		mui.Text(c, s.loc.T("settings.plugins.unavailable", "reason", p.Unavailable)).TextColor(t.TextMuted)
+		return
 	}
 
 	s.subheading(c, s.loc.T("settings.plugins.permissions"))
@@ -426,6 +473,10 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 		})
 		return
 	}
+	if pref.Type == plugin.PrefPassword {
+		s.password(c, id, pref)
+		return
+	}
 	field := mui.Field(c.Key(key), pref.Title, func() {
 		switch pref.Type {
 		case plugin.PrefNumber:
@@ -469,13 +520,9 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 				}
 				s.setPref(id, pref.Name, list)
 			}
-		default: // text, password, path
+		default: // text, path
 			b := s.buf(key, decodePref[string](raw))
-			in := mui.TextInput(c, b)
-			if pref.Type == plugin.PrefPassword {
-				in.Password()
-			}
-			if in.Changed() {
+			if mui.TextInput(c, b).Changed() {
 				s.setPref(id, pref.Name, *b)
 			}
 		}
@@ -492,8 +539,124 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 	}
 }
 
-func (s *Settings) advancedPage(c *mui.Context, cfg config.Config) {
+// password builds the editor of a password preference. Its value lives in
+// the Windows Credential Manager, never in the configuration: the field
+// starts empty, Save (or Enter) stores what was typed and Clear removes it.
+func (s *Settings) password(c *mui.Context, id string, pref plugin.Preference) {
 	t := c.Theme()
+	key := "pref/" + id + "/" + pref.Name
+	stored, ok := s.stored[key]
+	if !ok {
+		_, has, err := s.env.Services.Secrets.Get(id, pref.Name)
+		if err != nil {
+			s.errs[key] = err.Error()
+		}
+		stored, s.stored[key] = has, has
+	}
+	field := mui.Field(c.Key(key), pref.Title, func() {
+		mui.Row(c).Gap(8).AlignItems(mui.Center).Children(func() {
+			b := s.buf(key, "")
+			placeholder := ""
+			if stored {
+				placeholder = s.loc.T("settings.plugins.secretReplace")
+			}
+			in := mui.TextInput(c, b).Password().Placeholder(placeholder).Grow(1).Shrink(1)
+			if (button(c, s.loc.T("settings.plugins.secretSave")) || in.Submitted()) && *b != "" {
+				s.setSecret(key, id, pref.Name, *b)
+				*b = ""
+			}
+			if stored && button(c, s.loc.T("settings.plugins.secretClear")) {
+				s.setSecret(key, id, pref.Name, "")
+				*b = ""
+			}
+		})
+		status := s.loc.T("settings.plugins.secretNotSet")
+		if stored {
+			status = s.loc.T("settings.plugins.secretStored")
+		}
+		mui.Text(c, status).FontSize(12).TextColor(t.TextMuted)
+	})
+	field.Description(strings.TrimSpace(pref.Description + " " + s.loc.T("settings.plugins.secretHint")))
+	if msg := s.errs[key]; msg != "" {
+		field.Error(msg)
+	}
+}
+
+// setSecret stores the secret of a password preference, or removes it when
+// secret is "", and tells the plugins.
+func (s *Settings) setSecret(key, id, name, secret string) {
+	sec := s.env.Services.Secrets
+	var err error
+	if secret == "" {
+		err = sec.Delete(id, name)
+	} else {
+		err = sec.Set(id, name, secret)
+	}
+	delete(s.stored, key)
+	if err != nil {
+		s.errs[key] = s.loc.T("settings.plugins.secretFailed", "err", err.Error())
+		return
+	}
+	delete(s.errs, key)
+	s.env.Services.Bus.Publish(plugin.EventConfigChanged)
+}
+
+// exportSettings asks for a file and writes the configuration to it.
+func (s *Settings) exportSettings() {
+	s.setNotice("", false)
+	s.host.ChooseExportFile(ExportFileName, func(path string, err error) {
+		if err == nil && path == "" {
+			return // canceled
+		}
+		if err == nil {
+			var data []byte
+			if data, err = config.Export(s.env.Config.Get()); err == nil {
+				err = os.WriteFile(path, data, 0o644)
+			}
+		}
+		if err != nil {
+			s.setNotice(s.loc.T("settings.advanced.exportFailed", "err", err.Error()), true)
+			return
+		}
+		s.setNotice(s.loc.T("settings.advanced.exported", "path", path), false)
+	})
+}
+
+// importSettings asks for a file exported before and replaces the whole
+// configuration with it.
+func (s *Settings) importSettings() {
+	s.setNotice("", false)
+	s.host.ChooseImportFile(func(path string, err error) {
+		if err == nil && path == "" {
+			return // canceled
+		}
+		var cfg config.Config
+		if err == nil {
+			var data []byte
+			if data, err = os.ReadFile(path); err == nil {
+				cfg, err = config.Import(data)
+			}
+		}
+		if err == nil {
+			// A file from an older version may hold passwords.
+			err = s.env.MoveSecrets(&cfg)
+		}
+		if err == nil {
+			err = s.env.Config.Update(func(c *config.Config) { *c = cfg })
+		}
+		if err != nil {
+			s.setNotice(s.loc.T("settings.advanced.importFailed", "err", err.Error()), true)
+			return
+		}
+		s.saveErr = ""
+		clear(s.bufs)
+		clear(s.errs)
+		clear(s.stored)
+		s.setNotice(s.loc.T("settings.advanced.imported", "path", path), false)
+	})
+}
+
+func (s *Settings) advancedPage(c *mui.Context, cfg config.Config) {
 	s.heading(c, s.loc.T("settings.nav.advanced"))
 	dataDir := filepath.Dir(s.env.Services.DataRoot)
 	s.setting(c, s.loc.T("settings.advanced.dataDir"), dataDir, func() {
@@ -519,20 +682,28 @@ func (s *Settings) advancedPage(c *mui.Context, cfg config.Config) {
 	s.setting(c, s.loc.T("settings.advanced.clearRanking"), s.loc.T("settings.advanced.clearRanking.desc"), func() {
 		if button(c, s.loc.T("settings.advanced.clear")) {
 			if err := s.env.Services.DB.ClearUsage(); err != nil {
-				s.notice = err.Error()
+				s.setNotice(err.Error(), true)
 			} else {
-				s.notice = s.loc.T("settings.advanced.cleared")
+				s.setNotice(s.loc.T("settings.advanced.cleared"), false)
 			}
 		}
 	})
-	if s.notice != "" {
-		mui.Text(c, s.notice).FontSize(12).TextColor(t.TextMuted)
-	}
+	s.setting(c, s.loc.T("settings.advanced.export"), s.loc.T("settings.advanced.export.desc"), func() {
+		if button(c, s.loc.T("settings.advanced.exportButton")) {
+			s.exportSettings()
+		}
+	})
+	s.setting(c, s.loc.T("settings.advanced.import"), s.loc.T("settings.advanced.import.desc"), func() {
+		if button(c, s.loc.T("settings.advanced.importButton")) {
+			s.importSettings()
+		}
+	})
+	s.noticeView(c)
 }
 
 func (s *Settings) open(path string) {
 	if err := s.host.OpenPath(path); err != nil {
-		s.notice = err.Error()
+		s.setNotice(err.Error(), true)
 	}
 }
 
