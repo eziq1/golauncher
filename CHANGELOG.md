@@ -28,6 +28,10 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **Live updates**: plugins can ask the host to refresh what they show
   (`Host.Invalidate`) or push new content (`Host.Render`). Clipboard history,
   the app list and file search now refresh by themselves.
+- **Scoop**: search, install, uninstall and update Scoop packages; installed
+  and outdated lists, update all, bucket management, hold/unhold and clean-up.
+  Reads Scoop's files directly, so search is instant; operations run one at a
+  time with live output. Disabled when Scoop is not installed.
 - **Plugin settings**: buttons (e.g. "Sign in"), options loaded at runtime,
   groups and preferences shown only when another one has a certain value.
 
