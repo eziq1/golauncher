@@ -63,8 +63,8 @@ func fixtureIndex(t testing.TB) *index {
 func TestBuildIndex(t *testing.T) {
 	idx := fixtureIndex(t)
 	var got []string
-	for _, c := range idx.cities {
-		got = append(got, c.ID)
+	for ord := range int32(idx.len()) {
+		got = append(got, idx.at(ord).ID)
 	}
 	// Curated first, then GeoNames in file (population) order; the curated
 	// city replaces its GeoNames row; the unknown zone is skipped.
@@ -114,7 +114,7 @@ func TestCityKeys(t *testing.T) {
 	idx := fixtureIndex(t)
 	keys := func(id string) []string {
 		var out []string
-		for _, k := range idx.city(id).keys {
+		for _, k := range idx.keys(int32(idx.city(id).ord)) {
 			s := k.s
 			if k.exact {
 				s += "!"
@@ -161,7 +161,7 @@ func TestFind(t *testing.T) {
 	find := func(q string, rank map[int]int, limit int) []string {
 		var out []string
 		for _, h := range idx.find(q, now, rank, limit) {
-			out = append(out, h.c.ID)
+			out = append(out, idx.at(h.ord).ID)
 		}
 		return out
 	}

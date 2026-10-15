@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -35,7 +34,9 @@ var citiesJSON []byte
 //go:embed geonames.tsv.gz
 var geonamesData []byte
 
-// city is a place with a clock.
+// city is a place with a clock. The index does not keep cities as structs
+// (docs/world-clock.md §10): index.at makes one from a row of its table when
+// needed. Curated cities are also read from cities.json into it.
 type city struct {
 	ID        string   `json:"id"`
 	GeonameID int      `json:"geonameid"`
@@ -53,13 +54,14 @@ type city struct {
 	curated   bool // from cities.json
 	ambiguous bool // another city has the same name
 
-	loc  *time.Location
-	keys []matchKey // names, pinyin and aliases (and countries of curated cities)
-	ord  int        // position in index.cities: curated first, then by population
+	loc *time.Location
+	ord int // position in the index: curated first, then by population
 }
 
 // matchKey is a normalized string a query is matched against, with the
-// forms scoreKey compares precomputed.
+// forms scoreKey compares precomputed. The keys of cities are stored as
+// keyRecs and made into matchKeys while scoring; countries, zones and the
+// local clock keep matchKeys.
 type matchKey struct {
 	s        string
 	w        float64 // weight of a match on this key
@@ -128,30 +130,327 @@ type zone struct {
 	loc    *time.Location
 	keys   []matchKey
 	cities []int32 // ords, ascending
+	ord    uint16  // position in index.zones
 }
 
 // index holds the cities with their match keys and locations, the
-// countries and zones, and the lookup tables (docs/world-clock.md §9.5).
+// countries and zones, and the lookup tables (docs/world-clock.md §9.5). The
+// cities are a compact table (§10): fixed-size rows whose strings are in one
+// blob, and match keys in one array; it is read-only once built.
 type index struct {
-	cities    []*city
+	rows    []cityRow
+	keyRecs []keyRec // the match keys of the cities, in ord order
+	blob    string   // names, normalized keys, pinyin and initials
+	curated []*city  // the curated cities (ords 0 to len-1), from cities.json
+	ccs     []ccRec  // country codes of the rows (cityRow.cc - 1)
+	regions []regionRec
+
 	countries []*country
 	zones     []*zone
 	zoneByID  map[string]*zone
 	names     nameIndex
 
-	byID        map[string]*city // curated cities
+	byID        map[string]int32 // ords of the curated cities
 	byGeonameID []int32          // ords of the GeoNames cities by GeoNames ID
 	zoneByLower map[string]*zone // lowercase zone IDs
 }
 
-// sharedIndex is the index of the embedded cities, built once per process:
-// it is read-only after it is built, so every plugin instance (tests and
-// glctl create many) shares it.
-var sharedIndex = sync.OnceValues(loadIndex)
+// cityRow is a city in the table. Strings are offsets into index.blob with
+// their lengths (names are at most 255 bytes); the country code, region and
+// zone are indexes into small tables.
+type cityRow struct {
+	name, ascii, zh             uint32
+	keys                        uint32 // first match key in index.keyRecs
+	gid                         uint32 // GeoNames ID; 0 for curated cities without one
+	nameLen, asciiLen, zhLen, n uint8  // n: number of match keys
+	cc, region, zone            uint16 // cc and region 1-based (0: none); zone 0-based
+	flags                       uint8
+}
+
+const (
+	rowCurated = 1 << iota
+	rowAmbiguous
+)
+
+// keyRec is a match key in index.blob: its compact form (s without spaces)
+// at off; then s when it has spaces, and the initials when it has several
+// words. Exact keys are s at off.
+type keyRec struct {
+	off    uint32
+	clen   uint16 // length of the compact form
+	spaces uint8  // spaces in s: s is the compact form when 0
+	ilen   uint8  // 0: no initials
+	kind   uint8
+}
+
+// Kinds of keys: the weight, and whether only an exact match counts.
+const (
+	kindCountry = 1 << iota // weightCountry; else weightName
+	kindExact
+)
+
+type ccRec struct {
+	code string
+	co   *country // nil when the data has no such country
+}
+
+type regionRec struct {
+	name, zh strRef
+}
+
+// strRef is a string in index.blob.
+type strRef struct{ off, n uint32 }
+
+func (idx *index) str(r strRef) string { return idx.blob[r.off : r.off+r.n] }
+
+func (idx *index) sub(off uint32, n uint8) string { return idx.blob[off : off+uint32(n)] }
+
+// len is the number of cities.
+func (idx *index) len() int { return len(idx.rows) }
+
+// name, ascii and zh are the names of the city at ord.
+func (idx *index) name(ord int32) string {
+	r := &idx.rows[ord]
+	return idx.sub(r.name, r.nameLen)
+}
+
+func (idx *index) ascii(ord int32) string {
+	r := &idx.rows[ord]
+	return idx.sub(r.ascii, r.asciiLen)
+}
+
+func (idx *index) zh(ord int32) string {
+	r := &idx.rows[ord]
+	return idx.sub(r.zh, r.zhLen)
+}
+
+// at returns the city at ord. Its strings share the index's memory; only the
+// ID of a GeoNames city is made.
+func (idx *index) at(ord int32) *city {
+	r := &idx.rows[ord]
+	z := idx.zones[r.zone]
+	c := &city{
+		GeonameID: int(r.gid),
+		Name:      idx.sub(r.name, r.nameLen),
+		Zh:        idx.sub(r.zh, r.zhLen),
+		TZ:        z.id,
+		ascii:     idx.sub(r.ascii, r.asciiLen),
+		curated:   r.flags&rowCurated != 0,
+		ambiguous: r.flags&rowAmbiguous != 0,
+		loc:       z.loc,
+		ord:       int(ord),
+	}
+	if r.cc > 0 {
+		cc := idx.ccs[r.cc-1]
+		c.cc = cc.code
+		if cc.co != nil {
+			c.Country, c.CountryZh = cc.co.name, cc.co.zh
+		}
+	}
+	if r.region > 0 {
+		reg := idx.regions[r.region-1]
+		c.region, c.regionZh = idx.str(reg.name), idx.str(reg.zh)
+	}
+	if c.curated {
+		cu := idx.curated[ord]
+		c.ID, c.Country, c.CountryZh, c.Aliases = cu.ID, cu.Country, cu.CountryZh, cu.Aliases
+	} else {
+		c.ID = strconv.Itoa(int(r.gid))
+	}
+	return c
+}
+
+// key returns match key k.
+func (idx *index) key(k *keyRec) matchKey {
+	o := k.off + uint32(k.clen)
+	compact := idx.blob[k.off:o]
+	m := matchKey{s: compact, w: weightName, exact: k.kind&kindExact != 0}
+	if k.kind&kindCountry != 0 {
+		m.w = weightCountry
+	}
+	if m.exact {
+		return m
+	}
+	m.compact = compact
+	if k.spaces > 0 {
+		n := uint32(k.clen) + uint32(k.spaces)
+		m.s = idx.blob[o : o+n]
+		o += n
+	}
+	if k.ilen > 0 {
+		m.initials = idx.sub(o, k.ilen)
+	}
+	return m
+}
+
+// s returns the string of key k and its offset in the blob.
+func (idx *index) s(k *keyRec) (string, uint32) {
+	if k.spaces == 0 {
+		return idx.blob[k.off : k.off+uint32(k.clen)], k.off
+	}
+	o := k.off + uint32(k.clen)
+	return idx.blob[o : o+uint32(k.clen)+uint32(k.spaces)], o
+}
+
+// cityKeyRecs are the match keys of the city at ord.
+func (idx *index) cityKeyRecs(ord int32) []keyRec {
+	r := &idx.rows[ord]
+	return idx.keyRecs[r.keys : r.keys+uint32(r.n)]
+}
+
+// keys returns the match keys of the city at ord.
+func (idx *index) keys(ord int32) []matchKey {
+	var out []matchKey
+	for i := range idx.cityKeyRecs(ord) {
+		out = append(out, idx.key(&idx.cityKeyRecs(ord)[i]))
+	}
+	return out
+}
+
+// bestKey is the best weighted score of q against the keys of the city at
+// ord.
+func (idx *index) bestKey(q, qc string, ord int32) float64 {
+	best := 0.0
+	keys := idx.cityKeyRecs(ord)
+	for i := range keys {
+		k := idx.key(&keys[i])
+		best = max(best, k.w*scoreKey(q, qc, &k))
+	}
+	return best
+}
 
 // loadIndex loads the embedded cities.
 func loadIndex() (*index, error) {
 	return buildIndex(citiesJSON, bytes.NewReader(geonamesData))
+}
+
+// builder builds an index.
+type builder struct {
+	idx     *index
+	blob    []byte
+	names   [3]string // the names of the city being added
+	nameOff [3]uint32 // and their offsets
+	ccs     map[string]uint16
+	regions map[string]uint16
+	norm    []string // normalized names, by ord
+}
+
+// add adds s to the blob and returns its offset. A key that is one of the
+// names of the city being added (Chinese names usually are) shares it.
+func (b *builder) add(s string) uint32 {
+	if s == "" {
+		return 0
+	}
+	for i, n := range b.names {
+		if n == s {
+			return b.nameOff[i]
+		}
+	}
+	off := uint32(len(b.blob))
+	b.blob = append(b.blob, s...)
+	return off
+}
+
+func (b *builder) ref(s string) strRef { return strRef{b.add(s), uint32(len(s))} }
+
+// short adds a name of at most 255 bytes.
+func (b *builder) short(s string) (uint32, uint8, error) {
+	if len(s) > 255 {
+		return 0, 0, fmt.Errorf("clock: name too long: %q", s)
+	}
+	return b.add(s), uint8(len(s)), nil
+}
+
+// addKey adds match key k.
+func (b *builder) addKey(k matchKey) error {
+	r := keyRec{}
+	if k.w == weightCountry {
+		r.kind |= kindCountry
+	} else if k.w != weightName {
+		return fmt.Errorf("clock: key %q: weight %v", k.s, k.w)
+	}
+	if k.exact {
+		r.kind |= kindExact
+	}
+	if len(k.s) > maxNameLen || len(k.s)-len(k.compact) > 255 || len(k.initials) > 255 {
+		return fmt.Errorf("clock: key too long: %q", k.s)
+	}
+	if k.exact {
+		r.off, r.clen = b.add(k.s), uint16(len(k.s))
+	} else if k.compact == k.s && k.initials == "" {
+		r.off, r.clen = b.add(k.s), uint16(len(k.s))
+	} else {
+		// The forms follow each other: not interned.
+		r.off, r.clen = uint32(len(b.blob)), uint16(len(k.compact))
+		b.blob = append(b.blob, k.compact...)
+		if k.compact != k.s {
+			r.spaces = uint8(len(k.s) - len(k.compact))
+			b.blob = append(b.blob, k.s...)
+		}
+		r.ilen = uint8(len(k.initials))
+		b.blob = append(b.blob, k.initials...)
+	}
+	b.idx.keyRecs = append(b.idx.keyRecs, r)
+	return nil
+}
+
+// addCity appends city c (its keys are computed here) with region reg.
+func (b *builder) addCity(c *city, reg regionName, z *zone) error {
+	idx := b.idx
+	var r cityRow
+	var err error
+	b.names = [3]string{}
+	if r.name, r.nameLen, err = b.short(c.Name); err != nil {
+		return err
+	}
+	if r.ascii, r.asciiLen, err = b.short(c.ascii); err != nil {
+		return err
+	}
+	if r.zh, r.zhLen, err = b.short(c.Zh); err != nil {
+		return err
+	}
+	b.names = [3]string{c.Name, c.ascii, c.Zh}
+	b.nameOff = [3]uint32{r.name, r.ascii, r.zh}
+	r.gid = uint32(c.GeonameID)
+	r.zone = z.ord
+	if c.cc != "" {
+		i, ok := b.ccs[c.cc]
+		if !ok {
+			idx.ccs = append(idx.ccs, ccRec{code: c.cc})
+			i = uint16(len(idx.ccs))
+			b.ccs[c.cc] = i
+		}
+		r.cc = i
+	}
+	if reg.name != "" || reg.zh != "" {
+		key := reg.name + "\t" + reg.zh
+		i, ok := b.regions[key]
+		if !ok {
+			b.names = [3]string{}
+			idx.regions = append(idx.regions, regionRec{b.ref(reg.name), b.ref(reg.zh)})
+			i = uint16(len(idx.regions))
+			b.regions[key] = i
+		}
+		r.region = i
+	}
+	if c.curated {
+		r.flags |= rowCurated
+	}
+	keys := cityKeys(c)
+	if len(keys) > 255 {
+		return fmt.Errorf("clock: city %s: too many keys", c.Name)
+	}
+	r.keys, r.n = uint32(len(idx.keyRecs)), uint8(len(keys))
+	for _, k := range keys {
+		if err := b.addKey(k); err != nil {
+			return err
+		}
+	}
+	ord := int32(len(idx.rows))
+	idx.rows = append(idx.rows, r)
+	b.norm = append(b.norm, normalize(c.Name))
+	z.cities = append(z.cities, ord)
+	return nil
 }
 
 // buildIndex reads the curated cities (JSON) and the gzip'd GeoNames data,
@@ -166,9 +465,9 @@ func buildIndex(curatedJSON []byte, geonames io.Reader) (*index, error) {
 	if err != nil {
 		return nil, err
 	}
-	idx := &index{zoneByID: map[string]*zone{}, byID: map[string]*city{}}
+	idx := &index{zoneByID: map[string]*zone{}, byID: map[string]int32{}, curated: curated}
 	byGeoname := map[int]*city{}
-	for _, c := range curated {
+	for i, c := range curated {
 		if _, dup := idx.byID[c.ID]; dup {
 			return nil, fmt.Errorf("clock: duplicate city id %q", c.ID)
 		}
@@ -176,7 +475,8 @@ func buildIndex(curatedJSON []byte, geonames io.Reader) (*index, error) {
 			return nil, fmt.Errorf("clock: city %s: %w", c.ID, err)
 		}
 		c.curated = true
-		idx.add(c)
+		c.ord = i
+		idx.byID[c.ID] = int32(i)
 		if c.GeonameID != 0 {
 			byGeoname[c.GeonameID] = c
 		}
@@ -186,34 +486,58 @@ func buildIndex(curatedJSON []byte, geonames io.Reader) (*index, error) {
 		countries[c.code] = c
 		idx.countries = append(idx.countries, c)
 	}
+	// The curated cities get their country code and region from their
+	// GeoNames rows, which are left out.
+	curatedRegion := make([]regionName, len(curated))
 	for _, row := range g.cities {
-		r := g.regions[row.cc+"."+row.admin1]
 		if c, ok := byGeoname[row.id]; ok {
-			// The overlay wins; GeoNames adds the region and country code.
-			c.cc, c.region, c.regionZh = row.cc, r.name, r.zh
+			c.cc = row.cc
+			curatedRegion[c.ord] = g.regions[row.cc+"."+row.admin1]
+		}
+	}
+	b := &builder{idx: idx, blob: make([]byte, 0, 2<<20),
+		ccs: map[string]uint16{}, regions: map[string]uint16{}}
+	idx.rows = make([]cityRow, 0, len(curated)+len(g.cities))
+	for i, c := range curated {
+		z := idx.zoneByID[c.TZ]
+		if err := b.addCity(c, curatedRegion[i], z); err != nil {
+			return nil, err
+		}
+	}
+	var tmp city
+	for _, row := range g.cities {
+		if _, ok := byGeoname[row.id]; ok {
 			continue
 		}
-		if _, err := idx.zone(row.tz); err != nil {
+		z, err := idx.zone(row.tz)
+		if err != nil {
 			continue // a zone this Go does not know; the generator checks them
 		}
-		c := &city{ID: strconv.Itoa(row.id), GeonameID: row.id, Name: row.name, ascii: row.ascii, Zh: row.zh,
-			TZ: row.tz, cc: row.cc, region: r.name, regionZh: r.zh}
-		if co := countries[row.cc]; co != nil {
-			c.Country, c.CountryZh = co.name, co.zh
+		tmp = city{GeonameID: row.id, Name: row.name, ascii: row.ascii, Zh: row.zh, TZ: row.tz, cc: row.cc}
+		if err := b.addCity(&tmp, g.regions[row.cc+"."+row.admin1], z); err != nil {
+			return nil, err
 		}
-		idx.add(c)
 	}
-	idx.finish(countries)
+	idx.rows = trim(idx.rows)
+	idx.blob = string(b.blob)
+	idx.keyRecs = trim(idx.keyRecs)
+	idx.finish(countries, b.norm)
+	for _, z := range idx.zones {
+		z.cities = trim(z.cities)
+	}
+	for _, co := range idx.countries {
+		co.cities = trim(co.cities)
+	}
 	return idx, nil
 }
 
-// add appends c to the cities.
-func (idx *index) add(c *city) {
-	c.ord = len(idx.cities)
-	idx.cities = append(idx.cities, c)
-	if c.curated {
-		idx.byID[c.ID] = c
+// trim returns s without spare capacity worth copying for: the index lives
+// long.
+func trim[S ~[]E, E any](s S) S {
+	if cap(s)-len(s) > len(s)/16 {
+		return slices.Clone(s)
 	}
+	return s
 }
 
 // zone returns the zone with IANA ID id, loading it the first time.
@@ -225,7 +549,7 @@ func (idx *index) zone(id string) (*zone, error) {
 	if err != nil {
 		return nil, err
 	}
-	z := &zone{id: id, loc: loc}
+	z := &zone{id: id, loc: loc, ord: uint16(len(idx.zones))}
 	z.keys = append(z.keys, newMatchKey(normalize(id), weightZone))
 	if _, last, ok := strings.Cut(id, "/"); ok {
 		if i := strings.LastIndex(last, "/"); i >= 0 {
@@ -238,32 +562,33 @@ func (idx *index) zone(id string) (*zone, error) {
 	return z, nil
 }
 
-// finish computes what needs all cities: locations, match keys, the city
-// lists of countries and zones, ambiguous names, the lookup tables and the
-// name index.
-func (idx *index) finish(countries map[string]*country) {
+// finish computes what needs all cities: the countries' city lists and
+// keys, ambiguous names (norm are the normalized names), the lookup tables
+// and the name index.
+func (idx *index) finish(countries map[string]*country, norm []string) {
+	for i := range idx.ccs {
+		idx.ccs[i].co = countries[idx.ccs[i].code]
+	}
 	names := map[string]int{}
-	nNames := make([]string, len(idx.cities))
-	for _, c := range idx.cities {
-		z := idx.zoneByID[c.TZ]
-		c.loc = z.loc
-		z.cities = append(z.cities, int32(c.ord))
-		if co := countries[c.cc]; co != nil {
-			co.cities = append(co.cities, int32(c.ord))
+	for ord := range idx.rows {
+		r := &idx.rows[ord]
+		if r.cc > 0 {
+			if co := idx.ccs[r.cc-1].co; co != nil {
+				co.cities = append(co.cities, int32(ord))
+			}
 		}
-		c.keys = cityKeys(c)
-		n := normalize(c.Name)
-		names[n]++
-		nNames[c.ord] = n
-		if !c.curated {
-			idx.byGeonameID = append(idx.byGeonameID, int32(c.ord))
+		names[norm[ord]]++
+		if r.flags&rowCurated == 0 {
+			idx.byGeonameID = append(idx.byGeonameID, int32(ord))
 		}
 	}
-	for _, c := range idx.cities {
-		c.ambiguous = names[nNames[c.ord]] > 1
+	for ord := range idx.rows {
+		if names[norm[ord]] > 1 {
+			idx.rows[ord].flags |= rowAmbiguous
+		}
 	}
 	slices.SortFunc(idx.byGeonameID, func(a, b int32) int {
-		return cmp.Compare(idx.cities[a].GeonameID, idx.cities[b].GeonameID)
+		return cmp.Compare(idx.rows[a].gid, idx.rows[b].gid)
 	})
 	idx.zoneByLower = make(map[string]*zone, len(idx.zones))
 	for _, z := range idx.zones {
@@ -283,7 +608,7 @@ func (idx *index) finish(countries map[string]*country) {
 			co.keys = append(co.keys, matchKey{s: initials, w: weightCountry, exact: true})
 		}
 	}
-	idx.names = newNameIndex(idx.cities)
+	idx.names = newNameIndex(idx)
 }
 
 // chinaCodes are the countries whose cities' pinyin initials are matched
@@ -511,16 +836,6 @@ func subsequence(q, k string) bool {
 	return i == len(qr)
 }
 
-// bestKey is the best weighted score of q against keys.
-func bestKey(q, qc string, keys []matchKey) float64 {
-	best := 0.0
-	for i := range keys {
-		k := &keys[i]
-		best = max(best, k.w*scoreKey(q, qc, k))
-	}
-	return best
-}
-
 // offsetQuery is a query for a UTC offset.
 type offsetQuery struct {
 	seconds int
@@ -661,19 +976,22 @@ func (idx *index) lookup(s string) (*city, bool) {
 		s = id
 	}
 	n := normalize(s)
-	if c := idx.withKey(n, func(c *city) bool { return normalize(c.Name) == n || c.ascii != "" && normalize(c.ascii) == n }); c != nil {
-		return c, true
+	if ord := idx.withKey(n, func(ord int32) bool {
+		return normalize(idx.name(ord)) == n || idx.ascii(ord) != "" && normalize(idx.ascii(ord)) == n
+	}); ord >= 0 {
+		return idx.at(ord), true
 	}
-	if c := idx.withKey(n, func(c *city) bool { return c.Zh == s }); c != nil {
-		return c, true
+	if ord := idx.withKey(n, func(ord int32) bool { return idx.zh(ord) == s }); ord >= 0 {
+		return idx.at(ord), true
 	}
 	if z := idx.zoneByLower[strings.ToLower(s)]; z != nil && len(z.cities) > 0 {
-		return idx.cities[z.cities[0]], true
+		return idx.at(z.cities[0]), true
 	}
-	if c := idx.withKey(n, func(c *city) bool {
-		return slices.ContainsFunc(c.Aliases, func(a string) bool { return normalize(a) == n })
-	}); c != nil {
-		return c, true
+	if ord := idx.withKey(n, func(ord int32) bool {
+		return int(ord) < len(idx.curated) &&
+			slices.ContainsFunc(idx.curated[ord].Aliases, func(a string) bool { return normalize(a) == n })
+	}); ord >= 0 {
+		return idx.at(ord), true
 	}
 	if !strings.Contains(s, "/") {
 		return nil, false
@@ -683,36 +1001,36 @@ func (idx *index) lookup(s string) (*city, bool) {
 		return nil, false
 	}
 	name := s[strings.LastIndex(s, "/")+1:]
-	return &city{ID: zonePrefix + s, Name: strings.ReplaceAll(name, "_", " "), TZ: s, loc: loc, ord: len(idx.cities)}, true
+	return &city{ID: zonePrefix + s, Name: strings.ReplaceAll(name, "_", " "), TZ: s, loc: loc, ord: idx.len()}, true
 }
 
 // city returns the city with ID id, or nil.
 func (idx *index) city(id string) *city {
-	if c, ok := idx.byID[id]; ok {
-		return c
+	if ord, ok := idx.byID[id]; ok {
+		return idx.at(ord)
 	}
 	g, err := strconv.Atoi(id)
-	if err != nil {
+	if err != nil || g < 0 || g > 1<<32-1 {
 		return nil
 	}
-	i, ok := slices.BinarySearchFunc(idx.byGeonameID, g, func(ord int32, g int) int {
-		return cmp.Compare(idx.cities[ord].GeonameID, g)
+	i, ok := slices.BinarySearchFunc(idx.byGeonameID, uint32(g), func(ord int32, g uint32) int {
+		return cmp.Compare(idx.rows[ord].gid, g)
 	})
-	if !ok || idx.cities[idx.byGeonameID[i]].ID != id {
+	if !ok || strconv.Itoa(int(idx.rows[idx.byGeonameID[i]].gid)) != id {
 		return nil
 	}
-	return idx.cities[idx.byGeonameID[i]]
+	return idx.at(idx.byGeonameID[i])
 }
 
 // withKey returns the first city with a match key whose compact form is
-// that of normalized string n and for which match is true, or nil.
-func (idx *index) withKey(n string, match func(*city) bool) *city {
+// that of normalized string n and for which match is true, or -1.
+func (idx *index) withKey(n string, match func(ord int32) bool) int32 {
 	for _, ord := range idx.names.exactly(strings.ReplaceAll(n, " ", "")) {
-		if c := idx.cities[ord]; match(c) {
-			return c
+		if match(ord) {
+			return ord
 		}
 	}
-	return nil
+	return -1
 }
 
 // zonePrefix starts the ID of a city made up from an IANA zone.

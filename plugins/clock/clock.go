@@ -72,11 +72,21 @@ type Options struct {
 	// After returns a channel that receives once d has passed (default
 	// time.After). The refresh loops wait on it until the next whole second.
 	After func(d time.Duration) <-chan time.Time
+	// IdleAfter is the timer of the idle release of the city index
+	// (default time.After).
+	IdleAfter func(d time.Duration) <-chan time.Time
+	// Sync loads the cities on the goroutine of the first search, view or
+	// action that needs them instead of in the background, so a search never
+	// asks the host to pull it again (glctl's fake environment). The index
+	// then also stays cached for the process when the plugin closes.
+	Sync bool
 }
 
 // Plugin is the world clock plugin.
 type Plugin struct {
 	opts  Options
+	cache *indexCache
+	// index returns the city index, building it if needed (cache.get).
 	index func() (*index, error)
 	// loaded is set once the cities are indexed; missed when a prefixed root
 	// search came in before that (the host may have dropped it).
@@ -91,6 +101,13 @@ type Plugin struct {
 	closed bool
 	root   *rootLoop            // refresh of the root search; nil when stopped
 	views  map[string]*viewLoop // pushes to open World Clock views, by instance
+	// Use of the index (load.go).
+	held    bool            // p counts as a user of cache
+	loading bool            // a background load runs
+	gen     int             // incremented when p releases the index
+	hidden  bool            // the launcher is hidden
+	idle    chan struct{}   // closes to stop the idle timer; nil when none runs
+	open    map[string]bool // World Clock view instances not closed
 }
 
 var (
@@ -110,7 +127,10 @@ func NewWithOptions(o Options) *Plugin {
 	if o.After == nil {
 		o.After = time.After
 	}
-	return &Plugin{opts: o, index: sharedIndex, views: map[string]*viewLoop{}}
+	if o.IdleAfter == nil {
+		o.IdleAfter = time.After
+	}
+	return &Plugin{opts: o, cache: sharedCache, index: sharedCache.get, views: map[string]*viewLoop{}, open: map[string]bool{}}
 }
 
 // Manifest implements plugin.Plugin.
@@ -153,32 +173,22 @@ func (p *Plugin) Locales() fs.FS {
 	return sub
 }
 
-// Init implements plugin.Plugin. The city index is built in the background
-// so the first search does not wait for it.
+// Init implements plugin.Plugin. The city index is not built here but on
+// first use (load.go).
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.h = h
-	p.unsub = h.Events().Subscribe(plugin.EventWindowHidden, p.stopAll)
-	p.wg.Add(1)
-	h.Go(func() {
-		defer p.wg.Done()
-		if _, err := p.index(); err != nil {
-			h.Logger().Error("clock: loading cities", "err", err)
-			return
-		}
-		p.loaded.Store(true)
-		if p.missed.Swap(false) {
-			// A root search made while the cities were loading may have
-			// been dropped by the host's time limit: ask for it again.
-			h.Invalidate("")
-		}
-	})
+	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.windowHidden)
+	shown := h.Events().Subscribe(plugin.EventWindowShown, p.windowShown)
+	p.unsub = func() { hidden(); shown() }
 	return nil
 }
 
-// Close implements plugin.Plugin. It stops all refresh loops.
+// Close implements plugin.Plugin. It stops all refresh loops and releases
+// the city index.
 func (p *Plugin) Close() error {
 	p.mu.Lock()
 	p.closed = true
+	p.releaseOnCloseLocked()
 	p.mu.Unlock()
 	p.stopAll()
 	if p.unsub != nil {
@@ -197,7 +207,8 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 		p.stopRoot()
 		return nil, nil
 	}
-	if !p.loaded.Load() {
+	p.use()
+	if !p.loaded.Load() && !p.opts.Sync {
 		p.missed.Store(true)
 	}
 	p.rootPulled()
@@ -318,7 +329,7 @@ func (c *listContext) search(q string, root bool) []plugin.Item {
 	// Cities that are favorites or listed come first among equal matches.
 	rank := map[int]int{}
 	for i, ct := range c.listed() {
-		rank[ct.ord] = i - len(c.idx.cities) - 1
+		rank[ct.ord] = i - c.idx.len() - 1
 	}
 	hits := c.idx.find(q, c.now, rank, maxResults)
 	var items []plugin.Item
@@ -331,7 +342,7 @@ func (c *listContext) search(q string, root bool) []plugin.Item {
 			items = append(items, c.localItem(root))
 			localScore = 0
 		}
-		items = append(items, c.cityItem(h.c, root))
+		items = append(items, c.cityItem(c.idx.at(h.ord), root))
 		if len(items) == maxResults {
 			break
 		}
@@ -465,6 +476,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 	if req.ID != cmdWorld {
 		return plugin.View{}, fmt.Errorf("clock: unknown view %q", req.ID)
 	}
+	p.use()
 	idx, err := p.index()
 	if err != nil {
 		return plugin.View{}, err
@@ -523,6 +535,7 @@ func (p *Plugin) worldView(idx *index, q string) plugin.View {
 // HandleAction implements plugin.ActionHandler: copying a time and toggling
 // a favorite.
 func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
+	p.use()
 	idx, err := p.index()
 	if err != nil {
 		return plugin.Result{}, err
