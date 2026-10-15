@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -684,4 +685,70 @@ func TestEmptySectionDoesNotCrash(t *testing.T) {
 	lt.key(0, mui.KeyDown)
 	lt.key(0, mui.KeyEnter)
 	lt.key(mui.Ctrl, mui.KeyK)
+}
+
+// ctxRows is a root provider with many items and a context provider, for
+// the context section arriving above a full list.
+type ctxRows struct{}
+
+func (ctxRows) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "rows", Name: "Rows", Version: "1"}
+}
+func (ctxRows) Init(context.Context, plugin.Host) error                        { return nil }
+func (ctxRows) Close() error                                                   { return nil }
+func (ctxRows) RootItems(context.Context, plugin.Query) ([]plugin.Item, error) { return nil, nil }
+func (ctxRows) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Item, error) {
+	var items []plugin.Item
+	for _, title := range []string{"Open Terminal Here", "Open Command Prompt Here", "Open Folder in VS Code", "New Folder", "New Text File", "Copy Folder Path", "Open Terminal Here as Administrator", "Search This Folder"} {
+		items = append(items, plugin.Item{ID: title, Title: title, Subtitle: c.Folder, Icon: plugin.Icon{Name: "folder"},
+			Actions: []plugin.Action{{ID: "open", Title: "Open", Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: c.Folder}}}})
+	}
+	return items, nil
+}
+
+// TestLateContextDoesNotOverlap is the bug where the context section
+// arriving after the launcher showed left the list scrolled and its header
+// drawn over the first row.
+func TestLateContextDoesNotOverlap(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{ctxRows{}, testPlugin{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	release := make(chan struct{})
+	env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) {
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return plugin.Context{App: plugin.AppInfo{Name: "explorer.exe"}, Kind: plugin.ContextExplorer, Folder: `C:\Users\ann\Photos`}, true
+	})
+	lt := &launcherTest{Env: env, t: t, host: &fakeHost{}}
+	lt.l = ui.NewLauncher(env, lt.host, ui.NewDispatcher(t.Context(), nil))
+	lt.tt = mui.NewTester(lt.l.View, ui.LauncherWidth, ui.LauncherHeight)
+	lt.l.Shown()
+	lt.step()
+	close(release)
+	for range 50 {
+		lt.step()
+		if lt.tt.HasText("In Photos") {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	header, ok1 := lt.tt.Find("In Photos")
+	first, ok2 := lt.tt.Find("Open Terminal Here")
+	if !ok1 || !ok2 {
+		t.Fatalf("header found %v, first row found %v; texts %q", ok1, ok2, lt.tt.Texts())
+	}
+	if header.Y+header.H > first.Y {
+		t.Errorf("the section header %+v overlaps the first row %+v", header, first)
+	}
+	if s := env.Controller.Snapshot(); s.Selected != 0 {
+		t.Errorf("selected row %d, want the context's first row", s.Selected)
+	}
 }

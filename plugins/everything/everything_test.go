@@ -459,7 +459,7 @@ func TestFixtureBackend(t *testing.T) {
 
 // TestRealEverything searches with the Everything of this machine.
 func TestRealEverything(t *testing.T) {
-	if testing.Short() || !everything.Running() {
+	if testing.Short() || os.Getenv("GOLAUNCHER_EVERYTHING_TESTS") != "1" || !everything.Running() {
 		t.Skip("Everything is not running")
 	}
 	p := New()

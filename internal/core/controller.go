@@ -61,10 +61,14 @@ type invalidation struct{ plugin, view string }
 
 // frame is one level of the navigation stack.
 type frame struct {
-	nav      *Nav // nil for the root
-	text     string
-	sel      int
-	selKey   string // key of the selected entry, kept across refreshes
+	nav    *Nav // nil for the root
+	text   string
+	sel    int
+	selKey string // key of the selected entry, kept across refreshes
+	// moved is set once the user moved the selection (keys, hover, click)
+	// since the text last changed; until then refreshes that add results
+	// above (the context arriving) keep the first row selected.
+	moved    bool
 	loading  bool
 	err      string
 	sections []Section
@@ -198,6 +202,7 @@ func (c *Controller) SetText(ctx context.Context, text string) {
 	}
 	f.text = text
 	f.sel, f.selKey = 0, ""
+	f.moved = false
 	local := f.view != nil && f.view.FilterLocally
 	if local {
 		c.setSel(f, 0)
@@ -380,7 +385,12 @@ func (c *Controller) affected(inv invalidation) bool {
 // is only told, for the context chip.
 func (c *Controller) contextChanged(pulled bool) {
 	c.mu.Lock()
-	if pulled && c.top().nav == nil {
+	if f := c.top(); pulled && f.nav == nil {
+		if !f.moved {
+			// The context section appears above the results the user
+			// has not touched yet: select its first row, not the old one.
+			f.sel, f.selKey = 0, ""
+		}
 		c.mu.Unlock()
 		c.invalidate("", "")
 		return
@@ -562,6 +572,7 @@ func (c *Controller) Select(i int) {
 		return
 	}
 	c.setSel(c.top(), i)
+	c.top().moved = true
 }
 
 func clamp(i, n int) int { return max(0, min(i, n-1)) }
@@ -629,12 +640,14 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 	case "Down", "Ctrl+N":
 		if n > 0 {
 			c.setSel(f, (f.sel+1)%n)
+			f.moved = true
 		}
 		c.mu.Unlock()
 		return Outcome{}, nil
 	case "Up", "Ctrl+P":
 		if n > 0 {
 			c.setSel(f, (f.sel-1+n)%n)
+			f.moved = true
 		}
 		c.mu.Unlock()
 		return Outcome{}, nil

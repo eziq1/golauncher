@@ -1,6 +1,7 @@
 package ui_test
 
 import (
+	"os"
 	"testing"
 
 	mui "github.com/egoist/mygo/ui"
@@ -17,7 +18,7 @@ import (
 // Everything, rendering every frame with the detail pane, as a user would.
 // It only reads Everything's index.
 func TestRealFileSearch(t *testing.T) {
-	if testing.Short() || !everything.Running() {
+	if testing.Short() || os.Getenv("GOLAUNCHER_EVERYTHING_TESTS") != "1" || !everything.Running() {
 		t.Skip("needs a running Everything")
 	}
 	clip := &hostfake.Clipboard{}

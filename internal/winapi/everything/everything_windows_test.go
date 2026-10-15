@@ -3,6 +3,7 @@ package everything
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -14,7 +15,7 @@ func requireRunning(t *testing.T) {
 	if testing.Short() {
 		t.Skip("talks to Everything")
 	}
-	if !Running() {
+	if os.Getenv("GOLAUNCHER_EVERYTHING_TESTS") != "1" || !Running() {
 		t.Skip("Everything is not running")
 	}
 }

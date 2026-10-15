@@ -299,3 +299,39 @@ func TestContextName(t *testing.T) {
 		}
 	}
 }
+
+// TestContextArrivalSelectsFirstRow is the bug where selecting a file in
+// Explorer and opening the launcher left the old first row ("Hello World")
+// selected below the late context section, scrolling the list: until the
+// user moves the selection, the context's first row is selected.
+func TestContextArrivalSelectsFirstRow(t *testing.T) {
+	for _, moved := range []bool{false, true} {
+		e := newCtxEnv(t)
+		release := make(chan struct{})
+		e.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) {
+			select {
+			case <-release:
+			case <-ctx.Done():
+			}
+			return *downloads, true
+		})
+		e.Controller.Reset(t.Context())
+		e.Controller.Wait()
+		before, _ := e.Controller.Snapshot().SelectedEntry()
+		if moved {
+			e.Controller.Key(t.Context(), "Down")
+			e.Controller.Key(t.Context(), "Up")
+		}
+		close(release)
+		s := waitFor(t, e, hasContextSection)
+		got, ok := s.SelectedEntry()
+		switch {
+		case !ok:
+			t.Fatalf("moved=%v: nothing selected", moved)
+		case !moved && (s.Selected != 0 || got.Title != "Open Terminal Here"):
+			t.Errorf("untouched: selected %d %q, want the context's first row", s.Selected, got.Title)
+		case moved && got.Key != before.Key:
+			t.Errorf("after the user moved: selected %q, want %q kept", got.Title, before.Title)
+		}
+	}
+}

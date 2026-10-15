@@ -2,6 +2,7 @@ package everything
 
 import (
 	"context"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 // TestStressTyping simulates typing in the launcher: every keystroke starts
 // a search and cancels the previous one.
 func TestStressTyping(t *testing.T) {
-	if testing.Short() || !Running() {
+	if testing.Short() || os.Getenv("GOLAUNCHER_EVERYTHING_TESTS") != "1" || !Running() {
 		t.Skip("needs a running Everything")
 	}
 	words := []string{"n", "no", "not", "note", "notep", "notepa", "notepad", "r", "re", "rep", "repo", "report", "中", "中文"}

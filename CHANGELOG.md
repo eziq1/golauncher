@@ -53,6 +53,8 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Fixed
 
+- With a file selected in Explorer, opening the launcher could leave the list
+  scrolled with the context section's header drawn over its first row.
 - MyGo's developer tools (inspector) were enabled in release builds: F12,
   Ctrl+Shift+I and Ctrl+Shift+C opened them, and Ctrl+Shift+C ("Copy Path")
   did not reach the launcher. They are now left out of release builds; set

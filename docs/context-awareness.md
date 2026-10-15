@@ -197,3 +197,27 @@ COM 在锁定的 OS 线程上以 STA 初始化，用完即释放，和 `internal
 - `internal/cli/testdata/golden/plugin_list.json` 多了 `builtin.files`；和 R24 合并后需要 `go test ./internal/cli -update` 重新生成。
 - `internal/ui/icons.go` 新增 `terminal`、`code`、`folder-plus`、`file-plus`、`archive`、`hash`、`shield` 图标；`internal/ui/launcher.go` 底栏改为“标签不 Grow + 上下文标签 + Grow 占位”。
 - `plugins/files` 的压缩/哈希在 R24 合入后应改用后台任务（见 `TODO(R24)`）。
+
+## 9. 问题记录：环境分组晚到导致列表错位（R26，2026-10-15）
+
+**现象**：在资源管理器里选中文件后打开启动器，"In Photos"这个分组标题和第一条"Open Terminal Here"画在了同一个位置，选中项停在下面"最近使用"里的 Calculator 上，列表也被滚动了。
+
+**原因**（两个问题叠加）：
+
+1. 环境识别是异步的，大约 30ms 后才到达。启动器先显示原来的列表，第一条被选中；环境到达后，根列表在顶部插入一组条目。刷新时，宿主按"保持选中项"的规则（M5 §11），继续选中原来那一条，并把它滚动到可见位置，于是列表向下滚动了。
+2. MyGo 列表的分组标题是吸顶的：列表滚动时，当前分组的标题固定在顶部，需要标题行有不透明的背景。我们的标题行为了透出 Acrylic 没有背景，所以和下面滚上来的第一条叠在了一起。另外，行的标识里用的是分组序号，顶部插入新分组后，原有的行全都换了标识。
+
+**修复**：
+
+- **核心**：每一级视图记录"用户是否主动移动过选中项"（方向键、鼠标悬停或点击）；输入文字时重置这个标记。环境到达时，如果用户还没动过选中项，就选中第一条，也就是环境分组的第一个条目；动过的话保持不变。
+- **界面**：分组标题不再吸顶（`ListState.Header = nil`），和普通行一起滚动；行的标识改为"分组标题 + 条目 Key"，插入分组后，原有的行依然保持同一个标识。
+- **回归测试**：
+  - `TestContextArrivalSelectsFirstRow`（核心）：修复前选中的是第 3 行"Background Tasks"；
+  - `TestLateContextDoesNotOverlap`（界面）：修复前标题和第一条的纵坐标完全相同（Y=52.9），选中的是第 8 行。
+
+  两个测试都确认了修复前失败、修复后通过。
+
+**同时发现的问题**：全量测试时，连接真实 Everything 的测试因为本机的 Everything 正忙（CPU 占用很高，可能在重建索引）而超时。处理：
+
+- 这类测试改为显式开启（`GOLAUNCHER_EVERYTHING_TESTS=1`），和剪贴板、资源管理器测试的约定一致，默认测试不再依赖本机软件的状态；
+- Everything 无响应时，`SendMessageTimeout` 失败但不带错误码，以前会报出"sending the query: The operation completed successfully"这样自相矛盾的信息，现在返回明确的 `ErrNotResponding`："Everything 没有响应（正忙或挂起）"。

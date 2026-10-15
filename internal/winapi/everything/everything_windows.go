@@ -204,6 +204,10 @@ func Search(ctx context.Context, q Query) ([]Result, error) {
 	switch {
 	case ok == 0 && !time.Now().Before(deadline):
 		return nil, fmt.Errorf("everything: sending the query: %w", context.DeadlineExceeded)
+	case ok == 0 && (err == nil || errors.Is(err, windows.ERROR_SUCCESS) || errors.Is(err, windows.ERROR_TIMEOUT)):
+		// SendMessageTimeout fails without an error code when the target is
+		// hung or busy (e.g. rebuilding its index).
+		return nil, ErrNotResponding
 	case ok == 0:
 		return nil, fmt.Errorf("everything: sending the query: %w", err)
 	case accepted == 0 && !r.done:

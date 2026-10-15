@@ -7,7 +7,6 @@ package ui
 import (
 	"cmp"
 	"context"
-	"fmt"
 	"log/slog"
 	"slices"
 	"strconv"
@@ -450,11 +449,13 @@ func (l *Launcher) buildRows(s core.Snapshot) {
 	for si := range s.Sections {
 		sec := &s.Sections[si]
 		if sec.Title != "" {
-			l.rows = append(l.rows, launcherRow{header: sec.Title, flat: -1, key: fmt.Sprintf("%d", si)})
+			l.rows = append(l.rows, launcherRow{header: sec.Title, flat: -1, key: "section:" + sec.Title})
 		}
 		for i := range sec.Items {
 			l.rowOf[flat] = len(l.rows)
-			l.rows = append(l.rows, launcherRow{entry: &sec.Items[i], flat: flat, key: fmt.Sprintf("%d/%s", si, sec.Items[i].Key)})
+			// Keys follow the section's title, not its index, so rows keep
+			// their identity when a section appears above (the context).
+			l.rows = append(l.rows, launcherRow{entry: &sec.Items[i], flat: flat, key: sec.Title + "/" + sec.Items[i].Key})
 			flat++
 		}
 	}
@@ -471,7 +472,10 @@ func (l *Launcher) results(c *mui.Context, s core.Snapshot) {
 	}
 	rows := l.rows
 	l.list.Key = func(i int) any { return rows[i].key }
-	l.list.Header = func(i int) bool { return rows[i].entry == nil }
+	// Section headers are plain rows: MyGo pins a list's headers to the top
+	// while their rows scroll, which needs an opaque header background that
+	// would cover the Acrylic material (and overlapped the first row).
+	l.list.Header = nil
 	l.list.Label = func(i int) string {
 		if rows[i].entry == nil {
 			return rows[i].header

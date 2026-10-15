@@ -23,6 +23,10 @@ import (
 // ErrNotRunning reports that no Everything IPC window was found.
 var ErrNotRunning = errors.New("everything: Everything is not running")
 
+// ErrNotResponding is returned when Everything did not answer in time
+// because it is busy (e.g. rebuilding its index) or hung.
+var ErrNotResponding = errors.New("everything: Everything is not responding (busy or hung)")
+
 // Result is a file or folder found by Everything.
 type Result struct {
 	// Name is the file name, e.g. "notepad.exe". For a drive it is "C:".

@@ -70,7 +70,7 @@ go test -race ./internal/... ./plugins/...     # -race 需要 C 编译器
 go test ./internal/cli -update                 # 输出格式有意变更后，更新 golden 文件
 ```
 
-会读写真实剪贴板的测试默认跳过，需要设置 `GOLAUNCHER_CLIPBOARD_TESTS=1` 才运行（运行完会恢复剪贴板）。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
+会碰真实剪贴板、资源管理器窗口或正在运行的 Everything 的测试默认跳过，分别设置 `GOLAUNCHER_CLIPBOARD_TESTS=1`、`GOLAUNCHER_CONTEXT_TESTS=1`、`GOLAUNCHER_EVERYTHING_TESTS=1` 才运行。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
 
 ## glctl：无头 CLI
 
