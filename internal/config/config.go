@@ -28,8 +28,14 @@ const HotkeyNone = "none"
 type Config struct {
 	SchemaVersion int    `json:"schemaVersion"`
 	Hotkey        string `json:"hotkey"`
-	Theme         string `json:"theme"`    // "system", "light" or "dark"
-	Language      string `json:"language"` // "system" or a BCP 47 tag
+	// Theme is the appearance before themes ("system", "light" or "dark").
+	// Appearance replaced it; it is still written, following Appearance
+	// (LegacyTheme), so that an older version keeps light or dark, and a
+	// file without Appearance is migrated from it.
+	Theme string `json:"theme"`
+	// Appearance chooses the theme and adjusts it (docs/themes.md §8.2).
+	Appearance Appearance `json:"appearance"`
+	Language   string     `json:"language"` // "system" or a BCP 47 tag
 	HideOnBlur    bool   `json:"hideOnBlur"`
 	LaunchAtLogin bool   `json:"launchAtLogin"`
 	LogLevel      string `json:"logLevel,omitempty"` // "debug", "info" (default), "warn", "error"
@@ -40,6 +46,146 @@ type Config struct {
 	Plugins map[string]PluginConfig `json:"plugins,omitempty"`
 	// Agent configures what AI clients may do with the plugins (docs/ai.md §4).
 	Agent AgentConfig `json:"agent,omitzero"`
+}
+
+// Built-in themes the appearance falls back to.
+const (
+	DefaultLightTheme = "golauncher-light"
+	DefaultDarkTheme  = "golauncher-dark"
+)
+
+// Values of Appearance.Accent other than a color.
+const (
+	AccentTheme   = "theme"   // the theme's own accent color
+	AccentWindows = "windows" // the Windows accent color, following its changes
+)
+
+// Window opacity bounds (Appearance.WindowOpacity).
+const (
+	MinWindowOpacity = 0.7
+	MaxWindowOpacity = 1
+)
+
+// Appearance is the look of the launcher. A nil field takes the value of
+// the theme, so that choosing another theme brings its own; a value set
+// here stays until "Reset to theme defaults" sets it to nil again.
+type Appearance struct {
+	// Theme is the theme used when FollowSystem is off.
+	Theme string `json:"theme"`
+	// FollowSystem uses LightTheme or DarkTheme, as Windows is light or
+	// dark.
+	FollowSystem bool   `json:"followSystem"`
+	LightTheme   string `json:"lightTheme"`
+	DarkTheme    string `json:"darkTheme"`
+	// Material is "acrylic", "mica" or "none".
+	Material *string `json:"material"`
+	// Opacity is how much of the theme's background covers the material,
+	// 0 to 1.
+	Opacity *float64 `json:"opacity"`
+	// Accent is AccentTheme, AccentWindows or a color ("#rrggbb").
+	Accent string `json:"accent"`
+	// Radius rounds corners, in DIPs.
+	Radius *float64 `json:"radius"`
+	// Density is "compact", "standard" or "comfortable".
+	Density *string `json:"density"`
+	// FontSize is the size of text in DIPs; nil is the system's.
+	FontSize *float64 `json:"fontSize"`
+	// WindowOpacity makes the whole window translucent, text included,
+	// between MinWindowOpacity and 1.
+	WindowOpacity float64 `json:"windowOpacity"`
+	// TextShadow draws a faint backdrop under text when the background is
+	// very translucent (below 40%).
+	TextShadow bool `json:"textShadow"`
+}
+
+// DefaultAppearance returns the appearance of a new configuration: the
+// golauncher themes, following Windows.
+func DefaultAppearance() Appearance {
+	return Appearance{
+		Theme:         DefaultLightTheme,
+		FollowSystem:  true,
+		LightTheme:    DefaultLightTheme,
+		DarkTheme:     DefaultDarkTheme,
+		Accent:        AccentTheme,
+		WindowOpacity: 1,
+		TextShadow:    true,
+	}
+}
+
+// Clone returns a deep copy of a.
+func (a Appearance) Clone() Appearance {
+	a.Material = clonePtr(a.Material)
+	a.Opacity = clonePtr(a.Opacity)
+	a.Radius = clonePtr(a.Radius)
+	a.Density = clonePtr(a.Density)
+	a.FontSize = clonePtr(a.FontSize)
+	return a
+}
+
+func clonePtr[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// ResetToTheme drops the values that override the theme's own: material,
+// opacity, accent, radius, density and font size.
+func (a *Appearance) ResetToTheme() {
+	a.Material, a.Opacity, a.Radius, a.Density, a.FontSize = nil, nil, nil, nil, nil
+	a.Accent = AccentTheme
+}
+
+// normalize fills in what a partial appearance leaves out and keeps the
+// numbers in range.
+func (a *Appearance) normalize() {
+	d := DefaultAppearance()
+	if a.Theme == "" {
+		a.Theme = d.Theme
+	}
+	if a.LightTheme == "" {
+		a.LightTheme = d.LightTheme
+	}
+	if a.DarkTheme == "" {
+		a.DarkTheme = d.DarkTheme
+	}
+	if a.Accent == "" {
+		a.Accent = d.Accent
+	}
+	if a.WindowOpacity == 0 {
+		a.WindowOpacity = d.WindowOpacity
+	}
+	a.WindowOpacity = min(max(a.WindowOpacity, MinWindowOpacity), MaxWindowOpacity)
+	if a.Opacity != nil {
+		v := min(max(*a.Opacity, 0), 1)
+		a.Opacity = &v
+	}
+}
+
+// AppearanceFromTheme is the appearance an old "theme" setting
+// ("system", "light" or "dark") stands for.
+func AppearanceFromTheme(theme string) Appearance {
+	a := DefaultAppearance()
+	switch theme {
+	case "light":
+		a.FollowSystem, a.Theme = false, DefaultLightTheme
+	case "dark":
+		a.FollowSystem, a.Theme = false, DefaultDarkTheme
+	}
+	return a
+}
+
+// LegacyTheme is the old "theme" setting closest to an appearance whose
+// fixed theme is dark or not.
+func LegacyTheme(a Appearance, dark bool) string {
+	switch {
+	case a.FollowSystem:
+		return "system"
+	case dark:
+		return "dark"
+	}
+	return "light"
 }
 
 // AgentConfig configures the AI tool layer (docs/ai.md §4.2–§4.4).
@@ -77,6 +223,7 @@ func Default() Config {
 		SchemaVersion: SchemaVersion,
 		Hotkey:        DefaultHotkey,
 		Theme:         "system",
+		Appearance:    DefaultAppearance(),
 		Language:      "system",
 		HideOnBlur:    true,
 		ContextAware:  true,
@@ -86,6 +233,7 @@ func Default() Config {
 // Clone returns a deep copy of c.
 func (c Config) Clone() Config {
 	out := c
+	out.Appearance = c.Appearance.Clone()
 	out.Plugins = make(map[string]PluginConfig, len(c.Plugins))
 	for id, p := range c.Plugins {
 		p.Preferences = maps.Clone(p.Preferences)
@@ -111,14 +259,26 @@ func Load(path string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	cfg := Default()
+	cfg := decodeBase()
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("config: %s: %w", path, err)
 	}
 	return migrate(cfg)
 }
 
+// decodeBase is what a file is decoded over: the defaults, but without an
+// appearance, so that migrate can tell a file that has none.
+func decodeBase() Config {
+	cfg := Default()
+	cfg.Appearance = Appearance{}
+	return cfg
+}
+
 // migrate upgrades cfg to SchemaVersion.
+//
+// Fields added since version 1 (appearance) need no new version: a file
+// without them is completed here, and an older version, which ignores
+// fields it does not know, can still read a newer file (docs/storage.md).
 func migrate(cfg Config) (Config, error) {
 	switch {
 	case cfg.SchemaVersion > SchemaVersion:
@@ -129,6 +289,11 @@ func migrate(cfg Config) (Config, error) {
 	if cfg.Hotkey == "" {
 		cfg.Hotkey = DefaultHotkey
 	}
+	if cfg.Appearance == (Appearance{}) {
+		// Written before themes: the old setting says light, dark or system.
+		cfg.Appearance = AppearanceFromTheme(cfg.Theme)
+	}
+	cfg.Appearance.normalize()
 	return cfg, nil
 }
 
@@ -151,7 +316,7 @@ func Export(cfg Config) ([]byte, error) {
 // configuration: what it leaves out has its default value. Unknown fields
 // and a schema version newer than SchemaVersion are rejected.
 func Import(data []byte) (Config, error) {
-	cfg := Default()
+	cfg := decodeBase()
 	if err := json.Unmarshal(data, &cfg, json.RejectUnknownMembers(true)); err != nil {
 		return Config{}, fmt.Errorf("config: import: %w", err)
 	}

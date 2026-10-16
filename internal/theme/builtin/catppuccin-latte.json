@@ -1,0 +1,22 @@
+{
+  "name": "Catppuccin Latte",
+  "source": "Catppuccin, Latte flavor (catppuccin.com)",
+  "license": "MIT",
+  "dark": false,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#eff1f5",
+    "surface": "#e6e9ef",
+    "border": "#ccd0da",
+    "text": "#4c4f69",
+    "textMuted": "#6c6f85",
+    "accent": "#8839ef",
+    "accentText": "#ffffff",
+    "danger": "#d20f39",
+    "warning": "#df8e1d",
+    "success": "#40a02b",
+    "rowSelected": "#dce0e8",
+    "rowSelectedText": "#4c4f69"
+  }
+}

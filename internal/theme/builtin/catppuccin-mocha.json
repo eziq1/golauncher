@@ -1,0 +1,22 @@
+{
+  "name": "Catppuccin Mocha",
+  "source": "Catppuccin, Mocha flavor (catppuccin.com)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#1e1e2e",
+    "surface": "#313244",
+    "border": "#45475a",
+    "text": "#cdd6f4",
+    "textMuted": "#a6adc8",
+    "accent": "#cba6f7",
+    "accentText": "#11111b",
+    "danger": "#f38ba8",
+    "warning": "#f9e2af",
+    "success": "#a6e3a1",
+    "rowSelected": "#45475a",
+    "rowSelectedText": "#cdd6f4"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "golauncher Light",
+  "source": "MyGo's default light theme (github.com/egoist/mygo)",
+  "license": "MIT",
+  "dark": false,
+  "systemAccent": true,
+  "material": "acrylic",
+  "opacity": 0,
+  "colors": {
+    "background": "#ffffff",
+    "surface": "#f4f4f5",
+    "surfaceHover": "#e9e9ec",
+    "surfacePressed": "#dddde1",
+    "border": "#d9d9de",
+    "text": "#18181b",
+    "textMuted": "#71717a",
+    "accent": "#2563eb",
+    "accentHover": "#1d4ed8",
+    "accentPressed": "#1e40af",
+    "accentText": "#ffffff",
+    "danger": "#dc2626",
+    "warning": "#d97706",
+    "success": "#16a34a",
+    "selection": "rgba(37, 99, 235, 0.25)",
+    "focus": "rgba(37, 99, 235, 0.55)",
+    "scrollbar": "rgba(0, 0, 0, 0.32)"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "GitHub Dark",
+  "source": "GitHub Primer primitives, dark (github.com/primer/primitives)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#0d1117",
+    "surface": "#151b23",
+    "border": "#3d444d",
+    "text": "#f0f6fc",
+    "textMuted": "#9198a1",
+    "accent": "#1f6feb",
+    "accentText": "#ffffff",
+    "danger": "#f85149",
+    "warning": "#d29922",
+    "success": "#3fb950",
+    "rowSelected": "#262c36",
+    "rowSelectedText": "#f0f6fc"
+  }
+}

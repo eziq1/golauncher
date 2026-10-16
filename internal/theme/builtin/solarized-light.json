@@ -1,0 +1,22 @@
+{
+  "name": "Solarized Light",
+  "source": "Solarized by Ethan Schoonover (ethanschoonover.com/solarized); text one step darker for contrast",
+  "license": "MIT",
+  "dark": false,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#fdf6e3",
+    "surface": "#eee8d5",
+    "border": "#d9d2bd",
+    "text": "#073642",
+    "textMuted": "#586e75",
+    "accent": "#268bd2",
+    "accentText": "#00141a",
+    "danger": "#dc322f",
+    "warning": "#b58900",
+    "success": "#859900",
+    "rowSelected": "#eee8d5",
+    "rowSelectedText": "#073642"
+  }
+}

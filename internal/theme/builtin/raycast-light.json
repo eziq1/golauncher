@@ -1,0 +1,22 @@
+{
+  "name": "Raycast-style Light",
+  "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+  "license": "MIT",
+  "dark": false,
+  "material": "acrylic",
+  "opacity": 0.8,
+  "colors": {
+    "background": "#ffffff",
+    "surface": "#f2f2f3",
+    "border": "#e2e2e5",
+    "text": "#1d1d1f",
+    "textMuted": "#6b6b70",
+    "accent": "#d1293a",
+    "accentText": "#ffffff",
+    "danger": "#c4272b",
+    "warning": "#a15c00",
+    "success": "#1f7a3a",
+    "rowSelected": "#e8e8eb",
+    "rowSelectedText": "#1d1d1f"
+  }
+}

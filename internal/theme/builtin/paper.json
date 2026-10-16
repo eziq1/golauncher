@@ -1,0 +1,24 @@
+{
+  "name": "Paper",
+  "name.zh-CN": "宣纸",
+  "source": "golauncher's own: rice paper, ink and vermilion",
+  "license": "MIT",
+  "dark": false,
+  "material": "acrylic",
+  "opacity": 0.88,
+  "colors": {
+    "background": "#f6f1e7",
+    "surface": "#ece5d6",
+    "border": "#d8cdb6",
+    "text": "#1f1a14",
+    "textMuted": "#6b5f4f",
+    "accent": "#b5352a",
+    "accentText": "#ffffff",
+    "danger": "#9e2a2a",
+    "warning": "#8a5a00",
+    "success": "#3b6e34",
+    "rowSelected": "#e6dcc6",
+    "rowSelectedText": "#1f1a14",
+    "tint.accent": "#b5352a"
+  }
+}

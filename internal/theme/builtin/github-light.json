@@ -1,0 +1,22 @@
+{
+  "name": "GitHub Light",
+  "source": "GitHub Primer primitives, light (github.com/primer/primitives)",
+  "license": "MIT",
+  "dark": false,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#ffffff",
+    "surface": "#f6f8fa",
+    "border": "#d1d9e0",
+    "text": "#1f2328",
+    "textMuted": "#59636e",
+    "accent": "#0969da",
+    "accentText": "#ffffff",
+    "danger": "#d1242f",
+    "warning": "#9a6700",
+    "success": "#1a7f37",
+    "rowSelected": "#ddf4ff",
+    "rowSelectedText": "#1f2328"
+  }
+}

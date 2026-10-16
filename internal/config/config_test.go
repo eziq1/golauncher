@@ -139,3 +139,78 @@ func TestOpenRecoversFromBadFile(t *testing.T) {
 		t.Fatalf("reload = %+v %v", c, err)
 	}
 }
+
+func TestMigrateThemeToAppearance(t *testing.T) {
+	for _, tc := range []struct {
+		theme        string
+		followSystem bool
+		fixed        string
+	}{
+		{"system", true, DefaultLightTheme},
+		{"", true, DefaultLightTheme},
+		{"light", false, DefaultLightTheme},
+		{"dark", false, DefaultDarkTheme},
+	} {
+		path := filepath.Join(t.TempDir(), "config.json")
+		os.WriteFile(path, []byte(`{"schemaVersion": 1, "theme": "`+tc.theme+`"}`), 0o644)
+		cfg, err := Load(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		a := cfg.Appearance
+		if a.FollowSystem != tc.followSystem || a.Theme != tc.fixed || a.LightTheme != DefaultLightTheme ||
+			a.DarkTheme != DefaultDarkTheme || a.Accent != AccentTheme || a.WindowOpacity != 1 || !a.TextShadow || a.Opacity != nil {
+			t.Errorf("theme %q: appearance = %+v", tc.theme, a)
+		}
+	}
+}
+
+func TestAppearanceKeptAndNormalized(t *testing.T) {
+	// An appearance in the file wins over the old setting; what it leaves
+	// out gets its default, and numbers are kept in range.
+	got, err := Import([]byte(`{"schemaVersion": 1, "theme": "light",
+		"appearance": {"theme": "nord", "opacity": 1.5, "windowOpacity": 0.2, "radius": 10, "material": "mica"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := got.Appearance
+	if a.Theme != "nord" || a.FollowSystem || *a.Opacity != 1 || a.WindowOpacity != MinWindowOpacity || *a.Radius != 10 ||
+		*a.Material != "mica" || a.DarkTheme != DefaultDarkTheme || a.Accent != AccentTheme || a.Density != nil {
+		t.Fatalf("appearance = %+v", a)
+	}
+	// null means the theme's value, and survives a round trip.
+	data, _ := Export(Default())
+	if !strings.Contains(string(data), `"opacity": null`) {
+		t.Fatalf("export = %s", data)
+	}
+	back, err := Import(data)
+	if err != nil || back.Appearance.Opacity != nil || !back.Appearance.FollowSystem {
+		t.Fatalf("round trip = %+v, %v", back.Appearance, err)
+	}
+	a.ResetToTheme()
+	if a.Opacity != nil || a.Material != nil || a.Radius != nil || a.Theme != "nord" {
+		t.Fatalf("reset = %+v", a)
+	}
+}
+
+func TestCloneCopiesAppearance(t *testing.T) {
+	cfg := Default()
+	v := 0.5
+	cfg.Appearance.Opacity = &v
+	c := cfg.Clone()
+	*c.Appearance.Opacity = 0.9
+	if *cfg.Appearance.Opacity != 0.5 {
+		t.Fatal("Clone shares the appearance")
+	}
+}
+
+func TestLegacyTheme(t *testing.T) {
+	a := DefaultAppearance()
+	if LegacyTheme(a, true) != "system" {
+		t.Fatal("following the system")
+	}
+	a.FollowSystem = false
+	if LegacyTheme(a, true) != "dark" || LegacyTheme(a, false) != "light" {
+		t.Fatal("fixed theme")
+	}
+}

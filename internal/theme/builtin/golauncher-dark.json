@@ -1,0 +1,28 @@
+{
+  "name": "golauncher Dark",
+  "source": "MyGo's default dark theme (github.com/egoist/mygo)",
+  "license": "MIT",
+  "dark": true,
+  "systemAccent": true,
+  "material": "acrylic",
+  "opacity": 0,
+  "colors": {
+    "background": "#18181b",
+    "surface": "#27272a",
+    "surfaceHover": "#323236",
+    "surfacePressed": "#3c3c41",
+    "border": "#3f3f46",
+    "text": "#f4f4f5",
+    "textMuted": "#a1a1aa",
+    "accent": "#3b82f6",
+    "accentHover": "#60a5fa",
+    "accentPressed": "#2563eb",
+    "accentText": "#ffffff",
+    "danger": "#ef4444",
+    "warning": "#f59e0b",
+    "success": "#22c55e",
+    "selection": "rgba(59, 130, 246, 0.4)",
+    "focus": "rgba(96, 165, 250, 0.6)",
+    "scrollbar": "rgba(255, 255, 255, 0.35)"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Solarized Dark",
+  "source": "Solarized by Ethan Schoonover (ethanschoonover.com/solarized)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.9,
+  "colors": {
+    "background": "#002b36",
+    "surface": "#073642",
+    "border": "#2c4c55",
+    "text": "#93a1a1",
+    "textMuted": "#7b9097",
+    "accent": "#268bd2",
+    "accentText": "#00141a",
+    "danger": "#dc322f",
+    "warning": "#b58900",
+    "success": "#859900",
+    "rowSelected": "#073642",
+    "rowSelectedText": "#eee8d5"
+  }
+}
