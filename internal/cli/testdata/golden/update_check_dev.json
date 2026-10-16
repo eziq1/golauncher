@@ -1,0 +1,4 @@
+source: fake
+current: 0.4.0-3-gabc1234 (updatable: false)
+latest: 0.5.0 (newer) https://github.com/eziq1/golauncher/releases/tag/v0.5.0
+archive: golauncher_0.5.0_windows_amd64.zip (499 bytes), checksums: true, signature: false

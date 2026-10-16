@@ -237,6 +237,19 @@ func (p *Plugin) prune() {
 	}
 }
 
+// Busy reports whether an answer is being written in some chat. The host
+// does not restart into an update meanwhile (docs/auto-update.md §6).
+func (p *Plugin) Busy() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, ch := range p.chats {
+		if ch.busy {
+			return true
+		}
+	}
+	return false
+}
+
 // windowHidden starts the timer that stops the CLI processes.
 func (p *Plugin) windowHidden() {
 	p.mu.Lock()

@@ -1,0 +1,21 @@
+{
+  "source": "fake",
+  "current": "0.4.0",
+  "updatable": true,
+  "latest": "1.0.0",
+  "tag": "v1.0.0",
+  "newer": true,
+  "page": "https://github.com/eziq1/golauncher/releases/tag/v1.0.0",
+  "publishedAt": "2026-10-01T00:00:00Z",
+  "archive": "golauncher_1.0.0_windows_amd64.zip",
+  "size": 499,
+  "checksums": true,
+  "signature": false,
+  "sha256": "c72eb57822bc57868fe15d4aa76f49e23b7473034bd107cc6d3a5770a6b68617",
+  "verified": true,
+  "signed": false,
+  "files": [
+    "glctl.exe",
+    "golauncher.exe"
+  ]
+}

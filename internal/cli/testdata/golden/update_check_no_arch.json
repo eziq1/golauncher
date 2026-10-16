@@ -1,0 +1,13 @@
+{
+  "source": "fake",
+  "current": "0.4.0",
+  "updatable": true,
+  "latest": "1.0.0",
+  "tag": "v1.0.0",
+  "newer": true,
+  "page": "https://github.com/eziq1/golauncher/releases/tag/v1.0.0",
+  "publishedAt": "2026-10-01T00:00:00Z",
+  "checksums": false,
+  "signature": false,
+  "error": "update: the release has no archive for this computer (golauncher_1.0.0_windows_386.zip)"
+}

@@ -40,6 +40,7 @@
 
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_windows_<架构>.zip`。
 2. 解压后运行 `golauncher.exe`。第一次运行会弹出安装界面，默认安装到 `%LOCALAPPDATA%\Programs\golauncher`（不需要管理员权限），并创建开始菜单项、在"设置 › 应用"里注册卸载入口。之后运行更新或更旧的版本，会提示升级或降级；版本相同则直接启动已安装的程序。也可以选择"不安装，直接运行"（或加 `--portable` 参数）。程序常驻在系统托盘。
+3. **自动更新**：已安装的副本在启动 30 秒后、之后每天（或每周）查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 Release 里的 SHA-256 校验和校验，在 golauncher 空闲时（窗口隐藏、没有后台任务和 AI 回答、几分钟内没用过）安装并自动重启，然后通知“已更新”。新版本起不来就自动恢复旧版本，并跳过这个版本。“设置 › 关于”里可以查看状态、立即检查、跳过某个版本，或改成“只通知我”“关闭”；托盘菜单和“检查更新”命令也能检查。便携运行和开发构建不会自动更新。详见 [docs/auto-update.md](docs/auto-update.md)。
 
 需要 Windows 10 或 11，Acrylic 毛玻璃背景只在 Windows 11 上有。不需要 WebView2 运行时。
 
@@ -55,7 +56,8 @@ golauncher.exe --uninstall  # 卸载
 |------|------|
 | 配置 | `%APPDATA%\golauncher\config.json` |
 | 数据库、剪贴板历史 | `%LOCALAPPDATA%\golauncher\data\`（不会漫游同步） |
-| 日志 | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
+| 日志 | `%LOCALAPPDATA%\golauncher\logs\golauncher.log`（更新：`update.log`） |
+| 更新（下载、上一个版本） | `%LOCALAPPDATA%\golauncher\update\` |
 
 ## 快捷键
 
@@ -114,6 +116,9 @@ glctl session key  -s s.json Enter
 glctl i18n check
 glctl theme validate my-theme.json --format text   # 检查主题文件和对比度
 glctl attach type vsc           # 驱动以 GOLAUNCHER_CONTROL=1 启动的 GUI
+glctl update check --current 0.4.0 --format text   # 对着假的 GitHub 检查
+glctl update check --real       # 查询真实的 GitHub（只读）
+glctl update download --dry-run # 下载并校验，不安装
 ```
 
 `glctl` 默认在隔离的内存环境中运行，时钟固定，动作只记录、不执行。要用真实的配置和数据，加 `--real`；要真正执行动作，再加 `--exec`。

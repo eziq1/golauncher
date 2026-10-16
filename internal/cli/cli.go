@@ -76,6 +76,12 @@ Commands:
   mcp [--confirm deny|allow|session] [--ask-open]
                                      serve the AI tools as an MCP server on stdio
                                      (docs/ai.md §4); confirmations get --confirm
+  update check [--current V] [--arch A] [--latest V] [--real]
+                                     check for a newer release (docs/auto-update.md): a fake
+                                     GitHub (whose latest is --latest) unless --real
+  update download --dry-run [...]    download and verify the archive, install nothing
+  update sign <file> | verify <file> [--key K] | keygen
+                                     ed25519 signatures of checksums.txt (release workflow)
   bench [--n N] [queries...]         measure root search latency
   version                            print the glctl version
 
@@ -198,6 +204,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.mcp(ctx, rest)
 	case "version":
 		return c.version(rest)
+	case "update":
+		return c.update(ctx, rest)
 	default:
 		return usagef("unknown command %q (see glctl help)", cmd)
 	}

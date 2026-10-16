@@ -454,3 +454,16 @@ func TestNewSessionIDIsUUID(t *testing.T) {
 		t.Fatalf("id = %q", id)
 	}
 }
+
+func TestBusy(t *testing.T) {
+	p, _ := newTestPlugin(t, &backend.Fake{}, true)
+	if p.Busy() {
+		t.Fatal("busy without chats")
+	}
+	p.mu.Lock()
+	p.chats["x"] = &chat{sess: Session{ID: "x"}, busy: true}
+	p.mu.Unlock()
+	if !p.Busy() {
+		t.Fatal("not busy while an answer is written")
+	}
+}

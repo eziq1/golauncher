@@ -12,6 +12,7 @@
 | 主数据库 | `%LOCALAPPDATA%\golauncher\data\golauncher.db` | 插件 KV、使用频率（frecency）、最近使用 | SQLite `PRAGMA user_version` |
 | 剪贴板历史 | `%LOCALAPPDATA%\golauncher\data\plugins\builtin.clipboard\clipboard.db` 和 `images\` | 剪贴板记录、FTS5 全文索引、图片 | SQLite `PRAGMA user_version` |
 | 密码类偏好 | Windows 凭据管理器，目标名 `golauncher/<插件ID>/<偏好名>` | 密钥 | 不需要版本 |
+| 自动更新的状态 | `%LOCALAPPDATA%\golauncher\update\`（`state.json`、`result.json`、下载、上一个版本） | 上次检查、ETag、跳过和坏版本、已就绪的更新（[auto-update.md](auto-update.md)） | 不需要版本：读不懂就当作新状态；卸载时总是删除 |
 
 数据库放在本地目录（`%LOCALAPPDATA%`），原因有两个：剪贴板历史不能随漫游配置同步到服务器；SQLite 的 WAL 模式也不支持网络共享目录。0.1.0 之前的版本把数据库放在 `%APPDATA%`，启动时会自动迁移到新位置（`internal/app/migrate.go`）。
 

@@ -46,6 +46,42 @@ type Config struct {
 	Plugins map[string]PluginConfig `json:"plugins,omitempty"`
 	// Agent configures what AI clients may do with the plugins (docs/ai.md §4).
 	Agent AgentConfig `json:"agent,omitzero"`
+	// Updates configures automatic updates (docs/auto-update.md §7.1).
+	Updates UpdatesConfig `json:"updates,omitzero"`
+}
+
+// Values of UpdatesConfig. Empty values take the defaults.
+const (
+	UpdatesAuto   = "auto"   // download and install automatically (default)
+	UpdatesNotify = "notify" // only tell about a new version
+	UpdatesOff    = "off"    // no automatic checks
+	UpdatesDaily  = "daily"  // check every day (default)
+	UpdatesWeekly = "weekly" // check every week
+)
+
+// UpdatesConfig configures automatic updates. Empty fields take the
+// defaults (UpdatesAuto, UpdatesDaily), so that the field needs no schema
+// version (docs/storage.md §2.2).
+type UpdatesConfig struct {
+	Mode      string `json:"mode,omitempty"`
+	Frequency string `json:"frequency,omitempty"`
+}
+
+// EffectiveMode returns Mode, or its default.
+func (u UpdatesConfig) EffectiveMode() string {
+	switch u.Mode {
+	case UpdatesNotify, UpdatesOff:
+		return u.Mode
+	}
+	return UpdatesAuto
+}
+
+// EffectiveFrequency returns Frequency, or its default.
+func (u UpdatesConfig) EffectiveFrequency() string {
+	if u.Frequency == UpdatesWeekly {
+		return UpdatesWeekly
+	}
+	return UpdatesDaily
 }
 
 // Built-in themes the appearance falls back to.

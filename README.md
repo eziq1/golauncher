@@ -130,6 +130,18 @@ newer or older download later offers to upgrade or downgrade; the same version
 just starts the installed copy. Choose *Run without installing* (or pass
 `--portable`) to run it from where it is. golauncher lives in the system tray.
 
+**Automatic updates**: the installed copy checks GitHub Releases for a new
+stable version (30 seconds after starting, then daily or weekly), downloads
+the archive for your architecture, verifies it against the release's SHA-256
+checksums and installs it when golauncher is idle (hidden, no background task
+or AI answer running, not used for a few minutes); it then restarts and says
+what's new. If the new version does not start, the previous one is restored
+and the version is skipped. *Settings › About* shows the status and lets you
+check now, skip a version, or choose *Only notify me* or *Off*; the tray menu
+and the *Check for Updates* command check too. Portable copies and
+development builds never update themselves. See
+[docs/auto-update.md](docs/auto-update.md).
+
 Requirements:
 
 - Windows 10 or 11. The Acrylic panel background requires Windows 11.
@@ -147,7 +159,8 @@ golauncher.exe --uninstall  # remove the installation
 |------|-------|
 | Configuration | `%APPDATA%\golauncher\config.json` |
 | Databases, clipboard history | `%LOCALAPPDATA%\golauncher\data\` (never roams) |
-| Logs | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` |
+| Logs | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` (updates: `update.log`) |
+| Updates (downloads, previous version) | `%LOCALAPPDATA%\golauncher\update\` |
 
 ## Keyboard
 
@@ -220,6 +233,9 @@ glctl session key  -s s.json Enter
 glctl i18n check
 glctl theme validate my-theme.json --format text
 glctl attach type vsc           # drive a GUI started with GOLAUNCHER_CONTROL=1
+glctl update check --current 0.4.0 --format text   # against a fake GitHub
+glctl update check --real       # the real GitHub (read only)
+glctl update download --dry-run # download and verify, install nothing
 ```
 
 By default `glctl` runs in an isolated, in-memory environment with a fixed

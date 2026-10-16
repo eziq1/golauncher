@@ -1,0 +1,4 @@
+source: fake
+current: 1.0.0 (updatable: true)
+latest: 1.0.0 (up to date) https://github.com/eziq1/golauncher/releases/tag/v1.0.0
+archive: golauncher_1.0.0_windows_arm64.zip (499 bytes), checksums: true, signature: false

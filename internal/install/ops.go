@@ -190,6 +190,9 @@ func (in *Installer) Uninstall(o UninstallOptions) error {
 		errs = append(errs, in.RemoveLoginItem())
 	}
 	errs = append(errs, in.Sys.DeleteEntry())
+	if in.Paths.UpdateDir != "" {
+		errs = append(errs, os.RemoveAll(in.Paths.UpdateDir))
+	}
 	if o.PurgeData {
 		for _, d := range in.Paths.DataDirs {
 			errs = append(errs, os.RemoveAll(d))
