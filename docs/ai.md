@@ -517,3 +517,35 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
   - 设置里加"连接到 Antigravity"按钮（`--add-mcp`）；
   - 加"在 Antigravity 中继续"（`antigravity chat`）；
   - 启动器里用 Gemini 回答时，走 **Gemini CLI**：`-p`、`-o stream-json`、MCP、`--approval-mode plan` 只读、Google 账号登录。它的 `--resume` 只接受 `latest` 或序号，不接受会话 ID，需要每个对话用单独的工作目录，要实测。
+## 19. 多 CLI 抽象层（R70，方案待确认）
+
+**结论**：保留 `backend.Backend`/`Conversation` 作为对话插件的唯一接口，下面拆出共用的"Agent 运行层"和每家的"适配器"；适配器里加一个 **ACP（Agent Client Protocol）通用适配器**。本机 Gemini CLI 0.34 原生支持 `--acp`；Claude Code、Codex 没有内置，可通过 Zed 的 `claude-code-acp`、`codex-acp` 适配器接入（未在本机验证）。
+
+```
+对话插件（不变）
+   │  backend.Backend / Conversation（事件扩充：工具步骤、授权请求、用量）
+   ▼
+Agent 运行层（新，共用）
+   ├─ 进程管理：Job Object、用到才启动、闲置 3 分钟释放（R59）、最多 N 个、崩溃重启、版本门槛、退回每轮一个进程
+   ├─ 隔离：独立工作目录，屏蔽用户自己的配置
+   ├─ MCP 注入：golauncher 的工具（R47，含令牌）
+   ├─ 会话对应：对话 ID ↔ CLI 会话 ID（持久）
+   ├─ 授权桥接：CLI 的授权请求 → 宿主确认框（§5）
+   └─ 错误分类：没安装、没登录、额度用完、其他
+   ▼
+适配器（每家一个）
+   ├─ Claude 原生（现有 stream-json，§6.1、§15、§16）
+   ├─ ACP 通用：initialize、session/new（带 mcpServers）、session/prompt、session/update、
+   │   session/request_permission（接确认框）、session/cancel、session/load（可选能力）
+   │   └─ 只需"命令 + 参数"：Gemini `gemini --acp`；Codex/Claude 也可经 Zed 适配器
+   └─ Codex 原生（按需）：`codex exec --json` / `app-server`
+```
+
+**分期**：
+1. 抽出运行层，Claude 改造成第一个适配器（行为不变，现有测试兜底），设置里加"后端"选择；
+2. ACP 通用适配器，先接 Gemini，并支持"自定义 Agent"（名称、命令、参数）；
+3. Codex：实测后在原生接法和 ACP 之间二选一。
+
+Antigravity 的"连接到 Antigravity"（`--add-mcp`）和"在 Antigravity 中继续"（`antigravity chat`）与此独立，可以并行做。
+
+**风险**：ACP 和各家 CLI 都在快速变化，要锁定验证过的版本、只用协议核心；会话续接是可选能力；用 Zed 适配器需要 Node。
