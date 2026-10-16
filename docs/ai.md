@@ -495,3 +495,25 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
   - 原来的"窗口隐藏 10 分钟"规则保留：它还会把不再显示的对话从内存里移走。
 - **没做的**：关闭对话后 2 分钟释放、启动器内的对话改用 HTTP 方式的 MCP（不再启动桥进程）。所以对话进行中，仍然是一个 `claude.exe` 加一个桥。
 - **测试**：`TestChatIdleRelease` 验证窗口显示时，对话闲置后会释放进程，下一条消息后又会重新计时。
+## 18. 接入 ChatGPT 和 Antigravity（R69，调研结论）
+
+按本机安装的版本（Codex CLI 0.46、Gemini CLI 0.34、Antigravity 1.107）的 `--help` 核对：
+
+| | Claude（已做） | ChatGPT | Antigravity |
+|---|---|---|---|
+| 官方 CLI（用订阅） | Claude Code | Codex CLI（ChatGPT 账号登录） | 没有无界面的对话 CLI；`antigravity chat` 只在 IDE 窗口里开对话 |
+| 无界面、流式 | `claude -p --output-format stream-json` | `codex exec --json` | — |
+| 常驻多轮 | stream-json 双向 | `codex app-server`（实验性的 JSON-RPC，VS Code 插件用的就是它） | — |
+| 续聊 | `--resume <id>` | `codex exec resume <id>` | — |
+| MCP | `--mcp-config` | `-c mcp_servers.golauncher.*` | `antigravity --add-mcp`：Antigravity 作为客户端使用 golauncher（同 Claude 桌面版） |
+| 只读 | `--tools ""` | `--sandbox read-only` | — |
+
+- **复用**：工具层、MCP、确认框、活动记录、对话视图、会话存储都不变；`plugins/ai` 的 `backend.Backend` 接口本来就是为多后端设计的（§6），每家写一个后端，设置里选。
+- **差异**：
+  - 事件格式各写一个解析器，并锁定已验证的版本范围；
+  - 隔离用户配置要逐家实测（Codex 的登录文件和 `config.toml` 在同一个 `CODEX_HOME`）；
+  - Codex 第一版可以每轮一个进程（`exec` 加 `resume`），之后再评估 `app-server`。
+- **Antigravity 的做法**：
+  - 设置里加"连接到 Antigravity"按钮（`--add-mcp`）；
+  - 加"在 Antigravity 中继续"（`antigravity chat`）；
+  - 启动器里用 Gemini 回答时，走 **Gemini CLI**：`-p`、`-o stream-json`、MCP、`--approval-mode plan` 只读、Google 账号登录。它的 `--resume` 只接受 `latest` 或序号，不接受会话 ID，需要每个对话用单独的工作目录，要实测。
