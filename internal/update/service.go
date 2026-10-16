@@ -140,6 +140,13 @@ func NewService(o Options) *Service {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
+	if o.Client != nil && o.Client.Now == nil {
+		// The rate limit's end is compared with o.Now: both must read the
+		// same clock.
+		c := *o.Client
+		c.Now = o.Now
+		o.Client = &c
+	}
 	if o.Log == nil {
 		o.Log = slog.New(slog.DiscardHandler)
 	}
