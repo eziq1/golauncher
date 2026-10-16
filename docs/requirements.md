@@ -59,3 +59,4 @@
 | R51 | 2026-10-15 | 主题方案的决定：内置主题清单同意；透明度只让背景变透，整窗半透明放高级选项；外观单独成一页；第一、二期一起做 | [themes.md §12](themes.md)；实现记录见 [themes.md §13](themes.md)，主题编写指南见 §14 | ✅ 已合并 |
 | R52 | 2026-10-16 | 增加插件：进程管理（搜索进程、结束进程、查看各项资源占用，其他功能自行设计）；先写设计方案给我 review | [process-manager.md](process-manager.md) | 📝 设计中（子代理） |
 | R53 | 2026-10-16 | 把当前分支发布一个版本，在 GitHub 上创建 release | [release.md §8](release.md)：发布 v0.4.0（自 v0.3.0 以来的 R38–R51） | 🚧 发布中 |
+| R54 | 2026-10-16 | 增加自动升级：自动连接 GitHub 检测新版本，有的话直接下载并升级（启动 agent） | [auto-update.md](auto-update.md)：定期查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 `checksums.txt` 校验 SHA-256，复用自安装（R15）的安装逻辑替换程序，在启动器空闲时重启，失败回滚 | 🚧 子代理开发中（worktree） |
