@@ -648,8 +648,34 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		c.mu.Unlock()
 		return Outcome{}, nil
 	}
+	if key == "Tab" && f.nav == nil && strings.TrimSpace(f.text) != "" {
+		// Tab with text in the root search, where the selected entry takes
+		// no arguments: the plugin.TabProvider's action (e.g. ask AI).
+		text := f.text
+		c.mu.Unlock()
+		entry, action, ok := c.eng.tabAction(ctx, text)
+		if !ok {
+			return Outcome{}, nil
+		}
+		return c.run(ctx, entry, action)
+	}
+	if key == "Escape" && f.view != nil && f.view.Escape != nil {
+		// The view takes Escape (e.g. to stop an answer being written).
+		entry, action := Entry{Plugin: f.nav.Plugin}, *f.view.Escape
+		c.mu.Unlock()
+		return c.run(ctx, entry, action)
+	}
 	n := countItems(c.visible(f))
-	switch key {
+	nav := key
+	if f.view != nil && f.view.Kind == plugin.ViewDetail {
+		// A detail view lists no rows: these keys are free for its actions
+		// (Ctrl+N for "New Chat").
+		switch key {
+		case "Down", "Up", "Ctrl+N", "Ctrl+P":
+			nav = ""
+		}
+	}
+	switch nav {
 	case "Down", "Ctrl+N":
 		if n > 0 {
 			c.setSel(f, (f.sel+1)%n)
@@ -825,6 +851,11 @@ func (c *Controller) OpenCommand(ctx context.Context, pluginID, name string) (Ou
 // run executes an action, first collecting the entry's arguments and asking
 // for confirmation if it is destructive.
 func (c *Controller) run(ctx context.Context, entry Entry, action plugin.Action) (Outcome, error) {
+	if k := action.Do.Kind; (k == plugin.ActionCallback || k == plugin.ActionRunCommand) && action.Do.Query == "" {
+		c.mu.Lock()
+		action.Do.Query = c.top().text
+		c.mu.Unlock()
+	}
 	if len(entry.Arguments) > 0 {
 		c.mu.Lock()
 		f := c.top()
@@ -877,6 +908,13 @@ func (c *Controller) execFrom(ctx context.Context, entry Entry, action plugin.Ac
 		out.Hide, out.Push, out.PopToRoot, out.Refresh = false, nil, false, false
 		return out, nil
 	}
+	if out.ClearText {
+		c.mu.Lock()
+		if f := c.top(); f.form == nil {
+			f.text, f.sel, f.selKey, f.moved = "", 0, "", false
+		}
+		c.mu.Unlock()
+	}
 	switch {
 	case out.Push != nil:
 		nav := *out.Push
@@ -892,7 +930,7 @@ func (c *Controller) execFrom(ctx context.Context, entry Entry, action plugin.Ac
 		c.mu.Unlock()
 		c.closed(navs)
 		c.refresh(ctx)
-	case out.Refresh:
+	case out.Refresh, out.ClearText:
 		c.refresh(ctx)
 	}
 	return out, nil
@@ -942,8 +980,11 @@ func (c *Controller) ClearToast() {
 // Snapshot is everything a front end needs to render the launcher.
 type Snapshot struct {
 	// Depth is 0 for the root search and grows with each pushed view.
-	Depth       int       `json:"depth"`
-	Title       string    `json:"title,omitempty"`
+	Depth int    `json:"depth"`
+	Title string `json:"title,omitempty"`
+	// Layout is "detail" for a plugin.ViewDetail, shown across the window
+	// instead of the list; "" otherwise (a form has Form).
+	Layout      string    `json:"layout,omitempty"`
 	Placeholder string    `json:"placeholder"`
 	Text        string    `json:"text"`
 	Loading     bool      `json:"loading,omitzero"`
@@ -1036,6 +1077,10 @@ func (c *Controller) Snapshot() Snapshot {
 		s.ShowDetail = f.view.ShowDetail
 		s.EmptyText = cmp.Or(f.view.EmptyText, s.EmptyText)
 		s.Detail = f.view.Detail
+		if f.view.Kind == plugin.ViewDetail {
+			s.Layout = string(plugin.ViewDetail)
+			s.ShowDetail = false
+		}
 	}
 	if f.form != nil {
 		s.Form = f.form.snapshot(f.view.Form.Submit.Title)

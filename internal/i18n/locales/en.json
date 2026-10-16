@@ -7,6 +7,7 @@
   "section.recent": "Recent",
   "section.commands": "Commands",
   "section.context": "In {{.name}}",
+  "section.fallback": "Fallback Commands",
   "accessory.command": "Command",
   "action.openCommand": "Open Command",
   "toast.copied": "Copied to clipboard",
@@ -49,7 +50,7 @@
   "settings.nav.about": "About",
   "settings.general.hotkey": "Launcher hotkey",
   "settings.general.hotkey.desc": "Shows and hides the launcher from anywhere.",
-  "settings.general.hotkeyFailed": "{{.hotkey}} could not be registered; another app may be using it. Record another shortcut, such as Ctrl+Space or Alt+Shift+Space.",
+  "settings.general.hotkeyFailed": "{{.hotkey}} could not be registered; another app may be using it (the ChatGPT app and PowerToys Run use Alt+Space too). Record another shortcut, such as Ctrl+Space or Alt+Shift+Space.",
   "settings.general.launchAtLogin": "Launch at login",
   "settings.general.theme": "Theme",
   "settings.general.hideOnBlur": "Hide when focus is lost",
@@ -251,5 +252,5 @@
   "notify.configRecovered.title": "Settings were reset",
   "notify.configRecovered.body": "Your settings file could not be read, so the defaults are in use. The old file was kept as {{.path}}.",
   "notify.hotkeyFailed.title": "Hotkey unavailable",
-  "notify.hotkeyFailed.body": "{{.hotkey}} is used by another app. Choose another shortcut in Settings, such as Ctrl+Space or Alt+Shift+Space."
+  "notify.hotkeyFailed.body": "{{.hotkey}} is used by another app, such as the ChatGPT app or PowerToys Run. Choose another shortcut in Settings, such as Ctrl+Space or Alt+Shift+Space."
 }

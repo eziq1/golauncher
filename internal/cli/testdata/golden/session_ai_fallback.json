@@ -1,0 +1,42 @@
+{
+  "step": "type \"zzqx ask something\"",
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "zzqx ask something",
+    "sections": [
+      {
+        "title": "Fallback Commands",
+        "items": [
+          {
+            "id": "ask",
+            "title": "Ask AI: zzqx ask something",
+            "subtitle": "Claude Code",
+            "icon": {
+              "name": "sparkles"
+            },
+            "group": "Fallback Commands",
+            "actions": [
+              {
+                "id": "ask",
+                "title": "Ask AI",
+                "do": {
+                  "kind": "Push",
+                  "target": "chat",
+                  "payload": {
+                    "text": "zzqx ask something"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/ask",
+            "fallback": true
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results"
+  }
+}

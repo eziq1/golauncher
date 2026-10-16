@@ -60,6 +60,14 @@
     `port host:443` checks whether a port can be reached; `wifi` copies the
     password of a saved network; `tracert <host>`, Flush DNS Cache and
     Renew IP Address run in the background.
+  - **AI Chat** (off until you turn it on): press `Tab` after typing a
+    question, or pick *Ask AI* when nothing matches, to chat with Claude
+    through your installed [Claude Code](https://claude.com/product/claude-code)
+    CLI and your Claude subscription (no API key). Answers stream in; ask
+    follow-ups, stop with `Esc`, copy or paste the answer, continue in the
+    Claude or ChatGPT app, and reopen chats from *AI Chat History* (kept 30
+    days by default). Claude gets no tools on your computer; web search is
+    an option.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
   the theme and the language.
 - **English and Simplified Chinese UI**: golauncher follows the Windows

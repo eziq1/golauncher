@@ -4,15 +4,19 @@ package builtin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/ai/claudecode"
 	"github.com/eziq1/golauncher/internal/extproc"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/ai"
+	"github.com/eziq1/golauncher/plugins/ai/backend"
 	"github.com/eziq1/golauncher/plugins/apps"
 	"github.com/eziq1/golauncher/plugins/calc"
 	"github.com/eziq1/golauncher/plugins/clipboard"
@@ -49,6 +53,7 @@ func All() []plugin.Plugin {
 		system.New(),
 		terminal.New(),
 		network.New(),
+		ai.New(claudecode.New(claudecode.Options{})),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
 }
@@ -106,6 +111,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 		network.NewFake(fixture(dir, "network.json")),
+		fakeAI(),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
 	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)
@@ -158,6 +164,15 @@ func fakeWhich(name string) string {
 		return `C:\Program Files\Microsoft VS Code\Code.exe`
 	}
 	return ""
+}
+
+// fakeAI is the AI chat with a fake backend that answers "You asked: …" at
+// once (AI is off until a session turns it on, as for a new user); it never
+// runs Claude Code. Links go to the websites (no Claude app).
+func fakeAI() *ai.Plugin {
+	n := 0
+	return ai.NewWithOptions(ai.Options{Backend: &backend.Fake{}, Sync: true, HasProtocol: func(string) bool { return false },
+		NewID: func() string { n++; return fmt.Sprintf("00000000-0000-4000-8000-%012d", n) }})
 }
 
 // noOpen stands in for opening files in fake mode.

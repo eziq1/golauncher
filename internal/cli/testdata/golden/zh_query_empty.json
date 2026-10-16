@@ -6,6 +6,81 @@
       "title": "命令",
       "items": [
         {
+          "id": "cmd:chat",
+          "title": "AI 对话",
+          "subtitle": "AI",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "AI",
+            "Claude",
+            "对话",
+            "提问",
+            "助手",
+            "dh",
+            "tw",
+            "zs",
+            "ai",
+            "chat",
+            "ask",
+            "AI Chat",
+            "claude",
+            "assistant",
+            "gpt"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "chat"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:chat"
+        },
+        {
+          "id": "cmd:history",
+          "title": "AI 对话历史",
+          "subtitle": "AI",
+          "icon": {
+            "name": "history"
+          },
+          "keywords": [
+            "AI",
+            "Claude",
+            "对话历史",
+            "历史记录",
+            "dhls",
+            "lsjl",
+            "ai",
+            "history",
+            "AI Chat History",
+            "claude",
+            "chats",
+            "conversations"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:history"
+        },
+        {
           "id": "cmd:dns",
           "title": "DNS 查询",
           "subtitle": "网络工具",

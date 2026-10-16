@@ -1,6 +1,6 @@
 # 接入大模型设计方案
 
-> 状态：设计 v1 · 已确认第二期先做（§14）· 2026-10-15 · 对应需求 R42、R43、R44（见 [requirements.md](requirements.md)）
+> 状态：设计 v1 · 第二期已实现（待合并，§15）· 2026-10-15 · 对应需求 R42、R43、R44、R45（见 [requirements.md](requirements.md)）
 >
 > v0 是功能清单（§1、§2 保留）；v1 补上了架构、工具层、MCP 服务器、会话、界面、安全、测试和分期。CLI 参数都按本机安装的 Claude Code 和 Codex CLI 的 `--help` 核对过，实现前还要用真实进程验证一遍（§10）。
 
@@ -279,3 +279,100 @@ API Key 存进 Windows 凭据管理器（`password` 偏好），不写进 `confi
 | 在 Claude 应用或 ChatGPT 中继续（§6.3） | |
 | 热键注册失败的提示（§8） | |
 | 实现前用真实 CLI 验证 §10 里的 1、3、5 三项（2、4 和工具有关，留给 MCP 那期） | |
+
+## 15. 实现记录（第二期，2026-10-15，R45）
+
+### 15.1 实测验证（§10 的 1、3、5）
+
+用本机的 Claude Code 2.1.296 跑了几次极短的提问（"Reply with OK" 这一类），只记结论；下面的事件都是虚构的示例值。
+
+1. **stream-json 双向对话**：一个进程里可以连续多轮。
+   - 输入每行一个 JSON：`{"type":"user","message":{"role":"user","content":"…"}}`。
+   - `-p` 加 `--output-format stream-json` **必须同时加 `--verbose`**，否则 CLI 直接报错退出。
+   - 每一轮都会先输出一行 `{"type":"system","subtype":"init","session_id":"…","model":"claude-sonnet-5-5","tools":[],"mcp_servers":[],"claude_code_version":"2.1.296",…}`（不是只在启动时输出一次），然后是 `system/status`、`rate_limit_event`。
+   - 增量文本：`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hel"}},…}`；只有 `text_delta` 是回答，其他 delta（思考等）要忽略；工具调用是 `content_block_start` 里 `content_block.type=="tool_use"`。
+   - 完整消息 `{"type":"assistant","message":{"id":"msg_…","content":[{"type":"text","text":"Hello"}],…}}` 和增量重复，`message.id` 与 `message_start` 的相同，按它去重。
+   - 一轮的结尾：`{"type":"result","subtype":"success","is_error":false,"result":"Hello","session_id":"…","usage":{"input_tokens":…,"cache_creation_input_tokens":…,"cache_read_input_tokens":…,"output_tokens":…},"modelUsage":{…},…}`。
+   - **停止回答**：写入 `{"type":"control_request","request_id":"r1","request":{"subtype":"interrupt"}}`，CLI 回 `control_response`，这一轮以 `subtype:"error_during_execution"`、`is_error:true`、`terminal_reason:"aborted_streaming"` 的 result 结束；进程不退出，可以接着问。
+   - **跨进程 `--resume <id>`**：新进程能接上之前的上下文。`--resume` 一个不存在的会话：result 里 `errors:["No conversation found with session ID: …"]`，进程退出码 1。
+   - 错误的形状：模型不存在时有一条合成的 assistant 消息（`"error":"model_not_found"`，model 为 `<synthetic>`），result 为 `is_error:true` 加原文。没登录、额度用完无法在本机复现，按同样的形状（`authentication_failed`、`rate_limit`/`billing_error` 和原文里的关键字）识别。
+   - 单轮模式（退路）：同样的参数去掉 `--input-format`，问题从标准输入写入后关闭，输出同样的事件流，结束后进程退出。
+   - 以 `/` 开头的消息会被当作斜杠命令（回答"/x isn't available in this environment"）；**在前面加一个空格**就按普通问题处理。
+2. **隔离（§10 第 3 项）**：只加 `--setting-sources ""` **不够**。
+   - 它确实不加载用户、项目设置（包括设置里的钩子、`env`、启用的插件），也不读项目里的 CLAUDE.md（在工作目录放了一个带"暗号"的 CLAUDE.md，回答里没有出现；调试日志显示"project memory is off"）。
+   - 但 `init` 里仍有用户目录下的技能（skills）和斜杠命令，**自动记忆（auto memory）也是开着的**（给出了记忆目录）。
+   - 加上 **`--safe-mode`** 后：已安装的插件和它们的钩子不加载、不扫描技能目录、自动记忆关闭、claude.ai 的连接器（MCP）关闭；再加 **`--disable-slash-commands`**，技能和斜杠命令都是 0 个。
+   - **OAuth 订阅登录在这些参数下照常可用**（`apiKeySource:"none"`，正常回答）。`--bare` 不能用（它只认 API Key），这一点不变。
+   - 本机没有用户级的 `~/.claude/CLAUDE.md`，没法直接验证它；`--safe-mode` 的说明里写明会关闭 CLAUDE.md，`--setting-sources ""` 也不含 user 来源，所以两者一起使用。
+   - `--tools WebSearch,WebFetch` 加 `--allowedTools WebSearch,WebFetch` 和 `--permission-prompts none`：联网工具直接可用，不弹任何授权；其他需要授权的操作一律自动拒绝。
+3. **`claude://` 预填（§10 第 5 项）**：**没有在屏幕上打开**，只检查了注册和应用包。
+   - 协议由 Claude 桌面版（MSIX 包）注册，`HKCR\claude` 带 `URL Protocol`，命令行是 `Claude.exe "%1"`。
+   - 应用里有 `claude://claude.ai/new?q=…` 的处理：把窗口导航到 `https://claude.ai/new?q=…`（q 截到 14336 个字符）；只接受白名单里的参数；**q 以 `/` 开头的链接会被拒绝**。
+   - 结论：装了桌面版时用 `claude://claude.ai/new?q=…`，否则（以及问题以 `/` 开头时）用 `https://claude.ai/new?q=…`。是否真的预填进输入框、是否自动发送，**未经目视确认**。ChatGPT 用 `https://chatgpt.com/?q=…`，同样未目视确认。
+
+### 15.2 实际的命令行
+
+```
+claude -p --input-format stream-json --output-format stream-json --include-partial-messages --verbose
+       --session-id <uuid> | --resume <uuid>
+       --setting-sources "" --safe-mode --strict-mcp-config --disable-slash-commands
+       --tools ""   （或 --tools WebSearch,WebFetch --allowedTools WebSearch,WebFetch）
+       --permission-prompts none
+       --append-system-prompt <启动器的说明>  [--model <模型>]
+```
+
+工作目录 `%LOCALAPPDATA%\golauncher\ai\`；去掉环境变量 `CLAUDECODE`、`CLAUDE_CODE_ENTRYPOINT`、`CLAUDE_CODE_SSE_PORT`（从 Claude Code 里启动 golauncher 时会带上）。和 §6.1 相比：多了 `--verbose`、`--safe-mode`、`--disable-slash-commands`、`--permission-prompts none`，没有 `--mcp-config`（第二期不挂 MCP）。
+
+### 15.3 结构
+
+| 部分 | 位置 | 说明 |
+|------|------|------|
+| 后端契约 | `plugins/ai/backend` | `Backend`、`Conversation`（`Send` 返回这一轮的事件通道、`Cancel`、`Release`、`Close`）、`Event`、带种类的 `Error`；`Fake` 供测试和 glctl 使用 |
+| Claude Code 后端 | `internal/ai/claudecode` | 进程、stream-json 解析、版本检查、退路、进程数上限；插件不能 import 内部包，由 `internal/builtin` 注入 |
+| 进程 | `internal/winapi/proc` | 新增 `StdinPipe` 和单独的 `Stderr`，仍然放进 Job Object、不弹控制台窗口 |
+| 插件 | `plugins/ai` | 命令、对话视图、会话存储、历史、交给应用继续 |
+| 宿主的通用机制 | `pkg/plugin`、`internal/core`、`internal/ui` | 见 15.4 |
+| 协议检测 | `internal/winapi/shell.ProtocolRegistered` | 判断有没有装 Claude 桌面版 |
+
+- **生命周期**：第一次发送时才启动进程；窗口隐藏 10 分钟后 `Release`（关掉进程，下次发送用 `--resume` 重启）；同时最多 2 个常驻进程，超出时释放最久没用的空闲对话，正在回答的不动。
+- **版本**：低于 2.1.0 报"版本太旧"；主版本不是 2 时照常可用，但标为"未验证的版本"，直接用单轮模式。
+- **退路**：常驻进程第一轮就退出、或输出不是 JSON 时，这个对话改用单轮模式并重试这一轮；`--resume` 找不到会话时用同一个 ID 新开；`--session-id` 已被占用时改用 `--resume`。
+- **出错提示**：没安装（说明安装和登录）、没登录（提示在终端运行 `claude` 登录）、额度用完（附 CLI 原文）、其他（附 CLI 原文和 stderr 末尾）。
+- **会话**：插件存储里有会话列表（ID、标题取第一句、创建和最后使用时间、消息数）和每个对话的消息；不解析 CLI 的会话文件。打开插件、打开历史时删除超过保留期（默认 30 天，可选 7/30/90/365 天）的对话。删除对话只删我们的记录，CLI 自己的会话文件不动（它的格式是内部的）。
+- **系统提示**（`--append-system-prompt`）：说明身份（golauncher 里的助手）、用界面语言回答、简洁、用 Markdown、不能访问本机；允许联网时加一句可以搜索网页。这是给模型看的，不翻译。
+- **日志**：只记长度、耗时和错误种类，不记消息内容（§9）。
+
+### 15.4 通用机制（不是 AI 专用）
+
+- **`plugin.FallbackProvider`**：根搜索没有结果、或最好的匹配分（不含使用频率和加成）低于 `core.FallbackThreshold`（0.5）时，宿主才调用它，把条目放在最后的"备选命令"分组；这些条目不记入"最近使用"。AI 插件用它提供"问 AI：<文字>"，偏好项可以关掉。
+- **`plugin.TabProvider`**：根搜索里有文字时按 `Tab`，如果选中的条目有参数，`Tab` 照旧进入参数（M5 的命令参数）；否则运行第一个启用插件给出的 Tab 动作。AI 插件始终给出"打开新对话并发送这段文字"；AI 没打开时先显示打开提示，打开后自动发送。
+- **全窗口的 `ViewDetail`**：Markdown 占满整个窗口，内容增长时跟随到底（用户往上滚时不跟随）；视图的第一个条目不显示，只提供动作；搜索框就是输入框，回调的 `ActionDo.Query` 带着输入的文字，`Result.ClearText` 清空它。这种视图里 `Up`/`Down`、`Ctrl+N`/`Ctrl+P` 不移动选中项，所以 `Ctrl+N` 可以给"新对话"用。
+- **`View.Escape`**：视图可以接管 `Esc`。AI 对话只在回答进行中设置"停止"，所以第一次 `Esc` 停止回答，第二次返回。
+- **`Result.Preferences`**：插件设置自己的偏好项（不能设置密码类），首次使用提示里的"打开 AI"按钮就是这样把总开关打开的。
+- 这些机制暂时只对进程内插件可用，外部插件协议还没有对应的消息。
+
+### 15.5 界面
+
+- 对话视图：显示"你"和"Claude"的消息，回答流式显示（末尾有光标），工具步骤显示成一行（"搜索了网页"）；底部一行显示后端、模型和上一次回答的用量。
+- 动作：发送（Enter）、停止（回答中；Esc）、复制回答（`Ctrl+Shift+C`）、粘贴回答到前一个窗口（`Ctrl+Shift+V`）、在 Claude 中继续、在 ChatGPT 中继续、新对话（`Ctrl+N`）、AI 对话历史、复制会话 ID。
+- 交给应用继续：只带当前问题（输入框里的文字，没有就用最后一个问题）；链接超过 8000 个字符（Claude 桌面版超过 14000 个字符）时，把问题复制到剪贴板、打开空白对话，并用通知提示粘贴。
+- 设置 › 插件 › AI：使用 AI（总开关，默认关）、模型（默认、Sonnet、Opus、Haiku）、允许联网搜索（默认关）、对话保留时间（默认 30 天）、没有匹配结果时显示"问 AI"（默认开）。
+- 热键冲突：注册失败时的通知和设置页提示原来就有（会打开设置的热键项），这次在文字里点明 ChatGPT 应用和 PowerToys Run 也用 Alt+Space。
+
+### 15.6 测试
+
+- `internal/ai/claudecode`：测试时用 Go 编译一个假的 `claude`（`testdata/fakeclaude`），按脚本输出 stream-json。覆盖多轮同进程、精确的命令行参数（并确认没有 `--bare`、`--continue` 和任何绕过授权的参数）、Release 后 `--resume`、常驻和单轮模式的停止、闲置释放、回答中崩溃后重启、最多 2 个进程、版本检查、没安装、错误种类、乱码输出和启动即崩溃时退回单轮模式、会话丢失和会话被占用的重试、开头的 `/`。真实 CLI 的测试只在 `GOLAUNCHER_AI_TESTS=1` 时运行（实现完成后跑过一次：三轮对话加跨进程恢复，通过）。
+- `plugins/ai`：会话存储和保留期清理、恢复会话、历史的删除和清空、首次使用提示和打开、出错说明、窗口隐藏后释放、交给应用的链接和剪贴板退路。
+- `internal/core`：备选条目（阈值、分组、不记入最近使用）、Tab（无文字不动作、有参数的条目照旧进参数、否则运行 Tab 动作）、全窗口详情视图的输入和清空、`View.Escape` 两段行为、`Result.Preferences`。
+- `internal/ui`（`ui.NewTester`）：流式更新、`Esc` 先停止再关闭、Tab 进入、"问 AI"条目、AI 关闭时的提示、追问和复制回答。
+- `glctl` 金样：`session_ai_off`、`session_ai_chat`、`session_ai_fallback`、`session_ai_history`、`zh_session_ai_off`（假后端，回答"You asked: …"，会话 ID 按顺序编号，结果可复现）。
+
+### 15.7 和设计不同的地方、遗留问题
+
+- 隔离参数比 §6.1 多（见 15.1、15.2）；第二期不挂 MCP，也就没有 `--mcp-config` 和 `--permission-prompts host`。
+- "设置 › AI"就是插件页（设置 › 插件 › AI），由偏好项自动生成，没有单独的页面。
+- 没有做"Claude Code 路径"偏好项（后端支持 `Options.Path`，目前自动查找 PATH、`%USERPROFILE%\.local\bin\claude.exe`、`%APPDATA%\npm\claude.cmd`）。
+- 用 npm 装的 `claude.cmd` 要经过 cmd.exe，系统提示里的换行会换成空格，`%VAR%` 这样的文字可能被展开；原生安装的 `claude.exe` 不受影响。
+- 没登录和额度用完的错误格式没有在本机复现，是按关键字识别的；"会话已被占用"的原文也是宽松匹配。
+- `claude://` 和 ChatGPT 链接的预填效果没有目视确认（15.1 第 3 项）。
+- 删除对话不会删除 CLI 自己保存的会话文件。

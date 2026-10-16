@@ -30,13 +30,19 @@ type Options struct {
 	Env []string
 	// Output receives stdout and stderr (nil discards them).
 	Output io.Writer
+	// Stderr receives stderr instead of Output when set.
+	Stderr io.Writer
+	// StdinPipe connects the program's standard input to a pipe the caller
+	// writes through Process.Stdin; otherwise it reads nothing.
+	StdinPipe bool
 	// WaitDelay overrides DefaultWaitDelay.
 	WaitDelay time.Duration
 }
 
 // Process is a started program.
 type Process struct {
-	cmd *exec.Cmd
+	cmd   *exec.Cmd
+	stdin io.WriteCloser
 
 	mu    sync.Mutex
 	group *group
@@ -65,18 +71,33 @@ func Start(o Options) (*Process, error) {
 		out = io.Discard
 	}
 	cmd.Stdout, cmd.Stderr = out, out
+	if o.Stderr != nil {
+		cmd.Stderr = o.Stderr
+	}
 	cmd.WaitDelay = o.WaitDelay
 	if cmd.WaitDelay == 0 {
 		cmd.WaitDelay = DefaultWaitDelay
 	}
+	var stdin io.WriteCloser
+	if o.StdinPipe {
+		var err error
+		if stdin, err = cmd.StdinPipe(); err != nil {
+			return nil, err
+		}
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &Process{cmd: cmd, group: newGroup(cmd.Process.Pid)}, nil
+	return &Process{cmd: cmd, stdin: stdin, group: newGroup(cmd.Process.Pid)}, nil
 }
 
 // Pid returns the process ID.
 func (p *Process) Pid() int { return p.cmd.Process.Pid }
+
+// Stdin returns the pipe to the program's standard input, nil unless
+// Options.StdinPipe was set. Closing it signals end of input; Wait closes it
+// after the program ended.
+func (p *Process) Stdin() io.WriteCloser { return p.stdin }
 
 // Wait waits for the program to end and returns its exit code. A non-zero
 // exit code is not an error; err reports that waiting failed.

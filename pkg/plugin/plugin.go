@@ -68,6 +68,25 @@ type PreferenceOptionsProvider interface {
 	PreferenceOptions(ctx context.Context, name string) ([]Option, error)
 }
 
+// FallbackProvider offers items that act on the search text itself, such as
+// "Ask AI: <text>" or "Search the web for <text>". The host asks for them
+// only when the root search found nothing good — no results, or none
+// matching the text well (see core's fallback threshold) — and lists them
+// last, under their own heading. They are never recorded as recently used,
+// so the action must carry the text itself (Payload).
+type FallbackProvider interface {
+	FallbackItems(ctx context.Context, q Query) ([]Item, error)
+}
+
+// TabProvider takes the Tab key in the root search: when the user pressed
+// Tab with some text typed and the selected entry takes no arguments (Tab
+// fills in arguments then), the host runs the action of the first enabled
+// plugin whose TabAction answers ok, e.g. opening an AI chat with the text.
+// It is called on the key press and must be fast.
+type TabProvider interface {
+	TabAction(q Query) (Action, bool)
+}
+
 // Query is the search text typed by the user.
 type Query struct {
 	Text string `json:"text"`
