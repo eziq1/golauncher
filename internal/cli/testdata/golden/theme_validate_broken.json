@@ -1,0 +1,12 @@
+{
+  "file": "testdata/themes/broken.json",
+  "id": "broken",
+  "ok": false,
+  "errors": [
+    "extends: no theme \"midnight-blue\""
+  ],
+  "warnings": [
+    "unknown field \"colours\""
+  ],
+  "contrast": []
+}

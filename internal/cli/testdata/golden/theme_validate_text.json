@@ -1,0 +1,8 @@
+warning: color "warning": invalid color "rgba(300, 0, 0)": 300 is not within 0–255; keeping the base theme's
+warning: opacity 1.5: want 0 to 1
+contrast text/background               2.65:1  min 4.5:1  LOW (over black)
+contrast searchText/background         2.65:1  min 4.5:1  LOW (over black)
+contrast textMuted/background          5.24:1  min 3.0:1  ok (over black)
+contrast accentText/accent             1.40:1  min 4.5:1  LOW (over white)
+contrast rowSelectedText/rowSelected   1.37:1  min 4.5:1  LOW (over white)
+testdata/themes/faint.json: 0 errors, 2 warnings

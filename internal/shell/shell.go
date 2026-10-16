@@ -23,6 +23,7 @@ import (
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/control"
 	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/internal/ui"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
@@ -121,6 +122,14 @@ type Shell struct {
 	// showed, which Paste pastes into.
 	prevForeground atomic.Uintptr
 	stopClip       func()
+
+	// The appearance applied to the windows last (main thread only).
+	source        mygo.ThemeSource
+	material      theme.Material
+	windowOpacity float64
+	// previewing is set while the launcher shows beside the settings as
+	// a preview of the appearance (previewLauncher).
+	previewing bool
 }
 
 // Run runs golauncher until it quits. A second instance hands its arguments
@@ -175,7 +184,14 @@ func Run(o Options) error {
 	setLevel(level, cfg.LogLevel)
 	log.Info("starting", "version", o.Version, "config", s.env.Config.Path())
 	s.loc = s.env.I18n.Localizer(i18n.CoreNamespace)
-	mygo.Theme.SetSource(themeSource(cfg.Theme))
+	// Before the windows exist, the appearance of the theme the
+	// configuration fixes, if any; ready applies the rest.
+	if a := cfg.Appearance; !a.FollowSystem {
+		if t, ok := s.env.Themes.Library().Get(a.Theme); ok {
+			s.source = themeSource(t.Dark)
+			mygo.Theme.SetSource(s.source)
+		}
+	}
 
 	s.work = ui.NewDispatcher(ctx, log)
 	s.launcher = ui.NewLauncher(s.env, launcherHost{s}, s.work)
@@ -244,6 +260,7 @@ func (s *Shell) ready(action string) {
 		s.post(s.localeChanged)
 		s.work.Do(func(ctx context.Context) { s.env.Controller.Refresh(ctx) })
 	})
+	s.watchAppearance()
 
 	if stop, err := clip.Watch(func() { s.env.Services.Bus.Publish(plugin.EventClipboardChanged) }); err != nil {
 		s.log.Error("clipboard watcher", "err", err)
@@ -326,6 +343,7 @@ func (s *Shell) showLauncherThen(then func()) {
 	if s.panel == nil {
 		return
 	}
+	s.previewing = false
 	if !s.panel.IsVisible() {
 		fg := clip.ForegroundWindow()
 		s.prevForeground.Store(fg)
@@ -384,6 +402,9 @@ func (s *Shell) showSettings(page string) {
 			e.PreventDefault()
 			s.settings.ShowPage(ui.PageGeneral) // also stops recording a hotkey
 			s.settingsWin.Hide()
+			if s.previewing {
+				s.hideLauncher()
+			}
 		})
 	}
 	if !s.settingsWin.IsVisible() || page != ui.PageGeneral {
@@ -396,7 +417,7 @@ func (s *Shell) showSettings(page string) {
 
 // configChanged applies a new configuration. Main thread only.
 func (s *Shell) configChanged(c config.Config) {
-	mygo.Theme.SetSource(themeSource(c.Theme))
+	s.applyAppearance()
 	s.syncLoginItem(c)
 	s.registerHotkeys()
 	s.panel.Invalidate()
@@ -422,16 +443,6 @@ func (s *Shell) syncLoginItem(c config.Config) {
 	if err := mygo.App.SetOpenAtLogin(c.LaunchAtLogin); err != nil {
 		s.log.Error("launch at login", "err", err)
 	}
-}
-
-func themeSource(theme string) mygo.ThemeSource {
-	switch theme {
-	case "light":
-		return mygo.ThemeLight
-	case "dark":
-		return mygo.ThemeDark
-	}
-	return mygo.ThemeSystem
 }
 
 // accelerator turns a shortcut of the configuration into MyGo's syntax.
@@ -566,6 +577,36 @@ type launcherHost struct{ s *Shell }
 func (h launcherHost) Hide() { h.s.hideLauncher() }
 
 func (h launcherHost) OpenSettings() { h.s.post(func() { h.s.showSettings(ui.PageGeneral) }) }
+
+func (h settingsHost) PreviewLauncher() { h.s.previewLauncher() }
+
+func (h settingsHost) ChooseThemeFile(save bool, name string, done func(string, error)) {
+	s := h.s
+	filters := []mygo.FileFilter{{Name: s.loc.T("settings.appearance.themeFiles"), Extensions: []string{"json"}}}
+	if save {
+		if home, err := os.UserHomeDir(); err == nil {
+			name = filepath.Join(home, "Documents", name)
+		}
+		opts := mygo.SaveDialogOptions{Parent: s.settingsWin, Title: s.loc.T("settings.appearance.exportTitle"), DefaultPath: name, Filters: filters}
+		go func() {
+			path, err := mygo.Dialog.Save(opts)
+			if path != "" && filepath.Ext(path) == "" {
+				path += ".json"
+			}
+			h.finish(func() { done(path, err) })
+		}()
+		return
+	}
+	opts := mygo.OpenDialogOptions{Parent: s.settingsWin, Title: s.loc.T("settings.appearance.importTitle"), Filters: filters}
+	go func() {
+		paths, err := mygo.Dialog.Open(opts)
+		path := ""
+		if len(paths) > 0 {
+			path = paths[0]
+		}
+		h.finish(func() { done(path, err) })
+	}()
+}
 
 func (h launcherHost) Invalidate() {
 	if h.s.panel != nil {

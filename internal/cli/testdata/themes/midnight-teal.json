@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/eziq1/golauncher/main/docs/theme.schema.json",
+  "name": "Midnight Teal",
+  "name.zh-CN": "午夜青",
+  "author": "someone",
+  "extends": "golauncher-dark",
+  "colors": {
+    "background": "#0f1a1f",
+    "accent": "#2dd4bf",
+    "accentText": "#0f1a1f",
+    "rowSelected": "#1e3a40",
+    "rowSelectedText": "#e6f4f1"
+  },
+  "material": "acrylic",
+  "opacity": 0.65
+}

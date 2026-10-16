@@ -1,0 +1,157 @@
+[
+  {
+    "id": "golauncher-light",
+    "name": "golauncher Light",
+    "dark": false,
+    "builtin": true,
+    "source": "MyGo's default light theme (github.com/egoist/mygo)",
+    "license": "MIT"
+  },
+  {
+    "id": "golauncher-dark",
+    "name": "golauncher Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "MyGo's default dark theme (github.com/egoist/mygo)",
+    "license": "MIT"
+  },
+  {
+    "id": "raycast-light",
+    "name": "Raycast-style Light",
+    "dark": false,
+    "builtin": true,
+    "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+    "license": "MIT"
+  },
+  {
+    "id": "raycast-dark",
+    "name": "Raycast-style Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+    "license": "MIT"
+  },
+  {
+    "id": "github-light",
+    "name": "GitHub Light",
+    "dark": false,
+    "builtin": true,
+    "source": "GitHub Primer primitives, light (github.com/primer/primitives)",
+    "license": "MIT"
+  },
+  {
+    "id": "github-dark",
+    "name": "GitHub Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "GitHub Primer primitives, dark (github.com/primer/primitives)",
+    "license": "MIT"
+  },
+  {
+    "id": "nord",
+    "name": "Nord",
+    "dark": true,
+    "builtin": true,
+    "source": "Nord by Arctic Ice Studio (nordtheme.com)",
+    "license": "MIT"
+  },
+  {
+    "id": "dracula",
+    "name": "Dracula",
+    "dark": true,
+    "builtin": true,
+    "source": "Dracula by Zeno Rocha (draculatheme.com)",
+    "license": "MIT"
+  },
+  {
+    "id": "catppuccin-latte",
+    "name": "Catppuccin Latte",
+    "dark": false,
+    "builtin": true,
+    "source": "Catppuccin, Latte flavor (catppuccin.com)",
+    "license": "MIT"
+  },
+  {
+    "id": "catppuccin-mocha",
+    "name": "Catppuccin Mocha",
+    "dark": true,
+    "builtin": true,
+    "source": "Catppuccin, Mocha flavor (catppuccin.com)",
+    "license": "MIT"
+  },
+  {
+    "id": "tokyo-night",
+    "name": "Tokyo Night",
+    "dark": true,
+    "builtin": true,
+    "source": "Tokyo Night by enkia (github.com/enkia/tokyo-night-vscode-theme)",
+    "license": "MIT"
+  },
+  {
+    "id": "solarized-light",
+    "name": "Solarized Light",
+    "dark": false,
+    "builtin": true,
+    "source": "Solarized by Ethan Schoonover (ethanschoonover.com/solarized); text one step darker for contrast",
+    "license": "MIT"
+  },
+  {
+    "id": "solarized-dark",
+    "name": "Solarized Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "Solarized by Ethan Schoonover (ethanschoonover.com/solarized)",
+    "license": "MIT"
+  },
+  {
+    "id": "gruvbox-dark",
+    "name": "Gruvbox Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "Gruvbox by Pavel Pertsev (github.com/morhetz/gruvbox)",
+    "license": "MIT"
+  },
+  {
+    "id": "one-dark",
+    "name": "One Dark",
+    "dark": true,
+    "builtin": true,
+    "source": "Atom's One Dark (github.com/atom/atom, packages/one-dark-ui)",
+    "license": "MIT"
+  },
+  {
+    "id": "paper",
+    "name": "Paper",
+    "names": {
+      "zh-CN": "宣纸"
+    },
+    "dark": false,
+    "builtin": true,
+    "source": "golauncher's own: rice paper, ink and vermilion",
+    "license": "MIT"
+  },
+  {
+    "id": "high-contrast-light",
+    "name": "High Contrast Light",
+    "names": {
+      "zh-CN": "高对比度（浅色）"
+    },
+    "dark": false,
+    "highContrast": true,
+    "builtin": true,
+    "source": "golauncher's own, after the Windows contrast themes",
+    "license": "MIT"
+  },
+  {
+    "id": "high-contrast-dark",
+    "name": "High Contrast Dark",
+    "names": {
+      "zh-CN": "高对比度（深色）"
+    },
+    "dark": true,
+    "highContrast": true,
+    "builtin": true,
+    "source": "golauncher's own, after the Windows contrast themes",
+    "license": "MIT"
+  }
+]

@@ -55,8 +55,13 @@ func TestSettingsChinese(t *testing.T) {
 		t.Fatalf("locale = %q", env.I18n.Locale())
 	}
 	checkLayout(t, tt, ui.SettingsWidth, ui.SettingsHeight,
-		"通用", "插件", "高级", "关于",
-		"启动器快捷键", "在任何地方显示或隐藏启动器。", "登录时启动", "主题", "失去焦点时隐藏", "情境感知", "语言")
+		"通用", "外观", "插件", "高级", "关于",
+		"启动器快捷键", "在任何地方显示或隐藏启动器。", "登录时启动", "失去焦点时隐藏", "情境感知", "语言")
+	s.ShowPage(ui.PageAppearance)
+	tt.SetSize(ui.SettingsWidth, 2400) // the whole page, without scrolling
+	tt.Frame()
+	checkLayout(t, tt, ui.SettingsWidth, 2400, "外观", "宣纸", "高对比度（深色）", "跟随 Windows 浅色和深色模式", "浅色模式时", "深色模式时", "背景不透明度", "强调色", "恢复主题默认", "文字衬底", "导出当前主题…")
+	tt.SetSize(ui.SettingsWidth, ui.SettingsHeight)
 	for _, page := range []string{ui.PagePlugins, ui.PageAdvanced, ui.PageAbout} {
 		s.ShowPage(page)
 		tt.Frame()

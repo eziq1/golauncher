@@ -1,0 +1,44 @@
+{
+  "file": "testdata/themes/midnight-teal.json",
+  "id": "midnight-teal",
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "contrast": [
+    {
+      "pair": "text/background",
+      "ratio": 12.9,
+      "min": 4.5,
+      "ok": true,
+      "over": "white"
+    },
+    {
+      "pair": "searchText/background",
+      "ratio": 12.9,
+      "min": 4.5,
+      "ok": true,
+      "over": "white"
+    },
+    {
+      "pair": "textMuted/background",
+      "ratio": 5.53,
+      "min": 3,
+      "ok": true,
+      "over": "white"
+    },
+    {
+      "pair": "accentText/accent",
+      "ratio": 9.49,
+      "min": 4.5,
+      "ok": true,
+      "over": "white"
+    },
+    {
+      "pair": "rowSelectedText/rowSelected",
+      "ratio": 10.7,
+      "min": 4.5,
+      "ok": true,
+      "over": "white"
+    }
+  ]
+}

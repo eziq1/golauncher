@@ -127,7 +127,7 @@ golauncher/
 ```
 
 - 默认尺寸 750×475，屏幕居中略偏上，无边框、圆角、阴影，置顶，不在任务栏显示。
-- 背景优先用 Mica/Acrylic。如果 MyGo 不支持，就退化为纯色主题（跟随系统深浅色）。
+- 背景优先用 Mica/Acrylic。如果 MyGo 不支持，就退化为纯色主题（跟随系统深浅色）。颜色、材质和透明度由主题决定，见 [themes.md](themes.md)。
 - **呼出**：默认 `Alt+Space`（已确定），可在设置里修改。再按一次，或失去焦点（`OnBlur`），或按 `Esc` 回到根视图时，窗口隐藏。
 - **常驻预热**：窗口创建后只隐藏、不销毁，保证呼出延迟在 50ms 以内。
 
@@ -334,7 +334,8 @@ type Host interface {
   - `golauncher --settings`
 - **窗口**：独立的普通窗口（有标题栏，可调整大小），左侧导航 + 右侧内容（`ui.Split`）。
 - **页面**：
-  1. **通用**：呼出快捷键（录制控件）、开机自启（`SetOpenAtLogin`）、主题（系统/浅/深）、窗口位置、失焦隐藏开关、界面语言（默认"跟随系统"；第一版只有英文资源，只有一种语言时下拉框不显示）
+  1. **通用**：呼出快捷键（录制控件）、开机自启（`SetOpenAtLogin`）、窗口位置、失焦隐藏开关、界面语言（默认"跟随系统"；第一版只有英文资源，只有一种语言时下拉框不显示）
+  1. **外观**（R51，[themes.md §7](themes.md)）：主题画廊、跟随系统时的浅色/深色主题、材质和背景不透明度、强调色、圆角/密度/字号、窗口整体不透明度、自定义主题
   2. **插件**：插件列表（启用开关、版本、权限）。点进单个插件后：
      - 每个命令的别名、独立全局快捷键、是否出现在根搜索
      - 偏好项表单，由 manifest 的 `preferences` 自动生成（类型有 `text`、`password`、`number`、`bool`、`select`、`stringList`、`path`、`hotkey`）
@@ -699,6 +700,7 @@ type Localizer interface {
 | 需求台账 | [requirements.md](requirements.md) |
 | 稳定性 | [reliability.md](reliability.md) |
 | 存储与迁移 | [storage.md](storage.md) |
+| 主题 | [themes.md](themes.md) |
 | Everything | [everything.md](everything.md) |
 | 插件设置 | [plugin-settings.md](plugin-settings.md) |
 | 渲染模型 | [plugin-render-model.md](plugin-render-model.md) |

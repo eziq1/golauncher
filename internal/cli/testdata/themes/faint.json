@@ -1,0 +1,6 @@
+{
+  "name": "Faint",
+  "extends": "paper",
+  "colors": { "text": "#9a9080", "accent": "#ffd700", "accentText": "#ffffff", "warning": "rgba(300, 0, 0)" },
+  "opacity": 1.5
+}

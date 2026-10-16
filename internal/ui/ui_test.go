@@ -79,7 +79,23 @@ type fakeHost struct {
 	exportPath, importPath string
 	exportName             string // the name suggested for the export
 	exports, imports       int    // the dialogs shown
+
+	// The theme file dialogs answer with these paths ("" cancels).
+	themeSavePath, themeOpenPath string
+	themeSaveName                string
+	previews                     int // PreviewLauncher calls
 }
+
+func (h *fakeHost) ChooseThemeFile(save bool, name string, done func(string, error)) {
+	if save {
+		h.themeSaveName = name
+		done(h.themeSavePath, nil)
+		return
+	}
+	done(h.themeOpenPath, nil)
+}
+
+func (h *fakeHost) PreviewLauncher() { h.previews++ }
 
 func (h *fakeHost) ChooseExportFile(name string, done func(string, error)) {
 	h.exports++
@@ -109,6 +125,11 @@ type launcherTest struct {
 }
 
 func newEnv(t *testing.T, locale string) (*app.Env, *app.Recorder) {
+	return newEnvThemes(t, locale, "")
+}
+
+// newEnvThemes is newEnv with user themes in themesDir.
+func newEnvThemes(t *testing.T, locale, themesDir string) (*app.Env, *app.Recorder) {
 	t.Helper()
 	clip := &hostfake.Clipboard{}
 	rec := &app.Recorder{Clipboard: clip}
@@ -118,6 +139,7 @@ func newEnv(t *testing.T, locale string) (*app.Env, *app.Recorder) {
 		Locale:    locale,
 		System:    rec,
 		Clipboard: clip,
+		ThemesDir: themesDir,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -520,12 +542,8 @@ func TestSettingsGeneral(t *testing.T) {
 	if env.Config.Get().HideOnBlur {
 		t.Fatal("clicking the setting should turn HideOnBlur off")
 	}
-	if err := tt.Click("Dark"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if got := env.Config.Get().Theme; got != "dark" {
-		t.Fatalf("theme = %q", got)
+	if tt.HasText("Theme") {
+		t.Fatal("the theme moved to the Appearance page")
 	}
 
 	// Record a new launcher hotkey.
@@ -636,7 +654,7 @@ func TestSnapshots(t *testing.T) {
 			}
 			_, s, tt := newSettings(t, locale)
 			tt.SetDark(dark)
-			for _, page := range []string{ui.PageGeneral, ui.PagePlugins, ui.PageAdvanced, ui.PageAbout} {
+			for _, page := range []string{ui.PageGeneral, ui.PageAppearance, ui.PagePlugins, ui.PageAdvanced, ui.PageAbout} {
 				s.ShowPage(page)
 				tt.Frame()
 				save("settings-"+page+"-"+name, tt)

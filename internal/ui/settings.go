@@ -29,10 +29,11 @@ const (
 
 // Settings pages.
 const (
-	PageGeneral  = "general"
-	PagePlugins  = "plugins"
-	PageAdvanced = "advanced"
-	PageAbout    = "about"
+	PageGeneral    = "general"
+	PageAppearance = "appearance"
+	PagePlugins    = "plugins"
+	PageAdvanced   = "advanced"
+	PageAbout      = "about"
 )
 
 // SettingsHost is what the settings view needs from the system. Its methods
@@ -49,6 +50,12 @@ type SettingsHost interface {
 	// thread with the chosen path, or "" when the user canceled.
 	ChooseExportFile(name string, done func(path string, err error))
 	ChooseImportFile(done func(path string, err error))
+	// ChooseThemeFile asks where to save a theme (save, suggesting name)
+	// or for a theme to import, as ChooseExportFile does.
+	ChooseThemeFile(save bool, name string, done func(path string, err error))
+	// PreviewLauncher shows the launcher beside the settings, and keeps it
+	// shown, while the appearance is adjusted.
+	PreviewLauncher()
 }
 
 // ExportFileName is the file name suggested for exported settings.
@@ -86,6 +93,8 @@ type Settings struct {
 	services  mui.Services // redraws the window when a call finishes
 
 	agent agentState // the AI tools section of the AI plugin's page
+
+	appearance appearanceState // the Appearance page
 }
 
 // optionsResult is the outcome of loading the dynamic options of a preference.
@@ -185,6 +194,10 @@ func (s *Settings) ShowPage(page string) {
 	s.page, s.plugin = page, ""
 	s.setNotice("", false)
 	s.stopRecording()
+	if s.appearance.dragging != "" {
+		s.appearance.dragging = ""
+		s.env.Themes.SetPreview(nil)
+	}
 }
 
 // SetHotkeyError reports that the launcher hotkey could not be registered
@@ -259,13 +272,22 @@ func (s *Settings) View(c *mui.Context) {
 	s.asyncMu.Lock()
 	s.services = c.Services()
 	s.asyncMu.Unlock()
-	applyTheme(c, cfg.Theme)
+	// The settings keep MyGo's own look, light or dark as the launcher's
+	// theme is.
+	if dark := s.resolved(c, cfg).Dark; dark != c.Theme().Dark {
+		if dark {
+			c.SetTheme(mui.DarkTheme())
+		} else {
+			c.SetTheme(mui.LightTheme())
+		}
+	}
 	t := c.Theme()
 	c.Root().Background(t.Background)
 	mui.Split(c, &s.sidebar, func() {
 		page := s.page
 		if mui.Sidebar(c, &page, func() {
 			mui.SidebarItem(c, PageGeneral, builtinIcon("settings"), s.loc.T("settings.nav.general"))
+			mui.SidebarItem(c, PageAppearance, builtinIcon("contrast"), s.loc.T("settings.nav.appearance"))
 			mui.SidebarItem(c, PagePlugins, builtinIcon("app"), s.loc.T("settings.nav.plugins"))
 			mui.SidebarItem(c, PageAdvanced, builtinIcon("wrench"), s.loc.T("settings.nav.advanced"))
 			mui.SidebarItem(c, PageAbout, builtinIcon("info"), s.loc.T("settings.nav.about"))
@@ -285,6 +307,8 @@ func (s *Settings) View(c *mui.Context) {
 					} else {
 						s.pluginsPage(c)
 					}
+				case PageAppearance:
+					s.appearancePage(c, cfg)
 				case PageAdvanced:
 					s.advancedPage(c, cfg)
 				case PageAbout:
@@ -357,14 +381,7 @@ func (s *Settings) generalPage(c *mui.Context, cfg config.Config) {
 	s.toggle(c, s.loc.T("settings.general.launchAtLogin"), "", cfg.LaunchAtLogin, func(v bool) {
 		s.update(func(c *config.Config) { c.LaunchAtLogin = v })
 	})
-	themes := []string{"system", "light", "dark"}
-	s.setting(c, s.loc.T("settings.general.theme"), "", func() {
-		i := max(0, slices.Index(themes, cfg.Theme))
-		if mui.Segmented(c, &i, s.loc.T("settings.theme.system"), s.loc.T("settings.theme.light"), s.loc.T("settings.theme.dark")).
-			Label(s.loc.T("settings.general.theme")).Changed() {
-			s.update(func(c *config.Config) { c.Theme = themes[i] })
-		}
-	})
+
 	s.toggle(c, s.loc.T("settings.general.hideOnBlur"), "", cfg.HideOnBlur, func(v bool) {
 		s.update(func(c *config.Config) { c.HideOnBlur = v })
 	})
@@ -999,7 +1016,7 @@ func (s *Settings) hotkeyRecorder(c *mui.Context, id, value string, set func(str
 		if recording || value == "" {
 			mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine()
 		} else {
-			keyCapsView(c, value)
+			keyCapsView(c, value, t.Text.Alpha(0.08))
 		}
 	})
 }

@@ -1,0 +1,22 @@
+{
+  "name": "Gruvbox Dark",
+  "source": "Gruvbox by Pavel Pertsev (github.com/morhetz/gruvbox)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#282828",
+    "surface": "#3c3836",
+    "border": "#504945",
+    "text": "#ebdbb2",
+    "textMuted": "#a89984",
+    "accent": "#fe8019",
+    "accentText": "#282828",
+    "danger": "#fb4934",
+    "warning": "#fabd2f",
+    "success": "#b8bb26",
+    "rowSelected": "#504945",
+    "rowSelectedText": "#ebdbb2"
+  }
+}

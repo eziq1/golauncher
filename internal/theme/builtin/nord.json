@@ -1,0 +1,23 @@
+{
+  "name": "Nord",
+  "source": "Nord by Arctic Ice Studio (nordtheme.com)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#2e3440",
+    "surface": "#3b4252",
+    "border": "#4c566a",
+    "text": "#eceff4",
+    "textMuted": "#a3abbd",
+    "accent": "#88c0d0",
+    "accentText": "#2e3440",
+    "danger": "#bf616a",
+    "warning": "#ebcb8b",
+    "success": "#a3be8c",
+    "rowSelected": "#434c5e",
+    "rowSelectedText": "#eceff4",
+    "tint.danger": "#d08770"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Dracula",
+  "source": "Dracula by Zeno Rocha (draculatheme.com)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#282a36",
+    "surface": "#343746",
+    "border": "#44475a",
+    "text": "#f8f8f2",
+    "textMuted": "#a3a9cc",
+    "accent": "#bd93f9",
+    "accentText": "#282a36",
+    "danger": "#ff5555",
+    "warning": "#ffb86c",
+    "success": "#50fa7b",
+    "rowSelected": "#44475a",
+    "rowSelectedText": "#f8f8f2",
+    "tint.accent": "#ff79c6"
+  }
+}

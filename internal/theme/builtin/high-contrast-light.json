@@ -1,0 +1,27 @@
+{
+  "name": "High Contrast Light",
+  "name.zh-CN": "高对比度（浅色）",
+  "source": "golauncher's own, after the Windows contrast themes",
+  "license": "MIT",
+  "dark": false,
+  "highContrast": true,
+  "material": "none",
+  "opacity": 1,
+  "colors": {
+    "background": "#ffffff",
+    "surface": "#ffffff",
+    "border": "#000000",
+    "text": "#000000",
+    "textMuted": "#333333",
+    "accent": "#0037a6",
+    "accentText": "#ffffff",
+    "danger": "#a80000",
+    "warning": "#6b4200",
+    "success": "#005c00",
+    "focus": "#000000",
+    "rowSelected": "#0037a6",
+    "rowSelectedText": "#ffffff",
+    "rowHover": "#e5ebf7",
+    "control": "#ededed"
+  }
+}

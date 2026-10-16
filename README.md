@@ -96,7 +96,18 @@
     plugins are off by default); *AI Activity* lists every tool call of the
     last 30 days.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
-  the theme and the language.
+  the appearance and the language.
+- **Themes** (*Settings › Appearance*, [docs/themes.md](docs/themes.md)): 18
+  built-in themes (golauncher Light/Dark, Raycast-style, GitHub, Nord,
+  Dracula, Catppuccin, Tokyo Night, Solarized, Gruvbox, One Dark, Paper and
+  two high-contrast themes) in a gallery of live thumbnails; separate light
+  and dark themes when following Windows; a background opacity slider that
+  lets the Acrylic or Mica material show through while text stays solid
+  (solid when Windows transparency effects or a contrast theme are on);
+  the theme's, the Windows or your own accent color; corner radius,
+  density and text size. Your own themes are JSON files in
+  `%APPDATA%\golauncher\themes` that can `extend` another theme and reload
+  as you save them; `glctl theme validate` checks them, contrast included.
 - **English and Simplified Chinese UI**: golauncher follows the Windows
   display language (Simplified Chinese for zh-CN, zh-Hans and zh-SG, English
   otherwise). To switch, open *Settings › General › Language* and pick
@@ -207,6 +218,7 @@ glctl session new  -s s.json --fixtures testdata/fixtures
 glctl session type -s s.json "clipboard history"
 glctl session key  -s s.json Enter
 glctl i18n check
+glctl theme validate my-theme.json --format text
 glctl attach type vsc           # drive a GUI started with GOLAUNCHER_CONTROL=1
 ```
 

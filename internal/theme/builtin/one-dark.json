@@ -1,0 +1,22 @@
+{
+  "name": "One Dark",
+  "source": "Atom's One Dark (github.com/atom/atom, packages/one-dark-ui)",
+  "license": "MIT",
+  "dark": true,
+  "material": "acrylic",
+  "opacity": 0.85,
+  "colors": {
+    "background": "#282c34",
+    "surface": "#21252b",
+    "border": "#3e4451",
+    "text": "#abb2bf",
+    "textMuted": "#8b919c",
+    "accent": "#61afef",
+    "accentText": "#282c34",
+    "danger": "#e06c75",
+    "warning": "#e5c07b",
+    "success": "#98c379",
+    "rowSelected": "#333842",
+    "rowSelectedText": "#d7dae0"
+  }
+}

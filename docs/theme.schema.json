@@ -1,0 +1,271 @@
+{
+  "$id": "https://raw.githubusercontent.com/eziq1/golauncher/main/docs/theme.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A golauncher theme (docs/themes.md). Put it in %APPDATA%\\golauncher\\themes; its file name without .json is its ID.",
+  "patternProperties": {
+    "^name\\.[A-Za-z]{2,3}(-[A-Za-z0-9]+)*$": {
+      "description": "The name in a language, e.g. name.zh-CN",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "colors": {
+      "additionalProperties": false,
+      "description": "Colors: #rgb, #rgba, #rrggbb, #rrggbbaa, rgb(…) or rgba(…). Leave out what the base theme has or what derives from another color.",
+      "patternProperties": {
+        "^tint\\.[a-z]+$": {
+          "description": "an icon tint of another name",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "accent": {
+          "description": "primary buttons, checked controls, the selected row (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "accentHover": {
+          "description": "accent while hovered",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "accentPressed": {
+          "description": "accent while pressed",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "accentText": {
+          "description": "text on the accent color",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "background": {
+          "description": "fills the window, at the background opacity over the material (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "border": {
+          "description": "outlines of controls (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "control": {
+          "description": "icon tiles, key caps and small buttons",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "controlHover": {
+          "description": "small buttons while hovered",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "danger": {
+          "description": "destructive actions and errors (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "divider": {
+          "description": "lines under the search field and above the footer",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "focus": {
+          "description": "the ring around the focused control",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "footer": {
+          "description": "the footer's background, over the material",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "inverse": {
+          "description": "tooltips and toasts",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "inverseText": {
+          "description": "text on inverse",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "overlay": {
+          "description": "dims the launcher behind a confirmation",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "rowHover": {
+          "description": "the result row under the pointer",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "rowSelected": {
+          "description": "the selected result row (default: accent)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "rowSelectedText": {
+          "description": "text on the selected row",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "scrollbar": {
+          "description": "scroll bar thumbs",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "searchPlaceholder": {
+          "description": "the search field's placeholder",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "searchText": {
+          "description": "text typed in the search field",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "sectionHeader": {
+          "description": "section titles (Applications, System…)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "selection": {
+          "description": "selected text",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "shadow": {
+          "description": "shadow of the action panel and dialogs",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "success": {
+          "description": "what went well (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "surface": {
+          "description": "the face of buttons, inputs and other controls (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "surfaceHover": {
+          "description": "surface while hovered (default: 6% lighter or darker)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "surfacePressed": {
+          "description": "surface while pressed (default: 12% lighter or darker)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "text": {
+          "description": "text (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "textMuted": {
+          "description": "secondary text and placeholders (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "tint.accent": {
+          "description": "icons tinted accent",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "tint.danger": {
+          "description": "icons tinted danger",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "tint.muted": {
+          "description": "icons tinted muted",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "tint.success": {
+          "description": "icons tinted success",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        },
+        "warning": {
+          "description": "what calls for attention (required without extends)",
+          "pattern": "^\\s*(#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|[rR][gG][bB][aA]?\\(.*\\)|transparent)\\s*$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "dark": {
+      "description": "A dark theme (inherited)",
+      "type": "boolean"
+    },
+    "density": {
+      "enum": [
+        "compact",
+        "standard",
+        "comfortable"
+      ]
+    },
+    "extends": {
+      "description": "The ID of the theme this one changes: a built-in theme (golauncher-dark, nord, …) or another file's name without .json",
+      "type": "string"
+    },
+    "fontSize": {
+      "description": "Text size in DIPs (the system's)",
+      "maximum": 24,
+      "minimum": 10,
+      "type": "number"
+    },
+    "highContrast": {
+      "description": "Checked at 7:1 and always opaque",
+      "type": "boolean"
+    },
+    "license": {
+      "type": "string"
+    },
+    "material": {
+      "description": "What shows through the background",
+      "enum": [
+        "acrylic",
+        "mica",
+        "none"
+      ]
+    },
+    "name": {
+      "description": "The name shown in the settings",
+      "type": "string"
+    },
+    "opacity": {
+      "description": "How much of the background covers the material: 0 is the material alone, 1 is solid",
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "radius": {
+      "description": "Corner radius in DIPs (6)",
+      "maximum": 16,
+      "minimum": 0,
+      "type": "number"
+    },
+    "source": {
+      "description": "Where the palette comes from",
+      "type": "string"
+    },
+    "systemAccent": {
+      "description": "Use the Windows accent color unless the settings choose another",
+      "type": "boolean"
+    }
+  },
+  "title": "golauncher theme",
+  "type": "object"
+}
