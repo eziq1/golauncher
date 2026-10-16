@@ -170,6 +170,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -491,6 +492,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -1079,6 +1081,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -1371,6 +1374,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -1663,6 +1667,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -1962,6 +1967,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -2255,6 +2261,7 @@
                 "id": "end-task",
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
+                "askAlways": true,
                 "do": {
                   "kind": "Callback",
                   "target": "end-task",
@@ -2540,6 +2547,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "2 processes will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -2841,6 +2849,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. It is a background task of golauncher; stop it in Background Tasks instead to keep its status.",
                 "do": {
                   "kind": "Callback",
@@ -3117,6 +3126,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -3629,6 +3639,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -3901,6 +3912,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -4173,6 +4185,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -4450,6 +4463,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. The screen may flicker or go black while Windows restarts it.",
                 "do": {
                   "kind": "Callback",
@@ -4913,6 +4927,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. It hosts Windows services, which stop with it.",
                 "do": {
                   "kind": "Callback",
@@ -5623,6 +5638,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. Input methods (such as Chinese input) stop working until you sign in again.",
                 "do": {
                   "kind": "Callback",
@@ -6118,6 +6134,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",
@@ -6390,6 +6407,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. It hosts Windows services, which stop with it.",
                 "do": {
                   "kind": "Callback",
@@ -6876,6 +6894,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost. The taskbar and notifications may stop working until you sign in again.",
                 "do": {
                   "kind": "Callback",

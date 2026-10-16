@@ -63,6 +63,7 @@
               "id": "end-task",
               "title": "End Task",
               "shortcut": "Ctrl+X",
+              "askAlways": true,
               "do": {
                 "kind": "Callback",
                 "target": "end-task",

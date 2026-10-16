@@ -782,6 +782,9 @@ func (c *call) execute(ctx context.Context, t target) Result {
 	case RiskDestructive:
 		ask = true
 	}
+	if t.action.AskAlways && risk != RiskRead {
+		ask = true
+	}
 	if ask {
 		a.mu.Lock()
 		confirm := a.confirm
@@ -792,7 +795,7 @@ func (c *call) execute(ctx context.Context, t target) Result {
 			d = confirm(ctx, core.ExternalRequest{
 				Client: a.DisplayName(cl), Action: t.title, Item: t.item, Plugin: t.plugin, Message: t.action.ConfirmMessage,
 				Destructive: risk == RiskDestructive, EndsSession: t.action.EndsSession,
-				AllowSession: risk != RiskDestructive, InPlace: cl.Chat,
+				AllowSession: risk != RiskDestructive && !t.action.AskAlways, InPlace: cl.Chat,
 			})
 		}
 		switch d {

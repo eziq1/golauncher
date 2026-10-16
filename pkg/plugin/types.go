@@ -247,6 +247,10 @@ type Action struct {
 	// (docs/ai.md §4.2) runs such actions without asking the user; other
 	// callbacks always ask first. Destructive actions are never read-only.
 	ReadOnly bool `json:"readOnly,omitzero"`
+	// AskAlways makes an AI ask the user every time it runs the action,
+	// without offering `"Allow for this session`" (e.g. ending a task). It
+	// changes nothing for the user's own keyboard and mouse.
+	AskAlways bool `json:"askAlways,omitzero"`
 	// ConfirmMessage replaces the default text of the confirmation of a
 	// destructive action ("This cannot be undone."), e.g. "12 processes
 	// will be ended." It is also shown when an AI asks to run the action.

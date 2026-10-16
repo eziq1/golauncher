@@ -729,3 +729,7 @@ complete reference. In short:
 
 Keep stdout for protocol messages and log to stderr. Answer `rootItems`
 quickly (150 ms), honor `$/cancelRequest`, and exit when stdin closes.
+
+### `Action.AskAlways`
+
+AI 调用这个动作时每次都要用户确认，而且不提供"本次会话都允许"（`docs/ai.md` §4.2 里"改动"类的动作默认可以按会话允许）。用户自己用键盘、鼠标操作时不受影响。适合用户自己做时不必确认、但不想让 AI 一次授权后反复执行的动作，例如进程管理的"结束任务"。JSON 字段是 `askAlways`。

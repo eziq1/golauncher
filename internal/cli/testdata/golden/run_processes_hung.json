@@ -47,6 +47,7 @@
                 "title": "End Task",
                 "shortcut": "Ctrl+X",
                 "style": "destructive",
+                "askAlways": true,
                 "confirmMessage": "The process will be ended at once; unsaved work is lost.",
                 "do": {
                   "kind": "Callback",

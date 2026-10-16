@@ -101,3 +101,30 @@ func TestProcessesRisks(t *testing.T) {
 		t.Errorf("asked = %+v", asked)
 	}
 }
+
+// TestProcessesEndTaskAsksEveryTime: End task is asked every time, without
+// "Allow for this session", even after the user allowed it once (R60).
+func TestProcessesEndTaskAsksEveryTime(t *testing.T) {
+	w := newWorld(t, nil)
+	s := w.chat()
+	r := w.mustCall(s, agent.ToolSearch, map[string]any{"query": "kill writer"})
+	var writer map[string]any
+	for _, it := range items(r) {
+		if it["plugin"] == "builtin.processes" {
+			writer = it
+			break
+		}
+	}
+	if writer == nil {
+		t.Fatalf("no process: %v", r)
+	}
+	for i := range 2 {
+		// The user answers "allow for this session"; it must not stick.
+		w.decide(core.DecisionAllowSession)
+		w.call(s, agent.ToolRunAction, map[string]any{"handle": writer["handle"], "action": "end-task"})
+		asked := w.takeAsked()
+		if len(asked) != 1 || asked[0].AllowSession {
+			t.Fatalf("call %d: asked = %+v", i+1, asked)
+		}
+	}
+}

@@ -72,6 +72,7 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- **AI asks every time before ending a task** (R60): the process manager's *End Task* no longer offers *Allow for this session* when an AI asks. SDK: `Action.AskAlways` (JSON `askAlways`) makes an AI ask every time without changing anything for the user's own keys and clicks.
 - **AI web search is on by default** (R56): the AI chat's *Allow web
   search* preference now defaults to on; a preference you turned off stays
   off.

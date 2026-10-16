@@ -97,6 +97,7 @@
               "id": "end-task",
               "title": "结束任务",
               "shortcut": "Ctrl+X",
+              "askAlways": true,
               "do": {
                 "kind": "Callback",
                 "target": "end-task",
@@ -338,6 +339,7 @@
               "title": "结束任务",
               "shortcut": "Ctrl+X",
               "style": "destructive",
+              "askAlways": true,
               "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 Windows 重启它时，屏幕可能闪烁或短暂黑屏。",
               "do": {
                 "kind": "Callback",
@@ -673,6 +675,7 @@
               "title": "结束任务",
               "shortcut": "Ctrl+X",
               "style": "destructive",
+              "askAlways": true,
               "confirmMessage": "将立即结束 2 个进程，未保存的内容会丢失。",
               "do": {
                 "kind": "Callback",
@@ -1139,6 +1142,7 @@
               "id": "end-task",
               "title": "结束任务",
               "shortcut": "Ctrl+X",
+              "askAlways": true,
               "do": {
                 "kind": "Callback",
                 "target": "end-task",
@@ -1370,6 +1374,7 @@
               "title": "结束任务",
               "shortcut": "Ctrl+X",
               "style": "destructive",
+              "askAlways": true,
               "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 它托管着 Windows 服务，这些服务会随之停止。",
               "do": {
                 "kind": "Callback",
@@ -1582,6 +1587,7 @@
               "title": "结束任务",
               "shortcut": "Ctrl+X",
               "style": "destructive",
+              "askAlways": true,
               "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 这是 golauncher 的后台任务，建议在后台任务里停止，以保留正确的任务状态。",
               "do": {
                 "kind": "Callback",

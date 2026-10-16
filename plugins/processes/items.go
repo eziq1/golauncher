@@ -235,6 +235,8 @@ func (p *Plugin) actions(m *model, r *row, x *proc, where itemContext) []plugin.
 	}
 	if endable {
 		a := callback("end-task", l.T("action.endTask"), cbEndTask, pl, "Ctrl+X")
+		// An AI asks every time, never for a whole session (R60).
+		a.AskAlways = true
 		if len(wins) == 0 || hung {
 			// Without a window to close, ending the task ends the process
 			// at once: it asks first (docs/process-manager.md §14).
