@@ -429,6 +429,25 @@ func TestLauncherToolsPreference(t *testing.T) {
 	}
 }
 
+// TestWebSearchPreference: web search is on for a user who never set it
+// (R56), and an explicit false keeps it off.
+func TestWebSearchPreference(t *testing.T) {
+	fake := &backend.Fake{}
+	p, h := newTestPlugin(t, fake, true)
+	openChat(t, p, "v1", chatPayload{Text: "q"})
+	if opens := fake.Opens(); len(opens) != 1 || !opens[0].WebSearch || !strings.Contains(opens[0].SystemPrompt, "search the web") {
+		t.Fatalf("default: opens = %+v", opens)
+	}
+
+	fake = &backend.Fake{}
+	p, h = newTestPlugin(t, fake, true)
+	h.Prefs.SetValues(map[string]jsontext.Value{prefEnabled: jsontext.Value("true"), prefWebSearch: jsontext.Value("false")})
+	openChat(t, p, "v1", chatPayload{Text: "q"})
+	if opens := fake.Opens(); len(opens) != 1 || opens[0].WebSearch || strings.Contains(opens[0].SystemPrompt, "search the web") {
+		t.Fatalf("off: opens = %+v", opens)
+	}
+}
+
 func TestNewSessionIDIsUUID(t *testing.T) {
 	id := newSessionID()
 	if len(id) != 36 || id[14] != '4' || strings.Count(id, "-") != 4 || id == newSessionID() {

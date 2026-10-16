@@ -16,19 +16,25 @@
     "license": "MIT"
   },
   {
-    "id": "raycast-light",
-    "name": "Raycast-style Light",
+    "id": "crimson-light",
+    "name": "Crimson Light",
+    "names": {
+      "zh-CN": "绯红（浅色）"
+    },
     "dark": false,
     "builtin": true,
-    "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+    "source": "golauncher's own: neutral grays with a crimson accent",
     "license": "MIT"
   },
   {
-    "id": "raycast-dark",
-    "name": "Raycast-style Dark",
+    "id": "crimson-dark",
+    "name": "Crimson Dark",
+    "names": {
+      "zh-CN": "绯红（深色）"
+    },
     "dark": true,
     "builtin": true,
-    "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+    "source": "golauncher's own: neutral grays with a crimson accent",
     "license": "MIT"
   },
   {

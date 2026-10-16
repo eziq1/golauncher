@@ -397,8 +397,12 @@ type Colors map[string]mui.Color
 type overrides struct {
 	// accent replaces the theme's accent (the Windows or a custom accent),
 	// and what derives from it, whatever the theme sets.
-	accent       mui.Color
-	hasAccent    bool
+	accent    mui.Color
+	hasAccent bool
+	// readable adjusts accent until text on it is readable
+	// (readableAccent): the Windows accent, which the user did not pick
+	// for this theme. A custom accent is used as chosen.
+	readable     bool
 	highContrast bool // the system asks for more contrast
 }
 
@@ -426,6 +430,14 @@ func (t *Theme) colorsWith(o overrides) (Colors, map[string]bool) {
 		switch {
 		case name == "accent" && o.hasAccent:
 			c, d = o.accent, math.MaxInt
+			if o.readable {
+				bg, _ := resolve("background")
+				minText := float64(MinTextContrast)
+				if t.HighContrast {
+					minText = MinTextContrastHigh
+				}
+				c = readableAccent(c, bg, t.Dark, minText)
+			}
 		case k.base == "":
 			if has {
 				c, d = explicit.color, explicit.depth
@@ -528,11 +540,7 @@ func (t *Theme) derive(name string, b mui.Color, done Colors) mui.Color {
 		}
 		return b.Mix(black, 0.25)
 	case "accentText":
-		// Black where white would not stand out, as on yellow.
-		if gray(b) > 165 {
-			return mui.RGB(24, 24, 27)
-		}
-		return white
+		return textOnAccent(b)
 	case "selection":
 		if t.Dark {
 			return b.Alpha(0.4)
@@ -544,7 +552,7 @@ func (t *Theme) derive(name string, b mui.Color, done Colors) mui.Color {
 		}
 		return b.Alpha(0.55)
 	case "rowSelected":
-		return b.Alpha(0.9)
+		return b.Alpha(rowSelectedAlpha)
 	case "rowHover":
 		return b.Alpha(0.05)
 	case "control":

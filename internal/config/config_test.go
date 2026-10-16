@@ -193,6 +193,19 @@ func TestAppearanceKeptAndNormalized(t *testing.T) {
 	}
 }
 
+// TestRenamedThemes: a configuration that chose a built-in theme under its
+// old ID gets the new one (R56).
+func TestRenamedThemes(t *testing.T) {
+	got, err := Import([]byte(`{"schemaVersion": 1, "appearance": {"theme": "raycast-dark",
+		"lightTheme": "raycast-light", "darkTheme": "raycast-dark"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a := got.Appearance; a.Theme != "crimson-dark" || a.LightTheme != "crimson-light" || a.DarkTheme != "crimson-dark" {
+		t.Fatalf("appearance = %+v", a)
+	}
+}
+
 func TestCloneCopiesAppearance(t *testing.T) {
 	cfg := Default()
 	v := 0.5

@@ -90,6 +90,7 @@ var (
 	_ plugin.Plugin                    = (*Plugin)(nil)
 	_ plugin.RootProvider              = (*Plugin)(nil)
 	_ plugin.FallbackProvider          = (*Plugin)(nil)
+	_ plugin.FallbackOrderer           = (*Plugin)(nil)
 	_ plugin.ViewProvider              = (*Plugin)(nil)
 	_ plugin.ActionHandler             = (*Plugin)(nil)
 	_ plugin.LocaleProvider            = (*Plugin)(nil)
@@ -308,6 +309,10 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	}
 	return items, ctx.Err()
 }
+
+// FallbackOrder implements plugin.FallbackOrderer: the web search is the
+// catch-all, after every other fallback ("Ask AI: …" comes first, R56).
+func (p *Plugin) FallbackOrder() int { return plugin.FallbackOrderLast }
 
 // FallbackItems implements plugin.FallbackProvider: "Search Google for …"
 // with the default engine, and the second engine if chosen

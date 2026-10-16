@@ -147,7 +147,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 					{Value: "opus", Title: "%pref.model.opus%"}, {Value: "haiku", Title: "%pref.model.haiku%"},
 				}},
 			{Name: prefWebSearch, Type: plugin.PrefBool, Title: "%pref.webSearch.title%", Description: "%pref.webSearch.description%",
-				Default: plugin.MustPayload(false)},
+				Default: plugin.MustPayload(true)}, // on by default (R56); an explicit false stays false
 			{Name: prefTools, Type: plugin.PrefBool, Title: "%pref.tools.title%", Description: "%pref.tools.description%",
 				Default: plugin.MustPayload(true)},
 			{Name: prefRetention, Type: plugin.PrefSelect, Title: "%pref.retention.title%", Description: "%pref.retention.description%",

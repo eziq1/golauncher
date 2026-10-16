@@ -88,8 +88,8 @@
 
 | 主题 | 明暗 | 说明 |
 |------|------|------|
-| **golauncher Light / Dark** | 浅 / 深 | 默认，就是现在的样子（MyGo 默认色），保持兼容 |
-| Raycast 风格 Light / Dark | 浅 / 深 | 中性灰，红色强调 |
+| **golauncher Light / Dark** | 浅 / 深 | 默认，就是现在的样子（MyGo 默认色），保持兼容（R56 起强调色等略微调深，见 §15） |
+| 绯红（Crimson）Light / Dark | 浅 / 深 | 中性灰，红色强调（原名"Raycast 风格"，R56 改名，见 §15） |
 | GitHub Light / Dark | 浅 / 深 | |
 | Nord | 深 | 冷色调 |
 | Dracula | 深 | 紫色调 |
@@ -286,7 +286,7 @@
 7. **推导规则**：省略的颜色从它的"基础色"推导（如 `accentHover` ← `accent`、`divider` ← `border`）。继承时，如果子主题改了基础色、没改派生色，派生色重新推导（改了强调色，悬停色也跟着变）。强调色的派生（悬停、按下、选中文字、焦点环、强调色上的文字）沿用 MyGo 跟随系统强调色时的公式，这样默认主题在 Windows 强调色下与以前一模一样；`surfaceHover` / `surfacePressed` 按设计变亮或变暗 6% / 12%。配置里指定的强调色（Windows 或自定义）替换调色板里的强调色系列，但主题自己写明的启动器颜色（比如自己的选中行颜色）保留。
 8. **叠加色的比例**：选中行、悬停行、页脚在主题自己的不透明度下就是写的样子；用户把背景不透明度调成 `o` 时，它们的 alpha 乘以 `k = (0.5 + 0.5·o) / (0.5 + 0.5·o主题)`（不超过 1）；背景不透明时 `k = 1`。这样 golauncher（`o主题 = 0`）在默认设置下与以前一样，其他主题背景变透时选中行也一起变淡，但不会消失。
 9. **对比度的"最坏情况"**：只按"背景色叠在纯白或纯黑上"算的话，背景不透明度低于一半左右时所有主题都不及格（golauncher 是 0%）。实际上 Windows 的 Acrylic / Mica 自己有一层不透明度很高的底色（亮度层），所以模型是：纯白或纯黑 → 材质底色（浅色 `#f3f3f3`、深色 `#202020`，80% 不透明，比 Windows 实际的更透，偏保守）→ 主题背景色（按背景不透明度）→ 文字。检查五项：`text`、`searchText` 对背景（≥ 4.5:1，高对比度主题 ≥ 7:1），`textMuted` 对背景（≥ 3:1，高对比度 ≥ 4.5:1，这一项是新增的），`accentText` 对 `accent`，`rowSelectedText` 对 `rowSelected`（≥ 4.5:1 / 7:1）。
-10. **golauncher Light / Dark 的已知例外**：为了"默认外观完全不变"，它们沿用 MyGo 的颜色，有几项达不到 4.5:1：Dark 的白字对 `#3b82f6` 是 3.67:1，选中行 3.98:1；Light 的选中行 4.42:1，次要文字在 0% 不透明度、背后是黑色时 2.71:1。测试里用 `legacyContrast` 白名单只放过这几项；其他内置主题、以后新增的主题必须全部通过。是否调整默认主题的颜色见 §13.6。
+10. **golauncher Light / Dark 的已知例外**（R56 已取消，见 §15）：为了"默认外观完全不变"，它们沿用 MyGo 的颜色，有几项达不到 4.5:1：Dark 的白字对 `#3b82f6` 是 3.67:1，选中行 3.98:1；Light 的选中行 4.42:1，次要文字在 0% 不透明度、背后是黑色时 2.71:1。测试里用 `legacyContrast` 白名单只放过这几项；其他内置主题、以后新增的主题必须全部通过。是否调整默认主题的颜色见 §13.6。
 11. **设置页的对比度警告只提示"调整造成的"问题**（当前不透明度、强调色下不及格，而主题自己的默认值是及格的）；主题本身就不及格的情况，用户主题在"主题问题"列表里列出，内置主题就是上面的已知例外。否则默认主题一打开设置就有警告。
 12. **文字阴影**：MyGo v0.5.1 没有文字阴影。实现为"文字衬底"：背景不透明度低于 40% 时，结果行、分组标题、页脚文字下面加一层背景色 35% 的 `TextBackground`。设置里叫"文字衬底"（Backdrop under text），可以关。
 13. **搜索框占位文字的颜色**：MyGo 用整帧主题的 `TextMuted` 画占位文字。主题的 `searchPlaceholder` 和 `textMuted` 不同时，启动器不用输入框自带的占位文字，而是在输入框上叠一段文字（`AttachTo`，不接收鼠标）。
@@ -296,7 +296,7 @@
 17. **主题 ID 就是文件名**（不含 `.json`）。和内置主题同名的文件报错。导入、复制时自动避开重名（加 `-2`、`-3`）。
 18. **导出**：导出的是不带 `extends` 的完整主题文件，只写主题自己设定的颜色（派生色留给加载时重新推导，改了强调色，悬停色也会跟着变）；"导出当前主题"还带上当前的材质、不透明度、圆角、密度、字号和强调色。
 19. **跟随系统时**，"浅色模式时"只列浅色主题，"深色模式时"只列深色主题；画廊里点浅色主题设为浅色模式的主题，点深色主题设为深色模式的主题。这样 MyGo 的明暗（标题栏、材质的明暗）总是和主题一致。
-20. **Raycast 风格**是 golauncher 自己的中性灰配色，只是风格类似，名称写作 "Raycast-style"，与 Raycast 无关。
+20. **Raycast 风格**（R56 改名为"绯红 / Crimson"，见 §15）是 golauncher 自己的中性灰配色，只是风格类似，名称写作 "Raycast-style"，与 Raycast 无关。
 
 ### 13.3 内置主题的来源
 
@@ -305,7 +305,7 @@
 | 主题 | 来源 |
 |------|------|
 | golauncher Light / Dark | MyGo 默认主题（github.com/egoist/mygo） |
-| Raycast-style Light / Dark | golauncher 自己的配色 |
+| Crimson Light / Dark（原 Raycast-style） | golauncher 自己的配色 |
 | GitHub Light / Dark | GitHub Primer primitives（github.com/primer/primitives） |
 | Nord | Arctic Ice Studio（nordtheme.com） |
 | Dracula | Zeno Rocha（draculatheme.com） |
@@ -327,7 +327,7 @@
 | 画廊 18 个主题的解析 | 约 0.16 ms，只在主题、系统设置或语言变化时做一次 |
 | 外观设置页整帧（无头渲染，900×2400，含 18 个缩略图） | 0.44 ms |
 
-默认主题下，启动器的 6 张快照（英文、伪本地化、简体中文 × 浅色、深色）与改动前逐像素比较，完全相同。
+默认主题下，启动器的 6 张快照（英文、伪本地化、简体中文 × 浅色、深色）与改动前逐像素比较，完全相同。（R56 调深默认主题后不再相同，见 §15。）
 
 ### 13.5 测试
 
@@ -339,7 +339,7 @@
 
 ### 13.6 未决问题
 
-1. golauncher Light / Dark 有几项对比度低于 4.5:1（§13.2 第 10 条）。要不要把默认主题的强调色调深一点（比如 Dark 用 `#2563eb`）？这会改变现在的外观。
+1. ~~golauncher Light / Dark 有几项对比度低于 4.5:1（§13.2 第 10 条）。要不要把默认主题的强调色调深一点（比如 Dark 用 `#2563eb`）？这会改变现在的外观。~~ 已决定调深（R56），见 §15。
 2. 对比度模型里材质底色的不透明度（80%）是保守估计，不是从 Windows 读出来的。
 3. MyGo 以后如果支持文字阴影、占位文字颜色、文件监视不依赖 App，可以替换 §13.2 第 12、13、14 条的做法。
 
@@ -400,7 +400,7 @@
 | `surface`、`surfaceHover`、`surfacePressed` | 按钮、输入框等控件 | 悬停 / 按下：变亮或变暗 6% / 12% |
 | `border` | 控件边框 | 必填 |
 | `text`、`textMuted` | 正文、次要文字和占位文字 | 必填 |
-| `accent`、`accentHover`、`accentPressed`、`accentText` | 强调色、它的悬停 / 按下色、上面的文字 | 从 `accent` 推导；文字在浅色强调色上为黑色，否则为白色 |
+| `accent`、`accentHover`、`accentPressed`、`accentText` | 强调色、它的悬停 / 按下色、上面的文字 | 从 `accent` 推导；文字在浅色强调色上为黑色，白字达不到 4.5:1 而黑字能达到时也为黑色，否则为白色 |
 | `danger`、`warning`、`success` | 危险、警告、成功 | 必填 |
 | `selection`、`focus` | 选中文字、焦点环 | 从 `accent` 推导 |
 | `inverse`、`inverseText` | 提示框 | `text`、`background` |
@@ -441,3 +441,55 @@ glctl theme export nord > my-nord.json    # 内置主题的完整文件，作为
     - 文字衬底**默认关闭**；
     - 配置字段改名为 `textBackdrop`，这样早期构建默认写入的 `textShadow: true` 不再生效；
     - 即使开启，选中行上的文字也不画衬底，因为选中行有自己的底色。
+## 15. 修订（2026-10-16，R56）
+
+### 15.1 "Raycast 风格"改名为"绯红"（Crimson）
+
+- 内置主题不再用别的产品的名字。按配色（中性灰底、红色强调）改名为 **Crimson Light / Crimson Dark**，简体中文 **绯红（浅色）/ 绯红（深色）**；颜色不变。
+- **ID 也改了**：`raycast-light` → `crimson-light`，`raycast-dark` → `crimson-dark`（文件 `internal/theme/builtin/crimson-*.json`）。
+- **迁移**：`config.RenamedTheme` 记录旧 ID 到新 ID 的对应。
+  - 读配置时（`config.migrate` → `normalize`），`appearance` 的 `theme`、`lightTheme`、`darkTheme` 是旧 ID 的，改成新 ID，下次保存就写新 ID；设置里画廊的选中状态也就对了。
+  - 主题库（`Library.Get`、`extends` 的查找、`glctl theme validate`）也认旧 ID：用户主题写的 `"extends": "raycast-dark"` 照样能用。主题文件夹里如果真有一个叫 `raycast-dark.json` 的文件（以前不允许，因为和内置主题重名），以文件为准。
+- 测试：`internal/config` 的 `TestRenamedThemes`，`internal/theme` 的 `TestRenamedBuiltinThemes`；`theme_list` golden。
+
+### 15.2 默认主题调深到对比度达标
+
+R51 时为了"默认外观完全不变"，golauncher Light / Dark 沿用 MyGo 的颜色，有四项对比度不达标，测试里用白名单放过（§13.2 第 10 条）。R56 决定把它们调深到达标，白名单删掉，所有内置主题一视同仁。
+
+| 主题 | 颜色 | 以前 | 现在 |
+|------|------|------|------|
+| golauncher Dark | `accent` | `#3b82f6` | `#3472d8`（向黑色混合 12%） |
+| golauncher Light | `accent` | `#2563eb` | `#2461e6`（向黑色混合 2%） |
+| golauncher Light | `textMuted` | `#71717a` | `#68686f` |
+
+对比度（`glctl theme show`，最坏情况）：
+
+| 主题 | 检查项 | 以前 | 现在 | 要求 |
+|------|--------|------|------|------|
+| golauncher Dark | `accentText/accent`（白字对强调色） | 3.67:1 | 4.62:1 | 4.5:1 |
+| golauncher Dark | `rowSelectedText/rowSelected`（选中行） | 3.98:1 | 4.95:1 | 4.5:1 |
+| golauncher Light | `rowSelectedText/rowSelected` | 4.42:1 | 4.52:1 | 4.5:1 |
+| golauncher Light | `accentText/accent` | 5.16:1 | 5.34:1 | 4.5:1 |
+| golauncher Light | `textMuted/background`（0% 不透明、背后是黑色） | 2.71:1 | 3.10:1 | 3:1 |
+
+其余颜色（悬停、按下、选中文字、焦点环等）不变，仍是 MyGo 的值。
+
+**Windows 强调色**：golauncher 主题跟随 Windows 强调色（`systemAccent`），实际看到的多半是系统的强调色而不是上面的值，所以只改主题文件不够。新规则（`theme.readableAccent`，只用于 Windows 强调色，包括设置里选"使用 Windows 强调色"的其他主题）：
+
+1. 强调色上的文字和选中行（强调色 90%）上的文字，在背景可能出现的所有底色上（任意背景不透明度，材质底下是纯白或纯黑，§13.2 第 9 条的模型）都达到 4.5:1（高对比度主题 7:1）时，强调色原样使用。
+2. 否则，白字的强调色按 2% 一步向黑色混合，直到达标。
+3. 如果白字要调深超过 30%，而换成深色字（`#18181b`）需要的调整更少，就保留强调色（必要时向白色调浅），文字用深色。比如浅青色、浅绿色：变暗很多会变脏，深色字更清楚。
+4. 本来就用深色字的浅色强调色（黄色等，MyGo 的规则：灰度 > 165）只在需要时调浅。
+
+强调色上的文字（`accentText` 省略时的推导）相应地改为：灰度 > 165，或者白字达不到 4.5:1 而深色字能达到时，用深色字；否则白字。内置主题都写明了 `accentText`，不受影响；会影响的只有没写 `accentText` 的用户主题和自定义强调色——它们的文字变得更清楚。自定义强调色本身照用户选的颜色，不调整（不及格时设置里照常提示）。
+
+几个例子（浅色 / 深色主题）：Windows 默认蓝 `#0078d4` → `#006cbf` / 不变；红 `#e81123` → `#df1022` / 不变；灰 `#767676` → `#656565` / 不变；青 `#00b7c3` → 不变（深色字）/ `#008089`（白字）；黄 `#ffb900`、浅蓝 `#4cc2ff`、紫 `#744da9` 不变。
+
+**测试**：
+
+- `TestBuiltinThemes` 不再有白名单。
+- `TestGolauncherThemesAreMyGos` 改为"等于 MyGo 的主题，除了上表的三个颜色"。
+- 新增 `TestSystemAccentReadable`：18 种 Windows 强调色（黄、金、亮黄、青、浅青、浅蓝、绿、黄绿、红、浅红、深绿、紫、深紫、黑、白、灰、蓝……）× 浅色 / 深色 × 背景不透明度 0、0.3、0.7、1，五项对比度全部达标。已经达标的强调色不变；自定义强调色不调整。
+- `internal/ui` 的 `TestLauncherDrawsTheTheme`：默认主题选中行的颜色改为新的强调色。
+
+**快照**：§13.4 说的"与改动前逐像素相同"不再成立，这是有意的。改动前后用 `TestSnapshots` 各渲染一次逐像素比较：启动器的 6 张快照各有约 11%–12% 的像素不同（选中行、动作面板里的选中项、浅色主题的次要文字），看上去是同一种蓝，只是略深；设置的外观页约 1%（画廊里 golauncher 和绯红的缩略图、名字）；设置的其他页面不变（高级页本来每次渲染就有几百个像素不同，与这次改动无关）。

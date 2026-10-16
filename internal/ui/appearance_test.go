@@ -60,7 +60,9 @@ func TestLauncherDrawsTheTheme(t *testing.T) {
 	if got := pixel(lt.tt, emptyX, emptyY); !sameColor(got, golauncher.Background) {
 		t.Fatalf("golauncher background = %v", got)
 	}
-	if got := selectedRowColor(t, lt, "AI Activity"); !sameColor(got, golauncher.Accent.Alpha(0.9).Over(golauncher.Background)) {
+	// The selected row is the theme's accent, darkened from MyGo's #2563eb
+	// for contrast (R56).
+	if got := selectedRowColor(t, lt, "AI Activity"); !sameColor(got, mui.Hex("#2461e6").Alpha(0.9).Over(golauncher.Background)) {
 		t.Fatalf("golauncher selected row = %v", got)
 	}
 

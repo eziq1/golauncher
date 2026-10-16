@@ -1,6 +1,7 @@
 {
-  "name": "Raycast-style Light",
-  "source": "golauncher's own neutral palette in the style of Raycast (not affiliated)",
+  "name": "Crimson Light",
+  "name.zh-CN": "绯红（浅色）",
+  "source": "golauncher's own: neutral grays with a crimson accent",
   "license": "MIT",
   "dark": false,
   "material": "acrylic",

@@ -54,6 +54,20 @@ const (
 	DefaultDarkTheme  = "golauncher-dark"
 )
 
+// renamedThemes maps the old IDs of renamed built-in themes to their new
+// ones (R56: "Raycast-style" became "Crimson").
+var renamedThemes = map[string]string{
+	"raycast-light": "crimson-light",
+	"raycast-dark":  "crimson-dark",
+}
+
+// RenamedTheme returns the current ID of the built-in theme once called
+// old, and whether old is such an ID.
+func RenamedTheme(old string) (string, bool) {
+	id, ok := renamedThemes[old]
+	return id, ok
+}
+
 // Values of Appearance.Accent other than a color.
 const (
 	AccentTheme   = "theme"   // the theme's own accent color
@@ -150,6 +164,11 @@ func (a *Appearance) normalize() {
 	}
 	if a.DarkTheme == "" {
 		a.DarkTheme = d.DarkTheme
+	}
+	for _, id := range []*string{&a.Theme, &a.LightTheme, &a.DarkTheme} {
+		if n, ok := RenamedTheme(*id); ok {
+			*id = n
+		}
 	}
 	if a.Accent == "" {
 		a.Accent = d.Accent

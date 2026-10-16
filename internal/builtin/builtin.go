@@ -57,7 +57,7 @@ func All() []plugin.Plugin {
 		system.New(),
 		terminal.New(),
 		network.New(),
-		quicklinks.New(), // before ai: its fallback comes first (docs/quicklinks.md §3)
+		quicklinks.New(), // its fallback comes after ai's: FallbackOrderLast (docs/quicklinks.md §3)
 		ai.New(claudecode.New(claudecode.Options{Tools: toolServer()})),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)

@@ -268,8 +268,12 @@ AI chat, `builtin.ai`, uses both; a "search the web" plugin would too):
   search for it, a typed URL) can set it so that, like fallback items, it
   is never recorded in Recent and the text is not stored.
 
-Fallback items are listed in the order the plugins are registered: the web
-search of `builtin.quicklinks` comes before *Ask AI* of `builtin.ai`.
+Fallback items are listed by **`FallbackOrderer.FallbackOrder()`**, lowest
+first, and in the order the plugins are registered where that is equal (0
+for a plugin without the interface). A generic catch-all returns
+`plugin.FallbackOrderLast` to come after every other fallback: the web
+search of `builtin.quicklinks` does, so *Ask AI* of `builtin.ai` comes
+first.
 
 These are in-process only for now; the external plugin protocol does not
 carry them.
