@@ -94,8 +94,10 @@ type Appearance struct {
 	// between MinWindowOpacity and 1.
 	WindowOpacity float64 `json:"windowOpacity"`
 	// TextShadow draws a faint backdrop under text when the background is
-	// very translucent (below 40%).
-	TextShadow bool `json:"textShadow"`
+	// very translucent (below 40%). Off by default: the backdrop is a box
+	// behind each line, which looks wrong over the material. (Stored as
+	// textBackdrop: the first builds stored textShadow true by default.)
+	TextShadow bool `json:"textBackdrop"`
 }
 
 // DefaultAppearance returns the appearance of a new configuration: the
@@ -108,7 +110,6 @@ func DefaultAppearance() Appearance {
 		DarkTheme:     DefaultDarkTheme,
 		Accent:        AccentTheme,
 		WindowOpacity: 1,
-		TextShadow:    true,
 	}
 }
 

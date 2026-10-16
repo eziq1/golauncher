@@ -159,7 +159,7 @@ func TestMigrateThemeToAppearance(t *testing.T) {
 		}
 		a := cfg.Appearance
 		if a.FollowSystem != tc.followSystem || a.Theme != tc.fixed || a.LightTheme != DefaultLightTheme ||
-			a.DarkTheme != DefaultDarkTheme || a.Accent != AccentTheme || a.WindowOpacity != 1 || !a.TextShadow || a.Opacity != nil {
+			a.DarkTheme != DefaultDarkTheme || a.Accent != AccentTheme || a.WindowOpacity != 1 || a.TextShadow || a.Opacity != nil {
 			t.Errorf("theme %q: appearance = %+v", tc.theme, a)
 		}
 	}

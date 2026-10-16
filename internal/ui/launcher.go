@@ -415,9 +415,10 @@ func (l *Launcher) rad(r float32) float32 { return r * l.res.RadiusScale }
 func (l *Launcher) sp(v float32) float32 { return v * l.res.SpaceScale }
 
 // shadowed gives text e the faint backdrop of a very translucent
-// background (docs/themes.md §4), if any.
-func (l *Launcher) shadowed(e mui.Element) mui.Element {
-	if s := l.res.Tokens.TextShadow; s != mui.Transparent {
+// background (docs/themes.md §4), if any. Text on the selected row has the
+// row's own fill under it and gets none.
+func (l *Launcher) shadowed(e mui.Element, selected bool) mui.Element {
+	if s := l.res.Tokens.TextShadow; s != mui.Transparent && !selected {
 		e.TextBackground(s)
 	}
 	return e
@@ -576,7 +577,7 @@ func (l *Launcher) results(c *mui.Context, s core.Snapshot) {
 func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 	t, tk := c.Theme(), &l.res.Tokens
 	if r.entry == nil {
-		l.shadowed(mui.Text(c, r.header).FontSize(11).Bold().TextColor(tk.SectionHeader).Padding(l.sp(8), 10, l.sp(4), 10).Background(tk.SectionBackground).SingleLine())
+		l.shadowed(mui.Text(c, r.header).FontSize(11).Bold().TextColor(tk.SectionHeader).Padding(l.sp(8), 10, l.sp(4), 10).Background(tk.SectionBackground).SingleLine(), false)
 		return
 	}
 	e := r.entry
@@ -604,13 +605,13 @@ func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 	row.Children(func() {
 		l.icon(c, e.Icon, rowIconSize, text, selected && !tk.TintSelected)
 		mui.Row(c).Grow(1).Shrink(1).MinWidth(0).Gap(8).AlignItems(mui.Center).ClipX().Children(func() {
-			l.shadowed(mui.Text(c, e.Title).TextColor(text).SingleLine().Shrink(0))
+			l.shadowed(mui.Text(c, e.Title).TextColor(text).SingleLine().Shrink(0), selected)
 			if e.Subtitle != "" {
-				l.shadowed(mui.Text(c, e.Subtitle).TextColor(muted).SingleLine().Shrink(1).MinWidth(0))
+				l.shadowed(mui.Text(c, e.Subtitle).TextColor(muted).SingleLine().Shrink(1).MinWidth(0), selected)
 			}
 		})
 		if e.Accessory != "" {
-			l.shadowed(mui.Text(c, e.Accessory).FontSize(12).TextColor(muted).SingleLine().Shrink(0))
+			l.shadowed(mui.Text(c, e.Accessory).FontSize(12).TextColor(muted).SingleLine().Shrink(0), selected)
 		}
 	})
 }
@@ -705,7 +706,7 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 				label = s.Title
 			}
 			mui.Icon(c, builtinIcon("command")).FontSize(14).TextColor(t.TextMuted)
-			l.shadowed(mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0))
+			l.shadowed(mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0), false)
 			if s.Context != nil {
 				l.contextChip(c, s.Context)
 			}

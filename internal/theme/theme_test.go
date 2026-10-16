@@ -336,7 +336,10 @@ func TestResolveNullVsManual(t *testing.T) {
 		r.RadiusScale != 10.0/6 || r.SpaceScale != 0.75 {
 		t.Fatalf("manual values: %+v", r)
 	}
-	// The overlays scale with the background; text gets its backdrop.
+	// The overlays scale with the background; text gets its backdrop when
+	// it is turned on.
+	a.TextShadow = true
+	r = Resolve(lib, a, System{TextScale: 1.5})
 	if r.Tokens.RowSelected.A >= 255 || r.Tokens.TextShadow == mui.Transparent {
 		t.Errorf("row %v, shadow %v", r.Tokens.RowSelected, r.Tokens.TextShadow)
 	}
