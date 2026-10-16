@@ -249,6 +249,40 @@ is opened. Push a complete new `View` for it with
 Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
 stay simple, testable and deterministic.
 
+### Acting on the search text: fallbacks and Tab
+
+Two optional interfaces let a plugin act on whatever the user typed (the
+AI chat, `builtin.ai`, uses both; a "search the web" plugin would too):
+
+- **`FallbackProvider.FallbackItems(ctx, q)`** is called only when the root
+  search found nothing good: no results, or none matching better than
+  `core.FallbackThreshold` (0.5, before frecency). Its items are listed
+  last under *Fallback Commands* and never recorded in Recent, so put the
+  text into the action's payload.
+- **`TabProvider.TabAction(q)`**: `Tab` in the root search with text runs
+  the action of the first enabled plugin that answers `ok` — unless the
+  selected entry takes arguments, which keep `Tab`.
+
+These are in-process only for now; the external plugin protocol does not
+carry them.
+
+### Chat-like views
+
+A `ViewDetail` is shown across the whole window: `View.Detail` (Markdown,
+then its metadata), scrolled to its end as it grows. Its first item is not
+listed but supplies the actions (`Enter`, `Ctrl+K`, shortcuts; `Up`/`Down`
+and `Ctrl+N`/`Ctrl+P` do not move a selection there), and the search field
+is an input:
+
+- callbacks receive the typed text in `ActionDo.Query`;
+- `Result{ClearText: true}` empties the field and pulls the view again;
+- `View.Escape` (an action) takes `Escape`, e.g. *Stop* while an answer is
+  streaming with `Host.Render`; leave it nil and `Escape` goes back.
+
+`Result.Preferences` stores values of the plugin's own (non-password)
+preferences, as Settings would — for an *Enable* button in a first-use
+prompt.
+
 ### Context: acting on what the user was doing
 
 When the launcher opens, the host looks at the window that was in the

@@ -7,6 +7,7 @@
   "section.recent": "最近使用",
   "section.commands": "命令",
   "section.context": "当前：{{.name}}",
+  "section.fallback": "备选命令",
   "accessory.command": "命令",
   "action.openCommand": "打开命令",
   "toast.copied": "已复制到剪贴板",
@@ -49,7 +50,7 @@
   "settings.nav.about": "关于",
   "settings.general.hotkey": "启动器快捷键",
   "settings.general.hotkey.desc": "在任何地方显示或隐藏启动器。",
-  "settings.general.hotkeyFailed": "无法注册 {{.hotkey}}，可能已被其他应用占用。请换一个快捷键，比如 Ctrl+Space 或 Alt+Shift+Space。",
+  "settings.general.hotkeyFailed": "无法注册 {{.hotkey}}，可能已被其他应用占用（ChatGPT 应用和 PowerToys Run 也用 Alt+Space）。请换一个快捷键，比如 Ctrl+Space 或 Alt+Shift+Space。",
   "settings.general.launchAtLogin": "登录时启动",
   "settings.general.theme": "主题",
   "settings.general.hideOnBlur": "失去焦点时隐藏",
@@ -251,5 +252,5 @@
   "notify.configRecovered.title": "设置已重置",
   "notify.configRecovered.body": "无法读取你的设置文件，现在使用的是默认设置。旧文件已保留为 {{.path}}。",
   "notify.hotkeyFailed.title": "快捷键不可用",
-  "notify.hotkeyFailed.body": "{{.hotkey}} 已被其他应用占用。请在设置中换一个快捷键，比如 Ctrl+Space 或 Alt+Shift+Space。"
+  "notify.hotkeyFailed.body": "{{.hotkey}} 已被其他应用占用，比如 ChatGPT 应用或 PowerToys Run。请在设置中换一个快捷键，比如 Ctrl+Space 或 Alt+Shift+Space。"
 }

@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"context"
 	"log/slog"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -88,6 +89,11 @@ type Launcher struct {
 	loading time.Time // when the current search started showing as loading
 
 	md markdown.Options
+
+	// The scrolling of a full-window detail view (fullDetail) and the view
+	// it belongs to.
+	detailScroll mui.ScrollState
+	detailSig    string
 }
 
 // launcherRow is a row of the results list: a section header or an entry.
@@ -346,6 +352,8 @@ func (l *Launcher) View(c *mui.Context) {
 			mui.Divider(c)
 			if s.Form != nil {
 				l.formView(c, s)
+			} else if s.Layout == string(plugin.ViewDetail) {
+				l.fullDetail(c, s)
 			} else {
 				mui.Row(c).Grow(1).AlignItems(mui.Stretch).Children(func() {
 					l.results(c, s)
@@ -587,6 +595,37 @@ func (l *Launcher) detail(c *mui.Context, d *plugin.Detail) {
 						mui.Text(c, m.Value).FontSize(12).SingleLine().Shrink(1)
 					})
 				}
+			}
+		})
+	})
+}
+
+// fullDetail shows a plugin.ViewDetail across the window: its Markdown and
+// metadata, following the end as the content grows (a chat answer being
+// written) unless the user scrolled up.
+func (l *Launcher) fullDetail(c *mui.Context, s core.Snapshot) {
+	t := c.Theme()
+	if sig := strconv.Itoa(s.Depth) + "\x00" + s.Title; sig != l.detailSig {
+		l.detailSig = sig
+		l.detailScroll.Y = math.MaxFloat32 // a new view starts at its end
+	} else if l.detailScroll.Y >= l.detailScroll.MaxY-1 {
+		l.detailScroll.Y = math.MaxFloat32 // at the end: keep following it
+	}
+	mui.Scroll(c.Key("detail-full")).TrackScroll(&l.detailScroll).Grow(1).Basis(0).Padding(14, 18).Children(func() {
+		d := s.Detail
+		if d == nil {
+			return
+		}
+		mui.Column(c).Gap(10).Children(func() {
+			if d.Markdown != "" {
+				markdown.View(c, d.Markdown, &l.md)
+			}
+			if len(d.Metadata) > 0 {
+				mui.Row(c).Gap(12).Children(func() {
+					for _, m := range d.Metadata {
+						mui.Text(c, m.Label+" "+m.Value).FontSize(11).TextColor(t.TextMuted).SingleLine().Shrink(1)
+					}
+				})
 			}
 		})
 	})

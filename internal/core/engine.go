@@ -315,6 +315,10 @@ type Entry struct {
 	// Context marks an item of a plugin.ContextProvider: it belongs to this
 	// show's context and is never recorded as recently used.
 	Context bool `json:"context,omitzero"`
+	// Fallback marks an item of a plugin.FallbackProvider (or the Tab
+	// action): it acts on this search's text and is never recorded as
+	// recently used.
+	Fallback bool `json:"fallback,omitzero"`
 }
 
 // Section is a titled group of entries.
@@ -356,11 +360,13 @@ type Outcome struct {
 	// FieldErrors are the plugin's messages for the fields of the submitted
 	// form, by field ID; the form stays open.
 	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
+	// ClearText empties the search field of the current view.
+	ClearText bool `json:"clearText,omitzero"`
 }
 
 // Run executes action a of entry. fromRoot records the use for ranking.
 func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot bool) (Outcome, error) {
-	if fromRoot && !entry.Context {
+	if fromRoot && !entry.Context && !entry.Fallback {
 		if b, err := json.Marshal(entry); err == nil {
 			if err := e.svc.DB.RecordUse(entry.Key, b, e.svc.Now()); err != nil {
 				e.log.Warn("record use", "err", err)
@@ -437,7 +443,12 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 		return Outcome{}, err
 	}
 	out := Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast,
-		FieldErrors: r.FieldErrors}
+		FieldErrors: r.FieldErrors, ClearText: r.ClearText}
+	if len(r.Preferences) > 0 {
+		if err := e.setPreferences(l, r.Preferences); err != nil {
+			return out, err
+		}
+	}
 	if r.Do != nil && len(r.FieldErrors) == 0 {
 		// The follow-up action of the result (m5 §14): only the host's own
 		// kinds, so a plugin cannot loop through its own callbacks.
@@ -453,6 +464,31 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 		out.Toast = cmp.Or(out.Toast, more.Toast)
 	}
 	return out, nil
+}
+
+// setPreferences stores values of a plugin's own preferences
+// (Result.Preferences), as the settings window does. Only declared,
+// non-password preferences can be set.
+func (e *Engine) setPreferences(l *loaded, values map[string]jsontext.Value) error {
+	for name := range values {
+		i := slices.IndexFunc(l.m.Preferences, func(p plugin.Preference) bool { return p.Name == name })
+		if i < 0 || l.m.Preferences[i].Type == plugin.PrefPassword || l.m.Preferences[i].Type == plugin.PrefButton {
+			return fmt.Errorf("core: plugin %q cannot set preference %q", l.m.ID, name)
+		}
+	}
+	return e.cfg.Update(func(c *config.Config) {
+		if c.Plugins == nil {
+			c.Plugins = map[string]config.PluginConfig{}
+		}
+		pc := c.Plugins[l.m.ID]
+		if pc.Preferences == nil {
+			pc.Preferences = map[string]jsontext.Value{}
+		}
+		for k, v := range values {
+			pc.Preferences[k] = slices.Clone(v)
+		}
+		c.Plugins[l.m.ID] = pc
+	})
 }
 
 // stringValues turns ActionDo.Values into ViewRequest.Arguments: JSON

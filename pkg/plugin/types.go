@@ -240,6 +240,11 @@ type ActionDo struct {
 	// Values holds the form field values (form submit) or the argument
 	// values (items with arguments), filled in by the host.
 	Values map[string]jsontext.Value `json:"values,omitempty"`
+	// Query is the search text of the view the action ran from, filled in
+	// by the host for ActionCallback and ActionRunCommand: a view can use
+	// its search field as an input (a chat's message) and clear it with
+	// Result.ClearText.
+	Query string `json:"query,omitempty"`
 }
 
 // OpenOptions is the Payload of ActionOpen.
@@ -261,7 +266,12 @@ type PasteContent struct {
 type ViewKind string
 
 const (
-	ViewList   ViewKind = "list"
+	ViewList ViewKind = "list"
+	// ViewDetail shows View.Detail across the whole window (Markdown, then
+	// its metadata), scrolled to its end as it grows, as a chat or a log.
+	// Its items are not listed: the first one supplies the actions (Enter,
+	// Ctrl+K and their shortcuts), and the search field stays an input
+	// whose text reaches them in ActionDo.Query.
 	ViewDetail ViewKind = "detail"
 	ViewForm   ViewKind = "form"
 )
@@ -282,6 +292,10 @@ type View struct {
 	EmptyText string `json:"emptyText,omitempty"`
 	// Form is the content of a ViewForm.
 	Form *Form `json:"form,omitempty"`
+	// Escape, when set, runs on Escape instead of what Escape does by
+	// default (clear the search field, then go back), e.g. "Stop" while an
+	// answer is being written. Drop it when Escape should go back again.
+	Escape *Action `json:"escape,omitempty"`
 }
 
 // Form is an input form. The host keeps the field values and passes them in
@@ -333,6 +347,13 @@ type Result struct {
 	Refresh bool `json:"refresh,omitzero"`
 	// FieldErrors keeps a form open and shows these messages by field ID.
 	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
+	// ClearText empties the search field of the current view (e.g. after
+	// sending the message typed in it) and pulls the view again.
+	ClearText bool `json:"clearText,omitzero"`
+	// Preferences stores values of the plugin's own preferences, as if the
+	// user set them in Settings (e.g. an "Enable" button of a first-use
+	// prompt). Password preferences cannot be set this way.
+	Preferences map[string]jsontext.Value `json:"preferences,omitempty"`
 	// Do is an action the host carries out after the handler returned, e.g.
 	// ActionShowTask for a task the handler started, or ActionOpen. Only
 	// the host's own kinds are allowed (not Callback or RunCommand). Its

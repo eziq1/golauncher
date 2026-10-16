@@ -43,6 +43,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	candidates = append(candidates, e.contextEntries(ctx, cfg, cur)...)
 
 	var ranked []Entry
+	best := 0.0 // the best match, to decide on the fallback items
 	for _, c := range candidates {
 		m := c.Score
 		if m == 0 {
@@ -51,6 +52,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 		if m == 0 {
 			continue
 		}
+		best = max(best, m)
 		f := freq[c.Key]
 		c.Rank = weightMatch*m + weightFrecency*f/(f+frecencyHalf)
 		if c.Context {
@@ -79,7 +81,75 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	if len(ranked) > maxRootItems {
 		ranked = ranked[:maxRootItems]
 	}
-	return group(ranked), nil
+	out := group(ranked)
+	if best < FallbackThreshold {
+		if items := e.fallbackEntries(ctx, cfg, plugin.Query{Text: text, Context: cur}); len(items) > 0 {
+			out = append(out, Section{Title: items[0].Group, Items: items})
+		}
+	}
+	return out, nil
+}
+
+// FallbackThreshold is the match score (0..1, before frecency and bonuses)
+// below which root results count as poor: the plugin.FallbackProvider items
+// ("Ask AI: …") are then listed after them.
+const FallbackThreshold = 0.5
+
+// fallbackEntries collects the items of the plugin.FallbackProviders for a
+// search that found nothing good, within the root time limit.
+func (e *Engine) fallbackEntries(ctx context.Context, cfg config.Config, q plugin.Query) []Entry {
+	ctx, cancel := context.WithTimeout(ctx, e.rootTimeout)
+	defer cancel()
+	var out []Entry
+	group := e.core.T("section.fallback")
+	for _, l := range e.enabled(cfg) {
+		fp, ok := l.p.(plugin.FallbackProvider)
+		if !ok {
+			continue
+		}
+		items, err := callPlugin(ctx, e, l.m.ID, e.rootTimeout, func(ctx context.Context) ([]plugin.Item, error) {
+			return fp.FallbackItems(ctx, q)
+		})
+		if err != nil {
+			e.log.Warn("fallback items", "plugin", l.m.ID, "err", err)
+			continue
+		}
+		for _, it := range items {
+			it.Group = group
+			ent := newEntry(l.m.ID, it)
+			ent.Fallback = true
+			out = append(out, ent)
+		}
+	}
+	return out
+}
+
+// tabAction returns the action that Tab runs in the root search with text
+// typed: that of the first enabled plugin.TabProvider answering ok.
+func (e *Engine) tabAction(ctx context.Context, text string) (Entry, plugin.Action, bool) {
+	cfg := e.cfg.Get()
+	q := plugin.Query{Text: text, Context: e.Context()}
+	for _, l := range e.enabled(cfg) {
+		tp, ok := l.p.(plugin.TabProvider)
+		if !ok {
+			continue
+		}
+		type answer struct {
+			a  plugin.Action
+			ok bool
+		}
+		r, err := callPlugin(ctx, e, l.m.ID, e.rootTimeout, func(context.Context) (answer, error) {
+			a, ok := tp.TabAction(q)
+			return answer{a, ok}, nil
+		})
+		if err != nil || !r.ok {
+			continue
+		}
+		ent := newEntry(l.m.ID, plugin.Item{ID: "tab", Title: r.a.Title, Actions: []plugin.Action{r.a}})
+		ent.Fallback = true
+		return ent, r.a, true
+	}
+	return Entry{}, plugin.Action{}, false
 }
 
 // group splits ranked entries into sections by Group, ordering sections by

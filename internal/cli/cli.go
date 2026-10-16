@@ -452,6 +452,18 @@ func writeStep(w io.Writer, r stepResult) {
 			fmt.Fprintln(w)
 		}
 		fmt.Fprintf(w, "submit: %s (Ctrl+Enter)\n", f.Submit)
+	} else if s.Layout == string(plugin.ViewDetail) {
+		// A detail view shows its content; its first item has the actions.
+		if s.Detail != nil {
+			for line := range strings.Lines(s.Detail.Markdown) {
+				fmt.Fprintf(w, "| %s", line)
+			}
+			fmt.Fprintln(w)
+			for _, m := range s.Detail.Metadata {
+				fmt.Fprintf(w, "| %s: %s\n", m.Label, m.Value)
+			}
+		}
+		writeSections(w, s.Sections, s.Selected)
 	} else {
 		writeSections(w, s.Sections, s.Selected)
 	}
