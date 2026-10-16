@@ -458,6 +458,65 @@
       "title": "Commands",
       "items": [
         {
+          "id": "cmd:chat",
+          "title": "AI Chat",
+          "subtitle": "AI",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "chat",
+            "ask",
+            "assistant",
+            "gpt"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "chat"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:chat"
+        },
+        {
+          "id": "cmd:history",
+          "title": "AI Chat History",
+          "subtitle": "AI",
+          "icon": {
+            "name": "history"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "chats",
+            "conversations",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:history"
+        },
+        {
           "id": "cmd:tasks",
           "title": "Background Tasks",
           "subtitle": "Background Tasks",

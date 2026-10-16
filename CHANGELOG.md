@@ -10,6 +10,27 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **AI Chat** (`builtin.ai`, off by default): chat with Claude in the
+  launcher through your installed Claude Code CLI and your Claude
+  subscription. `Tab` after typing opens a chat with the text; *Ask AI:
+  <text>* is offered when the main search finds nothing good (can be turned
+  off). Streaming answers, follow-ups, `Esc` to stop (a second `Esc`
+  closes), copy or paste the answer, *Continue in Claude* / *Continue in
+  ChatGPT* with the current question (copied to the clipboard when it is
+  too long for a link), `Ctrl+N` for a new chat, and *AI Chat History*
+  (open, delete, clear; chats older than 30 days by default are removed).
+  Settings › Plugins › AI: the master switch, the model, web search
+  (WebSearch/WebFetch only) and how long chats are kept. Claude Code runs
+  isolated from your own Claude Code setup (no settings, hooks, plugins,
+  CLAUDE.md, memory, MCP servers or local tools), one process per chat
+  kept for 10 minutes after the window hides (at most 2), with a fallback
+  to one process per answer.
+- **Plugin SDK**: `FallbackProvider` (items for searches with poor
+  results), `TabProvider` (what `Tab` does in the main search with text),
+  full-window `ViewDetail` views whose search field is an input
+  (`ActionDo.Query`, `Result.ClearText`), `View.Escape`, and
+  `Result.Preferences` (a plugin sets its own preferences, e.g. from a
+  first-use prompt). `glctl` text output shows detail views.
 - **WinGet**: search, install, upgrade and uninstall packages with the
   Windows Package Manager. Search reads the local index of the `winget`
   source, so it is instant; installed and upgradable packages come from
@@ -21,6 +42,9 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- The notification and the settings message about a launcher hotkey that
+  cannot be registered name the usual culprits (the ChatGPT app and
+  PowerToys Run also use Alt+Space).
 - **World Clock** knows about 32,000 cities instead of 185: every city with
   15,000 people or more, from [GeoNames](https://www.geonames.org/)
   (CC BY 4.0), with Chinese names (and their pinyin) for about 11,000 of

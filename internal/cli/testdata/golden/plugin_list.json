@@ -506,6 +506,107 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.ai",
+    "name": "AI",
+    "description": "Chat with Claude in the launcher through your Claude Code CLI and subscription.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "sparkles"
+    },
+    "enabled": true,
+    "permissions": [
+      "storage",
+      "clipboard",
+      "network",
+      "exec"
+    ],
+    "commands": [
+      {
+        "name": "chat",
+        "title": "AI Chat",
+        "mode": "view"
+      },
+      {
+        "name": "history",
+        "title": "AI Chat History",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "title": "Use AI",
+        "description": "Sends the questions you type in an AI chat to Claude through the Claude Code CLI installed on this computer, with your Claude subscription (no API key). Nothing is sent while this is off.",
+        "default": false
+      },
+      {
+        "name": "model",
+        "type": "select",
+        "title": "Model",
+        "description": "The Claude model that answers.",
+        "options": [
+          {
+            "value": "",
+            "title": "Default"
+          },
+          {
+            "value": "sonnet",
+            "title": "Sonnet"
+          },
+          {
+            "value": "opus",
+            "title": "Opus"
+          },
+          {
+            "value": "haiku",
+            "title": "Haiku (fastest)"
+          }
+        ]
+      },
+      {
+        "name": "webSearch",
+        "type": "bool",
+        "title": "Allow web search",
+        "description": "Lets Claude search the web and read web pages to answer. It never gets tools that touch this computer.",
+        "default": false
+      },
+      {
+        "name": "retentionDays",
+        "type": "select",
+        "title": "Keep chats for",
+        "description": "Older chats are deleted from AI Chat History.",
+        "default": "30",
+        "options": [
+          {
+            "value": "7",
+            "title": "7 days"
+          },
+          {
+            "value": "30",
+            "title": "30 days"
+          },
+          {
+            "value": "90",
+            "title": "90 days"
+          },
+          {
+            "value": "365",
+            "title": "1 year"
+          }
+        ]
+      },
+      {
+        "name": "askFallback",
+        "type": "bool",
+        "title": "Offer “Ask AI” when nothing matches",
+        "description": "When the main search finds nothing good, its last entry asks AI about what you typed. Tab always does.",
+        "default": true
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.tasks",
     "name": "Background Tasks",
     "description": "Shows the background tasks of golauncher and its plugins with their output, and lets you stop or rerun them.",

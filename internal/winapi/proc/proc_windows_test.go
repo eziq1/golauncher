@@ -51,6 +51,42 @@ func TestEnvAndDir(t *testing.T) {
 	}
 }
 
+// TestStdinAndStderr writes to the program's input through the pipe and
+// receives its stderr apart from stdout.
+func TestStdinAndStderr(t *testing.T) {
+	var mu sync.Mutex
+	var out, errOut strings.Builder
+	p, err := Start(Options{
+		Argv:      []string{"cmd", "/d", "/q", "/c", "set /p LINE= & call echo got %LINE% & echo oops 1>&2"},
+		Output:    &LineWriter{OnLine: func(s string) { mu.Lock(); out.WriteString(s + "\n"); mu.Unlock() }},
+		Stderr:    &LineWriter{OnLine: func(s string) { mu.Lock(); errOut.WriteString(s + "\n"); mu.Unlock() }},
+		StdinPipe: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Stdin().Write([]byte("hello\r\n")); err != nil {
+		t.Fatal(err)
+	}
+	p.Stdin().Close()
+	if code, err := p.Wait(); code != 0 || err != nil {
+		t.Fatalf("code %d, err %v", code, err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if !strings.Contains(out.String(), "got hello") || strings.Contains(out.String(), "oops") || !strings.Contains(errOut.String(), "oops") {
+		t.Errorf("stdout %q, stderr %q", out.String(), errOut.String())
+	}
+	q, err := Start(Options{Argv: []string{"cmd", "/d", "/c", "exit 0"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Stdin() != nil {
+		t.Error("Stdin without StdinPipe")
+	}
+	q.Wait()
+}
+
 // TestStopEndsTree stops cmd.exe while its child ping runs: the job object
 // ends both, so the output pipe closes at once instead of after WaitDelay.
 func TestStopEndsTree(t *testing.T) {

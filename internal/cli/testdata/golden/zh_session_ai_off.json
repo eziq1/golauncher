@@ -1,0 +1,54 @@
+{
+  "step": "key \"Tab\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.ai",
+      "request": {
+        "id": "chat",
+        "payload": {
+          "text": "天空为什么是蓝色的"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "AI 对话",
+    "layout": "detail",
+    "placeholder": "按 Enter 打开 AI",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "chat",
+            "title": "打开 AI",
+            "icon": {
+              "name": "sparkles"
+            },
+            "actions": [
+              {
+                "id": "enable",
+                "title": "打开 AI",
+                "do": {
+                  "kind": "Callback",
+                  "target": "enable"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/chat"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "detail": {
+      "markdown": "## 在启动器里和 Claude 对话\n\ngolauncher 可以通过 Claude Code（本机安装的 Claude Code 命令行）和你的 Claude 订阅，把问题发给 Claude。不需要 API Key，用量计入你的订阅。\n\n只发送你在 AI 对话里输入的内容，而且只在你打开之后才发送。对话记录只保存在本机，默认保留 30 天（可以在 设置 › 插件 › AI 中修改）。按 Enter 打开。\n\n打开后会发送你的问题：\n\n> 天空为什么是蓝色的"
+    },
+    "emptyText": "没有结果"
+  }
+}

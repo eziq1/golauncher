@@ -1,0 +1,72 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.ai",
+      "request": {
+        "id": "history",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "AI Chat History",
+    "placeholder": "Search chats…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "title": "why is the sky blue",
+            "subtitle": "Just now",
+            "icon": {
+              "name": "message-square"
+            },
+            "accessory": "4 messages",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open Chat",
+                "do": {
+                  "kind": "Push",
+                  "target": "chat",
+                  "payload": {
+                    "session": "00000000-0000-4000-8000-000000000001"
+                  }
+                }
+              },
+              {
+                "id": "delete",
+                "title": "Delete Chat",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "delete",
+                  "payload": "00000000-0000-4000-8000-000000000001"
+                }
+              },
+              {
+                "id": "clear",
+                "title": "Delete All Chats",
+                "style": "destructive",
+                "do": {
+                  "kind": "Callback",
+                  "target": "clear"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/00000000-0000-4000-8000-000000000001"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No chats yet"
+  }
+}
