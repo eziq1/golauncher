@@ -17,6 +17,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`everything`](../plugins/everything/) | depend on external software and report when it is unavailable |
 | [`scripts`](../plugins/scripts/) | run processes, stream output into a view with `Invalidate`, take arguments |
 | [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
+| [`timer`](../plugins/timer/) | keep state in `Storage`, run a scheduler on `Host.Go`, notify with `Host.Toast` |
 
 ## The model
 
@@ -437,7 +438,7 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
   handler, e.g. to show the task it started.
 - **Toasts from anywhere**: `Host.Toast(t)` shows a toast from a background
   goroutine (in the launcher when it is visible, else as a Windows
-  notification).
+  notification; `Toast.Silent` makes that notification silent).
 - The host keeps the last 50 finished tasks with their full logs in
   `%LOCALAPPDATA%\golauncher\tasks`; the views show the last 2 MB of
   output.

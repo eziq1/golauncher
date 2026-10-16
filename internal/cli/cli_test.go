@@ -88,6 +88,13 @@ func TestGolden(t *testing.T) {
 		{"query_clock", []string{"query", "time", "--now", clockNow}},
 		{"query_clock_bj", []string{"query", "time bj", "--now", clockNow}},
 		{"query_clock_zh", []string{"query", "time 北京", "--now", clockNow}},
+		// Timers and reminders (docs/timers.md).
+		{"query_timer", []string{"query", "timer 25m", "--now", clockNow}},
+		{"query_timer_label", []string{"query", "timer 1h30m 喝水", "--now", clockNow}},
+		{"query_timer_empty", []string{"query", "timer", "--now", clockNow}},
+		{"query_remind", []string{"query", "remind 15:30 开会", "--now", clockNow}},
+		{"query_remind_rolled", []string{"query", "remind 9am standup", "--now", clockNow}},
+		{"run_timers", []string{"run", "builtin.timer/timers", "--text", "15:30 call", "--now", clockNow}},
 		// Unit conversion (docs/unit-conversion.md).
 		{"query_unit", []string{"query", "10 km in mi"}},
 		{"query_unit_bare", []string{"query", "30 ℃"}},
@@ -114,6 +121,8 @@ func TestGolden(t *testing.T) {
 		{"zh_query_pinyin", []string{"query", "jtb", "--locale", "zh-CN"}},
 		{"zh_run_clipboard_history", []string{"run", "builtin.clipboard/history", "--locale", "zh-CN", "--fixtures", fixtures}},
 		{"zh_query_clock", []string{"query", "time 北京", "--locale", "zh-CN", "--now", clockNow}},
+		{"zh_query_timer", []string{"query", "计时 半小时", "--locale", "zh-CN", "--now", clockNow}},
+		{"zh_query_remind", []string{"query", "提醒 明天 9点 交周报", "--locale", "zh-CN", "--now", clockNow}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -124,6 +133,18 @@ func TestGolden(t *testing.T) {
 			golden(t, tt.name, out)
 		})
 	}
+}
+
+// TestSessionTimer starts a timer from the root search; "timer" then lists
+// it with the time left (the clock is fixed, so it does not tick).
+func TestSessionTimer(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s, "--now", clockNow)
+	glctl(t, "session", "type", "-s", s, "timer 25m tea")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_timer_start", out)
+	out, _ = glctl(t, "session", "type", "-s", s, "timer")
+	golden(t, "session_timer_list", out)
 }
 
 func TestSessionPasteFromClipboardHistory(t *testing.T) {

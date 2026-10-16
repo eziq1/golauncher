@@ -1,0 +1,181 @@
+{
+  "query": "timer",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Timers",
+      "items": [
+        {
+          "id": "preset:1500000",
+          "title": "Pomodoro · 25 min",
+          "subtitle": "Ends at 10:25",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "Timers",
+          "score": 0.5,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Start Timer",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 1500000,
+                  "label": "Pomodoro",
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/preset:1500000",
+          "rank": 1.35
+        },
+        {
+          "id": "preset:300000",
+          "title": "Short break · 5 min",
+          "subtitle": "Ends at 10:05",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "Timers",
+          "score": 0.499,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Start Timer",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 300000,
+                  "label": "Short break",
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/preset:300000",
+          "rank": 1.3493
+        },
+        {
+          "id": "preset:900000",
+          "title": "Long break · 15 min",
+          "subtitle": "Ends at 10:15",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "Timers",
+          "score": 0.498,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Start Timer",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 900000,
+                  "label": "Long break",
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/preset:900000",
+          "rank": 1.3486
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:timers",
+          "title": "Timers",
+          "subtitle": "Timers",
+          "icon": {
+            "name": "timer"
+          },
+          "keywords": [
+            "timer",
+            "countdown",
+            "reminder",
+            "alarm",
+            "pomodoro"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "timers"
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/cmd:timers",
+          "rank": 0.6649999999999999
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "tool:envvars",
+          "title": "Environment Variables",
+          "subtitle": "rundll32 sysdm.cpl,EditEnvironmentVariables",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "env",
+            "path",
+            "environment variables",
+            "环境变量",
+            "huan jing bian liang"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "rundll32.exe",
+                "payload": {
+                  "args": "sysdm.cpl,EditEnvironmentVariables"
+                }
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "rundll32.exe",
+                "payload": {
+                  "args": "sysdm.cpl,EditEnvironmentVariables",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:envvars",
+          "rank": 0.15399999999999997
+        }
+      ]
+    }
+  ]
+}

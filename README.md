@@ -53,6 +53,13 @@
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find
     one of about 32,000 cities (every city of 15,000 people or more, from
     GeoNames). The clocks tick; favorite cities stay on top.
+  - **Timers & Reminders**: `timer 25m`, `timer 1h30m tea`, `计时 半小时`
+    start a countdown; `remind 15:30 meeting`, `remind tomorrow 9am`,
+    `提醒 明天 9点 交周报`, `remind in 20m` set a reminder. `timer` lists
+    the running ones with the time left (pause, resume, +5 min, restart,
+    cancel and undo); a notification comes when they end. Timers survive
+    restarts, and reminders missed while golauncher was not running are
+    announced when it starts.
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;

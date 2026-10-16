@@ -1,0 +1,38 @@
+{
+  "query": "计时 半小时",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "计时器",
+      "items": [
+        {
+          "id": "new:timer",
+          "title": "开始 30 分钟计时器",
+          "subtitle": "将于 10:30 结束",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "计时器",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "开始计时",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 1800000,
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:timer",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

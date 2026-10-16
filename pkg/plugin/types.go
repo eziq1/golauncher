@@ -386,4 +386,7 @@ type Toast struct {
 	Style   ToastStyle `json:"style"`
 	Title   string     `json:"title"`
 	Message string     `json:"message,omitempty"`
+	// Silent asks for no sound when the toast is shown as a Windows
+	// notification (Host.Toast while the launcher is hidden).
+	Silent bool `json:"silent,omitzero"`
 }

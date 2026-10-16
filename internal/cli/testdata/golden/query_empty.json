@@ -503,6 +503,35 @@
           "key": "builtin.everything/cmd:search"
         },
         {
+          "id": "cmd:timers",
+          "title": "Timers",
+          "subtitle": "Timers",
+          "icon": {
+            "name": "timer"
+          },
+          "keywords": [
+            "timer",
+            "countdown",
+            "reminder",
+            "alarm",
+            "pomodoro"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "timers"
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/cmd:timers"
+        },
+        {
           "id": "cmd:tracert",
           "title": "Trace Route",
           "subtitle": "Network Tools",

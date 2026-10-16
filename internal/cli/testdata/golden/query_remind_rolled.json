@@ -1,0 +1,37 @@
+{
+  "query": "remind 9am standup",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Timers",
+      "items": [
+        {
+          "id": "new:reminder",
+          "title": "Remind Me: standup",
+          "subtitle": "Due tomorrow at 09:00 · in 23 h · that time has passed today",
+          "icon": {
+            "name": "alarm-clock"
+          },
+          "group": "Timers",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Set Reminder",
+              "do": {
+                "kind": "Callback",
+                "target": "remind",
+                "payload": {
+                  "text": "9am standup"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:reminder",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

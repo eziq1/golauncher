@@ -167,7 +167,7 @@ they are created without a console window.
 | `host/subscribe` | `{event}` | `null` | — |
 | `host/log` | `{level, message}` | `null` | — |
 | `host/task.runProcess` | `{spec: TaskSpec, cmd: ProcessSpec}` | `{id}` | `exec` |
-| `host/toast` | `{toast: {style, title, message?}}` | `null` | — |
+| `host/toast` | `{toast: {style, title, message?, silent?}}` | `null` | — |
 
 - Storage is a private key/value store. Text values travel in `value`;
   values that are not valid UTF-8 travel base64-encoded in `base64`.

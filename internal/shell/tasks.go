@@ -50,7 +50,7 @@ func (s *Shell) notify(n core.Notice) {
 	if n.TaskID != "" {
 		id = "task-" + n.TaskID
 	}
-	notification := mygo.NewNotification(mygo.NotificationOptions{ID: id, Title: n.Toast.Title, Body: n.Toast.Message})
+	notification := mygo.NewNotification(mygo.NotificationOptions{ID: id, Title: n.Toast.Title, Body: n.Toast.Message, Silent: n.Toast.Silent})
 	notification.OnClick(func() {
 		if n.TaskID != "" {
 			s.showTask(n.TaskID)

@@ -1,0 +1,37 @@
+{
+  "query": "提醒 明天 9点 交周报",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "计时器",
+      "items": [
+        {
+          "id": "new:reminder",
+          "title": "提醒：交周报",
+          "subtitle": "明天 09:00 提醒 · 23 小时后",
+          "icon": {
+            "name": "alarm-clock"
+          },
+          "group": "计时器",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "设置提醒",
+              "do": {
+                "kind": "Callback",
+                "target": "remind",
+                "payload": {
+                  "text": "明天 9点 交周报"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:reminder",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

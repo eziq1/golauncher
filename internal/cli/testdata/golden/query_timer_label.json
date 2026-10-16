@@ -1,0 +1,39 @@
+{
+  "query": "timer 1h30m 喝水",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Timers",
+      "items": [
+        {
+          "id": "new:timer",
+          "title": "Start 1 h 30 min Timer: 喝水",
+          "subtitle": "Ends at 11:30",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "Timers",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Start Timer",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 5400000,
+                  "label": "喝水",
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:timer",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}
