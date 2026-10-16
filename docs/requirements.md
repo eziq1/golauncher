@@ -75,4 +75,5 @@
 | R67 | 2026-10-16 | 发布新版 | [release.md §11](release.md)：发布 v0.6.0（读取选中文字、窗口图标修复）；这是 0.5.0 第一次真机自动升级 | ✅ 已发布 v0.6.0 |
 | R68 | 2026-10-16 | "刷新 DNS 缓存"失败（需要管理员权限）：能不能提示用户提权，而不是直接失败？ | 原因：`ipconfig /flushdns` 在本机需要管理员权限，后台任务以普通权限运行。方案：SDK `ProcessSpec.Elevate`，宿主用 UAC（ShellExecuteEx runas、隐藏窗口）运行并取退出码（提权进程的输出拿不到）；刷新 DNS、续订 IP 改用它；取消 UAC 算"已取消"；通用兜底：任务因需要提权而失败时，提供"以管理员身份重试"。实现见 [background-tasks.md §11](background-tasks.md)、[network-tools.md §4.8](network-tools.md) | ✅ 已合并 |
 | R69 | 2026-10-16 | 问：接入 ChatGPT 和 Antigravity，是不是可以用和接入 Claude 一样的方案？ | [ai.md §18](ai.md)：ChatGPT 基本可以（Codex CLI：`exec --json`、`resume`、MCP、只读沙箱；常驻可用实验性的 `app-server`）；Antigravity 是 IDE，没有无界面对话 CLI，改为"连接到 Antigravity"（`--add-mcp`）和"在 Antigravity 中继续"，启动器内用 Gemini 回答走 Gemini CLI | 📋 待你决定做哪些 |
-| R70 | 2026-10-16 | 问：是不是可以设计一个抽象层，用来对接不同的 CLI？ | [ai.md §19](ai.md)：对话插件接口不变；新增共用的 Agent 运行层（进程、隔离、MCP 注入、会话对应、授权桥接、错误分类）和每家的适配器；适配器里加 ACP 通用适配器（Gemini 原生 `--acp`，Codex/Claude 可经 Zed 适配器）；分三期，Antigravity 集成并行 | 📋 方案待确认 |
+| R70 | 2026-10-16 | 问：是不是可以设计一个抽象层，用来对接不同的 CLI？ | [ai.md §19](ai.md)：对话插件接口不变；新增共用的 Agent 运行层（进程、隔离、MCP 注入、会话对应、授权桥接、错误分类）和每家的适配器；适配器里加 ACP 通用适配器（Gemini 原生 `--acp`，Codex/Claude 可经 Zed 适配器）；分三期，Antigravity 集成并行 | ✅ 方案已确认，先做第一期（R71） |
+| R71 | 2026-10-16 | 先做多 CLI 抽象层的第一期 | [ai.md §19](ai.md)：抽出 Agent 运行层，Claude 改造成第一个适配器（行为不变），设置里加"后端"选择 | 🚧 子代理开发中（worktree） |
