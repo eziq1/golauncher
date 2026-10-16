@@ -62,3 +62,4 @@
 | R54 | 2026-10-16 | 增加自动升级：自动连接 GitHub 检测新版本，有的话直接下载并升级（启动 agent） | [auto-update.md](auto-update.md)：定期查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 `checksums.txt` 校验 SHA-256，复用自安装（R15）的安装逻辑替换程序，在启动器空闲时重启，失败回滚 | 🚧 子代理开发中（worktree） |
 | R55 | 2026-10-16 | 进程管理方案的决定：前缀 `ps`、`kill`、`进程`；正常结束不需要确认；视图里 Enter 切换到应用窗口；窗口标题对 AI 隐藏；结束管理员进程弹一次 UAC；条形图放第一期；联网搜索进程用 Google；刷新和 CPU 算法按任务管理器 | [process-manager.md §14](process-manager.md) | 🚧 子代理开发中（worktree） |
 | R56 | 2026-10-16 | 其他决定：AI 联网默认打开；网页搜索的兜底条目排在 Ask AI 后面；内置主题"Raycast-style"改成中性的名字；默认主题（golauncher 浅色/深色）调深到对比度达标 | ai.md、quicklinks.md、themes.md 的修订记录 | 🚧 子代理开发中（worktree） |
+| R57 | 2026-10-16 | 问：插件系统中不同插件之间的调用是怎么实现的？ | [m5-plugin-platform.md "插件之间怎么交互"](m5-plugin-platform.md)：插件之间不能直接调用，全部经过宿主（根搜索汇总、兜底/Tab、共享服务、宿主事件、通用动作、AI 工具层）；原因是隔离、权限审计、版本独立；以后可加宿主级通用动作、跨插件运行命令、插件事件 | ✅ 已回答 |
