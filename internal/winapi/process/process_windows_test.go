@@ -282,9 +282,11 @@ func TestKillTree(t *testing.T) {
 	}
 	t.Cleanup(func() { Kill(ping) }) // ours: started by our cmd.exe
 	r := KillTree(c.id)
-	// The tree may hold a conhost.exe too: ping and cmd must both be ended,
-	// nothing may fail.
-	if !slices.Contains(r.Ended, c.id) || !slices.Contains(r.Ended, ping) || len(r.Failed)+len(r.NeedsAdmin)+len(r.Protected) != 0 {
+	// The tree may hold a conhost.exe too. cmd is ended first; ping, on the
+	// console cmd owned, may exit with that console before it is reached
+	// (Gone): either way it is no longer running, and nothing may fail.
+	pingDone := slices.Contains(r.Ended, ping) || slices.Contains(r.Gone, ping)
+	if !slices.Contains(r.Ended, c.id) || !pingDone || len(r.Failed)+len(r.NeedsAdmin)+len(r.Protected) != 0 {
 		t.Errorf("report = %+v", r)
 	}
 	c.ended(t)

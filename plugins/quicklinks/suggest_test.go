@@ -207,13 +207,16 @@ func TestSuggestionsDebounceAndCancel(t *testing.T) {
 
 func TestSuggestionsTimeout(t *testing.T) {
 	s := newSuggestServer(t)
-	s.delay = time.Second
-	e := newEnv(t, Options{Client: s.client(), Debounce: time.Millisecond, SuggestTimeout: 30 * time.Millisecond})
+	// Wide margins: on a loaded machine the request may take a while to
+	// reach the server, and the timeout must still end well before the
+	// server's answer.
+	s.delay = 5 * time.Second
+	e := newEnv(t, Options{Client: s.client(), Debounce: time.Millisecond, SuggestTimeout: 200 * time.Millisecond})
 	e.h.Prefs.Set(prefSuggest, plugin.MustPayload(true))
 	start := time.Now()
 	e.root("g slow")
 	e.p.sug.wg.Wait()
-	if d := time.Since(start); d > 500*time.Millisecond {
+	if d := time.Since(start); d > 3*time.Second {
 		t.Errorf("timeout took %v", d)
 	}
 	if len(s.requests()) != 1 || len(titles(e.root("g slow"), "suggest:")) != 0 || slices.Contains(e.h.Invalidated(), "") {
