@@ -31,9 +31,9 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	cfg := e.cfg.Get()
 	raw := text
 	text = strings.TrimSpace(text)
-	cur := e.pullContext()
+	cur, sel := e.pullContext()
 	if text == "" {
-		return e.rootEmpty(ctx, cfg, cur)
+		return e.rootEmpty(ctx, cfg, cur, sel)
 	}
 	freq, err := e.svc.DB.Frecency(e.svc.Now())
 	if err != nil {
@@ -42,6 +42,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	candidates := e.commandEntries(cfg)
 	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Raw: raw, Context: cur})...)
 	candidates = append(candidates, e.contextEntries(ctx, cfg, cur)...)
+	candidates = append(candidates, e.selectionEntries(ctx, cfg, sel, text)...)
 	ranked, best := rank(cfg, text, candidates, freq)
 	out := group(ranked)
 	if best < FallbackThreshold {
@@ -84,6 +85,14 @@ func rank(cfg config.Config, text string, candidates []Entry, freq map[string]fl
 			m = entryMatch(text, c)
 		}
 		if m == 0 {
+			continue
+		}
+		if c.Selection {
+			// The selected text is often left over from earlier: its items
+			// never push out clear matches, nor stand for a good result
+			// that would hide the fallback items.
+			c.Rank = weightMatch*m + contextBonus
+			ranked = append(ranked, c)
 			continue
 		}
 		best = max(best, m)
@@ -278,8 +287,11 @@ func (e *Engine) pluginRootItems(ctx context.Context, cfg config.Config, q plugi
 
 // rootEmpty is the root list before anything is typed: the items for the
 // current context, recently used items and all commands.
-func (e *Engine) rootEmpty(ctx context.Context, cfg config.Config, cur *plugin.Context) ([]Section, error) {
+func (e *Engine) rootEmpty(ctx context.Context, cfg config.Config, cur *plugin.Context, sel *plugin.Selection) ([]Section, error) {
 	var out []Section
+	if items := e.selectionEntries(ctx, cfg, sel, ""); len(items) > 0 {
+		out = append(out, Section{Title: items[0].Group, Items: items[:min(len(items), maxSelectionRows)]})
+	}
 	if items := e.contextEntries(ctx, cfg, cur); len(items) > 0 {
 		out = append(out, Section{Title: items[0].Group, Items: items})
 	}

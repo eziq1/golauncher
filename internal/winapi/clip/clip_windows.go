@@ -64,13 +64,7 @@ var (
 )
 
 const (
-	cfDIB         = 8
-	cfUnicodeText = 13
-	cfHDROP       = 15
-	cfDIBV5       = 17
-
 	gmemMoveable = 0x0002
-	maxDataSize  = 256 << 20
 
 	wmDestroy         = 0x0002
 	wmClose           = 0x0010
@@ -82,12 +76,6 @@ const (
 	inputKeybd   = 1
 	keyUp        = 0x0002
 	keyExtended  = 0x0001
-	vkShift      = 0x10
-	vkControl    = 0x11
-	vkMenu       = 0x12
-	vkLWin       = 0x5B
-	vkRWin       = 0x5C
-	vkV          = 0x56
 	errClassUsed = 1410 // ERROR_CLASS_ALREADY_EXISTS
 )
 
@@ -122,21 +110,25 @@ func registerFormat(name string) uintptr {
 func withClipboard(fn func() error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	opened := false
+	if err := openClipboard(); err != nil {
+		return err
+	}
+	defer procCloseClipboard.Call()
+	return fn()
+}
+
+// openClipboard opens the clipboard, retrying for up to 90ms while another
+// program holds it. The calling goroutine must be locked to its OS thread.
+func openClipboard() error {
 	for i := range 10 {
 		if r, _, _ := procOpenClipboard.Call(ownerWindow()); r != 0 {
-			opened = true
-			break
+			return nil
 		}
 		if i < 9 {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	if !opened {
-		return ErrBusy
-	}
-	defer procCloseClipboard.Call()
-	return fn()
+	return ErrBusy
 }
 
 func available(format uintptr) bool {
@@ -149,20 +141,30 @@ func available(format uintptr) bool {
 
 // getData copies the data of format from the open clipboard.
 func getData(format uintptr) ([]byte, bool) {
+	b, err := getDataLimit(format, maxDataSize)
+	return b, err == nil
+}
+
+// getDataLimit is getData for data of at most limit bytes: errTooLarge when
+// it is larger, errNoData when there is none.
+func getDataLimit(format uintptr, limit int) ([]byte, error) {
 	h, _, _ := procGetClipboardData.Call(format)
 	if h == 0 {
-		return nil, false
+		return nil, errNoData
 	}
 	n, _, _ := procGlobalSize.Call(h)
-	if n == 0 || n > maxDataSize {
-		return nil, false
+	switch {
+	case n == 0:
+		return nil, errNoData
+	case n > uintptr(max(limit, 0)):
+		return nil, errTooLarge
 	}
 	p, _, _ := procGlobalLock.Call(h)
 	if p == 0 {
-		return nil, false
+		return nil, errNoData
 	}
 	defer procGlobalUnlock.Call(h)
-	return bytes.Clone(unsafe.Slice((*byte)(native(p)), n)), true
+	return bytes.Clone(unsafe.Slice((*byte)(native(p)), n)), nil
 }
 
 // setData puts data on the open, emptied clipboard.
@@ -391,8 +393,11 @@ func WriteFiles(paths []string) error {
 var watchOwnWrites atomic.Bool
 
 // ownWrite reports whether the current clipboard content was written by
-// this process.
+// this process, or during CopySelection (see suppressor).
 func ownWrite() bool {
+	if suppression.covers(sequenceNumber()) {
+		return true
+	}
 	if watchOwnWrites.Load() {
 		return false
 	}
@@ -500,7 +505,7 @@ func Watch(fn func()) (stop func(), err error) {
 	if err != nil {
 		return nil, err
 	}
-	deb := &debouncer{delay: debounceDelay, fn: fn}
+	deb := &debouncer{delay: debounceDelay, fn: fn, hold: suppression.holding}
 	ready := make(chan error, 1)
 	done := make(chan struct{})
 	var hwnd uintptr
@@ -674,18 +679,26 @@ func key(vk uint16, up bool) input {
 	return in
 }
 
-// sendInput injects in and returns an error unless every event was
-// inserted. Events are rejected as a whole when blocked by UIPI (the target
-// runs elevated) or when another thread blocks input.
-func sendInput(in []input) error {
-	n, _, err := procSendInput.Call(uintptr(len(in)), uintptr(unsafe.Pointer(&in[0])), unsafe.Sizeof(input{}))
-	if int(n) == len(in) {
-		return nil
+// sendKeys injects ev and returns how many events were inserted, with an
+// error unless all were. Events are rejected as a whole when blocked by
+// UIPI (the target runs elevated) or when another thread blocks input.
+func sendKeys(ev []keyEvent) (int, error) {
+	if len(ev) == 0 {
+		return 0, nil
+	}
+	in := make([]input, len(ev))
+	for i, e := range ev {
+		in[i] = key(e.vk, e.up)
+	}
+	r, _, err := procSendInput.Call(uintptr(len(in)), uintptr(unsafe.Pointer(&in[0])), unsafe.Sizeof(input{}))
+	n := int(r)
+	if n == len(in) {
+		return n, nil
 	}
 	if errno, ok := errors.AsType[syscall.Errno](err); ok && errno != 0 {
-		return fmt.Errorf("clip: SendInput inserted %d of %d events: %w", n, len(in), err)
+		return n, fmt.Errorf("clip: SendInput inserted %d of %d events: %w", n, len(in), err)
 	}
-	return fmt.Errorf("clip: SendInput inserted %d of %d events (input blocked, e.g. the target runs elevated)", n, len(in))
+	return n, fmt.Errorf("clip: SendInput inserted %d of %d events (input blocked, e.g. the target runs elevated)", n, len(in))
 }
 
 func keyHeld(vk uint16) bool {
@@ -703,16 +716,9 @@ func PasteTo(hwnd uintptr) error {
 	if err := activate(hwnd); err != nil {
 		return err
 	}
-	in := []input{key(vkControl, false)}
-	for _, vk := range []uint16{vkMenu, vkShift, vkLWin, vkRWin} {
-		if keyHeld(vk) {
-			in = append(in, key(vk, true))
-		}
-	}
-	in = append(in, key(vkV, false), key(vkV, true), key(vkControl, true))
-	if err := sendInput(in); err != nil {
+	if _, err := sendKeys(shortcutKeys(vkV, keyHeld)); err != nil {
 		// Do not leave Ctrl or V stuck down if only part was inserted.
-		_ = sendInput([]input{key(vkV, true), key(vkControl, true)})
+		_, _ = sendKeys([]keyEvent{{vkV, true}, {vkControl, true}})
 		return err
 	}
 	return nil

@@ -1,0 +1,20 @@
+{
+  "plugin.name": "选中的文字",
+  "plugin.description": "显示打开启动器前在窗口里选中的文字和字数。针对这段文字的操作由其他插件提供。",
+  "preview.keywords": "选中的文字, 选中, 字数, 字数统计, 字符数, selected, selection, word count",
+  "preview.truncated": "已截断",
+  "words": { "other": "{{.Count}} 字" },
+  "action.show": "查看全文",
+  "view.title": "选中的文字",
+  "detail.app": "应用",
+  "detail.words": "字数",
+  "detail.characters": "字符数",
+  "detail.lines": "行数",
+  "detail.method": "方式",
+  "detail.methodUIA": "UI Automation",
+  "detail.methodClipboard": "剪贴板方式",
+  "detail.truncated": "已截断",
+  "detail.editable": "可编辑",
+  "detail.yes": "是",
+  "detail.no": "否"
+}

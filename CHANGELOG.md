@@ -8,6 +8,39 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Selected text** (R64, R65, docs/selected-text.md): select text in any app
+  and open the launcher; a "Selected Text" section at the top of the root
+  offers a preview (Enter shows the full text with its word, character and
+  line counts), AI actions (translate — into the UI language by default, or
+  the language chosen in the AI settings —, ask AI with an optional
+  instruction, explain, summarize, rewrite, suggest replies, and "AI handles
+  the selection: <what you typed>"), a web search with the default engine,
+  web translation, "open link" when the text is a URL, and the calculator's
+  result (with "paste to replace" in editable fields) when it is an
+  expression. It follows the Context awareness switch. The text is read
+  with UI Automation (the focused element before the launcher takes the
+  focus, the text in the background; the list updates when it arrives,
+  keeping the first row selected); password fields, excluded apps (password
+  managers by default) and golauncher itself are never read. An opt-in
+  setting "Fall back to copying when the text can't be read" copies the
+  selection with Ctrl+C when UI Automation cannot read the app (never in
+  terminals, Excel, line-copying editors, password fields or elevated
+  apps), saving and restoring every clipboard format (up to 16 MB) and
+  hiding the temporary content from golauncher's clipboard history; Windows
+  clipboard history, the cloud clipboard and other clipboard managers may
+  still record the app's copy, as the setting says. Also a hotkey "Open for
+  the selected text", a list of apps that always use copying, and the
+  maximum length (10,000 characters by default; longer text is truncated
+  and marked). The text is kept in memory for one show, never stored or
+  logged (only lengths and timings), hidden from AI tools, and sent to AI
+  only when you pick an AI action, shown in full in the message.
+- SDK: `plugin.SelectionProvider`, `plugin.Selection`, `plugin.SelectionQuery`
+  and the `selection` permission (`plugin.PermSelection`), for built-in
+  plugins for now. New built-in plugin `builtin.selection`.
+- glctl: `--selection`, `--selection-app`, `--selection-source`,
+  `--selection-truncated`, `--selection-editable` inject a selection.
 ### Fixed
 
 - The settings window (and the installer's) showed Windows' generic icon in its title bar and taskbar button instead of golauncher's (R62): the program's icon resource is now ID 1, the one the windows load.

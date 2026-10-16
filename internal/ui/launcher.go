@@ -741,6 +741,9 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 			if s.Context != nil {
 				l.contextChip(c, s.Context)
 			}
+			if s.Selection != nil && s.Depth == 0 {
+				l.selectionChip(c, s.Selection)
+			}
 			mui.Box(c).Grow(1)
 		}
 		if s.Form != nil {
@@ -791,6 +794,30 @@ func (l *Launcher) contextChip(c *mui.Context, ctx *core.ContextSnapshot) {
 	chip.Children(func() {
 		mui.Icon(c, builtinIcon(icon)).FontSize(12).TextColor(t.TextMuted)
 		mui.Text(c, ctx.Name).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0)
+	})
+}
+
+// selectionChip shows how much text was selected when the launcher opened
+// (docs/selected-text.md §5.1); a click shows the text, as Enter on the
+// preview row does.
+func (l *Launcher) selectionChip(c *mui.Context, sel *core.SelectionSnapshot) {
+	t := c.Theme()
+	chip := mui.Row(c.Key("selection-chip")).Gap(5).Padding(2, 7).Radius(l.rad(6)).AlignItems(mui.Center).Shrink(1).MinWidth(0).MaxWidth(200).
+		Background(t.Text.Alpha(0.06)).Label(sel.Label)
+	if chip.Hovered() {
+		chip.Background(t.Text.Alpha(0.12))
+	}
+	if chip.Clicked() {
+		l.text, l.sent = "", ""
+		l.work.Do(func(ctx context.Context) {
+			out, err := l.ctrl.OpenSelection(ctx)
+			l.apply(out, err)
+		})
+		l.input.Focus()
+	}
+	chip.Children(func() {
+		mui.Icon(c, builtinIcon("text")).FontSize(12).TextColor(t.TextMuted)
+		mui.Text(c, sel.Label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0)
 	})
 }
 

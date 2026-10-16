@@ -1,0 +1,138 @@
+{
+  "query": "translate",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Selected Text",
+      "items": [
+        {
+          "id": "translate",
+          "title": "Translate to Chinese on the Web",
+          "subtitle": "Google Translate",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "translate",
+            "translation",
+            "web translate"
+          ],
+          "group": "Selected Text",
+          "actions": [
+            {
+              "id": "google",
+              "title": "Translate with Google Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/?sl=auto&tl=zh-CN&text=Let%27s%20move%20the%20meeting%20to%20Thursday%20afternoon%2C%20the%20room%20is%20booked.&op=translate"
+              }
+            },
+            {
+              "id": "youdao",
+              "title": "Translate with Youdao Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.youdao.com/result?word=Let%27s%20move%20the%20meeting%20to%20Thursday%20afternoon%2C%20the%20room%20is%20booked.&lang=en"
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/translate",
+          "rank": 0.7649999999999999,
+          "context": true,
+          "selection": true
+        },
+        {
+          "id": "enable",
+          "title": "Use AI to translate and summarize the selected text",
+          "subtitle": "AI",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "translate",
+            "summarize",
+            "explain",
+            "rewrite",
+            "翻译",
+            "总结"
+          ],
+          "group": "Selected Text",
+          "actions": [
+            {
+              "id": "enable",
+              "title": "Turn On AI",
+              "do": {
+                "kind": "Push",
+                "target": "chat",
+                "payload": {
+                  "toRoot": true
+                }
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/enable",
+          "rank": 0.7649999999999999,
+          "context": true,
+          "selection": true
+        }
+      ]
+    },
+    {
+      "title": "Web Search",
+      "items": [
+        {
+          "id": "engine:translate",
+          "title": "Search Google Translate",
+          "subtitle": "tr, translate",
+          "icon": {
+            "name": "search"
+          },
+          "keywords": [
+            "tr",
+            "translate"
+          ],
+          "accessory": "Search Engine",
+          "group": "Web Search",
+          "actions": [
+            {
+              "id": "search",
+              "title": "Search",
+              "do": {
+                "kind": "Callback",
+                "target": "search",
+                "payload": {
+                  "id": "translate"
+                }
+              }
+            },
+            {
+              "id": "home",
+              "title": "Open Home Page",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "query",
+              "type": "text",
+              "placeholder": "Search for…"
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/engine:translate",
+          "rank": 0.6649999999999999
+        }
+      ]
+    }
+  ]
+}

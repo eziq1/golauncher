@@ -431,6 +431,61 @@ func (p *Plugin) ContextItems(ctx context.Context, c plugin.Context) ([]plugin.I
 External plugins get the context in the `rootItems` params and through the
 `contextItems` method (see [plugin-protocol.md](plugin-protocol.md)).
 
+### Selected text: `SelectionProvider` and `PermSelection`
+
+When the user selected some text in another app before opening the launcher
+(and **Context awareness** is on), the host reads it — with UI Automation,
+or, only if the user turned on "Fall back to copying", with a simulated
+Ctrl+C whose clipboard change is undone — and offers actions for it in a
+**"Selected Text"** section at the top of the root search
+([selected-text.md](selected-text.md)). The text is *not* part of
+`plugin.Context`: only plugins that declare the `selection` permission and
+implement `plugin.SelectionProvider` ever see it.
+
+```go
+func (p *Plugin) Manifest() plugin.Manifest {
+    return plugin.Manifest{ID: "acme.words", /* … */
+        Permissions: []plugin.Permission{plugin.PermSelection}}
+}
+
+func (p *Plugin) SelectionItems(ctx context.Context, q plugin.SelectionQuery) ([]plugin.Item, error) {
+    sel := q.Selection // Text, App, Source ("uia"|"clipboard"), Truncated, Editable
+    if strings.Contains(sel.Text, "\n") {
+        return nil, nil // nothing to offer
+    }
+    it := plugin.Item{ID: "upper", Title: p.h.I18n().T("item.upper"),
+        Actions: []plugin.Action{{ID: "paste", Title: p.h.I18n().T("action.replace"),
+            Do: plugin.ActionDo{Kind: plugin.ActionPaste, Target: strings.ToUpper(sel.Text)}}}}
+    if q.Text == "" {
+        it.Score = 1 // a clear hit: listed first while nothing is typed
+    }
+    return []plugin.Item{it}, nil
+}
+```
+
+- `q.Text` is what the user typed ("" when nothing). While nothing is typed
+  the section shows the preview row and at most 6 actions, ordered by
+  `Item.Score` (highest first), then plugin order; with text typed an item
+  with a `Score` is taken as matching it with that score (e.g. 0.6 for "AI
+  handles the selection: <typed text>"), the others are fuzzy-matched like
+  context items. Only set `Score` for clear hits.
+- The host marks the items `Sensitive` (never shown to AI tools) and
+  `Transient` (never recorded in Recent), and clears the selection when the
+  launcher hides: put the text an action needs into its `Target`/`Payload`.
+- With `Selection.Editable`, an `ActionPaste` replaces the selection: the
+  launcher hides, focus goes back, the paste overwrites what is still
+  selected.
+- Never store or log the text. Send it elsewhere (AI, the web) only when the
+  user picks an action that says so.
+- Only built-in plugins get the selection for now; plugins in their own
+  process are never called (the protocol method `selectionItems` and a
+  per-plugin permission switch in Settings are planned).
+- Test with an injected selection: `glctl query "" --selection "10 km in mi"`
+  (also `--selection-app`, `--selection-source`, `--selection-truncated`,
+  `--selection-editable`, and `glctl session new … --selection …`). The
+  built-in `builtin.selection`, `builtin.calc`, `builtin.quicklinks` and
+  `builtin.ai` plugins are examples.
+
 ### Background tasks
 
 Long work (`scoop update`, a build, a download) should not keep the user

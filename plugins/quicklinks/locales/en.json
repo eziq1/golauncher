@@ -143,5 +143,14 @@
   "toast.exported": "Exported quicklinks and search engines",
   "toast.imported": "Imported",
   "toast.importedDetail": "Quicklinks: {{.links}}, search engines: {{.engines}}, skipped: {{.skipped}}.",
-  "toast.droppedKeywords": { "one": "{{.Count}} keyword was already in use and was left out.", "other": "{{.Count}} keywords were already in use and were left out." }
+  "toast.droppedKeywords": { "one": "{{.Count}} keyword was already in use and was left out.", "other": "{{.Count}} keywords were already in use and were left out." },
+  "selection.openLink": "Open Link",
+  "selection.openLink.keywords": "open, link, url, website",
+  "selection.search.keywords": "search, web search, google",
+  "selection.searchWith": "Search {{.engine}}",
+  "selection.translate": "Translate to {{.lang}} on the Web",
+  "selection.translate.keywords": "translate, translation, web translate",
+  "selection.translateWith": "Translate with {{.engine}}",
+  "selection.lang.en": "English",
+  "selection.lang.zh": "Chinese"
 }

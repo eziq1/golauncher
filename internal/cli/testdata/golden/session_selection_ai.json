@@ -1,0 +1,142 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.ai",
+      "request": {
+        "id": "chat",
+        "payload": {
+          "quote": "Let's move the meeting to Thursday afternoon, the room is booked.",
+          "instruction": "Translate the quoted text into Simplified Chinese. Output only the translation.",
+          "editable": true,
+          "title": "Translate: Let's move the meeting to Thu…"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Translate: Let's move the meeting to Thu…",
+    "layout": "detail",
+    "placeholder": "Ask a follow-up…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "chat",
+            "title": "Translate: Let's move the meeting to Thu…",
+            "icon": {
+              "name": "sparkles"
+            },
+            "actions": [
+              {
+                "id": "send",
+                "title": "Send",
+                "do": {
+                  "kind": "Callback",
+                  "target": "send",
+                  "payload": {
+                    "instance": "v2"
+                  }
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy Answer",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "You asked: Translate the quoted text into Simplified Chinese. Output only the translation.\n\n> Let's move the meeting to Thursday afternoon, the room is booked."
+                }
+              },
+              {
+                "id": "paste",
+                "title": "Replace Selected Text",
+                "shortcut": "Ctrl+Shift+V",
+                "do": {
+                  "kind": "Paste",
+                  "target": "You asked: Translate the quoted text into Simplified Chinese. Output only the translation.\n\n> Let's move the meeting to Thursday afternoon, the room is booked."
+                }
+              },
+              {
+                "id": "claude",
+                "title": "Continue in Claude",
+                "do": {
+                  "kind": "Callback",
+                  "target": "claude",
+                  "payload": {
+                    "instance": "v2"
+                  }
+                }
+              },
+              {
+                "id": "chatgpt",
+                "title": "Continue in ChatGPT",
+                "do": {
+                  "kind": "Callback",
+                  "target": "chatgpt",
+                  "payload": {
+                    "instance": "v2"
+                  }
+                }
+              },
+              {
+                "id": "new",
+                "title": "New Chat",
+                "shortcut": "Ctrl+N",
+                "do": {
+                  "kind": "Callback",
+                  "target": "new",
+                  "payload": {
+                    "instance": "v2"
+                  }
+                }
+              },
+              {
+                "id": "history",
+                "title": "AI Chat History",
+                "do": {
+                  "kind": "Push",
+                  "target": "history"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Session ID",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "00000000-0000-4000-8000-000000000002"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/chat"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "detail": {
+      "markdown": "**You**\n\nTranslate the quoted text into Simplified Chinese. Output only the translation.\n\n> Let's move the meeting to Thursday afternoon, the room is booked.\n\n**Claude**\n\nYou asked: Translate the quoted text into Simplified Chinese. Output only the translation.\n\n> Let's move the meeting to Thursday afternoon, the room is booked.",
+      "metadata": [
+        {
+          "label": "Claude Code",
+          "value": "fake-model"
+        },
+        {
+          "label": "Last answer",
+          "value": "148 tokens in, 159 out"
+        }
+      ]
+    },
+    "emptyText": "No results",
+    "selection": {
+      "chars": 65,
+      "label": "65 characters selected"
+    }
+  }
+}

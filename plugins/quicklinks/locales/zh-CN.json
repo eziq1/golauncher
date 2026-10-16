@@ -143,5 +143,14 @@
   "toast.exported": "已导出快速链接和搜索引擎",
   "toast.imported": "已导入",
   "toast.importedDetail": "快速链接：{{.links}}，搜索引擎：{{.engines}}，跳过：{{.skipped}}。",
-  "toast.droppedKeywords": { "other": "{{.Count}} 个关键词已被占用，没有导入。" }
+  "toast.droppedKeywords": { "other": "{{.Count}} 个关键词已被占用，没有导入。" },
+  "selection.openLink": "打开链接",
+  "selection.openLink.keywords": "打开, 链接, 网址, open, link, url",
+  "selection.search.keywords": "搜索, 网页搜索, search",
+  "selection.searchWith": "用 {{.engine}} 搜索",
+  "selection.translate": "网页翻译成{{.lang}}",
+  "selection.translate.keywords": "翻译, 网页翻译, translate",
+  "selection.translateWith": "用{{.engine}}翻译",
+  "selection.lang.en": "英文",
+  "selection.lang.zh": "中文"
 }

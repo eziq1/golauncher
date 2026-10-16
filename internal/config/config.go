@@ -42,6 +42,9 @@ type Config struct {
 	// ContextAware lets the launcher look at the window that was active when
 	// it opened (docs/context-awareness.md). Off, no other window is read.
 	ContextAware bool `json:"contextAware"`
+	// Selection configures reading the selected text, part of context
+	// awareness (docs/selected-text.md §8, §12).
+	Selection SelectionConfig `json:"selection"`
 	// Plugins holds per-plugin settings keyed by plugin ID.
 	Plugins map[string]PluginConfig `json:"plugins,omitempty"`
 	// Agent configures what AI clients may do with the plugins (docs/ai.md §4).
@@ -244,6 +247,60 @@ func LegacyTheme(a Appearance, dark bool) string {
 	return "light"
 }
 
+// Selection length bounds (SelectionConfig.MaxChars).
+const (
+	DefaultSelectionMaxChars = 10_000
+	MinSelectionMaxChars     = 1_000
+	MaxSelectionMaxChars     = 100_000
+)
+
+// DefaultSelectionExcludeApps are the apps whose selected text is never
+// read: password managers (the defaults of the clipboard history's ignored
+// apps).
+var DefaultSelectionExcludeApps = []string{"KeePassXC.exe", "KeePass.exe", "1Password.exe", "Bitwarden.exe"}
+
+// SelectionConfig configures reading the text selected in the window that
+// was active when the launcher opened. It follows ContextAware: with that
+// off, nothing is read (docs/selected-text.md §12).
+type SelectionConfig struct {
+	// Clipboard falls back to copying (a simulated Ctrl+C, the clipboard
+	// restored afterwards) when UI Automation cannot read the selection of
+	// the app. Off by default.
+	Clipboard bool `json:"clipboard"`
+	// ClipboardApps are executables ("Weixin.exe") where the copying method
+	// is used at once, without trying UI Automation first (with Clipboard on).
+	ClipboardApps []string `json:"clipboardApps"`
+	// Hotkey opens the launcher for the selected text: it reads the
+	// selection before showing, copying it (with Clipboard on) when UI
+	// Automation cannot read it. "" for none.
+	Hotkey string `json:"hotkey"`
+	// ExcludeApps are executables whose selection is never read.
+	ExcludeApps []string `json:"excludeApps"`
+	// MaxChars is the most characters read; longer selections are
+	// truncated. 0 is DefaultSelectionMaxChars.
+	MaxChars int `json:"maxChars"`
+}
+
+// DefaultSelection returns the selection settings of a new configuration.
+func DefaultSelection() SelectionConfig {
+	return SelectionConfig{ExcludeApps: slices.Clone(DefaultSelectionExcludeApps), MaxChars: DefaultSelectionMaxChars}
+}
+
+// EffectiveMaxChars returns MaxChars within its bounds, or its default.
+func (s SelectionConfig) EffectiveMaxChars() int {
+	if s.MaxChars == 0 {
+		return DefaultSelectionMaxChars
+	}
+	return min(max(s.MaxChars, MinSelectionMaxChars), MaxSelectionMaxChars)
+}
+
+// Clone returns a deep copy of s.
+func (s SelectionConfig) Clone() SelectionConfig {
+	s.ClipboardApps = slices.Clone(s.ClipboardApps)
+	s.ExcludeApps = slices.Clone(s.ExcludeApps)
+	return s
+}
+
 // AgentConfig configures the AI tool layer (docs/ai.md §4.2–§4.4).
 type AgentConfig struct {
 	// External lets AI apps (Claude Desktop, Claude Code) use the plugins
@@ -283,6 +340,7 @@ func Default() Config {
 		Language:      "system",
 		HideOnBlur:    true,
 		ContextAware:  true,
+		Selection:     DefaultSelection(),
 	}
 }
 
@@ -290,6 +348,7 @@ func Default() Config {
 func (c Config) Clone() Config {
 	out := c
 	out.Appearance = c.Appearance.Clone()
+	out.Selection = c.Selection.Clone()
 	out.Plugins = make(map[string]PluginConfig, len(c.Plugins))
 	for id, p := range c.Plugins {
 		p.Preferences = maps.Clone(p.Preferences)

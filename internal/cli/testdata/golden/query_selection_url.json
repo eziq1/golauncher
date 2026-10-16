@@ -1,0 +1,1003 @@
+{
+  "query": "",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Selected Text",
+      "items": [
+        {
+          "id": "preview",
+          "title": "https://example.com/docs?id=7",
+          "subtitle": "notepad · 6 words",
+          "icon": {
+            "name": "text"
+          },
+          "keywords": [
+            "selected",
+            "selection",
+            "selected text",
+            "word count",
+            "characters"
+          ],
+          "subtitleSensitive": true,
+          "group": "Selected Text",
+          "score": 1,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Text",
+              "do": {
+                "kind": "Push",
+                "target": "text",
+                "payload": {
+                  "text": " https://example.com/docs?id=7 ",
+                  "app": "notepad.exe",
+                  "source": "uia"
+                }
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.selection",
+          "key": "builtin.selection/preview",
+          "context": true,
+          "selection": true
+        },
+        {
+          "id": "open-link",
+          "title": "Open Link",
+          "subtitle": "https://example.com/docs?id=7",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "open",
+            "link",
+            "url",
+            "website"
+          ],
+          "subtitleSensitive": true,
+          "group": "Selected Text",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open URL",
+              "do": {
+                "kind": "Open",
+                "target": "https://example.com/docs?id=7"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://example.com/docs?id=7"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "Open in Firefox",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://example.com/docs?id=7\""
+                }
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/open-link",
+          "context": true,
+          "selection": true
+        },
+        {
+          "id": "enable",
+          "title": "Use AI to translate and summarize the selected text",
+          "subtitle": "AI",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "translate",
+            "summarize",
+            "explain",
+            "rewrite",
+            "翻译",
+            "总结"
+          ],
+          "group": "Selected Text",
+          "actions": [
+            {
+              "id": "enable",
+              "title": "Turn On AI",
+              "do": {
+                "kind": "Push",
+                "target": "chat",
+                "payload": {
+                  "toRoot": true
+                }
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/enable",
+          "context": true,
+          "selection": true
+        },
+        {
+          "id": "search",
+          "title": "Search Google",
+          "subtitle": "https://example.com/docs?id=7",
+          "icon": {
+            "name": "search"
+          },
+          "keywords": [
+            "search",
+            "web search",
+            "google",
+            "Google"
+          ],
+          "subtitleSensitive": true,
+          "group": "Selected Text",
+          "actions": [
+            {
+              "id": "search",
+              "title": "Search",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=https%3A%2F%2Fexample.com%2Fdocs%3Fid%3D7"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.google.com/search?q=https%3A%2F%2Fexample.com%2Fdocs%3Fid%3D7"
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/search",
+          "context": true,
+          "selection": true
+        },
+        {
+          "id": "translate",
+          "title": "Translate to Chinese on the Web",
+          "subtitle": "Google Translate",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "translate",
+            "translation",
+            "web translate"
+          ],
+          "group": "Selected Text",
+          "actions": [
+            {
+              "id": "google",
+              "title": "Translate with Google Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/?sl=auto&tl=zh-CN&text=https%3A%2F%2Fexample.com%2Fdocs%3Fid%3D7&op=translate"
+              }
+            },
+            {
+              "id": "youdao",
+              "title": "Translate with Youdao Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.youdao.com/result?word=https%3A%2F%2Fexample.com%2Fdocs%3Fid%3D7&lang=en"
+              }
+            }
+          ],
+          "sensitive": true,
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/translate",
+          "context": true,
+          "selection": true
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:activity",
+          "title": "AI Activity",
+          "subtitle": "AI Activity",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "mcp",
+            "log",
+            "tools"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "activity"
+              }
+            }
+          ],
+          "plugin": "builtin.agent",
+          "key": "builtin.agent/cmd:activity"
+        },
+        {
+          "id": "cmd:chat",
+          "title": "AI Chat",
+          "subtitle": "AI",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "chat",
+            "ask",
+            "assistant",
+            "gpt"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "chat"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:chat"
+        },
+        {
+          "id": "cmd:history",
+          "title": "AI Chat History",
+          "subtitle": "AI",
+          "icon": {
+            "name": "history"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "chats",
+            "conversations",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.ai",
+          "key": "builtin.ai/cmd:history"
+        },
+        {
+          "id": "cmd:tasks",
+          "title": "Background Tasks",
+          "subtitle": "Background Tasks",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "tasks",
+            "jobs",
+            "processes",
+            "output",
+            "running"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "tasks"
+              }
+            }
+          ],
+          "plugin": "builtin.tasks",
+          "key": "builtin.tasks/cmd:tasks"
+        },
+        {
+          "id": "cmd:clear",
+          "title": "Clear Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "trash"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "clear"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:clear"
+        },
+        {
+          "id": "cmd:create",
+          "title": "Create Quicklink",
+          "subtitle": "Quicklinks & Web Search",
+          "icon": {
+            "name": "file-plus"
+          },
+          "keywords": [
+            "quicklink",
+            "new link",
+            "bookmark",
+            "add link"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "create"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:create"
+        },
+        {
+          "id": "cmd:new",
+          "title": "Create Script Command",
+          "subtitle": "Script Commands",
+          "icon": {
+            "name": "command"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "new"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:new"
+        },
+        {
+          "id": "cmd:dns",
+          "title": "DNS Lookup",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "dns",
+            "nslookup",
+            "dig",
+            "domain",
+            "records",
+            "域名",
+            "解析"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "dns"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "query",
+              "type": "text",
+              "placeholder": "Domain [@server]",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:dns"
+        },
+        {
+          "id": "cmd:hung",
+          "title": "End Apps Not Responding",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit",
+            "未响应",
+            "卡死",
+            "wxy"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung"
+        },
+        {
+          "id": "cmd:flush-dns",
+          "title": "Flush DNS Cache",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "flush dns",
+            "ipconfig",
+            "dns cache",
+            "刷新",
+            "缓存"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "flush-dns"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:flush-dns"
+        },
+        {
+          "id": "cmd:ip",
+          "title": "IP Addresses",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "network",
+            "ip address",
+            "public ip",
+            "mac address",
+            "gateway",
+            "wifi",
+            "网络",
+            "公网",
+            "地址"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ip"
+        },
+        {
+          "id": "cmd:open-folder",
+          "title": "Open Scripts Folder",
+          "subtitle": "Script Commands",
+          "icon": {
+            "name": "folder"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "open-folder"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:open-folder"
+        },
+        {
+          "id": "cmd:ping",
+          "title": "Ping",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "ping",
+            "latency",
+            "icmp",
+            "network"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "ping"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "Host or IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:ping"
+        },
+        {
+          "id": "cmd:port",
+          "title": "Port Lookup",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "hash"
+          },
+          "keywords": [
+            "port",
+            "listening",
+            "netstat",
+            "process",
+            "open port",
+            "端口",
+            "占用"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "port"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "target",
+              "type": "text",
+              "placeholder": "Port or host:port"
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:port"
+        },
+        {
+          "id": "cmd:processes",
+          "title": "Processes",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "process",
+            "processes",
+            "task manager",
+            "cpu",
+            "memory",
+            "end task",
+            "kill",
+            "进程",
+            "任务管理器",
+            "rwglq",
+            "jc"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "processes"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:processes"
+        },
+        {
+          "id": "cmd:reload",
+          "title": "Reload Applications",
+          "subtitle": "Applications",
+          "icon": {
+            "name": "app"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "reload"
+              }
+            }
+          ],
+          "plugin": "builtin.apps",
+          "key": "builtin.apps/cmd:reload"
+        },
+        {
+          "id": "cmd:renew-ip",
+          "title": "Renew IP Address",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "renew",
+            "release",
+            "dhcp",
+            "ipconfig",
+            "续租"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "renew-ip"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:renew-ip"
+        },
+        {
+          "id": "cmd:restart-explorer",
+          "title": "Restart Windows Explorer",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "rotate-cw"
+          },
+          "keywords": [
+            "explorer",
+            "restart explorer",
+            "taskbar",
+            "start menu",
+            "任务栏",
+            "资源管理器",
+            "cqzyglq",
+            "zyglq"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "restart-explorer"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:restart-explorer"
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi"
+        },
+        {
+          "id": "cmd:history",
+          "title": "Search Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history"
+        },
+        {
+          "id": "cmd:engines",
+          "title": "Search Engines",
+          "subtitle": "Quicklinks & Web Search",
+          "icon": {
+            "name": "search"
+          },
+          "keywords": [
+            "web search",
+            "search engines",
+            "google",
+            "bing",
+            "keywords"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "engines"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:engines"
+        },
+        {
+          "id": "cmd:search",
+          "title": "Search Files",
+          "subtitle": "File Search (Everything)",
+          "icon": {
+            "name": "file"
+          },
+          "keywords": [
+            "files",
+            "find",
+            "everything",
+            "文件"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "search"
+              }
+            }
+          ],
+          "plugin": "builtin.everything",
+          "key": "builtin.everything/cmd:search"
+        },
+        {
+          "id": "cmd:quicklinks",
+          "title": "Search Quicklinks",
+          "subtitle": "Quicklinks & Web Search",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "quicklinks",
+            "links",
+            "bookmarks",
+            "favorites"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "quicklinks"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:quicklinks"
+        },
+        {
+          "id": "cmd:timers",
+          "title": "Timers",
+          "subtitle": "Timers",
+          "icon": {
+            "name": "timer"
+          },
+          "keywords": [
+            "timer",
+            "countdown",
+            "reminder",
+            "alarm",
+            "pomodoro"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "timers"
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/cmd:timers"
+        },
+        {
+          "id": "cmd:tracert",
+          "title": "Trace Route",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "tracert",
+            "traceroute",
+            "route",
+            "hops",
+            "路由"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "tracert"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "Host or IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:tracert"
+        },
+        {
+          "id": "cmd:world-clock",
+          "title": "World Clock",
+          "subtitle": "World Clock",
+          "icon": {
+            "name": "clock"
+          },
+          "keywords": [
+            "time",
+            "clock",
+            "time zone",
+            "world time",
+            "时间",
+            "时区",
+            "世界时间"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "world-clock"
+              }
+            }
+          ],
+          "plugin": "builtin.clock",
+          "key": "builtin.clock/cmd:world-clock"
+        }
+      ]
+    }
+  ]
+}

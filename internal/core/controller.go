@@ -1014,6 +1014,9 @@ type Snapshot struct {
 	Toast   *plugin.Toast    `json:"toast,omitempty"`
 	// Context is the context of the current show, for the footer's chip.
 	Context *ContextSnapshot `json:"context,omitempty"`
+	// Selection is the text selected when the launcher opened, for the
+	// footer's chip (its length only; the text is in the root's section).
+	Selection *SelectionSnapshot `json:"selection,omitempty"`
 	// Tasks is the footer's background task indicator; nil when no task is
 	// queued or running and no failure is unseen.
 	Tasks *TasksSnapshot `json:"tasks,omitempty"`
@@ -1025,6 +1028,13 @@ type ContextSnapshot struct {
 	Name   string `json:"name"`             // short name: the folder's name, else title or app
 	Folder string `json:"folder,omitempty"` // copied by a click on the chip
 	App    string `json:"app,omitempty"`
+}
+
+// SelectionSnapshot describes the selected text of the current show.
+type SelectionSnapshot struct {
+	Chars int `json:"chars"`
+	// Label is the chip's text, e.g. "52 characters selected".
+	Label string `json:"label"`
 }
 
 // TasksSnapshot is the background task indicator.
@@ -1087,6 +1097,10 @@ func (c *Controller) Snapshot() Snapshot {
 	}
 	if cur := c.eng.Context(); cur != nil && (cur.Folder != "" || cur.Kind != "") {
 		s.Context = &ContextSnapshot{Kind: cur.Kind, Name: ContextName(cur), Folder: cur.Folder, App: cur.App.Name}
+	}
+	if sel := c.eng.Selection(); sel != nil {
+		n := SelectionChars(sel)
+		s.Selection = &SelectionSnapshot{Chars: n, Label: core.N("ui.selection.chip", n)}
 	}
 	if f.view != nil {
 		s.Title = f.view.Title

@@ -9,6 +9,7 @@
   "action.copyWithUnit": "Copy with Unit",
   "action.pasteValue": "Paste Value",
   "action.showConversions": "Show All Conversions",
+  "action.pasteReplace": "Paste to Replace",
   "view.conversions.title": "Conversions",
   "view.conversions.empty": "Nothing to convert",
   "currency.ratesFrom": "rates from {{.date}}",

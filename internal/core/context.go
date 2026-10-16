@@ -35,8 +35,10 @@ type contextState struct {
 	gen int             // incremented for every show (DetectContext/SetContext)
 	cur *plugin.Context // nil while unknown
 	// pulled is set when a root search read the context of this generation,
-	// so a context arriving later must refresh it.
+	// so a context (or selection) arriving later must refresh it.
 	pulled bool
+	// selection is the selected text of this show (selection.go).
+	selection selectionState
 }
 
 // DetectContext starts capturing the context for a new show: the previous
@@ -48,6 +50,7 @@ func (e *Engine) DetectContext(detect Detector) {
 	e.ctx.gen++
 	gen := e.ctx.gen
 	e.ctx.cur, e.ctx.pulled = nil, false
+	e.ctx.selection.sel = nil
 	e.ctx.mu.Unlock()
 	if detect == nil || !e.cfg.Get().ContextAware {
 		return
@@ -118,17 +121,22 @@ func (e *Engine) Context() *plugin.Context {
 	return &c
 }
 
-// pullContext returns the context for a root search and remembers that the
-// root has seen this show's context.
-func (e *Engine) pullContext() *plugin.Context {
+// pullContext returns the context and the selection for a root search and
+// remembers that the root has seen this show's context.
+func (e *Engine) pullContext() (*plugin.Context, *plugin.Selection) {
 	e.ctx.mu.Lock()
 	defer e.ctx.mu.Unlock()
 	e.ctx.pulled = true
+	var sel *plugin.Selection
+	if s := e.ctx.selection.sel; s != nil {
+		cp := *s
+		sel = &cp
+	}
 	if e.ctx.cur == nil {
-		return nil
+		return nil, sel
 	}
 	c := e.ctx.cur.Clone()
-	return &c
+	return &c, sel
 }
 
 // clearContextIfOff drops the context when context awareness was turned off.
@@ -137,9 +145,10 @@ func (e *Engine) clearContextIfOff(cfg config.Config) {
 		return
 	}
 	e.ctx.mu.Lock()
-	had := e.ctx.cur != nil
+	had := e.ctx.cur != nil || e.ctx.selection.sel != nil
 	e.ctx.gen++
 	e.ctx.cur = nil
+	e.ctx.selection.sel = nil
 	e.ctx.mu.Unlock()
 	if had {
 		for _, ctl := range e.subscribers() {

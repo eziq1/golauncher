@@ -103,13 +103,14 @@ type Plugin struct {
 }
 
 var (
-	_ plugin.Plugin           = (*Plugin)(nil)
-	_ plugin.ViewProvider     = (*Plugin)(nil)
-	_ plugin.ActionHandler    = (*Plugin)(nil)
-	_ plugin.ViewCloser       = (*Plugin)(nil)
-	_ plugin.LocaleProvider   = (*Plugin)(nil)
-	_ plugin.FallbackProvider = (*Plugin)(nil)
-	_ plugin.TabProvider      = (*Plugin)(nil)
+	_ plugin.Plugin            = (*Plugin)(nil)
+	_ plugin.ViewProvider      = (*Plugin)(nil)
+	_ plugin.ActionHandler     = (*Plugin)(nil)
+	_ plugin.ViewCloser        = (*Plugin)(nil)
+	_ plugin.LocaleProvider    = (*Plugin)(nil)
+	_ plugin.FallbackProvider  = (*Plugin)(nil)
+	_ plugin.TabProvider       = (*Plugin)(nil)
+	_ plugin.SelectionProvider = (*Plugin)(nil)
 )
 
 // New returns the plugin answering with be.
@@ -140,7 +141,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Description: "%plugin.description%",
 		Version:     "1.0.0",
 		Icon:        plugin.Icon{Name: "sparkles"},
-		Permissions: []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork, plugin.PermExec},
+		Permissions: []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork, plugin.PermExec, plugin.PermSelection},
 		Commands: []plugin.Command{
 			{Name: viewChat, Title: "%command.chat.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "sparkles"},
 				Keywords: []string{"%command.chat.keywords%"}},
@@ -166,6 +167,8 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				}},
 			{Name: prefFallback, Type: plugin.PrefBool, Title: "%pref.askFallback.title%", Description: "%pref.askFallback.description%",
 				Default: plugin.MustPayload(true)},
+			{Name: prefTranslateTo, Type: plugin.PrefSelect, Title: "%pref.translateTo.title%", Description: "%pref.translateTo.description%",
+				Default: plugin.MustPayload(""), Options: translateOptions()},
 		},
 	}
 }
@@ -343,6 +346,29 @@ type chatPayload struct {
 	Text string `json:"text,omitempty"`
 	// Session opens a chat of the history.
 	Session string `json:"session,omitempty"`
+
+	// Quote is the selected text of a selection action
+	// (docs/selected-text.md §6): the first message is Instruction (for
+	// "Ask AI…" the instruction argument, by default an explanation)
+	// followed by Quote as a block quote, noting when it was Truncated.
+	Quote       string `json:"quote,omitempty"`
+	Instruction string `json:"instruction,omitempty"`
+	Truncated   bool   `json:"truncated,omitzero"`
+	// Editable titles "Paste Answer" "Replace Selected Text" (in memory
+	// only: not stored with the chat).
+	Editable bool `json:"editable,omitzero"`
+	// Title is the chat's title instead of the start of the first message.
+	Title string `json:"title,omitempty"`
+	// ToRoot marks the prompt to turn AI on opened from the selected text:
+	// turning it on goes back to the root search, where the selection
+	// actions then show.
+	ToRoot bool `json:"toRoot,omitzero"`
+}
+
+// enablePayload is the payload of the "enable" callback.
+type enablePayload struct {
+	// ToRoot goes back to the root search after turning AI on.
+	ToRoot bool `json:"toRoot,omitzero"`
 }
 
 // instancePayload names the chat view instance of an action.
@@ -398,7 +424,13 @@ func (p *Plugin) askAction(text string) plugin.Action {
 func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	switch a.Target {
 	case "enable":
-		return plugin.Result{Preferences: map[string]jsontext.Value{prefEnabled: plugin.MustPayload(true)}, Refresh: true}, nil
+		var ep enablePayload
+		_ = json.Unmarshal(a.Payload, &ep)
+		r := plugin.Result{Preferences: map[string]jsontext.Value{prefEnabled: plugin.MustPayload(true)}, Refresh: true}
+		if ep.ToRoot {
+			r.Refresh, r.PopToRoot = false, true
+		}
+		return r, nil
 	case "delete", "clear":
 		return p.historyAction(a)
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/quicklinks"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
+	"github.com/eziq1/golauncher/plugins/selection"
 	"github.com/eziq1/golauncher/plugins/system"
 	"github.com/eziq1/golauncher/plugins/terminal"
 	"github.com/eziq1/golauncher/plugins/timer"
@@ -46,6 +47,7 @@ var HostVersion = "dev"
 func All() []plugin.Plugin {
 	builtins := []plugin.Plugin{
 		apps.New(),
+		selection.New(), // the "Selected Text" preview row comes first (docs/selected-text.md §5.1)
 		calc.NewWithOptions(calc.Options{UserAgent: "golauncher/" + HostVersion}),
 		clipboard.New(),
 		clock.New(),
@@ -123,6 +125,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 	}
 	builtins := []plugin.Plugin{
 		apps.NewWithSource(appsSrc, nil),
+		selection.New(),
 		fakeCalc(dir),
 		clipboard.New(),
 		clock.NewWithOptions(clock.Options{Sync: true}), // deterministic loading

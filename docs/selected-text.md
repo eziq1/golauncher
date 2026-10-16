@@ -1,6 +1,6 @@
 # 读取选中文字设计方案
 
-> 状态：设计 v1（待 review）· 2026-10-16 · 对应需求 R64（来自 R63，见 [requirements.md](requirements.md)）
+> 状态：已实现（待合并，实现记录见 §13）· 设计 v1 · 2026-10-16 · 对应需求 R64（来自 R63，见 [requirements.md](requirements.md)）
 >
 > 需求：在任意应用（微信、浏览器、编辑器……）里选中一段文字，再按 Alt+Space 打开启动器，golauncher 要知道选中了什么，并提供针对它的操作：翻译、问 AI（解释、总结、改写、回复建议）、网页搜索、是网址就打开、是算式就计算……
 >
@@ -413,3 +413,73 @@ type SelectionProvider interface {
 6. **翻译目标语言**：
    - 默认翻译成界面语言，设置里可以修改；
    - 原文已经是目标语言时，仍按 §11 的建议译成英文。
+## 13. 实现记录（2026-10-16，R65）
+
+### 13.1 做了什么
+
+- **SDK**（`pkg/plugin/selection.go`）：`PermSelection`（`"selection"`）、`Selection`（`Text`、`App`、`Source`、`Truncated`、`Editable`）、`SelectionQuery`、`SelectionProvider`，与 §7.1 一致；选中的文字**不在** `plugin.Context` 里。
+- **配置**（`config.Config.Selection`）：`clipboard`（读不到时改用复制的方式，默认关）、`clipboardApps`（总是用复制方式的应用）、`hotkey`（对选中的文字打开启动器，默认未设置）、`excludeApps`（默认 KeePassXC、KeePass、1Password、Bitwarden）、`maxChars`（默认 10 000，范围 1 000–100 000）。按 §12.1 **没有** `enabled` 总开关，跟随 `contextAware`。旧配置文件缺这一段时取默认值；清空的列表保持为空。
+- **读取**（`internal/winapi/selection`，包名 `winselection`）：
+  - `Begin(hwnd, opts)` 是第一段：在专用的 UIA 线程（锁定 OS 线程、MTA、空闲 30 秒后释放）上 `GetFocusedElement`，查进程号、`IsPassword`、是否支持 `TextPattern2`/`TextPattern`；热键回调在 MyGo 主线程上最多等 `FocusBudget`（50ms），超时视为“拿不到元素”。`IUIAutomation2` 的连接/事务超时设为 200ms。
+  - `(*Pending).Read(ctx)` 是第二段：`GetSelection` → 逐段 `GetText`（多段用换行连接），按字符截断（不截断在字符中间）；第一次没有任何选区时 30ms 后重试一次（Chromium 首次构建无障碍树）。可编辑性：控件类型 Edit 且没有只读的 ValuePattern，或 Document 带非只读 ValuePattern。
+  - 方式选择 `decide`（纯函数，全平台单测），依次：排除的应用 → 不读；本进程 → 不读；密码框 → 不读；在“总是用复制方式的应用”里且打开了复制方式且允许 Ctrl+C → 复制；支持 TextPattern → UIA（**支持但没选中时不会再发 Ctrl+C**）；没打开复制方式 → 不读；禁止 Ctrl+C 的应用（Windows Terminal、conhost、cmd、PowerShell、各类终端模拟器，窗口类 `ConsoleWindowClass` / `CASCADIA_HOSTING_WINDOW_CLASS` / `PseudoConsoleWindow`；Excel）→ 不读；目标进程完整性级别高于本进程（打不开也按“更高”处理）→ 不读；没选区时 Ctrl+C 会复制整行的编辑器（VS Code、Cursor、JetBrains 系列、Visual Studio、Sublime Text、Notepad++）→ 不读，除非用户把它加进了“总是用复制方式的应用”；其余 → 复制。
+- **复制方式**（`internal/winapi/clip`，`CopySelection(hwnd, CopyOptions)`）：按 §2.2 实现。保存所有内存格式（按原顺序；有 `CF_UNICODETEXT` 时跳过 `CF_TEXT`/`CF_OEMTEXT`/`CF_LOCALE`，有 DIB 时跳过 `CF_BITMAP`/`CF_PALETTE`）；遇到元文件、`CF_OWNERDISPLAY`、`CF_DSP*`、私有句柄格式，或总量超过 16MB、保存超过 50ms、保存后剪贴板又变了 → `ErrCannotSave`，**不发任何按键**。按键与 `PasteTo` 共用 `shortcutKeys`（先按下 Ctrl，再抬起仍按着的 Alt/Shift/Win，再 C、抬起 Ctrl），先等最多 100ms 让用户松开热键。等待用临时的剪贴板监听窗口（事件驱动）+ 高精度定时器，变化后 20ms 不再变化才读；只读 `CF_UNICODETEXT`。还原前在打开剪贴板的状态下核对序号（期间有别人写过就不动），写回时附加三个排除标记（已有就不重复）；还原失败返回文字和包装了 `ErrNotRestored` 的错误，外壳据此弹出“剪贴板未能还原”。整个过程中本进程的剪贴板监视器按序号区间忽略所有变化（结束后再延长 50ms 的 debounce），所以 golauncher 自己的剪贴板历史既不记临时内容也不记还原内容。
+- **引擎**（`internal/core/selection.go`）：`DetectSelection(read)`（在 `DetectContext` 之后调用，共用“每次呼出一代”，预算 250ms）、`SetSelection`（glctl）、`ClearSelection`（启动器隐藏时由外壳同步调用，同时让还在读的结果作废）、`Selection()`。到达时宿主再检查一遍：空白文字、排除的应用丢弃，超长截断。`selectionEntries` 只调用声明了 `PermSelection` 且在本进程运行的插件（外部插件一律不调用），条目统一设 `Group`、`Sensitive`、`Transient`、`Entry.Context`、`Entry.Selection`。空输入：按 Score 从高到低，再按插件的 fallback 顺序（快速链接的网页搜索排最后），再按插件顺序，最多 7 行（预览 + 6 个操作）。有输入：排名 = 0.7×匹配分 + 0.1，带 Score 的条目按 Score 作为匹配分，**不加** alias 加分，也**不计入**“是否有好结果”的判断（残留选区不会挤掉明确匹配，也不会让备选命令消失）。晚到刷新复用 `contextChanged`（R26/R27 规则）。`Engine.Search`（AI 用）不包含选区条目。
+- **外壳**（`internal/shell/shell.go`）：热键回调里依次 `prevForeground` → `DetectContext` → `winselection.Begin`；需要复制时把复制放到后台 goroutine，完成后回主线程再显示（期间再按热键忽略）；然后 `DetectSelection(sel.Read)`、显示窗口。新的全局热键“对选中的文字打开启动器”（情境感知打开且设置了才注册）：没读到时在启动器底栏提示“没有读取到选中的文字”。设置页检测 `HKCU\Software\Microsoft\Clipboard` 的 `EnableClipboardHistory`/`EnableCloudClipboard`，打开复制方式且其中之一开着时显示提醒。
+- **界面**：底栏在环境标签后面加“已选中 N 字”标签，点击等于在预览行按 Enter（`Controller.OpenSelection`）。设置 › 通用：在“语言”下面新增“选中的文字（属于情境感知）”一组，只在情境感知打开时显示。
+- **插件**：
+  - 新插件 `builtin.selection`（排在 apps 之后）：预览行（第一行、压缩空白、60 字符；副标题“应用 · N 字/words · 已截断”，敏感），Enter 推入全文视图（列表 + 详情：代码块里的全文，元数据：应用、字数、字符数、行数、方式、是否截断、是否可编辑）。字数：汉字/假名/谚文每个算一个，其他连续的字母数字算一个词。
+  - `builtin.ai`：AI 关着时一行“用 AI 翻译、总结选中的文字”，Enter 进现有的“打开 AI”提示页，打开后回到根列表（`PopToRoot`），之前不发送任何内容；AI 开着时：翻译成<语言>、问 AI…（可选参数“要 AI 做什么？可留空”）、解释、总结（≥200 字符）、改写、回复建议；有输入时另加“让 AI 处理选中的文字：<输入>”（Score 0.6）。新偏好“翻译成”（`translateTo`，默认“自动（界面语言）”）。发出并显示的消息 = 指令 + 空行 + 引用块（每行加 `> `），截断时再加一行 `_(The quoted text was truncated to N characters.)_`；对话标题“<动作>：<选区前 30 字>”。从可编辑的选区开始的对话，“粘贴回答到前一个窗口”改名“替换选中的文字”（只在内存里记）。根搜索的 Tab 不变。
+  - `builtin.quicklinks`：打开链接（整个选区是一个网址，Score 1）、用默认引擎搜索（≤300 字符，空白压成一个空格，第二引擎在 Ctrl+Enter）、网页翻译（≤2 000 字符；界面中文时译成中文、原文是中文时译成英文；界面英文时译成英文、原文是英文时译成中文；有道在 Ctrl+K）。
+  - `builtin.calc`：单行、不超过计算器的最大长度、能算出且结果和原文不同才出现，条目和根搜索的结果相同（Score 1）；可编辑时把已有的“粘贴”动作改名为“粘贴替换选中的文字”，不可编辑时去掉这个动作。
+- **AI 工具层**：`builtin.selection` 加入 `agent.Hidden`（永远不提供给 AI）；选区条目都是 `Sensitive`；`Engine.Search` 不带选区。
+- **glctl**：`--selection TEXT`、`--selection-app`（默认 `notepad.exe`）、`--selection-source uia|clipboard`、`--selection-truncated`、`--selection-editable`，`query` 和 `session new` 都支持（写进 session 文件）。
+
+### 13.2 与设计的出入
+
+1. **复制方式的触发条件**（§12.2 覆盖 §2.3）：打开“读不到时改用复制的方式”后，Alt+Space 在第一段判定“读不到”（拿不到焦点元素、元素不支持 TextPattern、第一段超时）时自动改用 Ctrl+C。判定只看第一段：如果元素支持 TextPattern 但第二段读失败，已经来不及发 Ctrl+C（启动器已拿到焦点），这次就没有选区。专用热键和“总是用复制方式的应用”保留为补充；专用热键只在打开复制方式时才会复制。
+2. **“使用剪贴板方式的应用”**改为“在这些应用中总是用复制的方式”：既然读不到时已会自动改用复制，这个列表的作用变成“跳过 UIA，直接复制”（例如 UIA 读到的内容不对的应用），并且能把“会复制整行的编辑器”放出来。
+3. **编辑器**：§2.2 说的“默认的不要用剪贴板方式名单，用户可移除”实现为内置名单 + “总是用复制方式的应用”覆盖，少一个设置项。
+4. **设置位置**：不是“情境感知开关下面变灰”，而是“语言”下面单独一组，情境感知关掉时整组隐藏（放在开关下面会把“语言”挤出首屏，界面测试也据此发现）。
+5. **SDK 的 Score 规则**写进了 `SelectionProvider` 的注释：只对“明确命中”设 Score，且只在没有输入时设；有输入时带 Score 的条目按 Score 作为匹配分（用于“让 AI 处理…”）。排序里用了已有的 `FallbackOrderer`，让快速链接的网页搜索排在 AI 后面，没有新增接口。
+6. **预览视图**用“列表 + 详情”而不是 `ViewDetail`：后者总是滚到末尾、元数据挤在一行，不适合长文本。
+7. **计算器的“粘贴替换”**：根搜索的结果本来就有 Ctrl+Shift+V“粘贴”，可编辑时改名，不可编辑时去掉，避免两个同快捷键的动作。
+8. **剪贴板 API 名称**：§7.4 写的 `Snapshot`/`Suppress`/`CopyFrom` 实际合并为一个导出函数 `clip.CopySelection`，内部步骤为未导出的 `saveClipboard`/`restoreClipboard`/`suppressor`，通过 `copyAPI` 接口测试。
+9. **外部插件**：按 §10 放在第二期；第一期外部插件不会被调用，`plugin validate` 也不接受 `selection` 权限。
+10. **Win+V 历史里删除临时条目**（WinRT）没有做，仍是第二期；设置说明和提醒里如实写明 Windows 剪贴板历史、云剪贴板和其他剪贴板工具可能记下复制的文字（目标程序写剪贴板时不带排除标记，我们无法事先标记，只能标记自己的还原）。
+
+### 13.3 测量（只在测试自己创建的窗口上，各 20 次）
+
+| 段 | 控件 | 中位数 | p95 | 最大 |
+|----|------|--------|-----|------|
+| 第一段（Begin） | Win32 EDIT | 2.1ms | 4.2–4.6ms | 4.7–5.8ms |
+| 第一段 | RICHEDIT50W | 1.0ms | 1.6ms | 6.2–6.4ms |
+| 第一段 | 密码 EDIT | 1.6ms | 2.1–2.6ms | 3.6–4.3ms |
+| 第二段（Read） | Win32 EDIT | 0.5–0.6ms | 2.0ms | 2.6–3.6ms |
+| 第二段 | RICHEDIT50W | 0.5ms | 1.0ms | 1.1ms |
+| 冷启动（第一次，含建 UIA 线程和对象） | — | Begin 15–31ms，Read 1.6–3.7ms | | |
+| 复制方式（EDIT，`GOLAUNCHER_CLIPBOARD_TESTS=1`） | 保存 / 等待 / 还原 / 合计 | ≈0 / ≈25ms / ≈0 / ≈27ms | 合计 31–65ms | |
+
+第一段中位数远低于 15ms 的目标；冷启动在 50ms 预算内，但较慢的机器上可能超出（见 §13.5）。复制方式的等待里约 20ms 是“变化后再等 20ms 不再变化”。
+
+### 13.4 已验证的与需要你试的
+
+已验证（自动测试）：Win32 EDIT、RICHEDIT50W、密码框（不读）、无选区（不读）、截断、可编辑判断；复制方式在测试自己的 EDIT 窗口上读到文字并原样还原剪贴板（含排除标记、序号变化、监视器未触发）。
+
+**请在真实应用里试**（结论只需告诉我“支持/不支持/方式/大概多快”，不要发内容）：
+
+- 微信 4.x（`Weixin.exe`）和 3.x（`WeChat.exe`）：聊天输入框、聊天气泡里的部分选中。读不到时，打开“读不到时改用复制的方式”再试；
+- 浏览器：Edge、Chrome（第一次和之后）、Firefox，网页正文和输入框；
+- Office：Word 正文、Outlook 邮件正文；Excel（应当只在单元格编辑状态下用 UIA，永不发 Ctrl+C）；
+- 终端：Windows Terminal、conhost（应当只用 UIA，永不发 Ctrl+C）；
+- 记事本、VS Code（默认读不到；屏幕阅读器模式下也许可以）、一个 PDF 阅读器、一个 Electron 应用。
+- 另外请留意：打开复制方式后在不支持 UIA 的应用里按 Alt+Space，弹出是否明显变慢；Win+V 历史里是否多出条目。
+
+### 13.5 待定问题
+
+1. 冷启动的第一段 15–31ms（UIA 线程空闲 30 秒后释放），慢机器上可能超过 50ms 预算导致这次读不到；可以改为启动时或热键注册后预热，或延长空闲时间。
+2. 复制方式实测发现：剪贴板刚被别的程序改过、还有程序在读时，EDIT 控件打不开剪贴板就放弃复制，表现为等满 200ms 后“没有选中文字”。是否在超时后重试一次？
+3. 空输入时最多 6 个操作，AI 开着且文字较长时 AI 的 6 个动作就占满了，网页搜索和网页翻译要输入才看得到。是否精简空输入时的 AI 动作（例如只留翻译、问 AI、解释、总结）？
+4. “翻译成”的选项用界面语言显示语言名（“日语”），而不是各语言自己的名字（“日本語”）。
+5. 界面是英文、原文也是英文时“自动”译成简体中文（因为应用只提供英文和简体中文两种界面），是否合适？
+6. 网页翻译的标题是“网页翻译成英文/中文”，AI 翻译是“翻译成简体中文”，两者语言名不完全一致。

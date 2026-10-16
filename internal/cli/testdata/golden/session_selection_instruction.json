@@ -1,0 +1,126 @@
+{
+  "step": "type \"make it formal\"",
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "make it formal",
+    "sections": [
+      {
+        "title": "Selected Text",
+        "items": [
+          {
+            "id": "instruction",
+            "title": "AI handles the selection: make it formal",
+            "subtitle": "Claude Code",
+            "icon": {
+              "name": "sparkles"
+            },
+            "group": "Selected Text",
+            "score": 0.6,
+            "actions": [
+              {
+                "id": "ask",
+                "title": "Ask AI",
+                "do": {
+                  "kind": "Push",
+                  "target": "chat",
+                  "payload": {
+                    "quote": "Let's move the meeting to Thursday afternoon, the room is booked.",
+                    "instruction": "make it formal",
+                    "title": "make it formal: Let's move the meeting to Thu…"
+                  }
+                }
+              }
+            ],
+            "sensitive": true,
+            "transient": true,
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/instruction",
+            "rank": 0.52,
+            "context": true,
+            "selection": true
+          }
+        ]
+      },
+      {
+        "title": "Fallback Commands",
+        "items": [
+          {
+            "id": "ask",
+            "title": "Ask AI: make it formal",
+            "subtitle": "Claude Code",
+            "icon": {
+              "name": "sparkles"
+            },
+            "group": "Fallback Commands",
+            "actions": [
+              {
+                "id": "ask",
+                "title": "Ask AI",
+                "do": {
+                  "kind": "Push",
+                  "target": "chat",
+                  "payload": {
+                    "text": "make it formal"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/ask",
+            "fallback": true
+          },
+          {
+            "id": "fallback:google",
+            "title": "Search Google for “make it formal”",
+            "subtitle": "https://www.google.com/search?q=make%20it%20formal",
+            "icon": {
+              "name": "search"
+            },
+            "group": "Fallback Commands",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Search",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.google.com/search?q=make%20it%20formal"
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://www.google.com/search?q=make%20it%20formal"
+                }
+              },
+              {
+                "id": "browser1",
+                "title": "Open in Firefox",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                  "payload": {
+                    "args": "\"https://www.google.com/search?q=make%20it%20formal\""
+                  }
+                }
+              }
+            ],
+            "transient": true,
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/fallback:google",
+            "fallback": true
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "selection": {
+      "chars": 65,
+      "label": "65 characters selected"
+    }
+  }
+}
