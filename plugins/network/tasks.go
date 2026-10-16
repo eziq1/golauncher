@@ -37,23 +37,36 @@ func (p *Plugin) runTracert(host string) plugin.Result {
 	return plugin.Result{Do: &plugin.ActionDo{Kind: plugin.ActionShowTask, Target: id}}
 }
 
-// runFlushDNS empties the DNS cache with ipconfig /flushdns.
+// runFlushDNS empties the DNS cache with ipconfig /flushdns. It needs
+// administrator rights (R68), so unless golauncher has them the task asks
+// for them with a UAC prompt.
 func (p *Plugin) runFlushDNS() plugin.Result {
-	l := p.h.I18n()
-	title := l.T("task.flushDNS")
-	p.h.RunProcess(plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "globe"}, Queue: taskQueue, Notify: plugin.NotifyAlways},
+	title := p.h.I18n().T("task.flushDNS")
+	return p.runAdmin(plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "globe"}, Queue: taskQueue, Notify: plugin.NotifyAlways},
 		plugin.ProcessSpec{Argv: []string{"ipconfig", "/flushdns"}})
-	return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.running", "task", title)}}
 }
 
 // runRenewIP releases and renews the DHCP leases of all adapters. The
 // command is destructive (the connection drops for a moment), so the host
-// asks for confirmation before it runs.
+// asks for confirmation before it runs; like the DNS flush it needs
+// administrator rights.
 func (p *Plugin) runRenewIP() plugin.Result {
-	l := p.h.I18n()
-	title := l.T("task.renewIP")
+	title := p.h.I18n().T("task.renewIP")
 	const line = "ipconfig /release && ipconfig /renew"
-	p.h.RunProcess(plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "network"}, Queue: taskQueue, Notify: plugin.NotifyAlways},
+	return p.runAdmin(plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "network"}, Queue: taskQueue, Notify: plugin.NotifyAlways},
 		plugin.ProcessSpec{Argv: []string{"cmd.exe", "/d", "/c", line}, CommandLine: line})
-	return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.running", "task", title)}}
+}
+
+// runAdmin starts an ipconfig task that needs administrator rights: with
+// Elevate unless golauncher runs as administrator (then it runs as usual,
+// with its output). The toast says a UAC prompt follows.
+func (p *Plugin) runAdmin(spec plugin.TaskSpec, cmd plugin.ProcessSpec) plugin.Result {
+	l := p.h.I18n()
+	cmd.Elevate = !p.b.Elevated()
+	p.h.RunProcess(spec, cmd)
+	if cmd.Elevate {
+		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.runningAdmin", "task", spec.Title),
+			Message: l.T("toast.runningAdminHint")}}
+	}
+	return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.running", "task", spec.Title)}}
 }

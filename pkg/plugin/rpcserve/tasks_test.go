@@ -28,7 +28,7 @@ func (p *taskPlugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.
 	switch a.Target {
 	case "task":
 		p.ids <- p.h.RunProcess(plugin.TaskSpec{Title: "Build", Queue: "q", OnDone: func(r plugin.TaskResult) { p.done <- r }},
-			plugin.ProcessSpec{Argv: []string{"make"}})
+			plugin.ProcessSpec{Argv: []string{"make"}, Elevate: true})
 	case "toast":
 		p.h.Toast(plugin.Toast{Style: plugin.ToastInfo, Title: "hi"})
 	}
@@ -110,7 +110,7 @@ func TestTasksAndToast(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	mu.Lock()
 	defer mu.Unlock()
-	if len(specs) != 2 || specs[0].Spec.Title != "Build" || specs[0].Spec.Queue != "q" || specs[0].Cmd.Argv[0] != "make" {
+	if len(specs) != 2 || specs[0].Spec.Title != "Build" || specs[0].Spec.Queue != "q" || specs[0].Cmd.Argv[0] != "make" || !specs[0].Cmd.Elevate {
 		t.Errorf("specs %+v", specs)
 	}
 	if len(toasts) != 1 || toasts[0].Title != "hi" {

@@ -30,6 +30,10 @@ func FinishToast(l plugin.Localizer, i Info) plugin.Toast {
 	}
 	msg := i.LastLine
 	switch {
+	case i.RetryableElevated():
+		// Notifications have no buttons: clicking one opens the task, whose
+		// first action is Retry as Administrator.
+		msg = l.T("tasks.notify.needsElevation")
 	case i.Error != "":
 		msg = i.Error
 	case msg == "" && i.ExitCode != 0:
@@ -51,11 +55,16 @@ func StateText(l plugin.Localizer, i Info) string {
 	case plugin.TaskSucceeded:
 		return l.T("tasks.state.succeeded")
 	case plugin.TaskCancelled:
+		if i.Error != "" {
+			return i.Error // the UAC prompt was declined
+		}
 		return l.T("tasks.state.cancelled")
 	}
 	switch {
 	case i.Interrupted:
 		return l.T("tasks.state.interrupted")
+	case i.NeedsElevation:
+		return l.T("tasks.state.needsElevation")
 	case i.Error != "":
 		return l.T("tasks.state.error", "error", i.Error)
 	case i.ExitCode != 0:

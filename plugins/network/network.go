@@ -172,9 +172,9 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			{Name: toolTracert, Title: "%command.tracert.title%", Subtitle: "%command.subtitle%", Mode: plugin.ModeNoView,
 				Icon: plugin.Icon{Name: "network"}, Keywords: []string{"%command.tracert.keywords%", "路由"},
 				Arguments: []plugin.Argument{{Name: "host", Type: plugin.ArgText, Placeholder: "%arg.host%", Required: true}}},
-			{Name: cmdFlushDNS, Title: "%command.flushDNS.title%", Subtitle: "%command.subtitle%", Mode: plugin.ModeNoView,
+			{Name: cmdFlushDNS, Title: "%command.flushDNS.title%", Subtitle: "%command.subtitleAdmin%", Mode: plugin.ModeNoView,
 				Icon: plugin.Icon{Name: "globe"}, Keywords: []string{"%command.flushDNS.keywords%", "刷新", "缓存"}},
-			{Name: cmdRenewIP, Title: "%command.renewIP.title%", Subtitle: "%command.subtitle%", Mode: plugin.ModeNoView,
+			{Name: cmdRenewIP, Title: "%command.renewIP.title%", Subtitle: "%command.subtitleAdmin%", Mode: plugin.ModeNoView,
 				Icon: plugin.Icon{Name: "network"}, Keywords: []string{"%command.renewIP.keywords%", "续租"}, Destructive: true},
 		},
 		Preferences: []plugin.Preference{

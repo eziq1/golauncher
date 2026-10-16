@@ -28,7 +28,7 @@ func TestHostTasksAndToast(t *testing.T) {
 			return handle(t.Context(), method, b, false)
 		}
 	}
-	run := protocol.RunProcessParams{Spec: plugin.TaskSpec{Title: "Build", Queue: "q"}, Cmd: plugin.ProcessSpec{Argv: []string{"make", "all"}}}
+	run := protocol.RunProcessParams{Spec: plugin.TaskSpec{Title: "Build", Queue: "q"}, Cmd: plugin.ProcessSpec{Argv: []string{"make", "all"}, Elevate: true}}
 
 	h, call := handler()
 	if _, err := call(protocol.HostTaskRunProcess, run); !isPermissionDenied(err) {
@@ -55,7 +55,8 @@ func TestHostTasksAndToast(t *testing.T) {
 	if !ok || i.Plugin != "x" || i.Title != "Build" || i.Queue != "q" || i.State != plugin.TaskSucceeded {
 		t.Errorf("task %+v", i)
 	}
-	if c := h.Runner.Commands(); len(c) != 1 || c[0].Argv[1] != "all" {
+	// Elevate crosses the protocol; the fake runner never shows a UAC prompt.
+	if c := h.Runner.Commands(); len(c) != 1 || c[0].Argv[1] != "all" || !c[0].Elevate || !i.Cmd.Elevate {
 		t.Errorf("commands %+v", c)
 	}
 }

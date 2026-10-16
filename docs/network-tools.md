@@ -102,3 +102,12 @@
 - 发网络请求的工具（ping、DNS、远程端口、tracert）在根搜索里按 Enter 才执行，见 §4.2。
 - 公网 IPv6 用 `api64.ipify.org`（设计只写了 `api.ipify.org`，它只有 IPv4）。没有显示地区：ipify 免费接口不提供地区，需要另一个服务，暂不做。
 - 复制 Wi-Fi 密码：集成时（R37）给 SDK 加了 `Clipboard.WriteSecret`，这里改用它。除了文本，还写入 `ExcludeClipboardContentFromMonitorProcessing`、`CanIncludeInClipboardHistory = 0`、`CanUploadToCloudClipboard = 0` 三个格式，所以剪贴板历史插件、Windows 的 Win+V 历史和云剪贴板都不会记下这条密码。外部插件通过 `host/clipboard.writeText` 的 `secret: true` 参数使用。
+
+### 4.8 刷新 DNS、续订 IP 需要管理员权限（R68，2026-10-16）
+
+- 问题：`ipconfig /flushdns` 和 `ipconfig /release`、`/renew` 需要管理员权限；后台任务以普通权限运行，所以失败，输出"The requested operation requires elevation."（中文系统"请求的操作需要提升。"）。
+- 做法：两个命令都改用 `ProcessSpec.Elevate`（见 [background-tasks.md §11](background-tasks.md#11-以管理员身份运行r682026-10-16)）。只有 golauncher 不是管理员时才设置（`Backend.Elevated()`：真实后端用 `process.IsElevated`，fixture 用 `elevated` 字段，默认 `false`）；已是管理员时照常运行，有输出。
+- 提示：动作返回的 Toast 改成"刷新 DNS 缓存：需要管理员权限"，正文"请在 Windows 的管理员权限提示（UAC）中确认。"，这样 UAC 弹出时用户知道是谁要的。已是管理员时仍是原来的"正在后台运行"。"续订 IP 地址"原有的确认（`Destructive`）保留，确认后才弹 UAC。
+- 清单里两个命令的 `Subtitle` 改为 `%command.subtitleAdmin%`（"网络工具 · 需要管理员权限"）。**注意**：宿主的根搜索命令条目目前用插件名做副标题，不显示 `Command.Subtitle`，所以这条现在看不到（golden 不变）；是否让宿主显示 `Command.Subtitle` 是待定问题（会同时改变时钟、计时器、Everything、进程等插件命令的副标题）。
+- 输出：提权运行拿不到 ipconfig 的输出，任务日志写明；成功与否看退出码。拒绝 UAC 时任务显示"已取消"。
+- 测试：`TestTasks` 检查两个命令带 `Elevate`、tracert 不带、Toast 文字、清单副标题；`TestTasksWhenAdmin` 检查已是管理员时不带 `Elevate`、Toast 是原来的。测试用假执行器，没有在本机刷新 DNS 或续订 IP。

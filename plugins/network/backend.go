@@ -14,6 +14,7 @@ import (
 	"time"
 
 	winnet "github.com/eziq1/golauncher/internal/winapi/network"
+	"github.com/eziq1/golauncher/internal/winapi/process"
 )
 
 // Backend is everything the plugin reads from the system and the network.
@@ -46,6 +47,10 @@ type Backend interface {
 	// Kill ends process pid. A non-zero created (Process.Created) guards
 	// against a PID reused by another process: winnet.ErrNotFound.
 	Kill(pid uint32, created int64) error
+	// Elevated reports whether golauncher runs as administrator; when it
+	// does not, the DNS flush and the IP renewal ask for elevation
+	// (ProcessSpec.Elevate).
+	Elevated() bool
 }
 
 // Record is a DNS record.
@@ -78,6 +83,9 @@ type System struct {
 }
 
 var _ Backend = (*System)(nil)
+
+// Elevated implements Backend.
+func (s *System) Elevated() bool { return process.IsElevated() }
 
 func (s *System) Adapters(context.Context) ([]winnet.Adapter, error) { return winnet.Adapters() }
 

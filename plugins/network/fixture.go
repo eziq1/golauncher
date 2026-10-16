@@ -62,6 +62,8 @@ type Fixture struct {
 	Open      map[string]int `json:"open"`
 	Sockets   []fixSocket    `json:"sockets"`
 	Processes []fixProcess   `json:"processes"`
+	// Elevated pretends golauncher runs as administrator.
+	Elevated bool `json:"elevated,omitzero"`
 }
 
 type fixSocket struct {
@@ -104,6 +106,9 @@ func LoadFixture(path string) *FixtureBackend {
 	}
 	return b
 }
+
+// Elevated implements Backend.
+func (b *FixtureBackend) Elevated() bool { return b.F.Elevated }
 
 // Killed returns the PIDs passed to Kill.
 func (b *FixtureBackend) Killed() []uint32 {

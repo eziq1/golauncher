@@ -232,6 +232,10 @@ func TestRiskOf(t *testing.T) {
 		{plugin.Action{ReadOnly: true, Style: plugin.StyleDestructive, Do: plugin.ActionDo{Kind: plugin.ActionCallback}}, agent.RiskDestructive},
 		{plugin.Action{Do: plugin.ActionDo{Kind: plugin.ActionRunCommand}}, agent.RiskChange},
 		{plugin.Action{Do: plugin.ActionDo{Kind: plugin.ActionRunProcess}}, agent.RiskChange},
+		// R68: an elevated process, and the task view's Retry as Administrator.
+		{plugin.Action{Do: plugin.ActionDo{Kind: plugin.ActionRunProcess, Payload: plugin.MustPayload(plugin.RunProcessPayload{
+			Cmd: plugin.ProcessSpec{Argv: []string{"ipconfig", "/flushdns"}, Elevate: true}})}}, agent.RiskChange},
+		{plugin.Action{ID: "retry-admin", Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "retry-admin"}}, agent.RiskChange},
 	}
 	for _, c := range cases {
 		if got := agent.RiskOf(c.a); got != c.want {

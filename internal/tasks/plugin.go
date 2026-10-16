@@ -28,6 +28,9 @@ const (
 	callbackRemove = "remove"
 	callbackClear  = "clear"
 	callbackCopy   = "copy"
+	// callbackRetryAdmin reruns a task that needs administrator rights with
+	// ProcessSpec.Elevate (Manager.RetryElevated).
+	callbackRetryAdmin = "retry-admin"
 
 	// tailLines is how much output the detail pane shows.
 	tailLines = 300
@@ -247,6 +250,10 @@ func (p *Plugin) item(l plugin.Localizer, i Info, now time.Time) plugin.Item {
 		return plugin.ActionDo{Kind: plugin.ActionCallback, Target: target, Payload: payload}
 	}
 	var actions []plugin.Action
+	if i.RetryableElevated() {
+		// First, so that Enter retries: the UAC prompt confirms it.
+		actions = append(actions, plugin.Action{ID: "retry-admin", Title: l.T("tasks.action.retryAdmin"), Do: cb(callbackRetryAdmin)})
+	}
 	if i.LogPath != "" {
 		actions = append(actions, plugin.Action{ID: "open-log", Title: l.T("tasks.action.openLog"),
 			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: i.LogPath}})
@@ -311,6 +318,9 @@ func (p *Plugin) detail(l plugin.Localizer, i Info, now time.Time, state string)
 	if i.Cmd != nil {
 		add(l.T("tasks.meta.command"), CommandLine(*i.Cmd))
 		add(l.T("tasks.meta.folder"), i.Cmd.Dir)
+		if i.Cmd.Elevate {
+			add(l.T("tasks.meta.rights"), l.T("tasks.meta.rightsAdmin"))
+		}
 	}
 	if !i.Started.IsZero() {
 		add(l.T("tasks.meta.started"), i.Started.Format(l.T("tasks.time.layout")))
@@ -342,8 +352,12 @@ func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Resu
 	switch a.Target {
 	case callbackStop:
 		return plugin.Result{Refresh: true}, p.m.Stop(tp.ID)
-	case callbackRerun:
-		id, err := p.m.Rerun(tp.ID)
+	case callbackRerun, callbackRetryAdmin:
+		rerun := p.m.Rerun
+		if a.Target == callbackRetryAdmin {
+			rerun = p.m.RetryElevated
+		}
+		id, err := rerun(tp.ID)
 		if err != nil {
 			return plugin.Result{}, err
 		}
