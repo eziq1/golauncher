@@ -391,8 +391,11 @@ func TestSelectionTyped(t *testing.T) {
 	e.main.mu.Lock()
 	calls := slices.Clone(e.main.calls)
 	e.main.mu.Unlock()
-	if calls[len(calls)-1].Text != "translator settings" {
-		t.Errorf("query text %q", calls[len(calls)-1].Text)
+	// The refresh SetSelection starts (with the empty text) may reach the
+	// plugin after the typed search on a slow machine: look for the typed
+	// text among the calls, not in the last one.
+	if !slices.ContainsFunc(calls, func(q plugin.SelectionQuery) bool { return q.Text == "translator settings" }) {
+		t.Errorf("no call with the typed text: %+v", calls)
 	}
 }
 
