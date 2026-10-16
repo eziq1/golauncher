@@ -84,6 +84,8 @@ type Settings struct {
 	buttons   map[string]buttonResult
 	loadedFor string       // the plugin whose options were loaded
 	services  mui.Services // redraws the window when a call finishes
+
+	agent agentState // the AI tools section of the AI plugin's page
 }
 
 // optionsResult is the outcome of loading the dynamic options of a preference.
@@ -551,6 +553,9 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 				}
 			}
 		}
+	}
+	if p.ID == aiPluginID {
+		s.agentSection(c, cfg)
 	}
 }
 

@@ -38,6 +38,22 @@ type Config struct {
 	ContextAware bool `json:"contextAware"`
 	// Plugins holds per-plugin settings keyed by plugin ID.
 	Plugins map[string]PluginConfig `json:"plugins,omitempty"`
+	// Agent configures what AI clients may do with the plugins (docs/ai.md §4).
+	Agent AgentConfig `json:"agent,omitzero"`
+}
+
+// AgentConfig configures the AI tool layer (docs/ai.md §4.2–§4.4).
+type AgentConfig struct {
+	// External lets AI apps (Claude Desktop, Claude Code) use the plugins
+	// through `golauncher mcp`. The launcher's own AI chat does not need it.
+	External bool `json:"external,omitzero"`
+	// AskOpen asks before "open" actions (opening an app, a URL, copying),
+	// which run directly by default.
+	AskOpen bool `json:"askOpen,omitzero"`
+	// Plugins overrides which plugins AI may use, by plugin ID. By default
+	// the built-in plugins are exposed except the clipboard history, and
+	// plugins in their own process are not.
+	Plugins map[string]bool `json:"plugins,omitempty"`
 }
 
 // PluginConfig is the configuration of one plugin.
@@ -79,6 +95,7 @@ func (c Config) Clone() Config {
 		p.Commands = maps.Clone(p.Commands)
 		out.Plugins[id] = p
 	}
+	out.Agent.Plugins = maps.Clone(c.Agent.Plugins)
 	return out
 }
 

@@ -18,8 +18,9 @@ import (
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
-// fakePath is the built testdata/fakeclaude.
-var fakePath string
+// fakePath and fakeMCPPath are the built testdata/fakeclaude and
+// testdata/fakemcp.
+var fakePath, fakeMCPPath string
 
 func TestMain(m *testing.M) {
 	dir, err := os.MkdirTemp("", "fakeclaude")
@@ -32,11 +33,14 @@ func TestMain(m *testing.M) {
 		name += ".exe"
 	}
 	fakePath = filepath.Join(dir, name)
-	out, err := exec.Command("go", "build", "-o", fakePath, "./testdata/fakeclaude").CombinedOutput()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "building fakeclaude: %v\n%s", err, out)
-		os.RemoveAll(dir)
-		os.Exit(1)
+	fakeMCPPath = filepath.Join(dir, strings.Replace(name, "claude", "fakemcp", 1))
+	for _, b := range [][2]string{{fakePath, "./testdata/fakeclaude"}, {fakeMCPPath, "./testdata/fakemcp"}} {
+		out, err := exec.Command("go", "build", "-o", b[0], b[1]).CombinedOutput()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "building %s: %v\n%s", b[1], err, out)
+			os.RemoveAll(dir)
+			os.Exit(1)
+		}
 	}
 	code := m.Run()
 	os.RemoveAll(dir)
@@ -94,6 +98,19 @@ type logEntry struct {
 	PID   int      `json:"pid"`
 	Argv  []string `json:"argv"`
 	Stdin *string  `json:"stdin"`
+	// After a call to the MCP server: the tools it listed and what it saw.
+	MCPTools []string `json:"mcpTools"`
+	MCPMeta  *mcpMeta `json:"mcpMeta"`
+	MCPError string   `json:"mcpError"`
+}
+
+// mcpMeta is what testdata/fakemcp echoes in a tool result's _meta.
+type mcpMeta struct {
+	Args        []string          `json:"args"`
+	Env         map[string]string `json:"env"`
+	Client      string            `json:"client"`
+	Initialized bool              `json:"initialized"`
+	Tool        string            `json:"tool"`
 }
 
 func (f *fake) entries() []logEntry {
@@ -136,10 +153,12 @@ func (f *fake) stdin() []string {
 	return out
 }
 
-// answer is a collected turn.
+// answer is a collected turn: tools has the names of the tool calls as they
+// started, steps every tool event.
 type answer struct {
 	text  string
 	tools []string
+	steps []backend.Event
 	final backend.Event
 }
 
@@ -164,7 +183,12 @@ func collect(t *testing.T, ch <-chan backend.Event) answer {
 			case backend.EventText:
 				a.text += ev.Text
 			case backend.EventTool:
-				a.tools = append(a.tools, ev.Tool)
+				if ev.Input == "" {
+					a.tools = append(a.tools, ev.Tool)
+				}
+				a.steps = append(a.steps, ev)
+			case backend.EventToolResult:
+				a.steps = append(a.steps, ev)
 			default:
 				a.final = ev
 			}
@@ -681,5 +705,220 @@ func TestParse(t *testing.T) {
 	res, _ = p.handle([]byte(`{"type":"result","is_error":true,"errors":["one","two"]}`))
 	if resultText(res) != "one\ntwo" {
 		t.Errorf("resultText %q", resultText(res))
+	}
+}
+
+// toolServer is the test's golauncher MCP server: testdata/fakemcp.
+func toolServer() *ToolServer {
+	return &ToolServer{
+		Command:    fakeMCPPath,
+		Args:       []string{"mcp", "--fake"},
+		Env:        map[string]string{"GOLAUNCHER_AGENT_TOKEN": "tok-123"},
+		SessionEnv: "GOLAUNCHER_AGENT_SESSION",
+	}
+}
+
+// checkSafe checks the flags every command line has, and the ones none has.
+func checkSafe(t *testing.T, argv []string) {
+	t.Helper()
+	for _, flag := range []string{"-p", "--strict-mcp-config", "--disable-slash-commands"} {
+		if !slices.Contains(argv, flag) {
+			t.Errorf("no %s in %q", flag, argv)
+		}
+	}
+	// --safe-mode drops the --mcp-config servers: only without golauncher's.
+	if mcp := slices.Contains(argv, "--mcp-config"); mcp == slices.Contains(argv, "--safe-mode") {
+		t.Errorf("--mcp-config %v but --safe-mode %v in %q", mcp, !mcp, argv)
+	}
+	for _, bad := range []string{"--bare", "--continue", "--dangerously-skip-permissions", "--allow-dangerously-skip-permissions", "bypassPermissions", "--permission-mode"} {
+		if slices.Contains(argv, bad) {
+			t.Errorf("%s in %q", bad, argv)
+		}
+	}
+	if !hasFlag(argv, "--setting-sources", "") || !hasFlag(argv, "--permission-prompts", "none") {
+		t.Errorf("argv %q", argv)
+	}
+}
+
+func TestLauncherTools(t *testing.T) {
+	for _, perTurn := range []bool{false, true} {
+		t.Run(fmt.Sprint("perTurn=", perTurn), func(t *testing.T) {
+			f := newFake(t, nil, func(o *Options) { o.Tools = toolServer(); o.PerTurn = perTurn })
+			id := "99999999-9999-4999-8999-999999999999"
+			c := f.open(backend.OpenOptions{SessionID: id, LauncherTools: true})
+			a := send(t, c, "launcher port 8080")
+			wantDone(t, a, "echo: launcher port 8080")
+
+			// The steps: the call as it starts, its input, its result.
+			if len(a.steps) != 3 {
+				t.Fatalf("steps %+v", a.steps)
+			}
+			start, input, result := a.steps[0], a.steps[1], a.steps[2]
+			toolID := start.ToolID
+			if start.Kind != backend.EventTool || start.Tool != "mcp__golauncher__search" || !strings.HasPrefix(toolID, "toolu_") || start.Input != "" {
+				t.Errorf("start %+v", start)
+			}
+			if input.Kind != backend.EventTool || input.ToolID != toolID || input.Tool != start.Tool || input.Input != `{"query":"port 8080"}` {
+				t.Errorf("input %+v", input)
+			}
+			wantResult := `{"items":[{"handle":"i1","plugin":"builtin.fake","title":"Item for port 8080"}],"query":"port 8080"}`
+			if result.Kind != backend.EventToolResult || result.ToolID != toolID || result.IsError || result.Result != wantResult {
+				t.Errorf("result %+v", result)
+			}
+
+			// The command line.
+			starts := f.starts()
+			if len(starts) != 1 {
+				t.Fatalf("starts %q", starts)
+			}
+			argv := starts[0]
+			checkSafe(t, argv)
+			cfgPath := filepath.Join(f.b.o.Dir, "mcp-"+id+".json")
+			if !hasFlag(argv, "--mcp-config", cfgPath) || !hasFlag(argv, "--allowedTools", "mcp__golauncher__*") || !hasFlag(argv, "--tools", "") {
+				t.Errorf("argv %q", argv)
+			}
+
+			// The configuration file.
+			b, err := os.ReadFile(cfgPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var cfg struct {
+				MCPServers map[string]struct {
+					Type    string            `json:"type"`
+					Command string            `json:"command"`
+					Args    []string          `json:"args"`
+					Env     map[string]string `json:"env"`
+				} `json:"mcpServers"`
+			}
+			if err := json.Unmarshal(b, &cfg); err != nil {
+				t.Fatal(err)
+			}
+			srv, ok := cfg.MCPServers["golauncher"]
+			if len(cfg.MCPServers) != 1 || !ok || srv.Type != "stdio" || srv.Command != fakeMCPPath || !slices.Equal(srv.Args, []string{"mcp", "--fake"}) ||
+				len(srv.Env) != 2 || srv.Env["GOLAUNCHER_AGENT_TOKEN"] != "tok-123" || srv.Env["GOLAUNCHER_AGENT_SESSION"] != id {
+				t.Errorf("config %s", b)
+			}
+
+			// What the MCP server saw.
+			var meta *mcpMeta
+			var tools []string
+			for _, e := range f.entries() {
+				if e.MCPError != "" {
+					t.Errorf("MCP error %s", e.MCPError)
+				}
+				if e.MCPMeta != nil {
+					meta, tools = e.MCPMeta, e.MCPTools
+				}
+			}
+			if meta == nil {
+				t.Fatal("the MCP server was not called")
+			}
+			if meta.Env["GOLAUNCHER_AGENT_TOKEN"] != "tok-123" || meta.Env["GOLAUNCHER_AGENT_SESSION"] != id || !slices.Equal(meta.Args, []string{"mcp", "--fake"}) ||
+				meta.Client != "claude-code" || !meta.Initialized || meta.Tool != "search" {
+				t.Errorf("server saw %+v", meta)
+			}
+			if !slices.Equal(tools, []string{"list_plugins", "search", "run_command", "get_detail", "run_action"}) {
+				t.Errorf("tools %q", tools)
+			}
+
+			// A failed call.
+			a = send(t, c, "launcher fail")
+			wantDone(t, a, "echo: launcher fail")
+			if n := len(a.steps); n != 3 || !a.steps[2].IsError || a.steps[2].Result != `{"status":"error","error":"fake failure"}` {
+				t.Errorf("steps %+v", a.steps)
+			}
+
+			c.Close()
+			if _, err := os.Stat(cfgPath); !errors.Is(err, os.ErrNotExist) {
+				t.Errorf("config after Close: %v", err)
+			}
+		})
+	}
+}
+
+func TestLauncherToolsArgv(t *testing.T) {
+	f := newFake(t, nil, func(o *Options) { o.Tools = toolServer() })
+	web := f.open(backend.OpenOptions{SessionID: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", LauncherTools: true, WebSearch: true})
+	wantDone(t, send(t, web, "hi"), "echo: hi")
+	off := f.open(backend.OpenOptions{SessionID: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"})
+	wantDone(t, send(t, off, "hi"), "echo: hi")
+	starts := f.starts()
+	if len(starts) != 2 {
+		t.Fatalf("starts %q", starts)
+	}
+	for _, argv := range starts {
+		checkSafe(t, argv)
+	}
+	if !hasFlag(starts[0], "--tools", "WebSearch,WebFetch") || !hasFlag(starts[0], "--allowedTools", "mcp__golauncher__*,WebSearch,WebFetch") ||
+		!hasFlag(starts[0], "--mcp-config", filepath.Join(f.b.o.Dir, "mcp-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.json")) {
+		t.Errorf("web and tools: %q", starts[0])
+	}
+	if !hasFlag(starts[1], "--tools", "") || slices.Contains(starts[1], "--allowedTools") || slices.Contains(starts[1], "--mcp-config") {
+		t.Errorf("tools off: %q", starts[1])
+	}
+	if _, err := os.Stat(filepath.Join(f.b.o.Dir, "mcp-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.json")); err == nil {
+		t.Error("a configuration without launcher tools")
+	}
+
+	// Without a tool server, LauncherTools does nothing.
+	g := newFake(t, nil)
+	c := g.open(backend.OpenOptions{LauncherTools: true})
+	wantDone(t, send(t, c, "hi"), "echo: hi")
+	if argv := g.starts()[0]; slices.Contains(argv, "--mcp-config") || slices.Contains(argv, "--allowedTools") || !hasFlag(argv, "--tools", "") {
+		t.Errorf("no tool server: %q", argv)
+	}
+
+	// The flags in one place.
+	for _, tt := range []struct {
+		web  bool
+		cfg  string
+		want []string
+	}{
+		{false, "", []string{"--tools", ""}},
+		{true, "", []string{"--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"}},
+		{false, "c.json", []string{"--tools", "", "--mcp-config", "c.json", "--allowedTools", "mcp__golauncher__*"}},
+		{true, "c.json", []string{"--tools", "WebSearch,WebFetch", "--mcp-config", "c.json", "--allowedTools", "mcp__golauncher__*,WebSearch,WebFetch"}},
+	} {
+		if got := toolFlags(tt.web, tt.cfg); !slices.Equal(got, tt.want) {
+			t.Errorf("toolFlags(%v, %q) = %q", tt.web, tt.cfg, got)
+		}
+	}
+	if got := toolConfigName(`../x\y`); got != "mcp-___x_y.json" {
+		t.Errorf("toolConfigName = %q", got)
+	}
+}
+
+func TestParseToolSteps(t *testing.T) {
+	var got []backend.Event
+	p := newParser(func(ev backend.Event) { got = append(got, ev) })
+	lines := []string{
+		// Streamed: the start has the ID, the complete message the input.
+		`{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1"}}}`,
+		`{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"mcp__golauncher__run_action","input":{}}}}`,
+		`{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"handle\":"}}}`,
+		`{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"toolu_1","name":"mcp__golauncher__run_action","input":{ "handle" : "i7" }}]}}`,
+		`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"{\"status\":\"declined\"}","is_error":true}]}}`,
+		// Not streamed: one event with ID and input.
+		`{"type":"assistant","message":{"id":"m2","model":"<synthetic>","content":[{"type":"tool_use","id":"toolu_2","name":"mcp__golauncher__search","input":{"query":"x"}}]}}`,
+		`{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_2","content":[{"type":"text","text":"a"},{"type":"image"},{"type":"text","text":"b"}]}]}}`,
+		// Ignored.
+		`{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]}}`,
+		`{"type":"user","message":{"role":"user","content":"plain"}}`,
+	}
+	for _, l := range lines {
+		if res, garbage := p.handle([]byte(l)); res != nil || garbage {
+			t.Fatalf("%s: result %v, garbage %v", l, res, garbage)
+		}
+	}
+	want := []backend.Event{
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__run_action", ToolID: "toolu_1"},
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__run_action", ToolID: "toolu_1", Input: `{"handle":"i7"}`},
+		{Kind: backend.EventToolResult, ToolID: "toolu_1", Result: `{"status":"declined"}`, IsError: true},
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__search", ToolID: "toolu_2", Input: `{"query":"x"}`},
+		{Kind: backend.EventToolResult, ToolID: "toolu_2", Result: "a\nb"},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("events\n%+v\nwant\n%+v", got, want)
 	}
 }

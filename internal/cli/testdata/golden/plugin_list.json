@@ -568,8 +568,15 @@
         "name": "webSearch",
         "type": "bool",
         "title": "Allow web search",
-        "description": "Lets Claude search the web and read web pages to answer. It never gets tools that touch this computer.",
+        "description": "Lets Claude search the web and read web pages to answer.",
         "default": false
+      },
+      {
+        "name": "tools",
+        "type": "bool",
+        "title": "Let AI use launcher plugins",
+        "description": "Lets Claude search and run the launcher's plugins for you, for example to find an app, check a port or install a program. Actions that change something always ask you first. Claude gets no other access to this computer.",
+        "default": true
       },
       {
         "name": "retentionDays",
@@ -619,6 +626,24 @@
       {
         "name": "tasks",
         "title": "Background Tasks",
+        "mode": "view"
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
+    "id": "builtin.agent",
+    "name": "AI Activity",
+    "description": "What AI clients did with your plugins.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "sparkles"
+    },
+    "enabled": true,
+    "commands": [
+      {
+        "name": "activity",
+        "title": "AI Activity",
         "mode": "view"
       }
     ],

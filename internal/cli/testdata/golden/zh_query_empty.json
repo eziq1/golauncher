@@ -81,6 +81,39 @@
           "key": "builtin.ai/cmd:history"
         },
         {
+          "id": "cmd:activity",
+          "title": "AI 活动记录",
+          "subtitle": "AI 活动记录",
+          "icon": {
+            "name": "sparkles"
+          },
+          "keywords": [
+            "ai",
+            "claude",
+            "mcp",
+            "记录",
+            "日志",
+            "工具",
+            "AI Activity",
+            "log",
+            "tools"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "activity"
+              }
+            }
+          ],
+          "plugin": "builtin.agent",
+          "key": "builtin.agent/cmd:activity"
+        },
+        {
           "id": "cmd:dns",
           "title": "DNS 查询",
           "subtitle": "网络工具",

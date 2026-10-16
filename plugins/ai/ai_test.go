@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -258,6 +259,173 @@ func TestContinueInUsesLastQuestionOrClipboard(t *testing.T) {
 	}
 	if c, _ := h.Clip.Read(); c.Text != long {
 		t.Fatal("the long question was not copied")
+	}
+}
+
+// launcherSteps imitates the model using golauncher's tools: a search, a
+// view command, a detail and an action, each started without input, then
+// given its input, then its result.
+func launcherSteps(action string) func(string) []backend.Event {
+	call := func(id, tool, input, result string, isErr bool) []backend.Event {
+		name := "mcp__golauncher__" + tool
+		return []backend.Event{
+			{Kind: backend.EventTool, Tool: name, ToolID: id},
+			{Kind: backend.EventTool, Tool: name, ToolID: id, Input: input},
+			{Kind: backend.EventToolResult, ToolID: id, Result: result, IsError: isErr},
+		}
+	}
+	return func(string) []backend.Event {
+		var evs []backend.Event
+		evs = append(evs, call("t1", "search", `{"query":"port 8080"}`, `{"query":"port 8080","items":[{"handle":"i1","title":"node.exe","plugin":"builtin.port"}]}`, false)...)
+		evs = append(evs, call("t2", "list_plugins", `{}`, `{"plugins":[{"id":"a"},{"id":"b"}],"more":10}`, false)...)
+		evs = append(evs, call("t3", "run_command", `{"plugin":"builtin.port","command":"ports"}`, `{"status":"done","title":"Ports","view":{"title":"Ports","items":[{}],"more":0}}`, false)...)
+		evs = append(evs, call("t4", "get_detail", `{"handle":"i1"}`, `{"title":"node.exe","markdown":"x"}`, false)...)
+		switch action {
+		case "done":
+			evs = append(evs, call("t5", "run_action", `{"handle":"i9","action":"install"}`, `{"status":"done","action":"Install","item":"7-Zip"}`, false)...)
+		case "declined":
+			evs = append(evs, call("t5", "run_action", `{"handle":"i9"}`, `{"status":"declined","error":"The user declined.","action":"Install","item":"7-Zip"}`, true)...)
+		case "error":
+			evs = append(evs, call("t5", "run_action", `{"handle":"i9"}`, `{"status":"error","error":"unknown handle i9"}`, true)...)
+		case "refused":
+			evs = append(evs, call("t5", "run_action", `{"handle":"i9"}`, `{"status":"refused","error":"AI may not use this plugin"}`, true)...)
+		case "garbage":
+			evs = append(evs, call("t5", "run_action", `not json`, `not json either`, false)...)
+		}
+		// A web search without an ID.
+		evs = append(evs, backend.Event{Kind: backend.EventTool, Tool: "WebSearch"})
+		return evs
+	}
+}
+
+func TestToolStepsInTranscript(t *testing.T) {
+	fake := &backend.Fake{Steps: launcherSteps("done")}
+	p, h := newTestPlugin(t, fake, true)
+	v := openChat(t, p, "v1", chatPayload{Text: "who uses port 8080?"})
+	want := []string{
+		"_🔧 Search “port 8080” → 1 result_",
+		"_🔧 List plugins → 12 plugins_",
+		"_🔧 Open Ports → 1 item_",
+		"_🔧 Read “node.exe”_",
+		"_✅ Install “7-Zip”_",
+		"_Searched the web_",
+		"You asked: who uses port 8080?",
+	}
+	md := v.Detail.Markdown
+	last := -1
+	for _, w := range want {
+		i := strings.Index(md, w)
+		if i < 0 || i < last {
+			t.Fatalf("%q missing or out of order in:\n%s", w, md)
+		}
+		last = i
+	}
+	if opens := fake.Opens(); len(opens) != 1 || !opens[0].LauncherTools || !strings.Contains(opens[0].SystemPrompt, "run_action") ||
+		strings.Contains(opens[0].SystemPrompt, "You cannot see or change") {
+		t.Fatalf("opens = %+v", opens)
+	}
+
+	// The steps are stored and shown again from the store.
+	_, msgs, err := p.st.Get("id-1")
+	if err != nil || len(msgs) != 2 {
+		t.Fatalf("stored %+v, %v", msgs, err)
+	}
+	steps := msgs[1].Steps
+	if len(steps) != 6 || steps[0] != (ToolStep{ID: "t1", Name: "mcp__golauncher__search", Input: `{"query":"port 8080"}`,
+		Result: `{"query":"port 8080","items":[{"handle":"i1","title":"node.exe","plugin":"builtin.port"}]}`, Done: true}) ||
+		steps[5] != (ToolStep{Name: "WebSearch"}) || len(msgs[1].Tools) != 0 {
+		t.Fatalf("steps = %+v", steps)
+	}
+	p2 := NewWithOptions(Options{Backend: fake, Sync: true, HasProtocol: func(string) bool { return false }})
+	if err := p2.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	defer p2.Close()
+	if v := openChat(t, p2, "v9", chatPayload{Session: "id-1"}); v.Detail.Markdown != md {
+		t.Fatalf("reopened:\n%s\nwant:\n%s", v.Detail.Markdown, md)
+	}
+
+	// In Chinese.
+	h.I18N.SetLocale("zh-CN")
+	if v := openChat(t, p2, "v9", chatPayload{}); !strings.Contains(v.Detail.Markdown, "_🔧 搜索“port 8080” → 1 个结果_") ||
+		!strings.Contains(v.Detail.Markdown, "_✅ Install“7-Zip”_") {
+		t.Fatalf("zh-CN:\n%s", v.Detail.Markdown)
+	}
+}
+
+func TestToolStepFailures(t *testing.T) {
+	for action, want := range map[string]string{
+		"declined": "_⛔ Declined: Install “7-Zip”_",
+		"error":    "_❌ run\\_action: unknown handle i9_",
+		"refused":  "_⛔ AI may not use this plugin_",
+		"garbage":  "_✅ Done_",
+	} {
+		p, _ := newTestPlugin(t, &backend.Fake{Steps: launcherSteps(action)}, true)
+		if v := openChat(t, p, "v1", chatPayload{Text: "q"}); !strings.Contains(v.Detail.Markdown, want) {
+			t.Errorf("%s: no %q in:\n%s", action, want, v.Detail.Markdown)
+		}
+	}
+}
+
+func TestToolStepsWhileAnswering(t *testing.T) {
+	p, _ := newTestPlugin(t, &backend.Fake{}, true)
+	ch := &chat{sess: Session{ID: "x"}, msgs: []Message{{Role: RoleUser, Text: "q"}}, busy: true}
+	for _, ev := range []backend.Event{
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__search", ToolID: "a"},
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__run_action", ToolID: "b", Input: `{"handle":"i1"}`},
+		{Kind: backend.EventToolResult, ToolID: "unknown", Result: "x"},
+		{Kind: backend.EventTool, Tool: "mcp__golauncher__list_plugins"},
+	} {
+		ch.addStep(ev)
+	}
+	md := p.transcript(ch)
+	for _, w := range []string{"_🔧 Search…_", "_⏳ Waiting for the action…_", "_🔧 List plugins…_"} {
+		if !strings.Contains(md, w) {
+			t.Errorf("no %q in:\n%s", w, md)
+		}
+	}
+	if len(ch.steps) != 3 {
+		t.Errorf("steps %+v", ch.steps)
+	}
+	ch.addStep(backend.Event{Kind: backend.EventTool, ToolID: "a", Input: `{"query":"a_b"}`})
+	if md := p.transcript(ch); !strings.Contains(md, `_🔧 Search “a\_b”…_`) {
+		t.Errorf("updated input:\n%s", md)
+	}
+	// Old records: tool names only.
+	if md := p.transcript(&chat{msgs: []Message{{Role: RoleUser, Text: "q"}, {Role: RoleAssistant, Text: "a", Tools: []string{"WebFetch", "Other"}}}}); !strings.Contains(md, "_Read a web page_") ||
+		!strings.Contains(md, "_🔧 Other_") {
+		t.Errorf("old record:\n%s", md)
+	}
+}
+
+func TestCapResult(t *testing.T) {
+	var items []string
+	for i := range 500 {
+		items = append(items, `{"handle":"i`+strings.Repeat("x", 20)+`","title":"item `+string(rune('a'+i%26))+`"}`)
+	}
+	long := `{"query":"q","items":[` + strings.Join(items, ",") + `],"more":5}`
+	got := capResult(long)
+	if len(got) > maxStepResult || !strings.Contains(got, `"more":505`) || !strings.Contains(got, `"query":"q"`) {
+		t.Fatalf("capResult = %.200s", got)
+	}
+	if got := capResult(strings.Repeat("é", maxStepResult)); len(got) > maxStepResult || !utf8.ValidString(got) {
+		t.Fatalf("capResult of text: %d bytes", len(got))
+	}
+}
+
+func TestLauncherToolsPreference(t *testing.T) {
+	fake := &backend.Fake{}
+	p, h := newTestPlugin(t, fake, true)
+	h.Prefs.SetValues(map[string]jsontext.Value{prefEnabled: jsontext.Value("true"), prefTools: jsontext.Value("false")})
+	openChat(t, p, "v1", chatPayload{Text: "q"})
+	opens := fake.Opens()
+	if len(opens) != 1 || opens[0].LauncherTools || !strings.Contains(opens[0].SystemPrompt, "You cannot see or change the user's computer or files.") ||
+		strings.Contains(opens[0].SystemPrompt, "run_action") {
+		t.Fatalf("opens = %+v", opens)
+	}
+	if s := systemPrompt("en", false, true); !strings.Contains(s, "list_plugins, search, run_command, get_detail, run_action") ||
+		!strings.Contains(s, "do not retry") || strings.Contains(s, "You cannot see") {
+		t.Fatalf("system prompt with tools: %s", s)
 	}
 }
 

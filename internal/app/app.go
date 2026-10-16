@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/agent"
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host"
@@ -60,6 +61,8 @@ type Options struct {
 	// TasksReadOnly reads the task history but writes no logs (glctl --real
 	// without --exec).
 	TasksReadOnly bool
+	// Version is the launcher's version, reported by the AI tool server.
+	Version string
 }
 
 // Env is a running launcher environment.
@@ -72,6 +75,9 @@ type Env struct {
 	// Tasks is the background task manager; the builtin.tasks plugin shows
 	// its tasks.
 	Tasks *tasks.Manager
+	// Agent is the AI tool layer (docs/ai.md §4); it asks Controller to
+	// confirm actions.
+	Agent *agent.Agent
 
 	tempDir   string
 	manifests []plugin.Manifest
@@ -198,7 +204,16 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 
 	env.Tasks = env.newTasks(o, cacheDir, now, log)
 	env.Services.Tasks = env.Tasks
-	plugins := append(slices.Clone(o.Plugins), tasks.NewPlugin(env.Tasks))
+	activityPath := filepath.Join(dataDir, "agent", "activity.jsonl")
+	if o.Fake {
+		activityPath = "" // in memory
+	}
+	activity, err := agent.OpenActivity(activityPath, now)
+	if err != nil {
+		log.Warn("ai activity log", "err", err)
+		activity, _ = agent.OpenActivity("", now)
+	}
+	plugins := append(slices.Clone(o.Plugins), tasks.NewPlugin(env.Tasks), agent.NewPlugin(activity))
 	env.Engine, err = core.New(ctx, core.Options{
 		Plugins:     plugins,
 		Services:    env.Services,
@@ -214,6 +229,16 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 	}
 	env.engine.Store(env.Engine)
 	env.Controller = core.NewController(env.Engine)
+	env.Agent = agent.New(agent.Options{
+		Engine:   env.Engine,
+		Config:   env.Config,
+		Confirm:  env.Controller.ConfirmExternal,
+		Activity: activity,
+		Token:    agent.ProcessToken(),
+		Version:  o.Version,
+		Log:      log,
+		Now:      now,
+	})
 	return env, nil
 }
 

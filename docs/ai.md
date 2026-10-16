@@ -1,6 +1,6 @@
 # 接入大模型设计方案
 
-> 状态：设计 v1 · 第二期已实现（待合并，§15）· 2026-10-15 · 对应需求 R42、R43、R44、R45（见 [requirements.md](requirements.md)）
+> 状态：设计 v1 · 第二期已实现（§15）· MCP 期已实现（待合并，§16）· 2026-10-15 · 对应需求 R42、R43、R44、R45、R47（见 [requirements.md](requirements.md)）
 >
 > v0 是功能清单（§1、§2 保留）；v1 补上了架构、工具层、MCP 服务器、会话、界面、安全、测试和分期。CLI 参数都按本机安装的 Claude Code 和 Codex CLI 的 `--help` 核对过，实现前还要用真实进程验证一遍（§10）。
 
@@ -376,3 +376,107 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
 - 没登录和额度用完的错误格式没有在本机复现，是按关键字识别的；"会话已被占用"的原文也是宽松匹配。
 - `claude://` 和 ChatGPT 链接的预填效果没有目视确认（15.1 第 3 项）。
 - 删除对话不会删除 CLI 自己保存的会话文件。
+
+## 16. 实现记录（MCP 期：把插件开放给 AI，2026-10-15，R47）
+
+R47：AI 对话已经可用，接着把启动器的插件开放给 AI。这一期实现了 §4（工具层、风险等级、插件开关、活动记录）、§4.3/§4.4（`golauncher mcp` 和命名管道）、§5（外部确认框），并让启动器里的 AI 对话用上这些工具。
+
+### 16.1 实测验证（§10 第 4 项，以及 MCP 相关的参数）
+
+用本机的 Claude Code 2.1.296 跑了几次极短的提问，只用只读工具，MCP 服务器是 `glctl mcp`（假环境，所有动作只记录，确认一律拒绝），没有在本机做任何改动。只记结论：
+
+1. **`--safe-mode` 会把 `--mcp-config` 的服务器也关掉**：`init` 里 `tools` 和 `mcp_servers` 都是空的，模型回答"没有这个工具"。去掉 `--safe-mode` 后，`--tools ""` 加 `--strict-mcp-config` 加 `--mcp-config` 正常：`tools` 正好是 5 个 `mcp__golauncher__*`，`mcp_servers` 里 golauncher 为 `connected`。所以 `--tools ""` 只关 Claude Code 自带的工具，不影响 MCP 工具。
+2. **去掉 `--safe-mode` 之后怎么保持隔离**（最小的替代）：
+   - `--setting-sources ""`：不读用户、项目设置，所以你自己装的插件不会启用（调试日志：只有 3 个内置插件，"Registered 0 hooks"），设置里的钩子也不加载；
+   - `--strict-mcp-config`：只有 golauncher 这一个 MCP 服务器（claude.ai 的连接器也不在 `mcp_servers` 里）；
+   - `--disable-slash-commands`：技能和斜杠命令仍是 0 个；
+   - `--tools ""`：没有读写文件、终端等工具；
+   - 新增环境变量 **`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`**：不加它时 `init` 里有 `memory_paths`（自动记忆开着），加上后没有了；
+   - 工作目录里放一个带"暗号"的 CLAUDE.md，回答里没有出现（项目的 CLAUDE.md 不读）。
+   - 和 `--safe-mode` 相比的差别：多了一个内置的代理定义（只能经 Task 工具使用，而 Task 已被 `--tools ""` 关掉）；用户级 `~/.claude/CLAUDE.md` 本机没有，没法直接验证（见 16.7）。
+   - 所以：**开着"允许 AI 使用启动器插件"时不加 `--safe-mode`，改加上面的环境变量；关着时照旧加 `--safe-mode`。**
+3. **预先批准**：`--allowedTools mcp__golauncher__*`（通配符）有效，配合 `--permission-prompts none`，调用工具时没有任何授权请求，`permission_denials` 为空。确认由启动器自己的工具层负责。
+4. **事件格式**（下面的值是虚构的示例）：
+   - 开始：`{"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"tool_use","id":"toolu_…","name":"mcp__golauncher__search","input":{},"caller":{"type":"direct"}}}}`，接着若干 `input_json_delta`（`partial_json` 拼起来是参数）；
+   - 完整的工具调用：`{"type":"assistant","message":{"id":"msg_…","content":[{"type":"tool_use","id":"toolu_…","name":"mcp__golauncher__search","input":{"query":"…"}}]}}`（`message.id` 和流式的相同）；
+   - 结果：`{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_…","content":[{"type":"text","text":"<工具返回的 JSON>"}],"is_error":true}]}, "tool_use_result":…}`；成功时没有 `is_error` 字段。
+5. **客户端标识**：Claude Code 的 `clientInfo.name` 是 `claude-code`（活动记录里显示为"Claude Code"）。Claude 桌面版按 `claude-ai` 识别（没有在本机实测）。
+6. **拒绝**：工具层返回 `isError: true` 和"用户拒绝了"的说明后，模型如实告诉用户没有执行，没有重试。
+7. 完整链路的真实测试 `TestRealCLITools`（`GOLAUNCHER_AI_TESTS=1`）：`claudecode` 后端加 `glctl mcp` 工具服务器，模型调用 `search`，收到工具步骤和结果，通过。
+
+### 16.2 结构
+
+| 部分 | 位置 | 说明 |
+|------|------|------|
+| 工具层 | `internal/agent` | 5 个工具、会话和句柄表、风险等级和策略、插件开关、活动记录、MCP 服务器、管道服务、`golauncher mcp` 桥、"AI 活动记录"命令（内部插件 `builtin.agent`） |
+| 命名管道 | `internal/winapi/pipe` | `\\.\pipe\golauncher-<SID>-agent`；DACL 受保护，只有当前用户一条 ACE，所有者是当前用户；拒绝远程客户端；第一个实例用 `FILE_FLAG_FIRST_PIPE_INSTANCE`；重叠 I/O，读写可以同时进行 |
+| 外部确认 | `internal/core/external.go` | `Controller.ConfirmExternal`，队列、超时、按键；`Snapshot.Confirm` 带 `External`、`AllowSession`、`Danger` |
+| 引擎接口 | `internal/core/agent.go` | `Engine.Search`（不带本次显示的上下文、最近使用和备选项）、`CommandEntry`、`OnInvalidate`、`CloseViews`、`FormValues`、`ArgumentValues`、`MatchEntry` |
+| 配置 | `config.Config.Agent` | `external`、`askOpen`、`plugins`（按插件覆盖默认值） |
+| Claude 桌面版配置 | `internal/agent/desktop` | 找配置文件（含 MSIX 版的虚拟化目录）、备份、只改 `mcpServers.golauncher`、原子写入；其他内容逐字节保留 |
+| AI 对话 | `plugins/ai`、`internal/ai/claudecode` | 偏好"允许 AI 使用启动器插件"、工具步骤、系统提示、`--mcp-config` |
+| 界面 | `internal/ui` | 确认框（三个按钮）、设置 › 插件 › AI 下的"AI 工具"一节 |
+| 桌面 | `internal/shell` | `golauncher mcp` 子命令、`--background`、启动时监听管道、确认时显示窗口 |
+| glctl | `glctl mcp` | 假环境上的 MCP 服务器，`--confirm deny|allow|session`、`--ask-open`、`--trace` |
+
+### 16.3 工具层
+
+- **工具**：`list_plugins`（插件、命令、参数、风险）、`search`（根搜索，可限定插件；或带 `view` 句柄在某个列表里搜）、`run_command`（视图命令返回列表，无界面命令按"改动"确认）、`get_detail`（Markdown 和元数据）、`run_action`（条目的动作，默认第一个；表单句柄加 `values` 提交）。参数用 JSON Schema 描述，未知参数报错。
+- **结果**：精简 JSON，不含图标、快捷键、关键词；默认 20 条（最多 50），多出的只给 `more` 数量；标题、副标题截到 200 字，Markdown 截到 4000 字。每个动作带 `risk`。
+- **句柄**：`i…`（条目）、`v…`（视图，用于再搜索）、`f…`（表单），记在会话表里，10 分钟后失效；`run_action` 只接受句柄。启动器里的对话按对话 ID 保留会话（Claude Code 进程重启后桥会重连，句柄和"本次会话内允许"都还在）；外部客户端每个连接一个会话，断开时关闭打开过的视图。
+- **视图加载**：视图渲染后如果插件很快调用了 `Invalidate`（后台加载），再渲染一次（最多 3 次、3 秒），这样很快到达的结果也能返回。
+- **风险等级**（§4.2）：`Push`、`ShowTask` 只读；`Open`、复制是"打开"（`runas` 算改动）；回调、无界面命令、`RunProcess`、`Paste`、表单提交是"改动"；`StyleDestructive` 和 `Destructive` 命令是破坏性。回调可以用新的 `Action.ReadOnly` 标成只读（WinGet 的"刷新"已标）。
+- **策略**：只读直接执行；"打开"默认直接执行，设置成"每次询问"后询问；改动每次询问，可以选"本次会话内都允许"（按插件 + 动作 + 回调名记住）；破坏性每次询问，不提供"本次会话内都允许"。
+- **插件开关**：AI 对话插件自己和"AI 活动记录"永远不开放；其余默认：内置插件开、剪贴板历史关、独立进程的插件关；设置里逐个覆盖。关掉或不可用的插件也不开放。
+- **敏感条目**：SDK 新增 `Item.Sensitive`；剪贴板历史把来自密码管理器（内置名单加"忽略的应用"列表）的条目标成敏感，工具层永远不返回；标了 `Exclude`（`WriteSecret`）的内容本来就不记录。表单里的密码字段也不返回、不接受。
+- **外部访问**：没有对话令牌的连接是 AI 应用，"允许 AI 应用使用 golauncher"关着时每次调用都返回 `refused` 和打开方法（每次调用时检查，开关立即生效）。
+- **活动记录**：每次调用一条（时间、客户端、工具、简短摘要、结果、错误说明），写在数据目录的 `agent\activity.jsonl`，保留 30 天（打开、写入、查看时清理，最多 5000 条）。摘要只有搜索词、命令名、动作和条目标题，不记对话内容和表单值。"AI 活动记录"命令可以查看和清空，设置页显示条数并能清空。
+
+### 16.4 MCP 和管道
+
+- **MCP**：JSON-RPC 2.0，每行一条；支持 `initialize`（协议版本 2025-11-25、2025-06-18、2025-03-26、2024-11-05，不认识的版本回最新的）、`ping`、`tools/list`、`tools/call`、`notifications/cancelled`；`initialize` 之前调用工具返回 -32002，解析错误 -32700，未知方法 -32601，未知工具或参数不是对象 -32602。工具失败（拒绝、句柄失效等）是 `isError: true` 的结果，不是协议错误。`instructions` 写明用法。
+- **管道**：常驻进程启动后就监听（不只是在打开外部访问时，见 16.6）。每个连接第一行是桥发来的 `{"golauncher":"hello","token":…,"session":…}`，10 秒内没有就断开；令牌等于本进程的随机令牌（常量时间比较）时算启动器的对话。
+- **`golauncher mcp`**：在自安装和单实例之前处理，不显示窗口；连不上管道时用 `--background --portable` 在后台启动启动器（尽量脱离调用方的 Job，避免关掉 Claude 时连带结束启动器），最多等 30 秒；仍然连不上时自己回答 MCP，`tools/call` 返回原因。
+- **对话的配置**：Claude Code 的 `--mcp-config` 文件写在 `%LOCALAPPDATA%\golauncher\ai\mcp-<对话ID>.json`（0600），内容是本程序的 `mcp` 子命令，环境变量带令牌（`GOLAUNCHER_AGENT_TOKEN`）和对话 ID（`GOLAUNCHER_AGENT_SESSION`）；对话关闭时删除。
+
+### 16.5 实际的命令行（开着"允许 AI 使用启动器插件"）
+
+```
+claude -p --input-format stream-json --output-format stream-json --include-partial-messages --verbose
+       --session-id <uuid> | --resume <uuid>
+       --setting-sources "" --strict-mcp-config --disable-slash-commands
+       --tools ""   （或 --tools WebSearch,WebFetch）
+       --mcp-config <mcp-<id>.json>
+       --allowedTools mcp__golauncher__*   （或 mcp__golauncher__*,WebSearch,WebFetch）
+       --permission-prompts none
+       --append-system-prompt <启动器的说明，含工具用法>  [--model <模型>]
+环境：CLAUDE_CODE_DISABLE_AUTO_MEMORY=1
+```
+
+关着时和 §15.2 完全一样（含 `--safe-mode`）。从不使用 `--bare`、`--continue` 或任何绕过授权的参数，测试里检查。
+
+### 16.6 界面
+
+- **确认框**：标题"Claude 桌面版想要："，下面是"安装“7-Zip”（WinGet）"，关机类附带后台任务警告，最后一行"60 秒内不回应将自动拒绝"。按钮：拒绝（Esc）、本次会话内都允许（Ctrl+Enter，破坏性动作没有）、允许（Enter；破坏性为红色）。同时只显示一个，其他排队；超时或请求被取消算拒绝。外部客户端的请求在窗口隐藏时像按热键一样显示窗口（回到根搜索，确认框在上面）；启动器里对话的请求显示窗口但不回到根，确认框盖在对话视图上，流程不断开。
+- **对话里的工具步骤**：每步一行，例如 `🔧 搜索“port 8080” → 1 个结果`、`⏳ 等待操作…`（可能在等你确认）、`✅ 安装“7-Zip”`、`⛔ 已拒绝：…`、`❌ …`；步骤随对话保存，重新打开时照样显示。
+- **设置 › 插件 › AI › AI 工具**：说明、"允许 AI 应用使用 golauncher"、"打开应用、链接和文件夹，复制"（直接执行／每次询问）、"允许 AI 使用的插件"（逐个开关）、"连接到 Claude 桌面版"（显示连接状态；点了之后显示改了哪个文件、备份在哪、原来和现在的内容，并提醒重启 Claude 桌面版，外部访问没开时再提醒打开）、Claude Code 的命令（可选中，"复制"按钮，只显示不执行）、活动记录（条数、查看、清空）。
+- 根搜索和命令列表里多了"AI 活动记录"命令。
+
+### 16.7 和设计不同的地方、遗留问题
+
+- **`--safe-mode` 不能和 MCP 一起用**（16.1）：开着工具时改用 `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` 加原有参数。用户级 `~/.claude/CLAUDE.md` 是否会被读取没法在本机验证（本机没有这个文件，也不应该为测试去创建）；`--setting-sources ""` 不含 user 来源，按说明不会读，但没有实测。需要的话可以在设置里关掉"允许 AI 使用启动器插件"，回到 `--safe-mode`。
+- **管道一直监听**，不是 §4.4 写的"打开外部访问后才监听"：启动器里的对话也走这条管道。外部访问关着时，没有令牌的调用一律拒绝；ACL 只允许当前用户。
+- **仍然没有 `--permission-prompts host`**：工具预先批准，确认完全在启动器的工具层里做；其他工具一律被 `--permission-prompts none` 拒绝。
+- "设置 › AI"仍是插件页（设置 › 插件 › AI）下的一节。
+- 句柄 10 分钟从发出时算起，使用不会延长。
+- Claude 桌面版的 `clientInfo` 名称、"连接到 Claude 桌面版"之后桌面版实际调用工具的效果，都没有在本机实测（不能改本机的真实配置）；配置助手只在临时目录里测试过。
+- `golauncher mcp` 启动启动器、真实 GUI 里确认框的显示，靠单元测试（管道、桥、`ui.NewTester`）覆盖，没有在本机启动第二个 GUI 实例实测（本机正在运行的启动器会接管同名单实例锁）。
+
+### 16.8 测试
+
+- `internal/agent`：用 glctl 的假环境（fixture 数据）测每个工具、句柄（编造的、别的会话的、过期的、对话重连后仍有效）、风险等级、每个等级的策略（直接执行、询问、拒绝、本次会话内允许、破坏性不能免问、"打开"改成询问）、插件开关和默认值、敏感剪贴板条目、外部访问开关、客户端名称、活动记录和 30 天清理；MCP 服务器用测试里的客户端走管道流（初始化、版本协商、工具列表、调用、各种错误）；真实命名管道上的服务（对话令牌、外部客户端被拒、没有 hello 的连接被断开）；桥（启动器没运行时启动并等待、启动失败时自己回答、hello 行）。
+- `internal/winapi/pipe`：回显、并发客户端、关闭、找不到管道、占用、对端关闭、超时、ACL（受保护的 DACL 只有当前用户一条 ACE、所有者）、句柄泄漏。
+- `internal/core` / `internal/ui`（`ui.NewTester`）：外部确认显示窗口的回调、队列、三个按键、破坏性不提供会话内允许、超时、取消、中文。设置页的"AI 工具"一节（开关写入配置、连接 Claude 桌面版只改测试文件、Claude Code 命令）。
+- `internal/ai/claudecode`：假 `claude` 读取 `--mcp-config`，启动其中的服务器（测试用的假 MCP 服务器），做握手并调用 `search`，按真实格式输出工具步骤；检查命令行（有工具时没有 `--safe-mode`、有 `--mcp-config` 和 `--allowedTools`，没有时照旧）、配置文件内容和删除、错误结果。真实 CLI 的 `TestRealCLITools` 只在 `GOLAUNCHER_AI_TESTS=1` 时运行。
+- `plugins/ai`：工具步骤的显示（中英文）、保存和重新打开、拒绝和错误、偏好关掉时的系统提示。
+- `glctl mcp` 金样：`mcp_deny`、`mcp_allow`。

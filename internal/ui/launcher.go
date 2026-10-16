@@ -237,8 +237,9 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 	l.setText(k.Text(), panel)
 	mods, key := k.Mods, k.Key
 	if l.confirmOpen {
-		// Only Enter (confirm) and Escape (cancel) act on the dialog.
-		if mods == 0 && (key == mui.KeyEnter || key == mui.KeyEscape) {
+		// Only Enter (confirm), Escape (cancel) and, for an AI client's
+		// request, Ctrl+Enter (allow for the session) act on the dialog.
+		if mods == 0 && (key == mui.KeyEnter || key == mui.KeyEscape) || mods == mui.Ctrl && key == mui.KeyEnter {
 			l.Key(KeyString(mods, key))
 		}
 		return true
@@ -831,17 +832,28 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 func (l *Launcher) confirmDialog(c *mui.Context, d *core.ConfirmSnapshot) {
 	t := c.Theme()
 	mui.Box(c.Key("confirm")).Absolute().Top(0).Left(0).Fill().Center().Background(mui.RGBA(0, 0, 0, 0.35)).Children(func() {
-		mui.Column(c).Width(360).Padding(18).Gap(10).Radius(12).Background(t.Background).Border(1, t.Border).
+		width := float32(360)
+		if d.External {
+			width = 440 // three buttons
+		}
+		mui.Column(c).Width(width).Padding(18).Gap(10).Radius(12).Background(t.Background).Border(1, t.Border).
 			Shadow(0, 12, 32, 0, mui.RGBA(0, 0, 0, 0.3)).Label(d.Title).Children(func() {
 			mui.Text(c, d.Title).Bold()
 			if d.Message != "" {
 				mui.Text(c, d.Message).FontSize(13).TextColor(t.TextMuted)
 			}
-			mui.Row(c).Gap(8).Justify(mui.End).MarginY(6).Children(func() {
+			confirmBg := t.Accent
+			if d.Danger {
+				confirmBg = t.Danger
+			}
+			mui.Row(c).Gap(8).Justify(mui.End).MarginY(6).Wrap().Children(func() {
 				if dialogButton(c, d.Cancel, "Escape", t.Text, t.Text.Alpha(0.08)) {
 					l.Key("Escape")
 				}
-				if dialogButton(c, d.Confirm, "Enter", t.AccentText, t.Danger) {
+				if d.AllowSession != "" && dialogButton(c, d.AllowSession, "Ctrl+Enter", t.Text, t.Text.Alpha(0.08)) {
+					l.Key("Ctrl+Enter")
+				}
+				if dialogButton(c, d.Confirm, "Enter", t.AccentText, confirmBg) {
 					l.Key("Enter")
 				}
 			})
@@ -859,8 +871,11 @@ func dialogButton(c *mui.Context, label, key string, fg, bg mui.Color) bool {
 	b.Children(func() {
 		mui.Text(c, label).FontSize(13).TextColor(fg).SingleLine()
 		hint := "esc"
-		if key == "Enter" {
+		switch key {
+		case "Enter":
 			hint = "↵"
+		case "Ctrl+Enter":
+			hint = "ctrl ↵"
 		}
 		mui.Text(c, hint).FontSize(11).TextColor(fg.Alpha(0.75)).SingleLine()
 	})

@@ -123,7 +123,7 @@ func refreshItem(t plugin.Localizer, st *installedState, now func() string) plug
 		Title:    t.T("refresh.title"),
 		Subtitle: sub,
 		Icon:     plugin.Icon{Name: "rotate-cw"},
-		Actions: []plugin.Action{{ID: "refresh", Title: t.T("action.refresh"), Shortcut: "Ctrl+R",
+		Actions: []plugin.Action{{ID: "refresh", Title: t.T("action.refresh"), Shortcut: "Ctrl+R", ReadOnly: true,
 			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackRefresh}}},
 	}
 }
@@ -355,7 +355,7 @@ func (p *Plugin) actions(t plugin.Localizer, tg target) []plugin.Action {
 		copyID()
 		copyInstall()
 	}
-	acts = append(acts, plugin.Action{ID: "refresh", Title: t.T("action.refresh"), Shortcut: "Ctrl+R",
+	acts = append(acts, plugin.Action{ID: "refresh", Title: t.T("action.refresh"), Shortcut: "Ctrl+R", ReadOnly: true,
 		Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackRefresh}})
 	un := opAction("uninstall", t.T("action.uninstall"), "Ctrl+X", with(opUninstall))
 	un.Style = plugin.StyleDestructive

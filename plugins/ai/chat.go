@@ -28,7 +28,7 @@ type chat struct {
 	// The answer being written.
 	busy    bool
 	partial strings.Builder
-	tools   []string
+	steps   []ToolStep
 	cancel  context.CancelFunc
 	usage   *backend.Usage
 }
@@ -137,7 +137,7 @@ func (p *Plugin) startTurn(ch *chat, text string) func() {
 	p.save(ch)
 	ch.busy = true
 	ch.partial.Reset()
-	ch.tools = nil
+	ch.steps = nil
 	ctx, cancel := context.WithCancel(context.Background())
 	ch.cancel = cancel
 	p.turns.Add(1)
@@ -184,9 +184,9 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 			ch.partial.WriteString(ev.Text)
 			p.mu.Unlock()
 			p.push(ch)
-		case backend.EventTool:
+		case backend.EventTool, backend.EventToolResult:
 			p.mu.Lock()
-			ch.tools = append(ch.tools, ev.Tool)
+			ch.addStep(ev)
 			p.mu.Unlock()
 			p.push(ch)
 		case backend.EventDone, backend.EventError:
@@ -202,8 +202,8 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 // logged, never the content (docs/ai.md §9).
 func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 	p.mu.Lock()
-	m := Message{Role: RoleAssistant, Text: ch.partial.String(), Time: p.h.Now(), Tools: ch.tools}
-	p.h.Logger().Info("answer", "kind", ev.Kind, "chars", len(m.Text), "took", time.Since(start).Round(time.Millisecond))
+	m := Message{Role: RoleAssistant, Text: ch.partial.String(), Time: p.h.Now(), Steps: ch.steps}
+	p.h.Logger().Info("answer", "kind", ev.Kind, "chars", len(m.Text), "steps", len(m.Steps), "took", time.Since(start).Round(time.Millisecond))
 	switch ev.Kind {
 	case backend.EventError:
 		if ev.Err != nil {
@@ -221,7 +221,7 @@ func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 	ch.sess.Updated = m.Time
 	ch.busy = false
 	ch.partial.Reset()
-	ch.tools = nil
+	ch.steps = nil
 	ch.cancel = nil
 	if !p.closed && p.chats[ch.sess.ID] == ch { // not deleted meanwhile
 		p.save(ch)
@@ -278,31 +278,40 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 func (p *Plugin) openOptions(ch *chat) backend.OpenOptions {
 	prefs := p.h.Preferences()
 	web := prefs.Bool(prefWebSearch)
+	tools := p.enabled() && prefs.Bool(prefTools)
 	p.mu.Lock()
 	resume := ch.sess.Started
 	id := ch.sess.ID
 	p.mu.Unlock()
 	return backend.OpenOptions{
-		SessionID:    id,
-		Resume:       resume,
-		Model:        prefs.String(prefModel),
-		WebSearch:    web,
-		SystemPrompt: systemPrompt(p.h.I18n().Locale(), web),
+		SessionID:     id,
+		Resume:        resume,
+		Model:         prefs.String(prefModel),
+		WebSearch:     web,
+		LauncherTools: tools,
+		SystemPrompt:  systemPrompt(p.h.I18n().Locale(), web, tools),
 	}
 }
 
 // systemPrompt is appended to the backend's system prompt. It is written for
 // the model, not shown, so it is not translated; it names the language to
-// answer in.
-func systemPrompt(locale string, web bool) string {
+// answer in. With tools, it explains how to use golauncher's tools.
+func systemPrompt(locale string, web, tools bool) string {
 	lang := map[string]string{"en": "English", "zh-CN": "Simplified Chinese"}[locale]
 	if lang == "" {
 		lang = "the language of the locale " + locale
 	}
 	s := "You are the AI assistant built into golauncher, a keyboard launcher for Windows; the user opened you from its search box. " +
 		"Answer in " + lang + " unless the user writes in another language. " +
-		"Be concise and direct, and format answers in Markdown (short paragraphs, lists, fenced code blocks). " +
-		"You cannot see or change the user's computer or files."
+		"Be concise and direct, and format answers in Markdown (short paragraphs, lists, fenced code blocks). "
+	if tools {
+		s += "You can act on the user's computer only through golauncher's tools (list_plugins, search, run_command, get_detail, run_action), " +
+			"which use the launcher's plugins. Search or list the plugins first, then act on an item by its handle with run_action. " +
+			"Actions that change something are confirmed by the user in the launcher; if the user declines, do not retry or work around it. " +
+			"Report only what the tool results say was done. You cannot read files or run commands directly."
+	} else {
+		s += "You cannot see or change the user's computer or files."
+	}
 	if web {
 		s += " You may search the web and read web pages when it helps."
 	}
@@ -437,10 +446,13 @@ func (p *Plugin) transcript(ch *chat) string {
 		return l.T("chat.empty", "backend", p.be.Name())
 	}
 	var b strings.Builder
-	answer := func(text string, tools []string) {
+	answer := func(text string, tools []string, steps []ToolStep) {
 		b.WriteString("**" + l.T("chat.assistant") + "**\n\n")
 		for _, t := range tools {
 			b.WriteString("_" + p.toolLine(t) + "_\n\n")
+		}
+		for _, s := range steps {
+			b.WriteString("_" + p.stepLine(s) + "_\n\n")
 		}
 		if text != "" {
 			b.WriteString(text + "\n\n")
@@ -454,7 +466,7 @@ func (p *Plugin) transcript(ch *chat) string {
 		case RoleUser:
 			b.WriteString("**" + l.T("chat.you") + "**\n\n" + m.Text + "\n\n")
 		case RoleAssistant:
-			answer(m.Text, m.Tools)
+			answer(m.Text, m.Tools, m.Steps)
 			if m.Stopped {
 				b.WriteString("_" + l.T("chat.stopped") + "_\n\n")
 			}
@@ -465,26 +477,14 @@ func (p *Plugin) transcript(ch *chat) string {
 	}
 	if ch.busy {
 		text := ch.partial.String()
-		if text == "" && len(ch.tools) == 0 {
+		if text == "" && len(ch.steps) == 0 {
 			text = "_" + l.T("chat.thinking") + "_"
 		} else {
 			text += "▍"
 		}
-		answer(text, ch.tools)
+		answer(text, nil, ch.steps)
 	}
 	return strings.TrimSpace(b.String())
-}
-
-// toolLine describes a tool the model used.
-func (p *Plugin) toolLine(tool string) string {
-	l := p.h.I18n()
-	switch tool {
-	case "WebSearch":
-		return l.T("tool.webSearch")
-	case "WebFetch":
-		return l.T("tool.webFetch")
-	}
-	return l.T("tool.other", "name", tool)
 }
 
 // errorMarkdown explains a recorded error ("kind:message").

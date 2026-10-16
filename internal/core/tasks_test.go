@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/agent"
 	"github.com/eziq1/golauncher/internal/app"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host/hostfake"
@@ -17,7 +18,7 @@ import (
 
 // withoutTasks drops the host-provided Background Tasks plugin.
 func withoutTasks(infos []core.PluginInfo) []core.PluginInfo {
-	return slices.DeleteFunc(infos, func(p core.PluginInfo) bool { return p.ID == tasks.PluginID })
+	return slices.DeleteFunc(infos, func(p core.PluginInfo) bool { return p.ID == tasks.PluginID || p.ID == agent.PluginID })
 }
 
 // taskPlugin starts background tasks from its actions.

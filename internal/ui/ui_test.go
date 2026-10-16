@@ -360,8 +360,9 @@ func TestSettingsUnavailablePlugin(t *testing.T) {
 	if !tt.HasText("Not available on this system: thing is not installed") {
 		t.Fatalf("texts = %q", tt.Texts())
 	}
-	// Only Background Tasks, which the host always provides, has a Configure button.
-	if n := slices.Index(tt.Texts(), "Configure"); n >= 0 && slices.Index(tt.Texts()[n+1:], "Configure") >= 0 {
+	// Only Background Tasks and AI Activity, which the host always provides,
+	// have a Configure button.
+	if n := len(slices.DeleteFunc(slices.Clone(tt.Texts()), func(s string) bool { return s != "Configure" })); n > 2 {
 		t.Fatal("an unavailable plugin cannot be configured")
 	}
 	if err := tt.Click("Enable Missing"); err == nil {

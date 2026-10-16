@@ -139,7 +139,7 @@ func TestRootEmptyShowsCommands(t *testing.T) {
 	if len(s.Sections) != 1 || s.Sections[0].Title != "Commands" {
 		t.Fatalf("sections = %+v", s.Sections)
 	}
-	if got := titles(s); strings.Join(got, ",") != "Background Tasks,Browse Fruits,Ping Server,Ping Server Reset" {
+	if got := titles(s); strings.Join(got, ",") != "AI Activity,Background Tasks,Browse Fruits,Ping Server,Ping Server Reset" {
 		t.Fatalf("titles = %v", got)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -70,6 +71,9 @@ func (p *Plugin) item(h plugin.Host, c clip) plugin.Item {
 		Accessory: l.RelativeTime(c.LastUsedAt, now),
 		Detail:    &plugin.Detail{},
 	}
+	// A clip from a password manager (recorded because the user took it off
+	// the ignore list, or before it was on it) never goes to an AI.
+	it.Sensitive = sensitiveApp(h, c.SourceApp)
 	var meta []plugin.Metadata
 	if c.SourceApp != "" {
 		meta = append(meta, plugin.Metadata{Label: l.T("meta.source"), Value: c.SourceApp})
@@ -134,6 +138,19 @@ func (p *Plugin) item(h plugin.Host, c clip) plugin.Item {
 			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "delete", Payload: idPayload}},
 	}
 	return it
+}
+
+// passwordManagers are the programs whose clips are always sensitive.
+var passwordManagers = []string{"KeePassXC.exe", "KeePass.exe", "1Password.exe", "Bitwarden.exe", "LastPass.exe", "Dashlane.exe", "Enpass.exe", "RoboForm.exe"}
+
+// sensitiveApp reports whether clips copied from app are sensitive: it is a
+// known password manager or on the ignore list.
+func sensitiveApp(h plugin.Host, app string) bool {
+	if app == "" {
+		return false
+	}
+	match := func(name string) bool { return strings.EqualFold(strings.TrimSpace(name), app) }
+	return slices.ContainsFunc(passwordManagers, match) || slices.ContainsFunc(h.Preferences().Strings("ignoreApps"), match)
 }
 
 // idArgs is the payload of the pin, unpin and delete callbacks.

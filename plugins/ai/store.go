@@ -28,12 +28,30 @@ type Message struct {
 	Role Role      `json:"role"`
 	Text string    `json:"text"`
 	Time time.Time `json:"time"`
-	// Tools are the tools the model used for an answer (e.g. "WebSearch").
+	// Tools are the names of the tools the model used for an answer (e.g.
+	// "WebSearch"), as older records have them; newer ones have Steps.
 	Tools []string `json:"tools,omitempty"`
+	// Steps are the tool calls of an answer, in order.
+	Steps []ToolStep `json:"steps,omitempty"`
 	// Error is the error that ended an answer, as shown (ErrorKind:message).
 	Error string `json:"error,omitempty"`
 	// Stopped marks an answer the user stopped.
 	Stopped bool `json:"stopped,omitzero"`
+}
+
+// ToolStep is a tool call of an answer, shown as one line: e.g. a search
+// with golauncher's tools ("mcp__golauncher__search") or a web search.
+type ToolStep struct {
+	// ID is the backend's ID of the call ("" when it has none).
+	ID   string `json:"id,omitempty"`
+	Name string `json:"name"`
+	// Input is the JSON text of the arguments and Result the text of the
+	// result, both capped (maxStepInput, maxStepResult).
+	Input  string `json:"input,omitempty"`
+	Result string `json:"result,omitempty"`
+	// Error marks a call that failed; Done one whose result came.
+	Error bool `json:"error,omitzero"`
+	Done  bool `json:"done,omitzero"`
 }
 
 // Session is the summary of a chat in the history.

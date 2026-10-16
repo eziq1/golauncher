@@ -41,7 +41,8 @@
       "title": "Clear Clipboard History?",
       "message": "This cannot be undone.",
       "confirm": "Clear Clipboard History",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "danger": true
     }
   }
 }

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/agent"
 	"github.com/eziq1/golauncher/internal/ai/claudecode"
 	"github.com/eziq1/golauncher/internal/extproc"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
@@ -53,9 +54,25 @@ func All() []plugin.Plugin {
 		system.New(),
 		terminal.New(),
 		network.New(),
-		ai.New(claudecode.New(claudecode.Options{})),
+		ai.New(claudecode.New(claudecode.Options{Tools: toolServer()})),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
+}
+
+// toolServer is the MCP server the AI chat gives Claude Code: this program's
+// `golauncher mcp` bridge with the process token, which marks the calls as
+// the chat's (docs/ai.md §4.3). nil when the program path is unknown.
+func toolServer() *claudecode.ToolServer {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil
+	}
+	return &claudecode.ToolServer{
+		Command:    exe,
+		Args:       []string{"mcp"},
+		Env:        map[string]string{agent.EnvToken: agent.ProcessToken()},
+		SessionEnv: agent.EnvSession,
+	}
 }
 
 // External returns the external plugins under roots (see extproc.Find),

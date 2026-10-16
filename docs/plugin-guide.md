@@ -283,6 +283,42 @@ is an input:
 preferences, as Settings would — for an *Enable* button in a first-use
 prompt.
 
+### How your plugin appears to AI
+
+Claude (the launcher's AI chat, Claude Desktop, Claude Code) can use the
+launcher's plugins through five generic tools (docs/ai.md §4): it lists the
+plugins and their commands, searches the root search, opens view commands,
+reads an item's `Detail` and runs an item's actions. You write no code for
+this: your commands, root items, views, forms and actions are what it sees,
+without icons or shortcuts, and items come back with short-lived handles so
+it can only act on what your plugin actually returned.
+
+- **Risk levels decide what asks the user first.** `Push` (opening a view)
+  runs directly; `Open` and the copy actions run directly unless the user
+  chose *Ask every time*; `Callback`, `RunCommand`, `RunProcess`, `Paste`,
+  form submits and no-view commands ask every time (the user may allow the
+  same action for the rest of the session); `StyleDestructive` actions and
+  `Destructive` commands always ask, and `EndsSession` adds the background
+  task warning.
+- **`Action.ReadOnly`**: set it on a callback that only reads — *Refresh*,
+  *Show details*, a lookup — and changes nothing on the computer or in your
+  data. AI then runs it without asking. Never set it on anything that
+  installs, deletes, sends or writes; a destructive action is never treated
+  as read-only. The field travels in the protocol's JSON (`"readOnly"`), so
+  external plugins can set it too.
+- **`Item.Sensitive`**: set it on items whose content must never reach an
+  AI (the clipboard history marks clips copied from password managers). The
+  user still sees them; AI never does, even when the user lets AI use your
+  plugin.
+- **Exposure**: the user decides which plugins AI may use (Settings ›
+  Plugins › AI). Built-in plugins are on by default except the clipboard
+  history; plugins in their own process (third-party) are off until the user
+  turns them on.
+- Write clear titles, subtitles and `Detail` Markdown: they are all the
+  model knows about an item. Views that load in the background and call
+  `Invalidate` are rendered again for a moment, so results that arrive
+  quickly are included.
+
 ### Context: acting on what the user was doing
 
 When the launcher opens, the host looks at the window that was in the

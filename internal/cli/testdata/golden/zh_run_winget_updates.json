@@ -144,6 +144,7 @@
                 "id": "refresh",
                 "title": "刷新列表",
                 "shortcut": "Ctrl+R",
+                "readOnly": true,
                 "do": {
                   "kind": "Callback",
                   "target": "refresh"
@@ -303,6 +304,7 @@
                 "id": "refresh",
                 "title": "刷新列表",
                 "shortcut": "Ctrl+R",
+                "readOnly": true,
                 "do": {
                   "kind": "Callback",
                   "target": "refresh"
@@ -465,6 +467,7 @@
                 "id": "refresh",
                 "title": "刷新列表",
                 "shortcut": "Ctrl+R",
+                "readOnly": true,
                 "do": {
                   "kind": "Callback",
                   "target": "refresh"
@@ -536,6 +539,7 @@
                 "id": "refresh",
                 "title": "刷新列表",
                 "shortcut": "Ctrl+R",
+                "readOnly": true,
                 "do": {
                   "kind": "Callback",
                   "target": "refresh"
