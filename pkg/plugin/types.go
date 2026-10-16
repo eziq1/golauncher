@@ -178,6 +178,10 @@ type Item struct {
 	// but never returned to an AI using the launcher's plugins (docs/ai.md
 	// §4.2).
 	Sensitive bool `json:"sensitive,omitzero"`
+	// Transient marks a root item that carries the text the user typed (a
+	// web search for it, a typed URL): like fallback items, it is never
+	// recorded as recently used, so that the text is not stored.
+	Transient bool `json:"transient,omitzero"`
 }
 
 // Detail is a preview shown next to the list.

@@ -142,6 +142,56 @@ func TestFallbackItems(t *testing.T) {
 	}
 }
 
+// typedPlugin returns a transient item (it carries the typed text) and a
+// normal one.
+type typedPlugin struct{}
+
+func (typedPlugin) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "typed", Name: "Typed", Version: "1"}
+}
+func (typedPlugin) Init(context.Context, plugin.Host) error { return nil }
+func (typedPlugin) Close() error                            { return nil }
+
+func (typedPlugin) RootItems(_ context.Context, q plugin.Query) ([]plugin.Item, error) {
+	copyIt := []plugin.Action{{ID: "copy", Title: "Copy", Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: q.Text}}}
+	return []plugin.Item{
+		{ID: "search", Title: "Search for " + q.Text, Score: 1, Transient: true, Actions: copyIt},
+		{ID: "normal", Title: "Normal Entry", Actions: copyIt},
+	}, nil
+}
+
+func TestTransientItemsNotRecorded(t *testing.T) {
+	env := buildWith(t, typedPlugin{})
+	c := env.Controller
+	recent := func() []string {
+		c.Reset(t.Context())
+		c.Wait()
+		var ids []string
+		for _, sec := range c.Snapshot().Sections {
+			if sec.Title == "Recent" {
+				for _, it := range sec.Items {
+					ids = append(ids, it.ID)
+				}
+			}
+		}
+		return ids
+	}
+	typeText(t, c, "secret words")
+	pressKey(t, c, "Enter")
+	if ids := recent(); len(ids) != 0 {
+		t.Fatalf("transient item recorded: %v", ids)
+	}
+	s := typeText(t, c, "normal entry")
+	if s.Sections[0].Items[0].ID != "search" {
+		t.Fatalf("sections = %+v", s.Sections)
+	}
+	pressKey(t, c, "Down")
+	pressKey(t, c, "Enter")
+	if ids := recent(); len(ids) != 1 || ids[0] != "normal" {
+		t.Fatalf("recent = %v", ids)
+	}
+}
+
 func TestTabOpensTabAction(t *testing.T) {
 	env := buildWith(t, &askPlugin{})
 	c := env.Controller

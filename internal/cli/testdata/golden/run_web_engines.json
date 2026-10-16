@@ -1,0 +1,1770 @@
+{
+  "step": "run builtin.quicklinks/engines",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.quicklinks",
+      "request": {
+        "id": "engines",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Search Engines",
+    "placeholder": "Filter search engines…",
+    "text": "",
+    "sections": [
+      {
+        "title": "Built-in Search Engines",
+        "items": [
+          {
+            "id": "engine:google",
+            "title": "Google",
+            "subtitle": "g, 谷歌",
+            "icon": {
+              "name": "search",
+              "tint": "accent"
+            },
+            "keywords": [
+              "g",
+              "谷歌"
+            ],
+            "accessory": "Default",
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "google"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "google"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.google.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "google"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "g, 谷歌"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.google.com/search?q={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://suggestqueries.google.com/complete/search?client=firefox&q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:google"
+          },
+          {
+            "id": "engine:bing",
+            "title": "Bing",
+            "subtitle": "b, 必应",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "b",
+              "必应"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "bing"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "bing"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "bing"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.bing.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "bing"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "b, 必应"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.bing.com/search?q={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://api.bing.com/osjson.aspx?query={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:bing"
+          },
+          {
+            "id": "engine:baidu",
+            "title": "Baidu",
+            "subtitle": "bd, 百度",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "bd",
+              "百度"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "baidu"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "baidu"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "baidu"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.baidu.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "baidu"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "bd, 百度"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.baidu.com/s?ie=utf-8&wd={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://suggestion.baidu.com/su?action=opensearch&ie=utf-8&wd={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:baidu"
+          },
+          {
+            "id": "engine:duckduckgo",
+            "title": "DuckDuckGo",
+            "subtitle": "ddg",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "ddg"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "duckduckgo"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "duckduckgo"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "duckduckgo"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://duckduckgo.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "duckduckgo"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "ddg"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://duckduckgo.com/?q={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://duckduckgo.com/ac/?type=list&q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:duckduckgo"
+          },
+          {
+            "id": "engine:github",
+            "title": "GitHub",
+            "subtitle": "gh",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "gh"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "github"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "github"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "github"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://github.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "github"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "gh"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://github.com/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:github"
+          },
+          {
+            "id": "engine:stackoverflow",
+            "title": "Stack Overflow",
+            "subtitle": "so",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "so"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "stackoverflow"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "stackoverflow"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "stackoverflow"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://stackoverflow.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "stackoverflow"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "so"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://stackoverflow.com/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:stackoverflow"
+          },
+          {
+            "id": "engine:youtube",
+            "title": "YouTube",
+            "subtitle": "yt",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "yt"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "youtube"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "youtube"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "youtube"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.youtube.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "youtube"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "yt"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.youtube.com/results?search_query={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:youtube"
+          },
+          {
+            "id": "engine:bilibili",
+            "title": "Bilibili",
+            "subtitle": "bili, b站",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "bili",
+              "b站"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "bilibili"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "bilibili"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "bilibili"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://search.bilibili.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "bilibili"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "bili, b站"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://search.bilibili.com/all?keyword={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:bilibili"
+          },
+          {
+            "id": "engine:wikipedia",
+            "title": "Wikipedia",
+            "subtitle": "wiki, 维基",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "wiki",
+              "维基"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "wikipedia"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "wikipedia"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "wikipedia"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://en.wikipedia.org/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "wikipedia"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "wiki, 维基"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://en.wikipedia.org/wiki/Special:Search?search={query}"
+                },
+                {
+                  "label": "Suggestions",
+                  "value": "https://en.wikipedia.org/w/api.php?action=opensearch&format=json&search={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:wikipedia"
+          },
+          {
+            "id": "engine:zhihu",
+            "title": "Zhihu",
+            "subtitle": "zh, zhihu, 知乎",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "zh",
+              "zhihu",
+              "知乎"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "zhihu"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "zhihu"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "zhihu"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.zhihu.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "zhihu"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "zh, zhihu, 知乎"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.zhihu.com/search?type=content&q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:zhihu"
+          },
+          {
+            "id": "engine:douban",
+            "title": "Douban",
+            "subtitle": "db, douban, 豆瓣",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "db",
+              "douban",
+              "豆瓣"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "douban"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "douban"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "douban"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.douban.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "douban"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "db, douban, 豆瓣"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.douban.com/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:douban"
+          },
+          {
+            "id": "engine:taobao",
+            "title": "Taobao",
+            "subtitle": "tb, 淘宝",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "tb",
+              "淘宝"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "taobao"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "taobao"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "taobao"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://s.taobao.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "taobao"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "tb, 淘宝"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://s.taobao.com/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:taobao"
+          },
+          {
+            "id": "engine:jd",
+            "title": "JD.com",
+            "subtitle": "jd, 京东",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "jd",
+              "京东"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "jd"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "jd"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "jd"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://search.jd.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "jd"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "jd, 京东"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://search.jd.com/Search?enc=utf-8&keyword={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:jd"
+          },
+          {
+            "id": "engine:npm",
+            "title": "npm",
+            "subtitle": "npm",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "npm"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "npm"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "npm"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "npm"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.npmjs.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "npm"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "npm"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.npmjs.com/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:npm"
+          },
+          {
+            "id": "engine:gopkg",
+            "title": "Go Packages",
+            "subtitle": "go, gopkg",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "go",
+              "gopkg"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "gopkg"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "gopkg"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "gopkg"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://pkg.go.dev/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "gopkg"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "go, gopkg"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://pkg.go.dev/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:gopkg"
+          },
+          {
+            "id": "engine:mdn",
+            "title": "MDN",
+            "subtitle": "mdn",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "mdn"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "mdn"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "mdn"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "mdn"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://developer.mozilla.org/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "mdn"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "mdn"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://developer.mozilla.org/search?q={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:mdn"
+          },
+          {
+            "id": "engine:translate",
+            "title": "Google Translate",
+            "subtitle": "tr, translate",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "tr",
+              "translate"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "translate"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "translate"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "translate"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://translate.google.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "translate"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "tr, translate"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:translate"
+          },
+          {
+            "id": "engine:youdao",
+            "title": "Youdao Translate",
+            "subtitle": "yd, 有道, 翻译",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "yd",
+              "有道",
+              "翻译"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "youdao"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "youdao"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "youdao"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.youdao.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "youdao"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "yd, 有道, 翻译"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.youdao.com/result?word={query}&lang=en"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:youdao"
+          },
+          {
+            "id": "engine:maps",
+            "title": "Google Maps",
+            "subtitle": "map, maps",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "map",
+              "maps"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "maps"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "maps"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "maps"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.google.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "maps"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "map, maps"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.google.com/maps/search/{query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:maps"
+          },
+          {
+            "id": "engine:amap",
+            "title": "Amap",
+            "subtitle": "amap, gd, 高德, 地图",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "amap",
+              "gd",
+              "高德",
+              "地图"
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Disable",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle",
+                  "payload": {
+                    "id": "amap"
+                  }
+                }
+              },
+              {
+                "id": "edit",
+                "title": "Edit",
+                "shortcut": "Ctrl+E",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine",
+                  "payload": {
+                    "id": "amap"
+                  }
+                }
+              },
+              {
+                "id": "default",
+                "title": "Set as Default",
+                "shortcut": "Ctrl+Shift+D",
+                "do": {
+                  "kind": "Callback",
+                  "target": "setDefault",
+                  "payload": {
+                    "id": "amap"
+                  }
+                }
+              },
+              {
+                "id": "home",
+                "title": "Open Home Page",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.amap.com/"
+                }
+              },
+              {
+                "id": "reset",
+                "title": "Reset to Default",
+                "do": {
+                  "kind": "Callback",
+                  "target": "reset",
+                  "payload": {
+                    "id": "amap"
+                  }
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Keywords",
+                  "value": "amap, gd, 高德, 地图"
+                },
+                {
+                  "label": "URL",
+                  "value": "https://www.amap.com/search?query={query}"
+                }
+              ]
+            },
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/engine:amap"
+          }
+        ]
+      },
+      {
+        "title": "Manage",
+        "items": [
+          {
+            "id": "manage:engine",
+            "title": "Add Search Engine",
+            "icon": {
+              "name": "file-plus"
+            },
+            "actions": [
+              {
+                "id": "create",
+                "title": "Create",
+                "do": {
+                  "kind": "Push",
+                  "target": "engine"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/manage:engine"
+          },
+          {
+            "id": "manage:import",
+            "title": "Import Quicklinks and Search Engines",
+            "icon": {
+              "name": "folder"
+            },
+            "actions": [
+              {
+                "id": "import",
+                "title": "Import",
+                "do": {
+                  "kind": "Push",
+                  "target": "import"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/manage:import"
+          },
+          {
+            "id": "manage:export",
+            "title": "Export Quicklinks and Search Engines",
+            "icon": {
+              "name": "archive"
+            },
+            "actions": [
+              {
+                "id": "export",
+                "title": "Export",
+                "do": {
+                  "kind": "Push",
+                  "target": "export"
+                }
+              },
+              {
+                "id": "copyJSON",
+                "title": "Copy as JSON",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "{\n  \"golauncher\": \"quicklinks\",\n  \"version\": 1,\n  \"quicklinks\": [],\n  \"searchEngines\": []\n}"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/manage:export"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "metadata": [
+        {
+          "label": "Keywords",
+          "value": "g, 谷歌"
+        },
+        {
+          "label": "URL",
+          "value": "https://www.google.com/search?q={query}"
+        },
+        {
+          "label": "Suggestions",
+          "value": "https://suggestqueries.google.com/complete/search?client=firefox&q={query}"
+        }
+      ]
+    },
+    "emptyText": "No results"
+  }
+}

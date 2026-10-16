@@ -1,0 +1,55 @@
+{
+  "query": "zhihu 量子计算",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "网页搜索",
+      "items": [
+        {
+          "id": "search:zhihu",
+          "title": "用 知乎 搜索“量子计算”",
+          "subtitle": "https://www.zhihu.com/search?type=content&q=%E9%87%8F%E5%AD%90%E8%AE%A1%E7%AE%97",
+          "icon": {
+            "name": "search"
+          },
+          "group": "网页搜索",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.zhihu.com/search?type=content&q=%E9%87%8F%E5%AD%90%E8%AE%A1%E7%AE%97"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "复制网址",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.zhihu.com/search?type=content&q=%E9%87%8F%E5%AD%90%E8%AE%A1%E7%AE%97"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "用 Firefox 打开",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://www.zhihu.com/search?type=content&q=%E9%87%8F%E5%AD%90%E8%AE%A1%E7%AE%97\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/search:zhihu",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

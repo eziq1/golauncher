@@ -95,6 +95,15 @@ func TestGolden(t *testing.T) {
 		{"query_remind", []string{"query", "remind 15:30 开会", "--now", clockNow}},
 		{"query_remind_rolled", []string{"query", "remind 9am standup", "--now", clockNow}},
 		{"run_timers", []string{"run", "builtin.timer/timers", "--text", "15:30 call", "--now", clockNow}},
+		// Quicklinks and web search (docs/quicklinks.md).
+		{"query_web_search", []string{"query", "g golang generics"}},
+		{"query_web_search_baidu", []string{"query", "bd 北京 天气"}},
+		{"query_web_keyword", []string{"query", "yt"}},
+		{"query_web_url", []string{"query", "github.com/foo"}},
+		{"query_web_fallback", []string{"query", "zzqx qwv"}},
+		{"run_web_engines", []string{"run", "builtin.quicklinks/engines"}},
+		{"zh_query_web_fallback", []string{"query", "zzqx qwv", "--locale", "zh-CN"}},
+		{"zh_query_web_search", []string{"query", "zhihu 量子计算", "--locale", "zh-CN"}},
 		// Unit conversion (docs/unit-conversion.md).
 		{"query_unit", []string{"query", "10 km in mi"}},
 		{"query_unit_bare", []string{"query", "30 ℃"}},
@@ -145,6 +154,43 @@ func TestSessionTimer(t *testing.T) {
 	golden(t, "session_timer_start", out)
 	out, _ = glctl(t, "session", "type", "-s", s, "timer")
 	golden(t, "session_timer_list", out)
+}
+
+// TestSessionWebSearch opens a search typed after a keyword (the fake
+// system only records it), and it is not recorded as recently used.
+func TestSessionWebSearch(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	glctl(t, "session", "type", "-s", s, "g golang generics")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_web_search", out)
+	out, _ = glctl(t, "session", "type", "-s", s, "")
+	if strings.Contains(out, "golang generics") {
+		t.Errorf("the search was recorded:\n%s", out)
+	}
+}
+
+// TestSessionQuicklink creates a quicklink with {query} from its form,
+// finds it by its keyword and opens it with the text typed after it.
+func TestSessionQuicklink(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	out := steps(t, s,
+		[]string{"type", "create quicklink"},
+		[]string{"key", "Enter"},
+		[]string{"field", "name", "Open Issue"},
+		[]string{"field", "link", "https://jira.example.com/browse/{query}"},
+		[]string{"field", "keyword", "jira"},
+		[]string{"key", "Ctrl+Enter"},
+	)
+	golden(t, "session_quicklink_create", out)
+	out = steps(t, s, []string{"type", "jira ABC-123"}, []string{"key", "Enter"})
+	golden(t, "session_quicklink_open", out)
+	// By name, with the inline argument.
+	out = steps(t, s, []string{"type", "open issue"}, []string{"arg", "query", "XYZ-9"}, []string{"key", "Enter"})
+	if !strings.Contains(out, `"target": "https://jira.example.com/browse/XYZ-9"`) {
+		t.Errorf("argument not used:\n%s", out)
+	}
 }
 
 func TestSessionPasteFromClipboardHistory(t *testing.T) {

@@ -10,6 +10,26 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Quicklinks and web search** (`builtin.quicklinks`, docs/quicklinks.md):
+  `g golang generics` searches Google, `bd 天气` Baidu, and `gh`, `so`, `yt`,
+  `bili`, `wiki`, `zhihu`, `db`, `tb`, `jd`, `npm`, `go`, `mdn`, `tr`, `yd`,
+  `map`, `amap`, `ddg`, `b` the other built-in engines (a keyword is
+  followed by a space). The *Search Engines* command turns engines on and
+  off, changes their keywords, sets the default and adds your own (URL with
+  `{query}`). A typed URL (`github.com/foo`, `https://…`, `localhost:3000`,
+  `192.168.1.1`) is offered first to open. When the main search finds
+  nothing good, *Search Google for “…”* (Bing in the Chinese UI; a second
+  engine can be added) is listed before *Ask AI*. Quicklinks (*Create
+  Quicklink*, *Search Quicklinks*) are named links to URLs, files, folders
+  and programs with `{query}` (typed inline or after the quicklink's
+  keyword), `{clipboard}`, `{date}`, `{time}` and formats such as
+  `{date:yyyyMMdd}`; edit, duplicate, delete, open with a chosen program,
+  and import or export as JSON (Raycast's quicklinks export too). Every
+  web item can be opened in each installed browser. Search suggestions are
+  off by default; when on, only text typed after a keyword is sent,
+  debounced and cancelled as you type.
+- SDK: `Item.Transient` (JSON `transient`) keeps a root item that carries
+  the typed text out of Recent, like fallback items.
 - **Timers and reminders** (`builtin.timer`, docs/timers.md): `timer 25m`,
   `timer 1h30m tea`, `timer 1:30:00`, `计时 半小时`, `倒计时 10分钟` start a
   countdown; `remind 15:30 meeting`, `remind tomorrow 9am standup`,

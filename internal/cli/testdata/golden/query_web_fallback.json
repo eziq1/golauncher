@@ -1,0 +1,54 @@
+{
+  "query": "zzqx qwv",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Fallback Commands",
+      "items": [
+        {
+          "id": "fallback:google",
+          "title": "Search Google for “zzqx qwv”",
+          "subtitle": "https://www.google.com/search?q=zzqx%20qwv",
+          "icon": {
+            "name": "search"
+          },
+          "group": "Fallback Commands",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Search",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=zzqx%20qwv"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.google.com/search?q=zzqx%20qwv"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "Open in Firefox",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://www.google.com/search?q=zzqx%20qwv\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/fallback:google",
+          "fallback": true
+        }
+      ]
+    }
+  ]
+}

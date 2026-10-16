@@ -1,0 +1,55 @@
+{
+  "query": "g golang generics",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Web Search",
+      "items": [
+        {
+          "id": "search:google",
+          "title": "Search Google for “golang generics”",
+          "subtitle": "https://www.google.com/search?q=golang%20generics",
+          "icon": {
+            "name": "search"
+          },
+          "group": "Web Search",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Search",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=golang%20generics"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.google.com/search?q=golang%20generics"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "Open in Firefox",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://www.google.com/search?q=golang%20generics\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/search:google",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

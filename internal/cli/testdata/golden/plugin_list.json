@@ -571,6 +571,76 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.quicklinks",
+    "name": "Quicklinks & Web Search",
+    "description": "Search the web with keywords (“g golang generics”, “bd 天气”), open typed URLs, and keep named links to websites, files, folders and programs. When nothing matches, the main search offers to search the web.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "globe"
+    },
+    "enabled": true,
+    "permissions": [
+      "storage",
+      "clipboard",
+      "network"
+    ],
+    "commands": [
+      {
+        "name": "quicklinks",
+        "title": "Search Quicklinks",
+        "mode": "view"
+      },
+      {
+        "name": "create",
+        "title": "Create Quicklink",
+        "mode": "view"
+      },
+      {
+        "name": "engines",
+        "title": "Search Engines",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "defaultEngine",
+        "type": "select",
+        "title": "Default search engine",
+        "description": "Offered when the main search finds nothing good.",
+        "dynamicOptions": true
+      },
+      {
+        "name": "secondEngine",
+        "type": "select",
+        "title": "Second search engine",
+        "description": "Also offered when the main search finds nothing good.",
+        "dynamicOptions": true
+      },
+      {
+        "name": "fallback",
+        "type": "bool",
+        "title": "Offer a web search",
+        "description": "When the main search finds nothing good, offer to search the web for the text.",
+        "default": true
+      },
+      {
+        "name": "openURLs",
+        "type": "bool",
+        "title": "Open typed URLs",
+        "description": "When the text is a web address (github.com/…, localhost:3000), offer to open it first.",
+        "default": true
+      },
+      {
+        "name": "suggestions",
+        "type": "bool",
+        "title": "Search suggestions",
+        "description": "Show the search engine’s suggestions while you type after a keyword (“g golang gen…”). What you type after the keyword is sent to that search engine. Text without a keyword is never sent.",
+        "default": false
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.ai",
     "name": "AI",
     "description": "Chat with Claude in the launcher through your Claude Code CLI and subscription.",

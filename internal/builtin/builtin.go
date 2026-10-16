@@ -25,6 +25,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/files"
 	"github.com/eziq1/golauncher/plugins/network"
+	"github.com/eziq1/golauncher/plugins/quicklinks"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
 	"github.com/eziq1/golauncher/plugins/system"
@@ -56,6 +57,7 @@ func All() []plugin.Plugin {
 		system.New(),
 		terminal.New(),
 		network.New(),
+		quicklinks.New(), // before ai: its fallback comes first (docs/quicklinks.md §3)
 		ai.New(claudecode.New(claudecode.Options{Tools: toolServer()})),
 	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
@@ -131,6 +133,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 		network.NewFake(fixture(dir, "network.json")),
+		fakeQuicklinks(),
 		fakeAI(),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
@@ -193,6 +196,14 @@ func fakeAI() *ai.Plugin {
 	n := 0
 	return ai.NewWithOptions(ai.Options{Backend: &backend.Fake{}, Sync: true, HasProtocol: func(string) bool { return false },
 		NewID: func() string { n++; return fmt.Sprintf("00000000-0000-4000-8000-%012d", n) }})
+}
+
+// fakeQuicklinks is the quicklinks and web search plugin with one fake
+// browser; it never goes online (search suggestions fail).
+func fakeQuicklinks() *quicklinks.Plugin {
+	return quicklinks.NewWithOptions(quicklinks.Options{Offline: true, Sync: true, Browsers: func() []shell.Browser {
+		return []shell.Browser{{Name: "Firefox", Path: `C:\Program Files\Mozilla Firefox\firefox.exe`}}
+	}})
 }
 
 // noOpen stands in for opening files in fake mode.
