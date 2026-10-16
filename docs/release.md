@@ -122,3 +122,11 @@
 - **版本号**：0.5.0。新增功能，升次版本号。配置新增 `updates` 对象，旧版读到时会忽略。
 - **自动升级从这一版开始**：0.4.0 及更早的版本没有自动升级，需要手动装一次 0.5.0；之后的版本会自动更新。第一次真机自动升级会发生在下一次发布时，届时看 `%LOCALAPPDATA%\golauncher\logs\update.log`。
 - **签名**：仓库没有设置 `UPDATE_PUBLIC_KEY`，这一版只靠 `checksums.txt` 的 SHA-256 校验（见 §9）。- **结果**：2026-10-16 打了 `v0.5.0` 标签，CI 和发布工作流都通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64（21.7MB）、arm64（20.0MB）两个 zip 和 `checksums.txt`。`glctl update check --real` 能发现 0.5.0。<https://github.com/eziq1/golauncher/releases/tag/v0.5.0>
+
+## 11. v0.6.0（2026-10-16，R67）
+
+- **范围**：发布当时的 `main`。自 v0.5.0 以来：
+  - 读取选中文字（R64、R65，含真机兼容性结果 R66）；
+  - 设置等窗口使用 golauncher 自己的图标（R62）。
+- **版本号**：0.6.0。新增功能，升次版本号。配置新增 `selection` 对象，旧版读到时会忽略。
+- **第一次真机自动升级**：已安装 0.5.0 的电脑，会在空闲时自动升级到 0.6.0。这是自动升级（R54）第一次在真机上跑完整流程，结果看 `%LOCALAPPDATA%\golauncher\logs\update.log`。
