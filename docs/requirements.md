@@ -78,4 +78,4 @@
 | R70 | 2026-10-16 | 问：是不是可以设计一个抽象层，用来对接不同的 CLI？ | [ai.md §19](ai.md)：对话插件接口不变；新增共用的 Agent 运行层（进程、隔离、MCP 注入、会话对应、授权桥接、错误分类）和每家的适配器；适配器里加 ACP 通用适配器（Gemini 原生 `--acp`，Codex/Claude 可经 Zed 适配器）；分三期，Antigravity 集成并行 | ✅ 方案已确认，先做第一期（R71） |
 | R71 | 2026-10-16 | 先做多 CLI 抽象层的第一期 | [ai.md §19](ai.md)：抽出 Agent 运行层，Claude 改造成第一个适配器（行为不变），设置里加"后端"选择；实现记录见 [ai.md §20](ai.md) | ✅ 已合并 |
 | R72 | 2026-10-16 | 把 Codex 和 Gemini CLI 接入（多 CLI 抽象层第二期） | [ai.md §21](ai.md)：Gemini 走 ACP 通用适配器（`gemini --acp`），Codex 走原生适配器（`codex exec --json` + `resume`，不用 Zed 的 Node 适配器）；第一期遗留问题按默认处理：授权请求复用宿主确认框（共用层负责，60 秒超时、停止回答即拒绝；你已确认由共用层处理）、删除对话时清理会话对应、每个对话固定使用创建时的后端 | 🚧 子代理开发中（worktree） |
-| R73 | 2026-10-16 | 不引入 Zed 的 ACP 适配器，不希望依赖 Node.js | golauncher 本身不引入 Node；Codex 直接调用原生 `codex.exe`（npm 包里自带的 Rust 二进制，或独立安装），不经过 npm 的 Node 脚本；Gemini CLI 本身是 Node 程序，无法避免，是否保留 Gemini 待你决定 | 🚧 已通知开发中的子代理；Gemini 待确认 |
+| R73 | 2026-10-16 | 不引入 Zed 的 ACP 适配器，不希望依赖 Node.js | golauncher 本身不引入 Node；Codex 直接调用原生 `codex.exe`（npm 包里自带的 Rust 二进制，或独立安装），不经过 npm 的 Node 脚本；Gemini CLI 本身是 Node 程序，无法避免，你决定保留 Gemini（它本身是 Node.js 程序，没有问题） | ✅ 已确认，已通知开发中的子代理 |
