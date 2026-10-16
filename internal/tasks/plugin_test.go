@@ -209,6 +209,67 @@ func TestTaskActions(t *testing.T) {
 	}
 }
 
+// TestRetryAsAdministrator (R68): a task that failed for lack of
+// administrator rights has Retry as Administrator first (Enter), a plain
+// callback (the AI treats it as a change), which reruns it with Elevate.
+func TestRetryAsAdministrator(t *testing.T) {
+	runner := &tasks.FakeRunner{Results: []tasks.FakeResult{
+		{Match: "ipconfig", Output: "The requested operation requires elevation.", ExitCode: 1},
+	}}
+	m := tasks.New(tasks.Options{Dir: t.TempDir(), Runner: runner, Now: func() time.Time { return hostfake.Fixed }})
+	p := tasks.NewPlugin(m)
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { m.Close(); p.Close() })
+	id := m.RunProcess("p", plugin.TaskSpec{Title: "Flush DNS Cache"}, plugin.ProcessSpec{Argv: []string{"ipconfig", "/flushdns"}})
+	if err := m.Wait(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	v, err := p.View(t.Context(), plugin.ViewRequest{ID: tasks.ViewTask, Payload: plugin.MustPayload(map[string]string{"id": id})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := v.Sections[0].Items[0]
+	if !slices.Equal(actionIDs(it), []string{"retry-admin", "open-log", "copy-output", "rerun", "remove", "clear-finished", "show-all"}) ||
+		it.Subtitle != "Failed: requires administrator rights" {
+		t.Fatalf("item %v %q", actionIDs(it), it.Subtitle)
+	}
+	a := it.Actions[0]
+	if a.Title != "Retry as Administrator" || a.Do.Kind != plugin.ActionCallback || a.ReadOnly || a.Style == plugin.StyleDestructive {
+		t.Errorf("retry action %+v", a)
+	}
+	r, err := p.HandleAction(t.Context(), a.Do)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Do == nil || r.Do.Kind != plugin.ActionShowTask || r.Do.Target == id {
+		t.Fatalf("result %+v", r)
+	}
+	if err := m.Wait(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	i, _ := m.Get(r.Do.Target)
+	if !i.Cmd.Elevate || i.State != plugin.TaskFailed || i.RetryableElevated() {
+		t.Errorf("retried task %+v", i)
+	}
+	// The elevated task shows how it runs and no second retry.
+	v, _ = p.View(t.Context(), plugin.ViewRequest{ID: tasks.ViewTask, Payload: plugin.MustPayload(map[string]string{"id": i.ID})})
+	it = v.Sections[0].Items[0]
+	meta := map[string]string{}
+	for _, md := range it.Detail.Metadata {
+		meta[md.Label] = md.Value
+	}
+	if slices.Contains(actionIDs(it), "retry-admin") || meta["Runs as"] != "Administrator" ||
+		!strings.Contains(it.Detail.Markdown, "tasks.elevate.noOutput") { // the manager has no catalog here
+		t.Errorf("elevated item %v %v %q", actionIDs(it), meta, it.Detail.Markdown)
+	}
+}
+
 func TestManifestAndViewOf(t *testing.T) {
 	m := tasks.New(tasks.Options{})
 	defer m.Close()

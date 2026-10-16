@@ -3,6 +3,7 @@
   "plugin.description": "IP addresses, ping, DNS lookups, ports and saved Wi-Fi networks. Type “ip”, “ping”, “dns”, “port”, “wifi” or “tracert” in the main search.",
   "group": "Network",
   "command.subtitle": "Network Tools",
+  "command.subtitleAdmin": "Network Tools · Requires administrator",
   "command.ip.title": "IP Addresses",
   "command.ip.keywords": "network, ip address, public ip, mac address, gateway, wifi",
   "command.ping.title": "Ping",
@@ -197,5 +198,7 @@
   "task.tracert": "Trace Route to {{.host}}",
   "task.flushDNS": "Flush DNS Cache",
   "task.renewIP": "Renew IP Address",
-  "toast.running": "{{.task}}: running in the background"
+  "toast.running": "{{.task}}: running in the background",
+  "toast.runningAdmin": "{{.task}}: requires administrator rights",
+  "toast.runningAdminHint": "Confirm the Windows administrator prompt (UAC)."
 }

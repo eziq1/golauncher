@@ -113,7 +113,11 @@ func RiskOf(a plugin.Action) Risk {
 			return RiskRead
 		}
 	}
-	return RiskChange // Paste, RunProcess, callbacks, no-view commands, unknown kinds
+	// Paste, RunProcess (also with ProcessSpec.Elevate), callbacks (the
+	// task view's Retry as Administrator, plugin callbacks starting elevated
+	// tasks), no-view commands (Flush DNS Cache), unknown kinds. Never
+	// lower: elevation must not run without the user confirming.
+	return RiskChange
 }
 
 // Call runs tool name with its JSON arguments.

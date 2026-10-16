@@ -523,6 +523,23 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
   `Env` entries are added to the launcher's environment; `CommandLine` is
   what the user sees when `Argv` is an implementation detail. It needs the
   `exec` permission: without it the task fails at once.
+- **Administrator rights**: set `ProcessSpec.Elevate` (JSON `elevate`, also
+  over the external plugin protocol) for a command that needs them, such as
+  `ipconfig /flushdns`. The host then shows the UAC prompt when the task
+  starts (`ShellExecuteEx` "runas", hidden window); golauncher itself stays
+  unelevated. The program's output cannot be captured (the task log says
+  "Ran as administrator; output is not available"), only its exit code;
+  `Env` is not applied; Stop ends the program itself if Windows lets it, not
+  what it started. Declining the prompt ends the task as **cancelled**, not
+  failed. When golauncher already runs as administrator the command runs as
+  usual, with its output. Chain commands with
+  `Argv: {"cmd.exe", "/d", "/c", "a && b"}`. Tell the user before the
+  prompt appears (e.g. a toast "requires administrator rights"). A normal
+  task that fails because it needs administrator rights (CreateProcess
+  error 740, or the "requires elevation" message of ipconfig/netsh, or
+  sc.exe's `FAILED 5:`) gets a **Retry as Administrator** action in
+  Background Tasks, which reruns it with `Elevate`. For the AI, actions
+  starting such tasks are "change" actions: the user confirms them.
 - **`RunTask(spec, fn)`** runs Go code: `fn(ctx, task)` writes output to
   `task` (an `io.Writer`) and may call `task.SetStatus("Downloading 3/5")`
   and `task.SetProgress(0.6)`. It must return when `ctx` is cancelled. A
@@ -552,7 +569,9 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
   output.
 - **Testing**: `hostfake` runs tasks with a fake runner that records each
   `ProcessSpec` and ends it at once (`h.Runner.Commands()`, configurable
-  output with `h.Runner.Results` or `h.Runner.Hook`); `h.WaitTasks()` waits
+  output with `h.Runner.Results` or `h.Runner.Hook`; `h.Runner.Admin`,
+  `DeclineUAC` and `StopFails` simulate elevation without a UAC prompt, and
+  `FakeResult.ElevationRequired` a 740 start error); `h.WaitTasks()` waits
   for them and their `OnDone`, and `h.Toasts()` returns the toasts. Use
   `h.SetTaskRunner(tasks.ProcessRunner{})` to run real programs. In `glctl`'s
   fake environment tasks are recorded too and held until a

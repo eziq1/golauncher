@@ -1,6 +1,6 @@
 # 后台任务设计方案
 
-> 状态：设计 v1 · 2026-10-15 · 对应需求 R24 · 已实现，见 [§8 实现记录](#8-实现记录r24)（见 [requirements.md](requirements.md)）
+> 状态：设计 v1 · 2026-10-15 · 对应需求 R24 · 已实现，见 [§8 实现记录](#8-实现记录r24)（见 [requirements.md](requirements.md)）；以管理员身份运行见 [§11](#11-以管理员身份运行r682026-10-16)（R68）
 >
 > 需求：给启动器增加后台任务功能。比如 `scoop update` 可能要执行 10 分钟，不能让用户在当前页面干等。要求：
 > 1. 可以查看后台任务的状态；
@@ -198,3 +198,48 @@ const ActionRunProcess ActionKind = "RunProcess" // Payload: {"spec": TaskSpec, 
 - R25 留下的 `TODO(R24)` 已经处理：`builtin.files` 的"压缩为 ZIP"改为 `Host.RunTask`，`Notify: NotifyAlways`。动作立即返回"正在后台压缩"，完成或失败由任务通知告知。SHA-256 通常很快，仍然同步执行。
 - golden `query_context` 和 `session_context_new_folder` 多了常驻的"Background Tasks"命令，差异里只有新增、没有删除，已重新生成。
 - 验证：`go test ./...` 和 `go test -race ./internal/... ./plugins/... ./pkg/...` 全部通过。
+
+## 11. 以管理员身份运行（R68，2026-10-16）
+
+> 需求：网络工具的"刷新 DNS 缓存"（`ipconfig /flushdns`）在用户机器上失败，ipconfig 输出"The requested operation requires elevation."；"续订 IP 地址"同理。希望弹出提权（UAC）而不是直接失败。
+
+### 11.1 SDK
+
+- `ProcessSpec.Elevate bool`（JSON `elevate`，`omitzero`）。外部插件的 `host/task.runProcess` 直接传 `ProcessSpec` 的 JSON，所以协议不用改，字段自然带过去（`rpcserve`、`extproc` 的测试覆盖了往返）。
+- 语义：任务开始时宿主弹 UAC，用 `ShellExecuteExW`（verb `runas`、`SEE_MASK_NOCLOSEPROCESS`、`SW_HIDE`、工作目录 `Dir`）运行，拿进程句柄等待结束并记录退出码。golauncher 本身不提权（和 [process-manager.md §15](process-manager.md) 的 `golauncher kill` 助手一样，只有被运行的程序是管理员身份）。
+- **输出拿不到**：提权进程跨完整性级别，`ShellExecuteEx` 也没有管道。任务日志依次写"正在请求管理员权限（UAC）…""正在以管理员身份运行…"，结束后写"已以管理员身份运行；无法获取输出。"（这也是最后一行，成功通知的正文就是它）。`Env` 不生效（提权进程用自己的环境）。详情元数据多一行"运行身份：管理员"。
+- **取消 UAC**（`ERROR_CANCELLED` 1223）→ 任务状态"已取消"（不是失败），`Error`/状态文字是"已取消：管理员权限请求被拒绝。"，不通知（用户自己取消的），不点亮红点。
+- **已经是管理员**（golauncher 以管理员身份运行）：忽略 `Elevate`，照常 `CreateProcess`，有输出、在 Job Object 里。
+- **停止**：`Stop` 对 `ShellExecuteEx` 返回的句柄调用 `TerminateProcess`。只结束这个程序本身，不结束它启动的子进程（提权进程不能放进 golauncher 的 Job Object）。如果 Windows 拒绝（非提权进程可能无权结束提权进程），任务不再等待，状态为"已取消"，日志写"无法停止以管理员身份运行的程序，它可能仍在运行。"。UAC 对话框显示期间按停止：对话框关不掉；用户同意后程序一启动就被结束。
+- **命令行引号**：参数串用和 `os/exec` 完全相同的转义（`syscall.EscapeArg`，测试里和 `windows.ComposeCommandLine` 对照）；批处理文件仍走 `BatchCommandLine`（`%ComSpec% /d /s /c ""脚本" "参数""`，`ShellExecuteEx` 的 file 是 `%ComSpec%`）。连续多条命令用 `cmd.exe /d /c "a && b"`，与非提权时的行为一致。
+
+### 11.2 宿主实现
+
+| 位置 | 内容 |
+|------|------|
+| `internal/winapi/proc/elevate*.go` | `StartElevated(argv, dir)` → `*Elevated`（`Wait`、`Stop`）、`IsElevated`、`ElevatedCommand`（file + 参数串）、`ErrElevationCancelled`、`ErrNotEnded`、`ErrorElevationRequired`（740）、`NeedsElevation(output)`。**测试二进制里 `StartElevated` 直接返回错误**（`testing.Testing()`），任何测试都不可能弹 UAC |
+| `internal/tasks/runner.go` | 可选接口 `Elevator{Elevated() bool; StartElevated(cmd) (Process, error)}`；`ProcessRunner` 实现它（真 UAC），`FakeRunner` 实现假的：`Admin`（假装已是管理员）、`DeclineUAC`（假装拒绝）、`StopFails`（假装结束不了）、`FakeResult.ElevationRequired`（启动时返回 740）。提权运行的命令也记进 `Commands()`（`Elevate: true`），输出丢弃，和真实情况一样。执行器没有实现 `Elevator` 时，`Elevate` 任务直接失败（"这里不支持以管理员身份运行程序。"） |
+| `internal/tasks/tasks.go` | `runElevated`；`Info.NeedsElevation`、`Info.RetryableElevated()`、`Manager.RetryElevated(id)`（和"重新运行"一样带原来的标题、队列、`OnDone`，只是加上 `Elevate`） |
+| `internal/tasks/plugin.go`、`notify.go` | 任务视图的"以管理员身份重试"；状态文字"失败：需要管理员权限"；失败通知的正文 |
+
+### 11.3 通用兜底：以管理员身份重试
+
+- 普通（非 `Elevate`）进程任务失败时，满足下面任一条就记为"需要管理员权限"：
+  1. `CreateProcess` 返回 `ERROR_ELEVATION_REQUIRED`（740，清单要求管理员的程序）——总是算；
+  2. 退出码非 0，且输出最后 40 行里有已知的提示（不区分大小写）：
+     - `requires elevation`：系统消息 740 的英文，ipconfig `/flushdns`、`/release`、`/renew` 和 netsh 都打印它（netsh 后面加 "(Run as administrator)"）；
+     - `需要提升`：同一条消息的中文（"请求的操作需要提升。"）；
+     - sc.exe 的 `[SC] <函数> FAILED 5:`（服务管理器返回 `ERROR_ACCESS_DENIED`，与语言无关）。
+  - **单独的"Access is denied"/"拒绝访问"不算**：太多程序因为别的原因打印它，提权也解决不了。列表在 `proc.NeedsElevation`，以后要加别的工具的提示改这里。
+- 这样的任务在任务视图里第一个动作（Enter）是 **"以管理员身份重试"**，用同样的 `ProcessSpec` 加上 `Elevate` 新建一个任务；UAC 本身就是确认，所以不再额外确认。已经是 `Elevate` 的任务失败了不再提供。
+- **通知**：Windows 通知和启动器底栏的 Toast 都没有按钮，所以失败通知的正文改为"需要管理员权限。打开任务，可以以管理员身份重试。"；点击通知打开这个任务，Enter 就是重试。
+- **插件退出机制**：没有加 `ProcessSpec.NoElevateRetry`。重试永远由用户发起并经过 UAC，提示文字的匹配也很保守，误判的代价只是多一个用户可以不点的动作；真的出现需要关掉的插件时再加。
+
+### 11.4 AI
+
+- `RiskOf` 不变但写明：`ActionRunProcess`（包括带 `Elevate` 的）、回调（包括任务视图的"以管理员身份重试"和插件里启动提权任务的回调）、无视图命令（"刷新 DNS 缓存"）都是"改动"，AI 调用前要用户确认；UAC 是第二道确认。golauncher 本身是管理员时没有 UAC，仍有 AI 的确认。测试见 `TestRiskOf` 和 `TestRetryAsAdministrator`。
+
+### 11.5 测试
+
+- 全部用假执行器，**不弹 UAC、不提权、不刷新 DNS、不续订 IP**。`internal/tasks`：提权成功（输出是三行说明、命令带 `Elevate`）、非 0 退出码（失败、不再提供重试）、拒绝 UAC（已取消、错误文字、不通知、不算未读失败）、停止（能结束 / 结束不了两种）、已是管理员时照常运行并有输出、执行器不支持提权、740 和各条提示文字的识别（包括不该识别的"Access is denied"）、失败通知正文、`RetryElevated`（同命令、同目录、同队列、同 `OnDone`、加 `Elevate`；不需要提权的、已经提权的、不存在的任务被拒绝）、JSON 往返；任务视图里"以管理员身份重试"排第一、是普通回调、执行后新任务带 `Elevate`、元数据"运行身份"。`internal/winapi/proc`：`NeedsElevation` 的中英文样例、`ElevatedCommand` 的引号（含空格、引号、空参数、`&&`、批处理）并与 `os/exec` 对照、测试里 `StartElevated` 被拒绝、740 的 `errors.Is`。
+- 真机 740 测试没有做：需要一个清单要求管理员的测试程序；`CreateProcess` 本身不会弹 UAC，但构造这样的程序要嵌入清单，收益不大。

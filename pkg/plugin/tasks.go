@@ -47,7 +47,9 @@ type TaskSpec struct {
 // tree), with stdout and stderr captured as the task's console output.
 // Output that is not UTF-8 is decoded from the OEM code page; ANSI escapes
 // and text overwritten with \r are removed. A batch file (.bat, .cmd) as
-// Argv[0] is run through cmd.exe with its own quoting rules.
+// Argv[0] is run through cmd.exe with its own quoting rules. A task that
+// fails because the program needs administrator rights gets a "Retry as
+// Administrator" action in the task view (see Elevate).
 type ProcessSpec struct {
 	Argv []string `json:"argv"`
 	Dir  string   `json:"dir,omitempty"`
@@ -58,6 +60,16 @@ type ProcessSpec struct {
 	// joined with spaces). Set it when Argv is an implementation detail,
 	// e.g. an encoded PowerShell script.
 	CommandLine string `json:"commandLine,omitempty"`
+	// Elevate runs the program as administrator: the host shows the UAC
+	// prompt (ShellExecuteEx "runas", hidden window) when the task starts.
+	// Its output cannot be captured (the task log says so), only its exit
+	// code; Env is not applied; Stop ends the program itself if Windows
+	// lets it, not the programs it started. Declining the prompt ends the
+	// task as cancelled. When golauncher already runs as administrator the
+	// program runs as usual, with its output. Keep elevated commands short
+	// and tell the user before (e.g. "Requires administrator" in the
+	// subtitle). For a chain of commands, run cmd.exe /d /c "a && b".
+	Elevate bool `json:"elevate,omitzero"`
 }
 
 // Task is handed to a Go task function (Host.RunTask) to report progress

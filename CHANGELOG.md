@@ -8,6 +8,26 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Background tasks as administrator** (R68): the SDK's
+  `ProcessSpec.Elevate` (JSON `elevate`, also for external plugins) runs a
+  task's program as administrator through a UAC prompt, while golauncher
+  stays unelevated. Only the exit code is known (the task log says the
+  output is not available); declining the prompt marks the task cancelled.
+  When golauncher already runs as administrator the program runs as usual.
+- **Retry as Administrator**: a background task that fails because it
+  needs administrator rights (error 740, or the "requires elevation"
+  message of ipconfig and netsh, or sc.exe's "FAILED 5:", in English or
+  Chinese) offers *Retry as Administrator* in Background Tasks (Enter), and
+  its failure notification says so.
+
+### Fixed
+
+- **Flush DNS Cache** and **Renew IP Address** failed with "The requested
+  operation requires elevation." They now ask for administrator rights with
+  a UAC prompt (the toast says so) unless golauncher already has them.
+
 ## [0.6.0] - 2026-10-16
 
 ### Added

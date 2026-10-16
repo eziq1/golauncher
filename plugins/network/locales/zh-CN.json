@@ -3,6 +3,7 @@
   "plugin.description": "IP 地址、ping、DNS 查询、端口和已保存的 Wi-Fi 网络。在主搜索中输入“ip”“ping”“dns”“port”“wifi”或“tracert”。",
   "group": "网络",
   "command.subtitle": "网络工具",
+  "command.subtitleAdmin": "网络工具 · 需要管理员权限",
   "command.ip.title": "IP 地址",
   "command.ip.keywords": "网络, IP 地址, 公网 IP, MAC 地址, 网关, 无线, wl, ipdz, gwip, macdz, wg, network, ip address, public ip, mac address, gateway, wifi",
   "command.ping.title": "Ping",
@@ -197,5 +198,7 @@
   "task.tracert": "跟踪到 {{.host}} 的路由",
   "task.flushDNS": "刷新 DNS 缓存",
   "task.renewIP": "续订 IP 地址",
-  "toast.running": "{{.task}}：正在后台运行"
+  "toast.running": "{{.task}}：正在后台运行",
+  "toast.runningAdmin": "{{.task}}：需要管理员权限",
+  "toast.runningAdminHint": "请在 Windows 的管理员权限提示（UAC）中确认。"
 }

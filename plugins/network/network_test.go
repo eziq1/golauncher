@@ -579,8 +579,13 @@ func TestTasks(t *testing.T) {
 	if err != nil || r.Do == nil || r.Do.Kind != plugin.ActionShowTask || r.Do.Target == "" {
 		t.Fatalf("tracert: %+v %v", r, err)
 	}
-	if _, err := p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdFlushDNS}); err != nil {
+	r, err = p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdFlushDNS})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if r.Toast == nil || r.Toast.Title != "Flush DNS Cache: requires administrator rights" ||
+		r.Toast.Message != "Confirm the Windows administrator prompt (UAC)." {
+		t.Errorf("flush toast %+v", r.Toast)
 	}
 	if _, err := p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdRenewIP}); err != nil {
 		t.Fatal(err)
@@ -593,10 +598,15 @@ func TestTasks(t *testing.T) {
 	h.WaitTasks()
 	var got []string
 	for _, c := range h.Runner.Commands() {
-		got = append(got, strings.Join(c.Argv, " "))
+		line := strings.Join(c.Argv, " ")
+		if c.Elevate {
+			line += " elevate"
+		}
+		got = append(got, line)
 	}
 	slices.Sort(got) // tasks in different queues run in parallel
-	want := []string{"cmd.exe /d /c ipconfig /release && ipconfig /renew", "ipconfig /flushdns", "tracert example.com"}
+	// The ipconfig tasks ask for administrator rights (R68); tracert not.
+	want := []string{"cmd.exe /d /c ipconfig /release && ipconfig /renew elevate", "ipconfig /flushdns elevate", "tracert example.com"}
 	if !slices.Equal(got, want) {
 		t.Errorf("commands = %q", got)
 	}
@@ -604,5 +614,33 @@ func TestTasks(t *testing.T) {
 	i := slices.IndexFunc(m.Commands, func(c plugin.Command) bool { return c.Name == cmdRenewIP })
 	if i < 0 || !m.Commands[i].Destructive {
 		t.Error("renew-ip is not destructive")
+	}
+	for _, c := range m.Commands {
+		if admin := c.Name == cmdFlushDNS || c.Name == cmdRenewIP; admin != (c.Subtitle == "%command.subtitleAdmin%") {
+			t.Errorf("%s: subtitle %q", c.Name, c.Subtitle)
+		}
+	}
+}
+
+// TestTasksWhenAdmin: when golauncher runs as administrator, the ipconfig
+// tasks run as usual (no UAC prompt, with their output).
+func TestTasksWhenAdmin(t *testing.T) {
+	f := fixture(t)
+	f.F.Elevated = true
+	p, h := newPlugin(t, Options{Backend: offline{f, t}})
+	r, err := p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdFlushDNS})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Toast == nil || r.Toast.Title != "Flush DNS Cache: running in the background" || r.Toast.Message != "" {
+		t.Errorf("toast %+v", r.Toast)
+	}
+	if _, err := p.HandleAction(t.Context(), plugin.ActionDo{Kind: plugin.ActionRunCommand, Target: cmdRenewIP}); err != nil {
+		t.Fatal(err)
+	}
+	h.WaitTasks()
+	cmds := h.Runner.Commands()
+	if len(cmds) != 2 || cmds[0].Elevate || cmds[1].Elevate {
+		t.Errorf("commands %+v", cmds)
 	}
 }

@@ -71,6 +71,16 @@ type Info struct {
 	// Seen is set for a failed task once the task view was opened.
 	Seen     bool   `json:"seen,omitzero"`
 	LastLine string `json:"lastLine,omitempty"`
+	// NeedsElevation is set for a process task run without Elevate that
+	// failed because it needs administrator rights (ElevationRequired).
+	NeedsElevation bool `json:"needsElevation,omitzero"`
+}
+
+// RetryableElevated reports whether the task can run again as
+// administrator: a process task of this run that ended because it needs
+// administrator rights.
+func (i Info) RetryableElevated() bool {
+	return i.NeedsElevation && i.Rerunnable() && !i.Cmd.Elevate
 }
 
 // Result is the plugin.TaskResult of a finished task.
@@ -360,12 +370,18 @@ func (m *Manager) run(t *task) {
 	switch {
 	case t.stopped:
 		t.info.State = plugin.TaskCancelled
+	case errors.Is(err, ErrElevationCancelled):
+		t.info.State, t.info.Error = plugin.TaskCancelled, err.Error()
 	case err != nil:
 		t.info.State, t.info.Error = plugin.TaskFailed, err.Error()
 	case code != 0:
 		t.info.State = plugin.TaskFailed
 	default:
 		t.info.State = plugin.TaskSucceeded
+	}
+	if t.info.State == plugin.TaskFailed && t.info.Kind == KindProcess && !t.info.Cmd.Elevate {
+		t.info.NeedsElevation = errors.Is(err, proc.ErrorElevationRequired) ||
+			(err == nil && code != 0 && elevationRequired(t.out))
 	}
 	t.proc, t.cancel = nil, nil
 	m.running--
@@ -382,11 +398,27 @@ func (m *Manager) runProcess(t *task) (int, error) {
 	m.mu.Lock()
 	cmd := *t.info.Cmd
 	m.mu.Unlock()
+	if cmd.Elevate {
+		el, ok := m.o.Runner.(Elevator)
+		if !ok {
+			err := errors.New(m.loc().T("tasks.error.noElevation"))
+			t.out.writeLine(err.Error())
+			return -1, err
+		}
+		if !el.Elevated() {
+			return m.runElevated(t, el, cmd)
+		}
+	}
 	p, err := m.o.Runner.Start(cmd, proc.MergeEnv(m.o.Env, cmd.Env), t.out)
 	if err != nil {
 		t.out.writeLine(err.Error())
 		return -1, err
 	}
+	return m.wait(t, p)
+}
+
+// wait waits for the started process of t.
+func (m *Manager) wait(t *task, p Process) (int, error) {
 	m.mu.Lock()
 	t.proc = p
 	stopped := t.stopped
@@ -399,6 +431,50 @@ func (m *Manager) runProcess(t *task) (int, error) {
 		t.out.writeLine(err.Error())
 	}
 	return code, err
+}
+
+// elevationCancelled is the error of a task whose UAC prompt the user
+// declined: a localized message wrapping ErrElevationCancelled.
+type elevationCancelled struct{ msg string }
+
+func (e elevationCancelled) Error() string { return e.msg }
+func (e elevationCancelled) Unwrap() error { return ErrElevationCancelled }
+
+// runElevated runs t as administrator through the UAC prompt. Its output
+// is not available; the log says so. Stopping it while the prompt is shown
+// ends the program as soon as it started.
+func (m *Manager) runElevated(t *task, el Elevator, cmd plugin.ProcessSpec) (int, error) {
+	l := m.loc()
+	t.out.writeLine(l.T("tasks.elevate.prompt"))
+	p, err := el.StartElevated(cmd)
+	if errors.Is(err, ErrElevationCancelled) {
+		msg := l.T("tasks.elevate.cancelled")
+		t.out.writeLine(msg)
+		return -1, elevationCancelled{msg}
+	}
+	if err != nil {
+		t.out.writeLine(err.Error())
+		return -1, err
+	}
+	t.out.writeLine(l.T("tasks.elevate.running"))
+	code, err := m.wait(t, p)
+	if errors.Is(err, ErrNotEnded) {
+		t.out.writeLine(l.T("tasks.elevate.notEnded"))
+		return -1, nil // the task is cancelled (stopped)
+	}
+	t.out.writeLine(l.T("tasks.elevate.noOutput"))
+	return code, err
+}
+
+// elevationTail is how many of the last output lines elevationRequired
+// looks at.
+const elevationTail = 40
+
+// elevationRequired reports whether the end of a failed task's output says
+// the program needs administrator rights (proc.NeedsElevation).
+func elevationRequired(out *output) bool {
+	text, _ := out.tail(elevationTail)
+	return proc.NeedsElevation(text)
 }
 
 func (m *Manager) runGo(t *task) (code int, err error) {
@@ -519,14 +595,25 @@ func (m *Manager) Stop(id string) error {
 
 // Rerun queues a finished process task of this run again, as a new task
 // with the same description (and OnDone), and returns the new ID.
-func (m *Manager) Rerun(id string) (string, error) {
+func (m *Manager) Rerun(id string) (string, error) { return m.rerun(id, false) }
+
+// RetryElevated queues a task that failed because it needs administrator
+// rights (Info.RetryableElevated) again with ProcessSpec.Elevate, and
+// returns the new ID. The new task shows the UAC prompt.
+func (m *Manager) RetryElevated(id string) (string, error) { return m.rerun(id, true) }
+
+func (m *Manager) rerun(id string, elevate bool) (string, error) {
 	m.mu.Lock()
 	t := m.findLocked(id)
 	if t == nil {
 		m.mu.Unlock()
 		return "", ErrNotFound
 	}
-	if !t.info.Rerunnable() {
+	switch {
+	case elevate && !t.info.RetryableElevated():
+		m.mu.Unlock()
+		return "", fmt.Errorf("tasks: task %s cannot run again as administrator", id)
+	case !t.info.Rerunnable():
 		m.mu.Unlock()
 		return "", fmt.Errorf("tasks: task %s cannot run again", id)
 	}
@@ -534,6 +621,9 @@ func (m *Manager) Rerun(id string) (string, error) {
 	spec := plugin.TaskSpec{Title: i.Title, Subtitle: i.Subtitle, Icon: i.Icon, Queue: i.Queue, Notify: i.Notify, OnDone: t.onDone}
 	cmd := *i.Cmd
 	m.mu.Unlock()
+	if elevate {
+		cmd.Elevate = true
+	}
 	return m.RunProcess(i.Plugin, spec, cmd), nil
 }
 
