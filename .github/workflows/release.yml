@@ -20,6 +20,10 @@ jobs:
         shell: pwsh
     env:
       TAG: ${{ github.ref_name }}
+      # Optional update signing (docs/auto-update.md §9): the public key, a
+      # repository variable, is built into the programs, which then require
+      # checksums.txt.sig; the private key is a secret.
+      GOLAUNCHER_UPDATE_PUBLIC_KEY: ${{ vars.UPDATE_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@v5
 
@@ -87,11 +91,25 @@ jobs:
           [System.IO.File]::WriteAllText("$PWD/dist/checksums.txt", ($lines -join "`n") + "`n")
           Get-Content dist/checksums.txt
 
+      - name: Sign checksums
+        if: env.GOLAUNCHER_UPDATE_PUBLIC_KEY != ''
+        env:
+          GOLAUNCHER_UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          # The programs require a signature now: never publish without one.
+          if (-not $env:GOLAUNCHER_UPDATE_SIGNING_KEY) { throw 'vars.UPDATE_PUBLIC_KEY is set but secrets.UPDATE_SIGNING_KEY is not' }
+          ./dist/glctl.exe update sign dist/checksums.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # With the key built into glctl: the key pair matches.
+          ./dist/glctl.exe update verify dist/checksums.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $assets = @(Get-ChildItem dist -Filter *.zip | ForEach-Object FullName) + "dist/checksums.txt"
+          if (Test-Path dist/checksums.txt.sig) { $assets += "dist/checksums.txt.sig" }
           $flags = @()
           if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $env:TAG --title "golauncher $env:TAG" --notes-file dist/notes.md --verify-tag @flags @assets

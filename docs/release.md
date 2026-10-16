@@ -99,3 +99,9 @@
   - 计时器测试的时序问题；
   - 主题“文字衬底”默认开启，导致选中行的文字后面有方框（你在真机上发现）。
 - **版本号**：0.4.0。新增功能，升次版本号。配置新增 `appearance` 对象，旧版读到时会忽略，并继续使用旧的 `theme` 字段。
+## 9. 自动更新与签名（R54）
+
+- 从带自动更新的版本起，已安装的 golauncher 会读 `/releases/latest` 并下载 `golauncher_<版本>_windows_<架构>.zip`，用同一个 Release 的 `checksums.txt` 校验（[auto-update.md](auto-update.md)）。所以**产物的文件名、zip 的根目录结构（`golauncher.exe`、`glctl.exe` 在根目录）和 `checksums.txt` 的格式都不能改**，改了旧版本就更新不了。
+- 正式版本才会被自动安装；带后缀的 tag（预发布）不会出现在 `/releases/latest`。
+- 可选的 ed25519 签名：仓库变量 `UPDATE_PUBLIC_KEY` 有值时，工作流把公钥写进程序，用 Secret `UPDATE_SIGNING_KEY` 对 `checksums.txt` 签名、验证，并上传 `checksums.txt.sig`；只配了公钥没有私钥会让发布失败。配置步骤见 [auto-update.md §9](auto-update.md)。
+- 发布后可以用 `glctl update check --real` 和 `glctl update download --dry-run --real` 确认新 Release 能被检查到、校验通过（只读，不安装）。

@@ -136,6 +136,10 @@ type Paths struct {
 	DesktopLink   string   // the desktop shortcut
 	ConfigFile    string   // config.json, where launch at login is set
 	DataDirs      []string // the user's settings and data, removed on request
+	// UpdateDir holds the downloads and the backup of automatic updates
+	// (docs/auto-update.md); it is not the user's data and is always
+	// removed.
+	UpdateDir string
 }
 
 // Installer installs the running copy of golauncher.

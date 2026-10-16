@@ -95,6 +95,8 @@ type Settings struct {
 	agent agentState // the AI tools section of the AI plugin's page
 
 	appearance appearanceState // the Appearance page
+
+	updates updatesState // the Updates section of the About page
 }
 
 // optionsResult is the outcome of loading the dynamic options of a preference.
@@ -312,7 +314,7 @@ func (s *Settings) View(c *mui.Context) {
 				case PageAdvanced:
 					s.advancedPage(c, cfg)
 				case PageAbout:
-					s.aboutPage(c)
+					s.aboutPage(c, cfg)
 				default:
 					s.generalPage(c, cfg)
 				}
@@ -940,7 +942,7 @@ func (s *Settings) open(path string) {
 	}
 }
 
-func (s *Settings) aboutPage(c *mui.Context) {
+func (s *Settings) aboutPage(c *mui.Context, cfg config.Config) {
 	t := c.Theme()
 	s.heading(c, s.loc.T("settings.nav.about"))
 	mui.Row(c).Gap(14).AlignItems(mui.Center).Children(func() {
@@ -954,6 +956,7 @@ func (s *Settings) aboutPage(c *mui.Context) {
 	})
 	mui.Text(c, s.loc.T("settings.about.description"))
 	mui.Link(c, s.loc.T("settings.about.builtWith"), "https://github.com/egoist/mygo")
+	s.updatesSection(c, cfg)
 }
 
 // hotkeyRecorder shows a shortcut and, once clicked, records the next key

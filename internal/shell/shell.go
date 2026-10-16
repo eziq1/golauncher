@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/internal/ui"
+	"github.com/eziq1/golauncher/internal/update"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
@@ -46,6 +48,9 @@ type Options struct {
 
 	// keepLoginItem leaves the login item alone: another copy is installed.
 	keepLoginItem bool
+	// installDir is the installation when this is the installed copy, the
+	// only one that updates itself ("" otherwise).
+	installDir string
 }
 
 // Command-line actions.
@@ -118,6 +123,12 @@ type Shell struct {
 
 	keepLoginItem bool // see Options
 
+	// updates keeps golauncher up to date (docs/auto-update.md); plugins
+	// are the loaded plugins, asked whether they are busy before an update
+	// restarts golauncher.
+	updates *update.Service
+	plugins []plugin.Plugin
+
 	// prevForeground is the window that was active before the launcher
 	// showed, which Paste pastes into.
 	prevForeground atomic.Uintptr
@@ -136,6 +147,11 @@ type Shell struct {
 // to the running one and returns at once. A copy that is not installed
 // first offers to install itself (docs/self-install.md).
 func Run(o Options) error {
+	if len(o.Args) == 2 && o.Args[0] == update.FlagApply {
+		return runUpdateHelper(o.Args[1]) // golauncher-update.exe
+	}
+	// Before anything starts a program, which must not inherit it.
+	healthMarker := update.HealthMarker()
 	if len(o.Args) > 0 && o.Args[0] == commandMCP {
 		return runBridge(o)
 	}
@@ -168,8 +184,11 @@ func Run(o Options) error {
 	if o.Plugins != nil {
 		plugins = o.Plugins
 	}
+	s.plugins = plugins()
+	s.updates = s.newUpdates(o)
+	updatePlugin := update.NewPlugin(s.updates, func() update.Mode { return s.updateSettings().Mode })
 	s.env, err = app.Build(ctx, app.Options{
-		Plugins:   plugins(),
+		Plugins:   append(slices.Clone(s.plugins), updatePlugin),
 		System:    system{s},
 		Clipboard: clipboard{},
 		Log:       log,
@@ -196,6 +215,7 @@ func Run(o Options) error {
 	s.work = ui.NewDispatcher(ctx, log)
 	s.launcher = ui.NewLauncher(s.env, launcherHost{s}, s.work)
 	s.settings = ui.NewSettings(s.env, settingsHost{s}, o.Version)
+	s.settings.SetUpdater(s.updates)
 
 	mygo.App.OnWindowAllClosed(func() {}) // live in the tray
 	mygo.App.OnSecondInstance(func(args []string, _ string) {
@@ -206,7 +226,10 @@ func Run(o Options) error {
 	// Quitting while background tasks run asks first.
 	mygo.App.OnBeforeQuit(s.beforeQuit)
 	mygo.App.OnWillQuit(func(*mygo.QuitEvent) { s.shutdown() })
-	mygo.App.WhenReady(func() { s.ready(action) })
+	mygo.App.WhenReady(func() {
+		s.ready(action)
+		s.startUpdates(healthMarker)
+	})
 	err = mygo.App.Run()
 	log.Info("quit", "err", err)
 	return err
@@ -249,7 +272,10 @@ func (s *Shell) ready(action string) {
 	})
 	// Every way of hiding the panel ends in Window.Hide, which fires OnHide
 	// once per hide; plugins stop their refresh timers on this event.
-	s.panel.OnHide(func() { s.env.Services.Bus.Publish(plugin.EventWindowHidden) })
+	s.panel.OnHide(func() {
+		touched()
+		s.env.Services.Bus.Publish(plugin.EventWindowHidden)
+	})
 	s.env.Controller.OnChange(s.panel.Invalidate)
 
 	s.env.Config.OnChange(func(c config.Config) {
@@ -362,6 +388,7 @@ func (s *Shell) showLauncherThen(then func()) {
 	} else if then != nil {
 		then()
 	}
+	touched()
 	s.panel.Show()
 	s.panel.Focus()
 	s.env.Services.Bus.Publish(plugin.EventWindowShown)
@@ -400,6 +427,7 @@ func (s *Shell) showSettings(page string) {
 				return
 			}
 			e.PreventDefault()
+			touched()
 			s.settings.ShowPage(ui.PageGeneral) // also stops recording a hotkey
 			s.settingsWin.Hide()
 			if s.previewing {
@@ -410,6 +438,7 @@ func (s *Shell) showSettings(page string) {
 	if !s.settingsWin.IsVisible() || page != ui.PageGeneral {
 		s.settings.ShowPage(page)
 	}
+	touched()
 	s.settingsWin.Show()
 	s.settingsWin.Focus()
 	s.settingsWin.Invalidate()
@@ -566,6 +595,7 @@ func (s *Shell) updateTrayMenu() {
 	s.tray.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 		{Label: s.loc.T("tray.open"), Accelerator: accelerator(s.hotkey), Click: func(*mygo.MenuItem, *mygo.Window) { s.showLauncher() }},
 		{Label: s.loc.T("tray.settings"), Click: func(*mygo.MenuItem, *mygo.Window) { s.showSettings(ui.PageGeneral) }},
+		{Label: s.loc.T("tray.checkUpdates"), Click: func(*mygo.MenuItem, *mygo.Window) { s.checkForUpdates() }},
 		mygo.Separator(),
 		{Label: s.loc.T("tray.quit"), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 	}))

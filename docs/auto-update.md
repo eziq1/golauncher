@@ -102,7 +102,7 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 
 - 主程序启动时，如果没有更新在进行，删除 `update\helper\` 和除“已就绪”版本以外的下载目录。
 - `update\previous\` 保留上一个版本，供以后排查，下次更新时覆盖。
-- 卸载时“同时删除我的设置和数据”会删除整个 `%LOCALAPPDATA%\golauncher`，包括 `update`。安装目录里的 `.old`、`.new` 已在卸载列表里。
+- 卸载时总是删除 `update` 文件夹（它不是用户数据）；勾选“同时删除我的设置和数据”时本来就会删除整个 `%LOCALAPPDATA%\golauncher`。安装目录里的 `.old`、`.new` 已在卸载列表里。
 
 ## 6. 安全时刻
 
@@ -149,7 +149,7 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 
 ## 8. glctl
 
-- `glctl update check [--real] [--current VER] [--arch ARCH] [--fixtures DIR]`：检查，输出 JSON（`--format text` 输出文字）。默认用假的 GitHub（本地 `httptest` 服务器，数据来自 `--fixtures DIR/github/` 或内置的示例），不访问网络；`--real` 才查真实的 GitHub（只读）。
+- `glctl update check [--real] [--current VER] [--arch ARCH] [--latest VER]`：检查，输出 JSON（默认，`--json` 也接受；`--format text` 输出文字）。默认用假的 GitHub（本地 `httptest` 服务器，`internal/update/fakegithub`，最新版本由 `--latest` 指定，默认 1.0.0），不访问网络；`--real` 才查真实的 GitHub（只读）。
 - `glctl update download --dry-run [...]`：下载并校验（SHA-256、可选签名、解压、版本资源除外），不安装，结束后删除临时文件。
 - `glctl update sign <file>`：发布工作流用，从环境变量 `GOLAUNCHER_UPDATE_SIGNING_KEY` 读私钥（base64 的 32 字节种子），写出 `<file>.sig`；`glctl update verify <file>` 用程序里的公钥（或 `--key`）验证。
 - `glctl update keygen`：生成一对新密钥打印到标准输出，供你自己保存（不写文件）。
@@ -172,3 +172,51 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 - 新版本“启动后稳定 10 秒”才算健康；之后才出现的崩溃不会自动回滚，需要手动重新安装旧版本（`update\previous\` 里有备份）。
 - 增量更新（只下载差异）不做：一个 zip 不到 20MB。
 - 环境变量 `GOLAUNCHER_NO_UPDATE=1` 关闭自动更新（测试、E2E 用）；`GOLAUNCHER_UPDATE_API=<url>` 把 API 地址换成别的（只接受 HTTPS 或本机 HTTP），用于在真机上用假服务器演练整个流程。
+
+## 11. 实现记录（2026-10-16）
+
+### 11.1 代码结构
+
+| 位置 | 内容 |
+|------|------|
+| `internal/update/github.go` | `Client.Latest`（ETag、User-Agent、API 版本头、限流识别 `RateLimitError`、只接受 HTTPS 或本机 HTTP、重定向不降级）、`Release`/`Asset`、`ParseRelease` |
+| `internal/update/verify.go` | 产物选择 `SelectAssets`、`ParseChecksums`、`VerifyFile`、ed25519 的 `Sign`/`VerifySignature`/`GenerateKey`、构建时注入的 `PublicKey`、`Updatable`（是否发布版本）、`Newer` |
+| `internal/update/download.go`、`prepare.go` | 小文件下载、带断点续传和重试的归档下载、`Prepare`（校验和 → 可选签名 → 下载 → SHA-256 → 解压 `golauncher.exe`/`glctl.exe`）、`Extract` |
+| `internal/update/schedule.go` | 设置 `ParseSettings`、`NextCheck`（调度）、`SafeMoment`（安全时刻） |
+| `internal/update/service.go`、`state.go` | `Service`：节拍 `Tick`、手动 `Check`、`InstallNow`、`Skip`、状态 `Status`、事件 `Notify`；`state.json`、`result.json` |
+| `internal/update/apply.go` | 更新助手 `Helper.Apply`（等旧进程退出 → 备份 → `install.Installer.Install(Upgrade)` → 启动 → 健康检查 → 失败回滚）、`Plan`、健康标记 |
+| `internal/update/plugin.go` | 宿主插件 `builtin.update` 的“Check for Updates”命令、`Summary`（检查结果的文字） |
+| `internal/update/proxy.go` | 解析 Windows 代理设置（`SystemProxy`） |
+| `internal/update/fakegithub` | 假的 GitHub（API + 下载，支持 ETag/304、限流、503、断流、Range），测试和 `glctl update` 共用 |
+| `internal/winapi/install/update_windows.go` | `HelperSystem`（等待进程、带环境变量启动）、`StartDetached`、读取系统代理 |
+| `internal/shell/update.go` | 桌面胶水：创建服务、安全时刻的判断（主线程上读窗口状态）、通知、托盘“检查更新…”、重启进入助手、`--apply-update` 助手入口、健康标记 |
+| `internal/ui/updates.go` | 设置 › 关于的“更新”小节 |
+| `internal/cli/update.go` | `glctl update check/download/sign/verify/keygen` |
+| `plugins/ai/ai.go` | `Busy()`：有回答正在生成 |
+
+### 11.2 决定和与设计的差异
+
+- **没有用宿主的后台任务系统显示下载进度**。后台任务是按插件归属、会在退出时询问、“安全时刻”本身又要求没有后台任务；自动下载如果算一个任务，会出现在任务列表里、让退出多一次询问。下载进度改为显示在设置 › 关于里。
+- **手动检查不发通知，调用方自己显示结果**：托盘用 Windows 通知，命令用启动器提示，设置页显示在页面上。只有“只通知”模式下的自动检查会主动通知（每个版本一次）。
+- **下载失败的退避**：设计里没写。自动下载失败（网络、校验不通过、版本资源不符）后，同一个版本 1 小时后才再试，避免每分钟重下 20MB。
+- **安装失败计数**：助手报告“安装失败”（不是“启动失败”）时计一次，同一个版本 3 次后不再自动安装；“启动失败”回滚过的版本直接记为坏版本。两种情况手动“下载并安装”仍然可以。
+- **卸载总是删除 `update` 文件夹**（`install.Paths.UpdateDir`）。
+- **`glctl update` 的假 GitHub 没有用 fixtures 目录**，而是内置生成（版本由 `--latest` 指定），zip 是确定的，golden 稳定。
+- **第一个带自动更新的版本**之前的版本（≤ 0.4.0）没有这套代码，需要手动升级一次。
+
+### 11.3 测试
+
+- `internal/update`（全部离线，`httptest` 假 GitHub）：
+  - Release 解析（GitHub 原样的 JSON）、版本与预发布/草稿、`Updatable`/`Newer`（含不降级、`dev`、`git describe` 版本）；
+  - 按架构选产物、缺少产物或 `checksums.txt`；校验和解析；
+  - ETag/304、限流（403 + `X-RateLimit-*`、429 + `Retry-After`、普通 403、404）、超时、拒绝 HTTP；
+  - 下载：校验通过、zip 被换（不匹配）、`checksums.txt` 缺行或缺失、签名（正确、别的密钥、校验和被改、签名被删、程序没有公钥）、503 重试、断流后 `Range` 续传、超大小、zip 路径穿越；
+  - 调度（假时钟）：启动延迟、重启后不立即查、每天/每周、失败后 1 小时重试、限流、时钟回拨；安全时刻的各个条件；
+  - 服务（假时钟 + 假 GitHub）：自动下载并在安全时刻重启（检查 plan、助手是当前程序的副本）、ETag、每周、失败重试、限流（手动检查也不发请求）、只通知（每个版本通知一次）、关闭、便携/开发构建、跳过、坏下载不重复下载、版本资源不符、助手结果（更新成功通知一次、回滚记坏版本、失败 3 次、助手死掉）、清理残留；
+  - 助手（**测试里现编的假 exe**：`testdata/fakeapp` 用 `-X main.mode=healthy|crash|hang` 编出三种“新版本”；临时安装目录 + 假的 `install.System`，**不碰真实安装和注册表**）：成功更新（文件、卸载项版本、备份、启动参数和环境变量）、新版本崩溃回滚、新版本卡住超时回滚（进程被结束）、安装失败、旧进程不退出。
+- `internal/ui`：关于页的各个状态、按钮、“只通知”“关闭”、便携副本说明、中文布局（`checkLayout`）。
+- `internal/cli`：golden `update_check*`、`update_download_dry_run`；签名/验证/生成密钥；`TestUpdateRealGitHub` 要设置 `GOLAUNCHER_UPDATE_REAL_TESTS=1` 才查询真实的 GitHub（只读）。
+- `internal/winapi/install`：`HelperSystem` 的启动、环境变量、结束、等待（`GOLAUNCHER_INSTALL_TESTS=1` 时运行，只启动 `cmd.exe`）；系统代理对本机地址直连。
+- `internal/install`：卸载删除 `update` 文件夹。`internal/config`：`updates` 的默认值、旧文件、导出导入。
+- 手动验证：`glctl update check --real` 和 `glctl update download --dry-run --real` 对真实的 v0.4.0 Release 成功（找到 amd64 zip，SHA-256 与 `checksums.txt` 一致，zip 根目录有两个 exe）；用临时生成的一对密钥（只在临时目录，未提交）跑了 `build.ps1 -UpdatePublicKey` → `glctl update sign` → `verify`，换一把密钥签名则验证失败。
+- 没有在真机上跑完整的“下载 → 退出 → 助手安装 → 重启 → 回滚”：那会改真实的卸载项、开始菜单和正在运行的 golauncher。这部分逻辑由上面的助手测试覆盖；第一次真实验证要等下一个版本发布后，在已安装的上一版本上观察（`%LOCALAPPDATA%\golauncher\logs\update.log`）。也可以用 `GOLAUNCHER_UPDATE_API` 指向本机的假服务器演练。

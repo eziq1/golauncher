@@ -449,6 +449,9 @@ func TestUninstall(t *testing.T) {
 			w.write(filepath.Join(d, "data.txt"), "x")
 		}
 		w.write(exe+".old", "stale")
+		inst0 := w.in
+		inst0.Paths.UpdateDir = filepath.Join(t.TempDir(), "update")
+		w.write(filepath.Join(inst0.Paths.UpdateDir, "previous", ExeName), "old version")
 		// A desktop shortcut of the same name to something else stays.
 		w.write(w.in.Paths.DesktopLink, `C:\elsewhere\golauncher.exe`)
 		loginRemoved := false
@@ -463,6 +466,9 @@ func TestUninstall(t *testing.T) {
 		}
 		if w.sys.entry != nil || !loginRemoved {
 			t.Fatal("entry or login item left")
+		}
+		if exists(inst0.Paths.UpdateDir) {
+			t.Fatal("the update folder was left")
 		}
 		for _, d := range w.in.Paths.DataDirs {
 			if exists(d) == purge {

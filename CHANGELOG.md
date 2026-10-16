@@ -8,6 +8,41 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Automatic updates** (R54, docs/auto-update.md): the installed copy checks
+  GitHub Releases for the latest stable version 30 seconds after starting and
+  then daily (or weekly), with ETag caching and GitHub's rate limits
+  respected, through the system proxy. A newer version's archive for the
+  running architecture is downloaded (resumed and retried), verified against
+  the release's `checksums.txt` (SHA-256) and its version resource, and
+  installed when golauncher is idle: hidden, no background task or AI answer
+  running, not used for 3 minutes. A helper (a copy of the running version)
+  installs it with the self-installer, restarts golauncher and waits for the
+  new version to report itself healthy; when it does not, the previous
+  version is restored and the new one is not installed again. After the
+  restart a notification says "Updated to vX.Y.Z" and opens the release
+  notes. *Settings › About* shows the status, *Check for Updates*,
+  *Restart to Update*, *Skip This Version* and *What's new*, and chooses
+  *Download and install* (default), *Only notify me* or *Off*, daily or
+  weekly. The tray menu has *Check for Updates…*, and the launcher a
+  *Check for Updates* command (`builtin.update`). Portable copies and
+  development builds never update themselves; `GOLAUNCHER_NO_UPDATE=1` turns
+  updates off. Updates never downgrade and never touch your settings or
+  data.
+- Optional ed25519 signatures of `checksums.txt` (`checksums.txt.sig`): when
+  the repository variable `UPDATE_PUBLIC_KEY` and the secret
+  `UPDATE_SIGNING_KEY` are set, the release workflow builds the public key in
+  and signs the checksums, and updates then require a valid signature.
+- `glctl update check`, `glctl update download --dry-run` (against a fake
+  GitHub, or the real one with `--real`), `glctl update sign`, `verify` and
+  `keygen`.
+
+### Changed
+
+- Configuration: new `updates` object (`mode`, `frequency`); older versions
+  ignore it. Uninstalling also removes `%LOCALAPPDATA%\golauncher\update`.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

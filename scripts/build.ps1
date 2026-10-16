@@ -9,6 +9,10 @@
   (-X main.version) and stamped into their version resources; the committed
   .syso files are restored afterwards.
 
+  -UpdatePublicKey (default: $env:GOLAUNCHER_UPDATE_PUBLIC_KEY) builds in the
+  base64 ed25519 public key that release checksums must be signed with
+  (docs/auto-update.md §9); without it, updates check only SHA-256.
+
   -Zip also writes dist/golauncher_<version>_windows_<arch>.zip with
   golauncher.exe, glctl.exe, LICENSE, README.md, README.zh-CN.md (if
   present) and CHANGELOG.md, the layout of the release archives
@@ -25,6 +29,7 @@ param(
     [string]$Version = '',
     [string]$OutDir = '',
     [switch]$Zip,
+    [string]$UpdatePublicKey = $env:GOLAUNCHER_UPDATE_PUBLIC_KEY,
     # Skip stamping the version into the Windows resources (keeps the
     # committed .syso files, and needs no go-winres).
     [switch]$NoResources
@@ -68,6 +73,11 @@ try {
     $env:GOARCH = $Arch
     $env:CGO_ENABLED = '0'
     $ldflags = "-s -w -X main.version=$Version"
+    if ($UpdatePublicKey) {
+        if ($UpdatePublicKey -notmatch '^[A-Za-z0-9+/]{43}=$') { throw 'UpdatePublicKey is not a base64 ed25519 public key' }
+        $ldflags += " -X github.com/eziq1/golauncher/internal/update.PublicKey=$UpdatePublicKey"
+        Write-Host 'update signatures: required (public key built in)'
+    }
     Push-Location $root
     try {
         # mygo_noinspector leaves MyGo's developer tools out of release binaries.

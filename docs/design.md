@@ -532,7 +532,7 @@ glctl session action -s s.json builtin.clipboard/1 pin
 | `Alt+Space` 冲突 | 默认键已确定为 `Alt+Space`。注册全局热键后，它会覆盖系统窗口菜单的 `Alt+Space`（与 Raycast for Windows 的做法相同）。如果被 PowerToys Run 等程序占用导致注册失败，就弹出通知并打开设置页的热键录制，建议改用 `Ctrl+Space` 或 `Alt+Shift+Space` |
 | DPI | 声明 Per-Monitor V2，窗口显示在当前鼠标所在的显示器上 |
 | 纯 Go | 不用 cgo；Win32 走 `golang.org/x/sys/windows` + `syscall`；SQLite 用 `modernc.org/sqlite` |
-| 打包 | `go build -ldflags "-H windowsgui"`；用 `go-winres` 嵌入图标和 manifest；用 MSIX 或 Inno Setup 做安装包；更新用 MyGo `plugins/updater` |
+| 打包 | `go build -ldflags "-H windowsgui"`；用 `go-winres` 嵌入图标和 manifest；安装由 `golauncher.exe` 自己完成（[self-install.md](self-install.md)）；自动更新是自己实现的（GitHub Releases + SHA-256，可选 ed25519 签名；没有用 MyGo `plugins/updater`，原因见 [auto-update.md §2](auto-update.md)） |
 | 运行时依赖 | 原生 UI 模式不依赖 WebView2（待验证：MyGo 原生 UI 在 Windows 上的渲染后端） |
 
 ## 10. 国际化（I18N）
@@ -619,7 +619,7 @@ type Localizer interface {
 | **v0.1.0 发布**（原 M6 的一部分） | 发布工程（版本号、图标、CI、自动发布）、代码审查与修复、稳定性（R11、R12、R14）、自安装（R15）、文档 | CI 全绿；GitHub Release 包含 amd64 和 arm64 两个 zip | ✅ 功能齐备（含自安装，[self-install.md](self-install.md)）；发布记录见 [release.md](release.md) |
 | **M5 插件平台（v0.2）** | ① `Host.Invalidate`：通知后再拉取（[plugin-render-model.md](plugin-render-model.md) 第一级）<br>② Form 视图和命令参数输入<br>③ 设置项扩展：按钮型、动态选项、分组和条件显示（[plugin-settings.md](plugin-settings.md)）<br>④ 外部插件：JSON-RPC、`extproc`、`rpcserve`；进程隔离、崩溃重启和熔断（[reliability.md §3.3](reliability.md)）；协议预留 `ui/render` 推送快照（第二级）<br>⑤ 兼容 Raycast Script Commands（[调研方案 C](raycast-extensions-research.md)） | 用 Go 和 Python 各写一个示例外部插件并跑通；外部插件崩溃不影响宿主；剪贴板和应用视图能自动刷新 | ✅ 已在 main 上实现（[m5-plugin-platform.md](m5-plugin-platform.md) §11–§13），随 v0.2.0 发布 |
 | **v0.3.0 发布**（R37） | 单位换算与汇率（R28）、系统命令与设置直达、终端与 WSL、网络工具（R31）、简体中文界面（R35）；SDK 增加 `Action.EndsSession` 和 `Clipboard.WriteSecret` | 五个分支重放到 `main`、脱敏、CI 全绿；Release 为正式版 | ✅ |
-| **M6 分发与维护（v0.4）** | 自动更新（MyGo `plugins/updater`）、代码签名、计算器补全（`ans`；单位和汇率换算已在 v0.3.0 完成）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 📋 |
+| **M6 分发与维护（v0.4）** | 自动更新（R54，自己实现，不用 MyGo `plugins/updater`）、代码签名、计算器补全（`ans`；单位和汇率换算已在 v0.3.0 完成）、`Tab` 进入命令参数、快捷键显示名本地化；外部插件首次运行提示（调研指出"不签名、不提示"对第三方 JS 生态不够，需要你重新决定） | 满足 §11 指标；`en-XA` 截图无写死文字 | 🚧 自动更新已实现（待合并，[auto-update.md](auto-update.md)）；其余 📋 |
 | **M7 Raycast 扩展兼容评估** | 约 2 人周的 Node sidecar 原型：自写 `@raycast/api` 子集和 React reconciler，通过 `ui/render` 推送；挑 3–5 个支持 Windows 的纯列表扩展试跑 | 根据结果决定是否投入方案 B（8–12 人周） | 📋 等你决定（R13） |
 ## 13. 风险与对策
 
@@ -690,7 +690,7 @@ type Localizer interface {
 **尚未实现 / 已知限制**：都已排入 §12 的里程碑。
 
 - **M5**：外部插件和进程隔离、Form 视图和命令参数、设置项扩展、`Host.Invalidate`、Script Commands 兼容。
-- **M6**：自动更新、代码签名、计算器补全（`ans`）、`Tab` 进入命令参数、快捷键显示名本地化。
+- **M6**：~~自动更新~~（R54 已实现，待合并）、代码签名（Authenticode；更新包的 ed25519 签名已可选启用）、计算器补全（`ans`）、`Tab` 进入命令参数、快捷键显示名本地化。
 - **M7**：Raycast 扩展兼容评估。
 
 其他文档：

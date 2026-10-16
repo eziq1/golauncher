@@ -45,6 +45,7 @@ func selfInstall(o *Options) (done bool, err error) {
 	o.keepLoginItem = st.Portable()
 	if st.Self {
 		install.Cleanup(st.Dir)
+		o.installDir = st.Dir // the installed copy updates itself
 	}
 	if install.Skip(o.Version, f, os.Getenv) {
 		return false, nil
@@ -73,6 +74,9 @@ func newInstaller(self, version string) (*install.Installer, error) {
 	}
 	if dir, err := app.DefaultCacheDir(); err == nil {
 		paths.DataDirs = append(paths.DataDirs, dir)
+	}
+	if dir, err := updateDir(); err == nil {
+		paths.UpdateDir = dir
 	}
 	return &install.Installer{
 		Sys:             winstall.New(),

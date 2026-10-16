@@ -214,3 +214,33 @@ func TestLegacyTheme(t *testing.T) {
 		t.Fatal("fixed theme")
 	}
 }
+
+func TestUpdatesDefaultsAndRoundTrip(t *testing.T) {
+	var u UpdatesConfig
+	if u.EffectiveMode() != UpdatesAuto || u.EffectiveFrequency() != UpdatesDaily {
+		t.Fatalf("defaults = %s/%s", u.EffectiveMode(), u.EffectiveFrequency())
+	}
+	if (UpdatesConfig{Mode: "bogus", Frequency: "hourly"}).EffectiveMode() != UpdatesAuto {
+		t.Fatal("an unknown mode is not the default")
+	}
+	path := filepath.Join(t.TempDir(), "config.json")
+	// A file of an older version has no "updates": it loads with the defaults
+	// and is written without the field until it is set.
+	os.WriteFile(path, []byte(`{"schemaVersion": 1, "hotkey": "Alt+Space"}`), 0o644)
+	cfg, err := Load(path)
+	if err != nil || cfg.Updates != (UpdatesConfig{}) {
+		t.Fatalf("Load = %+v, %v", cfg.Updates, err)
+	}
+	cfg.Updates = UpdatesConfig{Mode: UpdatesNotify, Frequency: UpdatesWeekly}
+	if err := Save(path, cfg); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(path)
+	if err != nil || again.Updates.EffectiveMode() != UpdatesNotify || again.Updates.EffectiveFrequency() != UpdatesWeekly {
+		t.Fatalf("reloaded = %+v, %v", again.Updates, err)
+	}
+	data, _ := Export(again)
+	if _, err := Import(data); err != nil {
+		t.Fatalf("import of an export with updates: %v", err)
+	}
+}
