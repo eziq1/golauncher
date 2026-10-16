@@ -158,7 +158,11 @@ func eventually(t *testing.T, what string, cond func() bool) {
 // settle waits until the scheduler waits with nothing left to do.
 func (e *env) settle(t *testing.T) {
 	t.Helper()
-	eventually(t, "the scheduler is idle", func() bool { return e.p.idle.Load() && len(e.p.wake) == 0 })
+	eventually(t, "the scheduler is idle", func() bool {
+		// Every wake-up asked for has been seen by a check: a wake-up just
+		// taken from the channel leaves idle set until the loop goes round.
+		return e.p.idle.Load() && e.p.seen.Load() == e.p.wakes.Load()
+	})
 }
 
 // check makes the scheduler look at the clock again, as after its wait

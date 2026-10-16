@@ -129,6 +129,7 @@ func (p *Plugin) saveLocked() {
 // held; call p.shown after unlocking.
 func (p *Plugin) changedLocked() {
 	p.saveLocked()
+	p.wakes.Add(1)
 	select {
 	case p.wake <- struct{}{}:
 	default:
@@ -414,12 +415,14 @@ func (p *Plugin) schedule() {
 		}
 	}
 	for {
+		seen := p.wakes.Load()
 		p.fireDue()
 		p.checks.Add(1)
 		var tc <-chan time.Time
 		if d, ok := p.nextWait(); ok {
 			tc = p.opts.WaitAfter(d)
 		}
+		p.seen.Store(seen)
 		p.idle.Store(true)
 		select {
 		case <-p.done:

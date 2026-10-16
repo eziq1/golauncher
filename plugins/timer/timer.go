@@ -106,6 +106,8 @@ type Plugin struct {
 	running atomic.Int32 // refresh loops
 	checks  atomic.Int64 // scheduler checks for due timers
 	idle    atomic.Bool  // the scheduler waits
+	wakes   atomic.Int64 // wake-ups asked for
+	seen    atomic.Int64 // wake-ups the scheduler had seen when it last checked
 	fired   atomic.Int64 // notifications sent
 
 	mu sync.Mutex // the timers
@@ -198,6 +200,7 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.stopAll)
 	shown := h.Events().Subscribe(plugin.EventWindowShown, func() {
 		// Look again: the computer may have slept.
+		p.wakes.Add(1)
 		select {
 		case p.wake <- struct{}{}:
 		default:
