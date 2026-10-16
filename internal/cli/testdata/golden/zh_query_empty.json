@@ -455,6 +455,80 @@
           "key": "builtin.tasks/cmd:tasks"
         },
         {
+          "id": "cmd:hung",
+          "title": "结束未响应的应用",
+          "subtitle": "进程",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "未响应",
+            "卡死",
+            "强制结束",
+            "无响应",
+            "wxy",
+            "qzjs",
+            "End Apps Not Responding",
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung"
+        },
+        {
+          "id": "cmd:processes",
+          "title": "进程",
+          "subtitle": "进程",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "进程",
+            "任务管理器",
+            "占用",
+            "结束任务",
+            "process",
+            "task manager",
+            "jc",
+            "rwglq",
+            "Processes",
+            "processes",
+            "cpu",
+            "memory",
+            "end task",
+            "kill"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "processes"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:processes"
+        },
+        {
           "id": "cmd:timers",
           "title": "计时器",
           "subtitle": "计时器",
@@ -801,6 +875,42 @@
           ],
           "plugin": "builtin.network",
           "key": "builtin.network/cmd:wifi"
+        },
+        {
+          "id": "cmd:restart-explorer",
+          "title": "重启 Windows 资源管理器",
+          "subtitle": "进程",
+          "icon": {
+            "name": "rotate-cw"
+          },
+          "keywords": [
+            "资源管理器",
+            "任务栏",
+            "开始菜单",
+            "重启",
+            "cqzyglq",
+            "zyglq",
+            "Restart Windows Explorer",
+            "explorer",
+            "restart explorer",
+            "taskbar",
+            "start menu"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "restart-explorer"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:restart-explorer"
         },
         {
           "id": "cmd:reload",

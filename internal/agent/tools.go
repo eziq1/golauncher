@@ -347,9 +347,9 @@ type itemJSON struct {
 func (c *call) item(e core.Entry, section string, nav *core.Nav, query string) itemJSON {
 	h := c.s.put(&handle{kind: kindItem, entry: e, nav: nav, query: query})
 	it := itemJSON{
-		Handle: h, Title: truncate(e.Title, maxTitle), Subtitle: truncate(e.Subtitle, maxTitle), Info: truncate(e.Accessory, maxTitle),
+		Handle: h, Title: truncate(e.Title, maxTitle), Subtitle: truncate(subtitle(e), maxTitle), Info: truncate(info(e), maxTitle),
 		Section: truncate(section, maxTitle), Plugin: e.Plugin, Command: strings.HasPrefix(e.ID, "cmd:"),
-		Details:   e.Detail != nil && (e.Detail.Markdown != "" || len(e.Detail.Metadata) > 0),
+		Details:   e.Detail != nil && (e.Detail.Markdown != "" || len(metadataJSON(e.Detail.Metadata)) > 0),
 		Arguments: argumentsJSON(e.Arguments), Actions: []actionJSON{},
 	}
 	if it.Command {
@@ -359,6 +359,37 @@ func (c *call) item(e core.Entry, section string, nav *core.Nav, query string) i
 		it.Actions = append(it.Actions, actionJSON{ID: a.ID, Title: truncate(a.Title, maxTitle), Risk: RiskOf(a)})
 	}
 	return it
+}
+
+// subtitle is the subtitle of e an AI may see: none when it is sensitive
+// (Item.SubtitleSensitive, e.g. a window title naming a document).
+func subtitle(e core.Entry) string {
+	if e.SubtitleSensitive {
+		return ""
+	}
+	return e.Subtitle
+}
+
+// matchVisible scores query against what an AI may see of e, so that a
+// search cannot probe a sensitive subtitle: 0 for no match.
+func matchVisible(query string, e core.Entry) float64 {
+	e.Subtitle = subtitle(e)
+	return core.MatchEntry(query, e)
+}
+
+// info joins e's Accessory and the texts of its Accessories, e.g.
+// "CPU 3.2% · 1.2 GB".
+func info(e core.Entry) string {
+	parts := make([]string, 0, 1+len(e.Accessories))
+	if e.Accessory != "" {
+		parts = append(parts, e.Accessory)
+	}
+	for _, a := range e.Accessories {
+		if a.Text != "" {
+			parts = append(parts, a.Text)
+		}
+	}
+	return strings.Join(parts, " · ")
 }
 
 func (c *call) search(ctx context.Context, query, only, view string, limit int) Result {
@@ -397,6 +428,9 @@ func (c *call) search(ctx context.Context, query, only, view string, limit int) 
 	for _, e := range entries {
 		if _, ok := plugins[e.Plugin]; !ok || e.Sensitive || only != "" && e.Plugin != only {
 			continue
+		}
+		if e.SubtitleSensitive && e.Score == 0 && matchVisible(query, e) == 0 {
+			continue // found by its subtitle only, which the AI may not see
 		}
 		if len(items) == limit {
 			more++
@@ -531,7 +565,7 @@ func (c *call) view(ctx context.Context, nav core.Nav, query string, limit int) 
 				continue
 			}
 			if v.FilterLocally && strings.TrimSpace(query) != "" {
-				if e.Rank = core.MatchEntry(query, e); e.Rank == 0 {
+				if e.Rank = matchVisible(query, e); e.Rank == 0 {
 					continue
 				}
 			}
@@ -554,9 +588,14 @@ func (c *call) view(ctx context.Context, nav core.Nav, query string, limit int) 
 	return vj, nil
 }
 
+// metadataJSON describes the detail rows an AI may see: not the sensitive
+// ones (Metadata.Sensitive, e.g. a command line).
 func metadataJSON(md []plugin.Metadata) []metaJSON {
 	var out []metaJSON
 	for _, m := range md {
+		if m.Sensitive {
+			continue
+		}
 		out = append(out, metaJSON{Label: truncate(m.Label, maxTitle), Value: truncate(m.Value, maxText)})
 	}
 	return out
@@ -599,8 +638,8 @@ func (c *call) getDetail(id string) Result {
 	e := h.entry
 	c.summary = quote(truncate(e.Title, 80))
 	res := map[string]any{"handle": id, "title": truncate(e.Title, maxTitle), "plugin": e.Plugin}
-	if e.Subtitle != "" {
-		res["subtitle"] = truncate(e.Subtitle, maxTitle)
+	if s := subtitle(e); s != "" {
+		res["subtitle"] = truncate(s, maxTitle)
 	}
 	if d := e.Detail; d != nil {
 		if d.Markdown != "" {
@@ -751,7 +790,7 @@ func (c *call) execute(ctx context.Context, t target) Result {
 		if confirm != nil {
 			cl := c.s.Client()
 			d = confirm(ctx, core.ExternalRequest{
-				Client: a.DisplayName(cl), Action: t.title, Item: t.item, Plugin: t.plugin,
+				Client: a.DisplayName(cl), Action: t.title, Item: t.item, Plugin: t.plugin, Message: t.action.ConfirmMessage,
 				Destructive: risk == RiskDestructive, EndsSession: t.action.EndsSession,
 				AllowSession: risk != RiskDestructive, InPlace: cl.Chat,
 			})

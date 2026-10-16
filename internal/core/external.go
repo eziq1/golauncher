@@ -23,6 +23,10 @@ type ExternalRequest struct {
 	Action string
 	Item   string
 	Plugin string
+	// Message is the plugin's confirmation text (Action.ConfirmMessage),
+	// e.g. "12 processes will be ended."; "" for none. It replaces the
+	// generic line of a destructive action and is shown for any other.
+	Message string
 	// Destructive asks with the danger style and never offers AllowSession.
 	Destructive bool
 	// EndsSession warns that the Windows session ends (and with it the
@@ -192,6 +196,8 @@ func (c *Controller) externalSnapshot() *ConfirmSnapshot {
 			}
 		}
 		lines = append(lines, msg)
+	} else if r.Message != "" {
+		lines = append(lines, r.Message)
 	} else if r.Destructive {
 		lines = append(lines, core.T("confirm.message"))
 	}

@@ -1113,7 +1113,7 @@ func (c *Controller) Snapshot() Snapshot {
 	if p := c.confirm; p != nil {
 		s.Confirm = &ConfirmSnapshot{
 			Title:   core.T("confirm.title", "action", p.action.Title, "item", p.entry.Title),
-			Message: core.T("confirm.message"),
+			Message: cmp.Or(p.action.ConfirmMessage, core.T("confirm.message")),
 			Confirm: p.action.Title,
 			Cancel:  core.T("confirm.cancel"),
 			Danger:  true,

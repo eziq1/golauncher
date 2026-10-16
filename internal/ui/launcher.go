@@ -613,6 +613,37 @@ func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 		if e.Accessory != "" {
 			l.shadowed(mui.Text(c, e.Accessory).FontSize(12).TextColor(muted).SingleLine().Shrink(0), selected)
 		}
+		for i := range e.Accessories {
+			l.accessory(c, &e.Accessories[i], muted, selected)
+		}
+	})
+}
+
+// Sizes of an Item.Accessories value: fixed, so that values updated every
+// second (a process's CPU use) do not move the row.
+const (
+	accessoryMeterWidth = 40
+	accessoryTextWidth  = 56
+)
+
+// accessory shows one of an item's Accessories: an optional small bar, in
+// the theme's Success color or, as a load, its Warning and Danger colors,
+// then its text right-aligned in a fixed minimum width.
+func (l *Launcher) accessory(c *mui.Context, a *plugin.Accessory, muted mui.Color, selected bool) {
+	if a.Meter == nil && a.Text == "" {
+		return
+	}
+	mui.Row(c).Gap(6).AlignItems(mui.Center).Shrink(0).Children(func() {
+		if a.Meter != nil {
+			var levels *mui.MeterLevels
+			if a.Load {
+				levels = &mui.MeterLevels{Warning: 0.5, Critical: 0.8}
+			}
+			mui.Meter(c, *a.Meter, 0, 1, levels).Width(accessoryMeterWidth).MinWidth(accessoryMeterWidth).Shrink(0)
+		}
+		if a.Text != "" {
+			l.shadowed(mui.Text(c, a.Text).FontSize(12).TextColor(muted).SingleLine().MinWidth(accessoryTextWidth).TextAlign(mui.End).Shrink(0), selected)
+		}
 	})
 }
 

@@ -38,6 +38,38 @@ Before 1.0.0, minor versions may contain breaking changes.
   GitHub, or the real one with `--real`), `glctl update sign`, `verify` and
   `keygen`.
 
+- **Process manager** (`builtin.processes`, R52/R55, docs/process-manager.md):
+  `ps ` (with a space: `ps` alone still finds PowerShell), `kill` and `进程`
+  in the main search, and the *Processes* command, list the running apps
+  and processes grouped by app as in Task Manager (Apps, Background
+  processes, Windows processes), with CPU and memory bars and values
+  refreshed every second while the list shows (nothing is sampled
+  otherwise). Search by name, executable, window title, pinyin or PID.
+  Enter switches to the app's window (a process without windows opens its
+  processes and details); *End Task* (Ctrl+X) asks an app to close without
+  confirmation and offers *Force End* when it is still running; *Force End*
+  (Ctrl+Shift+X) and *End Process Tree* (Ctrl+Alt+X) ask first, with a
+  warning naming what stops. Each process is identified by its PID and
+  creation time, checked on the handle that ends it, so a reused PID is
+  never ended. Critical system processes and golauncher itself cannot be
+  ended; Windows Explorer is restarted instead. A process that needs
+  administrator rights is ended through a one-off UAC prompt (*End as
+  Administrator*, Ctrl+Shift+A, running a hidden `golauncher kill` helper);
+  the launcher itself never runs elevated. Details list memory (private
+  working set, working set, commit, peak), I/O, parent, path, user and
+  elevation, start time, handles, threads, windows, listening ports and the
+  command line (secrets such as `--token=…` hidden). *Quit <app>* acts on
+  the app that was in front, and *Force Quit <app> (Not Responding)* tops
+  the empty search when that app hangs. Commands *End Apps Not Responding*
+  and *Restart Windows Explorer*. Window titles and command lines are never
+  given to AI.
+- SDK: `Item.Accessories` (values with an optional bar at the right edge),
+  `Item.SubtitleSensitive` and `Metadata.Sensitive` (shown, never given to
+  AI), `Action.ConfirmMessage` (the text of the confirmation, also shown
+  when an AI asks) and `Query.Raw` (the root search text untrimmed, for a
+  prefix that needs a space). They travel in the external plugin protocol
+  too (`raw` in `rootItems`).
+
 ### Changed
 
 - **AI web search is on by default** (R56): the AI chat's *Allow web
@@ -60,6 +92,9 @@ Before 1.0.0, minor versions may contain breaking changes.
   on it and on the selected row stays readable whatever the accent.
 - Configuration: new `updates` object (`mode`, `frequency`); older versions
   ignore it. Uninstalling also removes `%LOCALAPPDATA%\golauncher\update`.
+- Network tools: the port owners' *End Process* uses the process manager's
+  code: it checks the process's creation time instead of its name, and
+  refuses protected processes with a message.
 
 ## [0.4.0] - 2026-10-16
 

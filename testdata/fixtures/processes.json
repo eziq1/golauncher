@@ -1,0 +1,1037 @@
+{
+  "cpus": 8,
+  "memTotal": 34359738368,
+  "memAvail": 14495514624,
+  "self": 3700,
+  "systemRoot": "C:\\Windows",
+  "elevated": false,
+  "time": "2026-10-14T09:59:58Z",
+  "sysIdle": [
+    900000000000,
+    900061600000
+  ],
+  "sysBusy": [
+    200000000000,
+    200018400000
+  ],
+  "processes": [
+    {
+      "pid": 4,
+      "created": 134364384000000000,
+      "parent": 0,
+      "name": "System",
+      "session": 0,
+      "threads": 240,
+      "handles": 5100,
+      "memory": 20480,
+      "workingSet": 28672,
+      "commit": 24576,
+      "peak": 32768,
+      "cpu": [
+        9000000000,
+        9000320000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "denied": true
+      }
+    },
+    {
+      "pid": 140,
+      "created": 134364384000000001,
+      "parent": 4,
+      "name": "Registry",
+      "session": 0,
+      "threads": 4,
+      "handles": 0,
+      "memory": 15728640,
+      "workingSet": 22020096,
+      "commit": 18874368,
+      "peak": 25165824,
+      "cpu": [
+        10000000,
+        10000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "denied": true
+      }
+    },
+    {
+      "pid": 600,
+      "created": 134364384020000000,
+      "parent": 4,
+      "name": "smss.exe",
+      "session": 0,
+      "threads": 2,
+      "handles": 60,
+      "memory": 1048576,
+      "workingSet": 1468006,
+      "commit": 1258291,
+      "peak": 1677722,
+      "cpu": [
+        1000000,
+        1000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\smss.exe",
+        "description": "Windows Session Manager",
+        "user": "NT AUTHORITY\\SYSTEM",
+        "critical": true,
+        "systemAccount": true
+      }
+    },
+    {
+      "pid": 720,
+      "created": 134364384040000000,
+      "parent": 0,
+      "name": "csrss.exe",
+      "session": 0,
+      "threads": 12,
+      "handles": 700,
+      "memory": 2097152,
+      "workingSet": 2936013,
+      "commit": 2516582,
+      "peak": 3355443,
+      "cpu": [
+        50000000,
+        50002000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "denied": true
+      }
+    },
+    {
+      "pid": 812,
+      "created": 134364384050000000,
+      "parent": 0,
+      "name": "wininit.exe",
+      "session": 0,
+      "threads": 1,
+      "handles": 160,
+      "memory": 1572864,
+      "workingSet": 2202010,
+      "commit": 1887437,
+      "peak": 2516582,
+      "cpu": [
+        1000000,
+        1000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\wininit.exe",
+        "description": "Windows Start-Up Application",
+        "user": "NT AUTHORITY\\SYSTEM",
+        "critical": true,
+        "systemAccount": true
+      }
+    },
+    {
+      "pid": 900,
+      "created": 134364384060000000,
+      "parent": 812,
+      "name": "services.exe",
+      "session": 0,
+      "threads": 9,
+      "handles": 900,
+      "memory": 6291456,
+      "workingSet": 8808038,
+      "commit": 7549747,
+      "peak": 10066330,
+      "cpu": [
+        200000000,
+        200001000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "denied": true
+      }
+    },
+    {
+      "pid": 920,
+      "created": 134364384060000001,
+      "parent": 812,
+      "name": "lsass.exe",
+      "session": 0,
+      "threads": 10,
+      "handles": 1500,
+      "memory": 9437184,
+      "workingSet": 13212058,
+      "commit": 11324621,
+      "peak": 15099494,
+      "cpu": [
+        300000000,
+        300003000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "denied": true
+      }
+    },
+    {
+      "pid": 1100,
+      "created": 134364384070000000,
+      "parent": 900,
+      "name": "svchost.exe",
+      "session": 0,
+      "threads": 20,
+      "handles": 1300,
+      "memory": 23068672,
+      "workingSet": 32296141,
+      "commit": 27682406,
+      "peak": 36909875,
+      "cpu": [
+        600000000,
+        600030000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\svchost.exe",
+        "description": "Host Process for Windows Services",
+        "user": "NT AUTHORITY\\SYSTEM",
+        "systemAccount": true
+      },
+      "commandLine": "C:\\Windows\\system32\\svchost.exe -k DcomLaunch -p"
+    },
+    {
+      "pid": 1180,
+      "created": 134364384080000000,
+      "parent": 900,
+      "name": "svchost.exe",
+      "session": 0,
+      "threads": 8,
+      "handles": 400,
+      "memory": 8388608,
+      "workingSet": 11744051,
+      "commit": 10066330,
+      "peak": 13421773,
+      "cpu": [
+        20000000,
+        20000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\svchost.exe",
+        "description": "Host Process for Windows Services",
+        "user": "NT AUTHORITY\\LOCAL SERVICE",
+        "systemAccount": true
+      }
+    },
+    {
+      "pid": 1500,
+      "created": 134364384200000000,
+      "parent": 812,
+      "name": "dwm.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 1800,
+      "memory": 99614720,
+      "workingSet": 139460608,
+      "commit": 119537664,
+      "peak": 159383552,
+      "cpu": [
+        4000000000,
+        4000480000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\dwm.exe",
+        "description": "Desktop Window Manager",
+        "user": "Window Manager\\DWM-1"
+      }
+    },
+    {
+      "pid": 2000,
+      "created": 134364384600000000,
+      "parent": 1999,
+      "name": "explorer.exe",
+      "session": 1,
+      "threads": 90,
+      "handles": 4200,
+      "memory": 146800640,
+      "workingSet": 205520896,
+      "commit": 176160768,
+      "peak": 234881024,
+      "cpu": [
+        3000000000,
+        3000040000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\explorer.exe",
+        "description": "Windows Explorer",
+        "user": "CONTOSO\\demo",
+        "integrity": "Medium"
+      },
+      "commandLine": "C:\\Windows\\Explorer.EXE",
+      "windows": [
+        {
+          "shell": true,
+          "title": ""
+        },
+        {
+          "title": "Project files"
+        }
+      ]
+    },
+    {
+      "pid": 2100,
+      "created": 134364384580000000,
+      "parent": 1180,
+      "name": "sihost.exe",
+      "session": 1,
+      "threads": 14,
+      "handles": 700,
+      "memory": 12582912,
+      "workingSet": 17616077,
+      "commit": 15099494,
+      "peak": 20132659,
+      "cpu": [
+        100000000,
+        100000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\sihost.exe",
+        "description": "Shell Infrastructure Host",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 2200,
+      "created": 134364384590000000,
+      "parent": 1180,
+      "name": "ctfmon.exe",
+      "session": 1,
+      "threads": 9,
+      "handles": 500,
+      "memory": 9437184,
+      "workingSet": 13212058,
+      "commit": 11324621,
+      "peak": 15099494,
+      "cpu": [
+        90000000,
+        90001500
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Windows\\System32\\ctfmon.exe",
+        "description": "CTF Loader",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 3000,
+      "created": 134364438000000000,
+      "parent": 2000,
+      "name": "writer.exe",
+      "session": 1,
+      "threads": 30,
+      "handles": 900,
+      "memory": 325058560,
+      "workingSet": 455081984,
+      "commit": 390070272,
+      "peak": 520093696,
+      "cpu": [
+        200000000,
+        200000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Contoso\\Writer\\writer.exe",
+        "description": "Contoso Writer",
+        "user": "CONTOSO\\demo",
+        "integrity": "Medium"
+      },
+      "commandLine": "\"C:\\Program Files\\Contoso\\Writer\\writer.exe\" \"C:\\Users\\demo\\Documents\\Quarterly plan.docx\"",
+      "windows": [
+        {
+          "title": "Quarterly plan.docx - Contoso Writer"
+        }
+      ],
+      "closes": true
+    },
+    {
+      "pid": 3100,
+      "created": 134364438600000000,
+      "parent": 2000,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 45,
+      "handles": 2100,
+      "memory": 440401920,
+      "workingSet": 616562688,
+      "commit": 528482304,
+      "peak": 704643072,
+      "cpu": [
+        500000000,
+        500080000
+      ],
+      "io": [
+        50000000,
+        50122880
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Medium"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\"",
+      "windows": [
+        {
+          "title": "New Tab - Fabrikam"
+        }
+      ]
+    },
+    {
+      "pid": 3101,
+      "created": 134364438610000001,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 62914560,
+      "workingSet": 88080384,
+      "commit": 75497472,
+      "peak": 100663296,
+      "cpu": [
+        10000000,
+        10020000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=1"
+    },
+    {
+      "pid": 3102,
+      "created": 134364438610000002,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 83886080,
+      "workingSet": 117440512,
+      "commit": 100663296,
+      "peak": 134217728,
+      "cpu": [
+        20000000,
+        20040000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=2"
+    },
+    {
+      "pid": 3103,
+      "created": 134364438610000003,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 104857600,
+      "workingSet": 146800640,
+      "commit": 125829120,
+      "peak": 167772160,
+      "cpu": [
+        30000000,
+        30060000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=3"
+    },
+    {
+      "pid": 3104,
+      "created": 134364438610000004,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 125829120,
+      "workingSet": 176160768,
+      "commit": 150994944,
+      "peak": 201326592,
+      "cpu": [
+        40000000,
+        40080000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=4"
+    },
+    {
+      "pid": 3105,
+      "created": 134364438610000005,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 146800640,
+      "workingSet": 205520896,
+      "commit": 176160768,
+      "peak": 234881024,
+      "cpu": [
+        50000000,
+        50100000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=5"
+    },
+    {
+      "pid": 3106,
+      "created": 134364438610000006,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 167772160,
+      "workingSet": 234881024,
+      "commit": 201326592,
+      "peak": 268435456,
+      "cpu": [
+        60000000,
+        60120000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=6"
+    },
+    {
+      "pid": 3107,
+      "created": 134364438610000007,
+      "parent": 3100,
+      "name": "fabrikam.exe",
+      "session": 1,
+      "threads": 18,
+      "handles": 300,
+      "memory": 188743680,
+      "workingSet": 264241152,
+      "commit": 226492416,
+      "peak": 301989888,
+      "cpu": [
+        70000000,
+        70140000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+        "description": "Fabrikam Browser",
+        "user": "CONTOSO\\demo",
+        "integrity": "Low"
+      },
+      "commandLine": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\" --type=renderer --renderer-client-id=7"
+    },
+    {
+      "pid": 3300,
+      "created": 134364438050000000,
+      "parent": 2000,
+      "name": "northwind-sync.exe",
+      "session": 1,
+      "threads": 12,
+      "handles": 350,
+      "memory": 44040192,
+      "workingSet": 61656269,
+      "commit": 52848230,
+      "peak": 70464307,
+      "cpu": [
+        30000000,
+        30000800
+      ],
+      "io": [
+        1000000,
+        1004096
+      ],
+      "info": {
+        "path": "C:\\Users\\demo\\AppData\\Local\\Northwind\\Sync\\northwind-sync.exe",
+        "description": "Northwind Sync",
+        "user": "CONTOSO\\demo"
+      },
+      "commandLine": "\"C:\\Users\\demo\\AppData\\Local\\Northwind\\Sync\\northwind-sync.exe\" --background --api-key=nw-secret-123"
+    },
+    {
+      "pid": 3400,
+      "created": 134364439200000000,
+      "parent": 2000,
+      "name": "code.exe",
+      "session": 1,
+      "threads": 40,
+      "handles": 1200,
+      "memory": 398458880,
+      "workingSet": 557842432,
+      "commit": 478150656,
+      "peak": 637534208,
+      "cpu": [
+        400000000,
+        400040000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Contoso Code\\code.exe",
+        "description": "Contoso Code",
+        "user": "CONTOSO\\demo"
+      },
+      "windows": [
+        {
+          "title": "main.go - shop - Contoso Code"
+        }
+      ]
+    },
+    {
+      "pid": 3410,
+      "created": 134364439300000000,
+      "parent": 3400,
+      "name": "node.exe",
+      "session": 1,
+      "threads": 11,
+      "handles": 250,
+      "memory": 188743680,
+      "workingSet": 264241152,
+      "commit": 226492416,
+      "peak": 301989888,
+      "cpu": [
+        60000000,
+        60088000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\nodejs\\node.exe",
+        "description": "Node.js JavaScript Runtime",
+        "user": "CONTOSO\\demo"
+      },
+      "commandLine": "node server.js --port 3000 --token=abc123 --db https://admin:hunter2@db.example.com/shop"
+    },
+    {
+      "pid": 3420,
+      "created": 134364439310000000,
+      "parent": 3410,
+      "name": "node.exe",
+      "session": 1,
+      "threads": 7,
+      "handles": 120,
+      "memory": 62914560,
+      "workingSet": 88080384,
+      "commit": 75497472,
+      "peak": 100663296,
+      "cpu": [
+        10000000,
+        10000400
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\nodejs\\node.exe",
+        "description": "Node.js JavaScript Runtime",
+        "user": "CONTOSO\\demo"
+      },
+      "commandLine": "node worker.js"
+    },
+    {
+      "pid": 3500,
+      "created": 134364440000000000,
+      "parent": 2000,
+      "name": "paint.exe",
+      "session": 1,
+      "threads": 9,
+      "handles": 300,
+      "memory": 125829120,
+      "workingSet": 176160768,
+      "commit": 150994944,
+      "peak": 201326592,
+      "cpu": [
+        90000000,
+        90000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Litware\\Paint\\paint.exe",
+        "description": "Litware Paint",
+        "user": "CONTOSO\\demo"
+      },
+      "windows": [
+        {
+          "hung": true,
+          "title": "Untitled - Litware Paint"
+        }
+      ]
+    },
+    {
+      "pid": 3600,
+      "created": 134364440500000000,
+      "parent": 2000,
+      "name": "notes.exe",
+      "session": 1,
+      "threads": 10,
+      "handles": 280,
+      "memory": 78643200,
+      "workingSet": 110100480,
+      "commit": 94371840,
+      "peak": 125829120,
+      "cpu": [
+        20000000,
+        20000900
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Adatum\\Notes\\notes.exe",
+        "description": "南风笔记",
+        "user": "CONTOSO\\demo"
+      },
+      "windows": [
+        {
+          "title": "会议记录 - 南风笔记"
+        }
+      ]
+    },
+    {
+      "pid": 3700,
+      "created": 134364384700000000,
+      "parent": 2000,
+      "name": "golauncher.exe",
+      "session": 1,
+      "threads": 20,
+      "handles": 500,
+      "memory": 57671680,
+      "workingSet": 80740352,
+      "commit": 69206016,
+      "peak": 92274688,
+      "cpu": [
+        100000000,
+        100000300
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Users\\demo\\AppData\\Local\\Programs\\golauncher\\golauncher.exe",
+        "description": "golauncher",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 3710,
+      "created": 134364441000000000,
+      "parent": 3700,
+      "name": "tailspin-cli.exe",
+      "session": 1,
+      "threads": 5,
+      "handles": 90,
+      "memory": 26214400,
+      "workingSet": 36700160,
+      "commit": 31457280,
+      "peak": 41943040,
+      "cpu": [
+        5000000,
+        5020000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe",
+        "description": "Tailspin CLI",
+        "user": "CONTOSO\\demo"
+      },
+      "commandLine": "tailspin-cli.exe update --all"
+    },
+    {
+      "pid": 3800,
+      "created": 134364442000000000,
+      "parent": 2000,
+      "name": "tailspin-admin.exe",
+      "session": 1,
+      "threads": 8,
+      "handles": 200,
+      "memory": 34603008,
+      "workingSet": 48444211,
+      "commit": 41523610,
+      "peak": 55364813,
+      "cpu": [
+        10000000,
+        10000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Tailspin\\Admin\\tailspin-admin.exe",
+        "description": "Tailspin Admin Tool",
+        "user": "CONTOSO\\demo",
+        "elevated": true,
+        "integrity": "High"
+      },
+      "windows": [
+        {
+          "title": "Tailspin Admin"
+        }
+      ],
+      "denied": true
+    },
+    {
+      "pid": 3900,
+      "created": 134364384300000000,
+      "parent": 900,
+      "name": "contoso-updater.exe",
+      "session": 0,
+      "threads": 6,
+      "handles": 150,
+      "memory": 14680064,
+      "workingSet": 20552090,
+      "commit": 17616077,
+      "peak": 23488102,
+      "cpu": [
+        4000000,
+        4000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Contoso\\Updater\\contoso-updater.exe",
+        "description": "Contoso Update Service",
+        "user": "NT AUTHORITY\\SYSTEM",
+        "systemAccount": true
+      }
+    },
+    {
+      "pid": 4000,
+      "created": 134364443000000000,
+      "parent": 2000,
+      "name": "lsass.exe",
+      "session": 1,
+      "threads": 3,
+      "handles": 50,
+      "memory": 4194304,
+      "workingSet": 5872026,
+      "commit": 5033165,
+      "peak": 6710886,
+      "cpu": [
+        1000000,
+        1000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Users\\demo\\Downloads\\lsass.exe",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 4100,
+      "created": 134364444000000000,
+      "parent": 9999,
+      "name": "wingtip-helper.exe",
+      "session": 1,
+      "threads": 4,
+      "handles": 70,
+      "memory": 8388608,
+      "workingSet": 11744051,
+      "commit": 10066330,
+      "peak": 13421773,
+      "cpu": [
+        2000000,
+        2000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Wingtip\\wingtip-helper.exe",
+        "description": "Wingtip Helper",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 4200,
+      "created": 134364444100000000,
+      "parent": 4300,
+      "name": "wingtip-agent.exe",
+      "session": 1,
+      "threads": 4,
+      "handles": 70,
+      "memory": 9437184,
+      "workingSet": 13212058,
+      "commit": 11324621,
+      "peak": 15099494,
+      "cpu": [
+        2000000,
+        2000000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Wingtip\\wingtip-agent.exe",
+        "description": "Wingtip Agent",
+        "user": "CONTOSO\\demo"
+      }
+    },
+    {
+      "pid": 4300,
+      "created": 134364447000000000,
+      "parent": 2000,
+      "name": "margie-travel.exe",
+      "session": 1,
+      "threads": 14,
+      "handles": 400,
+      "memory": 94371840,
+      "workingSet": 132120576,
+      "commit": 113246208,
+      "peak": 150994944,
+      "cpu": [
+        20000000,
+        20002000
+      ],
+      "io": [
+        0,
+        0
+      ],
+      "info": {
+        "path": "C:\\Program Files\\Margie\\Travel\\margie-travel.exe",
+        "description": "Margie's Travel",
+        "user": "CONTOSO\\demo"
+      },
+      "windows": [
+        {
+          "title": "Trips - Margie's Travel"
+        }
+      ]
+    }
+  ],
+  "sockets": [
+    {
+      "local": "0.0.0.0:3000",
+      "pid": 3410,
+      "proto": "tcp"
+    },
+    {
+      "local": "127.0.0.1:9229",
+      "pid": 3410,
+      "proto": "tcp"
+    }
+  ]
+}

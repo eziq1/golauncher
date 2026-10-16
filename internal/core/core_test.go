@@ -334,6 +334,93 @@ func TestDestructiveNeedsConfirmation(t *testing.T) {
 	}
 }
 
+// endTask is a plugin whose destructive actions say what they do
+// (Action.ConfirmMessage).
+type endTask struct{}
+
+func (endTask) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "tasks", Name: "Tasks", Version: "1"}
+}
+func (endTask) Init(context.Context, plugin.Host) error { return nil }
+func (endTask) Close() error                            { return nil }
+func (endTask) RootItems(context.Context, plugin.Query) ([]plugin.Item, error) {
+	return []plugin.Item{{ID: "worker", Title: "worker", Actions: []plugin.Action{
+		{ID: "end", Title: "End Process Tree", Style: plugin.StyleDestructive, ConfirmMessage: "3 processes will be ended.",
+			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "end"}},
+		{ID: "sign-out", Title: "Sign Out", Style: plugin.StyleDestructive, EndsSession: true, ConfirmMessage: "ignored",
+			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "sign-out"}},
+	}}}, nil
+}
+func (endTask) HandleAction(context.Context, plugin.ActionDo) (plugin.Result, error) {
+	return plugin.Result{}, nil
+}
+
+// TestConfirmMessage shows a destructive action's ConfirmMessage in place
+// of the generic confirmation text; the session warning of an action that
+// ends the session wins over it.
+func TestConfirmMessage(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{endTask{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	env.Controller.SetText(t.Context(), "worker")
+	env.Controller.Wait()
+	if _, err := env.Controller.Key(t.Context(), "Enter"); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Controller.Snapshot().Confirm
+	if c == nil || c.Message != "3 processes will be ended." || !c.Danger {
+		t.Fatalf("confirm = %+v", c)
+	}
+	env.Controller.Key(t.Context(), "Escape")
+	if _, err := env.Controller.RunAction(t.Context(), "tasks/worker", "sign-out"); err != nil {
+		t.Fatal(err)
+	}
+	c = env.Controller.Snapshot().Confirm
+	if c == nil || c.Message == "ignored" || c.Message == "" {
+		t.Fatalf("session confirm = %+v", c)
+	}
+}
+
+// TestExternalConfirmMessage shows the plugin's confirmation text in an AI
+// client's request, in place of the generic line of a destructive action.
+func TestExternalConfirmMessage(t *testing.T) {
+	e := newEnv(t)
+	for _, tc := range []struct {
+		req       core.ExternalRequest
+		want, not string
+	}{
+		{core.ExternalRequest{Client: "AI", Action: "End Process", Item: "worker", Destructive: true, Message: "3 processes will be ended."},
+			"3 processes will be ended.", "cannot be undone"},
+		{core.ExternalRequest{Client: "AI", Action: "Suspend", Item: "worker", Message: "The process stops until resumed."},
+			"The process stops until resumed.", "cannot be undone"},
+		{core.ExternalRequest{Client: "AI", Action: "End Process", Item: "worker", Destructive: true},
+			"cannot be undone", "\n\n"},
+	} {
+		done := make(chan core.Decision, 1)
+		go func() { done <- e.Controller.ConfirmExternal(t.Context(), tc.req) }()
+		var c *core.ConfirmSnapshot
+		for range 200 {
+			if c = e.Controller.Snapshot().Confirm; c != nil {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		if c == nil || !strings.Contains(c.Message, tc.want) || strings.Contains(c.Message, tc.not) || c.Danger != tc.req.Destructive {
+			t.Errorf("%+v: confirm = %+v", tc.req, c)
+		}
+		e.key(t, "Escape")
+		if d := <-done; d != core.DecisionDeny {
+			t.Fatalf("decision = %v", d)
+		}
+	}
+}
+
 // missingDep is a plugin whose dependency is not installed.
 type missingDep struct{}
 

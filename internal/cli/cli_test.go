@@ -9,6 +9,9 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/eziq1/golauncher/internal/core"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files")
@@ -367,6 +370,24 @@ func copyFixtures(t *testing.T, dir string) {
 		t.Fatal(err)
 	}
 }
+
+// TestSectionsAccessories shows the texts of Item.Accessories after the
+// accessory.
+func TestSectionsAccessories(t *testing.T) {
+	half := 0.5
+	var b bytes.Buffer
+	writeSections(&b, []core.Section{{Items: []core.Entry{
+		{Key: "p/1", Item: plugin.Item{Title: "worker", Accessory: "Process", Accessories: []plugin.Accessory{
+			{Text: "CPU 3.2%", Meter: &half, Load: true}, {Meter: &half}, {Text: "1.2 GB"}}}},
+		{Key: "p/2", Item: plugin.Item{Title: "idle", Accessories: []plugin.Accessory{{Text: "0%"}}}},
+		{Key: "p/3", Item: plugin.Item{Title: "bare", Accessories: []plugin.Accessory{{Meter: &half}}}},
+	}}}, 0)
+	want := "> worker  (Process · CPU 3.2% · 1.2 GB)   p/1  []\n  idle  (0%)   p/2  []\n  bare   p/3  []\n"
+	if got := b.String(); got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+}
+
 func TestUsageErrors(t *testing.T) {
 	for _, args := range [][]string{{"bogus"}, {"run"}, {"session", "type"}, {"run", "noslash"}, {"tasks"}, {"tasks", "show"}} {
 		if _, code := glctl(t, args...); code != 2 {

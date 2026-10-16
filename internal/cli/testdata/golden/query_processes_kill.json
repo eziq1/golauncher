@@ -1,0 +1,243 @@
+{
+  "query": "kill writer",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Processes",
+      "items": [
+        {
+          "id": "p:3000:134364438000000000",
+          "title": "Contoso Writer",
+          "subtitle": "Quarterly plan.docx - Contoso Writer",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0,
+              "load": true
+            },
+            {
+              "text": "310 MB",
+              "meter": 0.00946044921875,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "Processes",
+          "score": 1,
+          "actions": [
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3000,
+                    "created": 134364438000000000
+                  },
+                  "name": "Contoso Writer"
+                }
+              }
+            },
+            {
+              "id": "switch",
+              "title": "Switch to Window",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3000,
+                    "created": 134364438000000000
+                  },
+                  "name": "Contoso Writer",
+                  "hwnd": 768001
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3000,
+                    "created": 134364438000000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3000,
+                    "created": 134364438000000000
+                  },
+                  "name": "Contoso Writer"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Contoso\\Writer\\writer.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3000"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Contoso\\Writer\\writer.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "writer.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3000,
+                    "created": 134364438000000000
+                  },
+                  "name": "Contoso Writer"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22writer.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "writer.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "310 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "434 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "372 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "496 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3000"
+              },
+              {
+                "label": "Parent",
+                "value": "Windows Explorer (2000)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\Contoso\\Writer\\writer.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Integrity level",
+                "value": "Medium"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:30 (30 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "900"
+              },
+              {
+                "label": "Threads",
+                "value": "30"
+              },
+              {
+                "label": "Windows",
+                "value": "Quarterly plan.docx - Contoso Writer",
+                "sensitive": true
+              },
+              {
+                "label": "Command line",
+                "value": "\"C:\\Program Files\\Contoso\\Writer\\writer.exe\" \"C:\\Users\\demo\\Documents\\Quarterly plan.docx\"",
+                "sensitive": true
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3000:134364438000000000",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

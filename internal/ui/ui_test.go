@@ -707,6 +707,57 @@ func TestEmptySectionDoesNotCrash(t *testing.T) {
 	lt.key(mui.Ctrl, mui.KeyK)
 }
 
+// meters is a root provider whose items have Accessories, as the process
+// manager's rows have their CPU and memory use.
+type meters struct{}
+
+func (meters) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "meters", Name: "Meters", Version: "1"}
+}
+func (meters) Init(context.Context, plugin.Host) error { return nil }
+func (meters) Close() error                            { return nil }
+func (meters) RootItems(context.Context, plugin.Query) ([]plugin.Item, error) {
+	f := func(v float64) *float64 { return &v }
+	return []plugin.Item{
+		{ID: "a", Title: "Worker Alpha", Accessory: "Process", Accessories: []plugin.Accessory{
+			{Text: "1%", Meter: f(0.01), Load: true}, {Text: "12 MB"}}},
+		{ID: "b", Title: "Worker Beta", Accessory: "Process", Accessories: []plugin.Accessory{
+			{Text: "100.0%", Meter: f(1), Load: true}, {Text: "3.4 GB"}}},
+		{ID: "c", Title: "Worker Gamma", Accessories: []plugin.Accessory{{Meter: f(0.6)}, {Meter: f(2)}, {}}},
+	}, nil
+}
+
+// TestRowAccessories shows the values and bars of Item.Accessories at the
+// right edge, the texts right-aligned in a fixed width: a value changing
+// length does not move the row.
+func TestRowAccessories(t *testing.T) {
+	clip := &hostfake.Clipboard{}
+	env, err := app.Build(t.Context(), app.Options{
+		Plugins: []plugin.Plugin{meters{}}, Fake: true, Locale: "en",
+		System: &app.Recorder{Clipboard: clip}, Clipboard: clip,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer env.Close()
+	lt := &launcherTest{Env: env, t: t, host: &fakeHost{}}
+	lt.l = ui.NewLauncher(env, lt.host, ui.NewDispatcher(t.Context(), nil))
+	lt.tt = mui.NewTester(lt.l.View, ui.LauncherWidth, ui.LauncherHeight)
+	lt.l.Shown()
+	lt.step()
+	lt.typeText("worker")
+	for _, s := range []string{"Worker Alpha", "Process", "1%", "12 MB", "Worker Beta", "100.0%", "3.4 GB"} {
+		lt.wantText(s)
+	}
+	short, _ := lt.tt.Find("1%")
+	long, _ := lt.tt.Find("100.0%")
+	if short.W != long.W || short.X+short.W != long.X+long.W {
+		t.Errorf("CPU values %+v and %+v: want the same width and right edge", short, long)
+	}
+	lt.tt.SetDark(true) // the other theme's colors
+	lt.key(0, mui.KeyDown)
+}
+
 // ctxRows is a root provider with many items and a context provider, for
 // the context section arriving above a full list.
 type ctxRows struct{}

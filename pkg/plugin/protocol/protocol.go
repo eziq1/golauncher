@@ -94,6 +94,8 @@ type Capabilities struct {
 // RootItemsParams are the parameters of rootItems; the result is []plugin.Item.
 type RootItemsParams struct {
 	Query string `json:"query"`
+	// Raw is the query as typed, untrimmed (plugin.Query.Raw).
+	Raw string `json:"raw,omitempty"`
 	// Context is the context of the current show, if any.
 	Context *plugin.Context `json:"context,omitempty"`
 }

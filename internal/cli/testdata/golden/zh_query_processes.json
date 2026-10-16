@@ -1,0 +1,3463 @@
+{
+  "query": "ps ",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "进程",
+      "items": [
+        {
+          "id": "summary",
+          "title": "CPU 23.0% · 内存 57.8%（18.5 GB / 32.0 GB）· 36 个进程",
+          "icon": {
+            "name": "activity"
+          },
+          "accessories": [
+            {
+              "text": "CPU 23.0%",
+              "meter": 0.23,
+              "load": true
+            },
+            {
+              "text": "18.5 GB",
+              "meter": 0.578125,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开进程视图",
+              "do": {
+                "kind": "Push",
+                "target": "processes"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/summary",
+          "rank": 1.7
+        },
+        {
+          "id": "p:3100:134364438600000000",
+          "title": "Fabrikam Browser (8)",
+          "subtitle": "New Tab - Fabrikam",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.8%",
+              "meter": 0.008,
+              "load": true
+            },
+            {
+              "text": "1.2 GB",
+              "meter": 0.0384521484375,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "进程",
+          "score": 0.999,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "切换到窗口",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser",
+                  "hwnd": 793601
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "group": true,
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 8 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "group": true,
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "结束进程树",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 8 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3100"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "fabrikam.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22fabrikam.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "fabrikam.exe"
+              },
+              {
+                "label": "进程数",
+                "value": "8"
+              },
+              {
+                "label": "CPU",
+                "value": "0.8%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "1.2 GB"
+              },
+              {
+                "label": "工作集",
+                "value": "588 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "504 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "672 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "120 KB/s"
+              },
+              {
+                "label": "PID",
+                "value": "3100"
+              },
+              {
+                "label": "父进程",
+                "value": "Windows Explorer（2000）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe"
+              },
+              {
+                "label": "用户",
+                "value": "CONTOSO\\demo（未提升）"
+              },
+              {
+                "label": "完整性级别",
+                "value": "Medium"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 09:31（29 分钟前）"
+              },
+              {
+                "label": "句柄",
+                "value": "2,100"
+              },
+              {
+                "label": "线程",
+                "value": "45"
+              },
+              {
+                "label": "窗口",
+                "value": "New Tab - Fabrikam",
+                "sensitive": true
+              },
+              {
+                "label": "命令行",
+                "value": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\"",
+                "sensitive": true
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3100:134364438600000000",
+          "rank": 1.6993
+        },
+        {
+          "id": "p:1500:134364384200000000",
+          "title": "Desktop Window Manager",
+          "subtitle": "dwm.exe · PID 1500",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.6%",
+              "meter": 0.006,
+              "load": true
+            },
+            {
+              "text": "95.0 MB",
+              "meter": 0.002899169921875,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 0.998,
+          "actions": [
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 Windows 重启它时，屏幕可能闪烁或短暂黑屏。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 Windows 重启它时，屏幕可能闪烁或短暂黑屏。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\System32\\dwm.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "1500"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\System32\\dwm.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "dwm.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22dwm.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "dwm.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.6%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "95.0 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "133 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "114 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "152 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "1500"
+              },
+              {
+                "label": "父进程",
+                "value": "Windows Start-Up Application（812）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Windows\\System32\\dwm.exe"
+              },
+              {
+                "label": "用户",
+                "value": "Window Manager\\DWM-1（未提升）"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 08:00（1 小时前）"
+              },
+              {
+                "label": "句柄",
+                "value": "1,800"
+              },
+              {
+                "label": "线程",
+                "value": "18"
+              },
+              {
+                "label": "命令行",
+                "value": "无法读取（需要管理员权限）",
+                "sensitive": true
+              },
+              {
+                "label": "说明",
+                "value": "Windows 重启它时，屏幕可能闪烁或短暂黑屏。"
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:1500:134364384200000000",
+          "rank": 1.6985999999999999
+        },
+        {
+          "id": "p:4:134364384000000000",
+          "title": "System",
+          "subtitle": "System · PID 4",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.4%",
+              "meter": 0.004,
+              "load": true
+            },
+            {
+              "text": "20.0 KB",
+              "meter": 5.960464477539062e-7,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 0.997,
+          "actions": [
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 4,
+                    "created": 134364384000000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "4"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "System"
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22System%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "System"
+              },
+              {
+                "label": "CPU",
+                "value": "0.4%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "20.0 KB"
+              },
+              {
+                "label": "工作集",
+                "value": "28.0 KB"
+              },
+              {
+                "label": "提交大小",
+                "value": "24.0 KB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "32.0 KB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "4"
+              },
+              {
+                "label": "用户",
+                "value": "系统服务"
+              },
+              {
+                "label": "句柄",
+                "value": "5,100"
+              },
+              {
+                "label": "线程",
+                "value": "240"
+              },
+              {
+                "label": "说明",
+                "value": "Windows 自身的一部分。"
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:4:134364384000000000",
+          "rank": 1.6979
+        },
+        {
+          "id": "p:3410:134364439300000000",
+          "title": "Node.js JavaScript Runtime (2)",
+          "subtitle": "node.exe · PID 3410",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.001105,
+              "load": true
+            },
+            {
+              "text": "240 MB",
+              "meter": 0.00732421875,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 0.996,
+          "actions": [
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 2 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "group": true,
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 2 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "group": true,
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "结束进程树",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 2 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "name": "Node.js JavaScript Runtime",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\nodejs\\node.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3410"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\nodejs\\node.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "node.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22node.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "node.exe"
+              },
+              {
+                "label": "进程数",
+                "value": "2"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "240 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "252 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "216 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "288 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3410"
+              },
+              {
+                "label": "父进程",
+                "value": "Contoso Code（3400）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Program Files\\nodejs\\node.exe"
+              },
+              {
+                "label": "用户",
+                "value": "CONTOSO\\demo（未提升）"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 09:32（27 分钟前）"
+              },
+              {
+                "label": "句柄",
+                "value": "250"
+              },
+              {
+                "label": "线程",
+                "value": "11"
+              },
+              {
+                "label": "监听端口",
+                "value": "TCP 3000, TCP 9229"
+              },
+              {
+                "label": "命令行",
+                "value": "node server.js --port 3000 --token=••• --db https://•••@db.example.com/shop",
+                "sensitive": true
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3410:134364439300000000",
+          "rank": 1.6972
+        },
+        {
+          "id": "p:2000:134364384600000000",
+          "title": "Windows Explorer",
+          "subtitle": "Project files",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.0005,
+              "load": true
+            },
+            {
+              "text": "140 MB",
+              "meter": 0.0042724609375,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "进程",
+          "score": 0.995,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "切换到窗口",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  },
+                  "name": "Windows Explorer",
+                  "hwnd": 512002
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "restart-explorer",
+              "title": "重启 Windows 资源管理器",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "任务栏、桌面和文件资源管理器窗口会关闭并重新启动。",
+              "do": {
+                "kind": "Callback",
+                "target": "restart-explorer"
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\explorer.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "2000"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\explorer.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "explorer.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  },
+                  "name": "Windows Explorer"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22explorer.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "explorer.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "140 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "196 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "168 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "224 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "2000"
+              },
+              {
+                "label": "父进程",
+                "value": "已退出（PID 1999）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Windows\\explorer.exe"
+              },
+              {
+                "label": "用户",
+                "value": "CONTOSO\\demo（未提升）"
+              },
+              {
+                "label": "完整性级别",
+                "value": "Medium"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 08:01（1 小时前）"
+              },
+              {
+                "label": "句柄",
+                "value": "4,200"
+              },
+              {
+                "label": "线程",
+                "value": "90"
+              },
+              {
+                "label": "窗口",
+                "value": "Project files",
+                "sensitive": true
+              },
+              {
+                "label": "命令行",
+                "value": "C:\\Windows\\Explorer.EXE",
+                "sensitive": true
+              },
+              {
+                "label": "说明",
+                "value": "Windows 资源管理器负责任务栏和桌面，只能重启，不能结束。"
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:2000:134364384600000000",
+          "rank": 1.6965
+        },
+        {
+          "id": "p:3400:134364439200000000",
+          "title": "Contoso Code",
+          "subtitle": "main.go - shop - Contoso Code",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.0005,
+              "load": true
+            },
+            {
+              "text": "380 MB",
+              "meter": 0.0115966796875,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "进程",
+          "score": 0.994,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "切换到窗口",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code",
+                  "hwnd": 870401
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "结束进程树",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 3 个进程，未保存的内容会丢失。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Contoso Code\\code.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3400"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Contoso Code\\code.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "code.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22code.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "code.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "380 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "532 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "456 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "608 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3400"
+              },
+              {
+                "label": "父进程",
+                "value": "Windows Explorer（2000）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Program Files\\Contoso Code\\code.exe"
+              },
+              {
+                "label": "用户",
+                "value": "CONTOSO\\demo（未提升）"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 09:32（28 分钟前）"
+              },
+              {
+                "label": "句柄",
+                "value": "1,200"
+              },
+              {
+                "label": "线程",
+                "value": "40"
+              },
+              {
+                "label": "窗口",
+                "value": "main.go - shop - Contoso Code",
+                "sensitive": true
+              },
+              {
+                "label": "命令行",
+                "value": "无法读取（需要管理员权限）",
+                "sensitive": true
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3400:134364439200000000",
+          "rank": 1.6958
+        },
+        {
+          "id": "p:1100:134364384070000000",
+          "title": "Host Process for Windows Services",
+          "subtitle": "svchost.exe · PID 1100",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0.000375,
+              "load": true
+            },
+            {
+              "text": "22.0 MB",
+              "meter": 0.00067138671875,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 0.993,
+          "actions": [
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 它托管着 Windows 服务，这些服务会随之停止。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 它托管着 Windows 服务，这些服务会随之停止。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\System32\\svchost.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "1100"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\System32\\svchost.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "svchost.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22svchost.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "svchost.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "22.0 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "30.8 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "26.4 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "35.2 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "1100"
+              },
+              {
+                "label": "父进程",
+                "value": "services（900）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Windows\\System32\\svchost.exe"
+              },
+              {
+                "label": "用户",
+                "value": "NT AUTHORITY\\SYSTEM（未提升）"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 08:00（1 小时前）"
+              },
+              {
+                "label": "句柄",
+                "value": "1,300"
+              },
+              {
+                "label": "线程",
+                "value": "20"
+              },
+              {
+                "label": "命令行",
+                "value": "C:\\Windows\\system32\\svchost.exe -k DcomLaunch -p",
+                "sensitive": true
+              },
+              {
+                "label": "说明",
+                "value": "它托管着 Windows 服务，这些服务会随之停止。"
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:1100:134364384070000000",
+          "rank": 1.6951
+        },
+        {
+          "id": "p:3710:134364441000000000",
+          "title": "Tailspin CLI",
+          "subtitle": "tailspin-cli.exe · PID 3710",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0.00025,
+              "load": true
+            },
+            {
+              "text": "25.0 MB",
+              "meter": 0.000762939453125,
+              "load": true
+            }
+          ],
+          "group": "进程",
+          "score": 0.992,
+          "actions": [
+            {
+              "id": "show",
+              "title": "显示进程",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "结束任务",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 这是 golauncher 的后台任务，建议在后台任务里停止，以保留正确的任务状态。",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "强制结束",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "将立即结束 1 个进程，未保存的内容会丢失。 这是 golauncher 的后台任务，建议在后台任务里停止，以保留正确的任务状态。",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "在文件资源管理器中显示",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "复制 PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3710"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "复制路径",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "复制名称",
+              "do": {
+                "kind": "CopyText",
+                "target": "tailspin-cli.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "复制命令行",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "在网上搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22tailspin-cli.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "可执行文件",
+                "value": "tailspin-cli.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "内存（专用工作集）",
+                "value": "25.0 MB"
+              },
+              {
+                "label": "工作集",
+                "value": "35.0 MB"
+              },
+              {
+                "label": "提交大小",
+                "value": "30.0 MB"
+              },
+              {
+                "label": "峰值工作集",
+                "value": "40.0 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3710"
+              },
+              {
+                "label": "父进程",
+                "value": "golauncher（3700）"
+              },
+              {
+                "label": "路径",
+                "value": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe"
+              },
+              {
+                "label": "用户",
+                "value": "CONTOSO\\demo（未提升）"
+              },
+              {
+                "label": "启动于",
+                "value": "2026-10-14 09:35（25 分钟前）"
+              },
+              {
+                "label": "句柄",
+                "value": "90"
+              },
+              {
+                "label": "线程",
+                "value": "5"
+              },
+              {
+                "label": "命令行",
+                "value": "tailspin-cli.exe update --all",
+                "sensitive": true
+              },
+              {
+                "label": "说明",
+                "value": "这是 golauncher 的后台任务，建议在后台任务里停止，以保留正确的任务状态。"
+              },
+              {
+                "label": "关于 CPU",
+                "value": "占所有处理器的比例。任务管理器显示的是“处理器效用”（考虑睿频），所以可能相差几个百分点。"
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3710:134364441000000000",
+          "rank": 1.6944
+        }
+      ]
+    },
+    {
+      "title": "终端",
+      "items": [
+        {
+          "id": "profile:developer powershell for vs 2022",
+          "title": "Developer PowerShell for VS 2022",
+          "subtitle": "Windows Terminal 配置文件 · powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\"",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "终端",
+            "命令行",
+            "配置文件",
+            "zd",
+            "mlh",
+            "pzwj",
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile"
+          ],
+          "group": "终端",
+          "actions": [
+            {
+              "id": "open",
+              "title": "在新窗口中打开",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "在新标签页中打开",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "以管理员身份打开",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "复制命令行",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\""
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:developer powershell for vs 2022",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "title": "PowerShell",
+          "subtitle": "Windows Terminal 配置文件",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "终端",
+            "命令行",
+            "配置文件",
+            "zd",
+            "mlh",
+            "pzwj",
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile"
+          ],
+          "accessory": "默认",
+          "group": "终端",
+          "actions": [
+            {
+              "id": "open",
+              "title": "在新窗口中打开",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "在新标签页中打开",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "以管理员身份打开",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "title": "Windows PowerShell",
+          "subtitle": "Windows Terminal 配置文件 · %SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "终端",
+            "命令行",
+            "配置文件",
+            "zd",
+            "mlh",
+            "pzwj",
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile"
+          ],
+          "group": "终端",
+          "actions": [
+            {
+              "id": "open",
+              "title": "在新窗口中打开",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "在新标签页中打开",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "以管理员身份打开",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "复制命令行",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "rank": 0.5599999999999999
+        }
+      ]
+    },
+    {
+      "title": "设置",
+      "items": [
+        {
+          "id": "settings:network-proxy",
+          "title": "代理",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Proxy",
+            "dai li",
+            "proxy server",
+            "pac",
+            "代理服务器"
+          ],
+          "accessory": "网络和 Internet",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:network-proxy"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:network-proxy"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:network-proxy",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:regionlanguage-chsime-pinyin",
+          "title": "微软拼音",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Microsoft Pinyin",
+            "wei ruan pin yin",
+            "pinyin",
+            "chinese ime",
+            "拼音",
+            "微软拼音输入法",
+            "中文输入法"
+          ],
+          "accessory": "时间和语言",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:regionlanguage-chsime-pinyin"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:regionlanguage-chsime-pinyin"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:regionlanguage-chsime-pinyin",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:printers",
+          "title": "打印机和扫描仪",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Printers & Scanners",
+            "da yin ji he sao miao yi",
+            "printer",
+            "scanner",
+            "print",
+            "打印机",
+            "扫描仪",
+            "打印"
+          ],
+          "accessory": "蓝牙和其他设备",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:printers"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:printers"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:printers",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:powersleep",
+          "title": "电源和睡眠",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Power & Sleep",
+            "dian yuan he shui mian",
+            "power",
+            "sleep",
+            "screen timeout",
+            "power plan",
+            "battery",
+            "电源",
+            "睡眠",
+            "休眠",
+            "息屏"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:powersleep"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:powersleep"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:powersleep",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "tool:ncpa",
+          "title": "网络连接",
+          "subtitle": "ncpa.cpl",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "网络连接",
+            "网络适配器",
+            "更改适配器设置",
+            "network connections",
+            "network adapters",
+            "ncpa",
+            "wang luo lian jie"
+          ],
+          "accessory": "Windows 工具",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl"
+                }
+              }
+            },
+            {
+              "id": "runas",
+              "title": "以管理员身份运行",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:ncpa",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:keyboard",
+          "title": "键盘",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Typing Languages & Keyboards",
+            "jian pan",
+            "keyboard",
+            "input method",
+            "switch input",
+            "advanced keyboard settings",
+            "输入法",
+            "切换输入法",
+            "高级键盘设置"
+          ],
+          "accessory": "时间和语言",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:keyboard"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:keyboard"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:keyboard",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy",
+          "title": "隐私和安全性",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Privacy & Security",
+            "yin si he an quan xing",
+            "privacy",
+            "security",
+            "permissions",
+            "隐私",
+            "安全",
+            "权限"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:mousetouchpad",
+          "title": "鼠标",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Mouse",
+            "shu biao",
+            "pointer speed",
+            "scroll",
+            "primary button",
+            "鼠标速度",
+            "滚轮"
+          ],
+          "accessory": "蓝牙和其他设备",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:mousetouchpad"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:mousetouchpad"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:mousetouchpad",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:easeofaccess-mouse",
+          "title": "鼠标键",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Mouse Keys",
+            "shu biao jian",
+            "mouse keys",
+            "numeric keypad mouse",
+            "数字键盘控制鼠标"
+          ],
+          "accessory": "辅助功能",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:easeofaccess-mouse"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:easeofaccess-mouse"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:easeofaccess-mouse",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:privacy-location",
+          "title": "位置",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Location",
+            "wei zhi",
+            "gps",
+            "location services",
+            "定位",
+            "位置服务"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-location"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-location"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-location",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:startupapps",
+          "title": "启动应用",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Startup Apps",
+            "qi dong ying yong",
+            "startup",
+            "autostart",
+            "run at login",
+            "开机启动",
+            "自启动",
+            "启动项"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:startupapps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:startupapps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:startupapps",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:multitasking",
+          "title": "多任务处理",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Multitasking",
+            "duo ren wu chu li",
+            "snap",
+            "alt tab",
+            "virtual desktops",
+            "窗口贴靠",
+            "分屏",
+            "多任务",
+            "虚拟桌面"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:multitasking"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:multitasking"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:multitasking",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:appsfeatures",
+          "title": "安装的应用",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Installed Apps",
+            "an zhuang de ying yong",
+            "apps & features",
+            "uninstall",
+            "programs",
+            "remove app",
+            "应用和功能",
+            "卸载",
+            "卸载程序",
+            "程序"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:appsfeatures"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:appsfeatures"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:appsfeatures",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:privacy-graphicscaptureprogrammatic",
+          "title": "屏幕截图和应用",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Screenshots and Apps",
+            "ping mu jie tu he ying yong",
+            "screen capture",
+            "screenshot permission",
+            "截屏权限"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-graphicscaptureprogrammatic",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "tool:lusrmgr",
+          "title": "本地用户和组",
+          "subtitle": "lusrmgr.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "本地用户和组",
+            "local users and groups",
+            "users",
+            "groups",
+            "lusrmgr",
+            "ben di yong hu he zu"
+          ],
+          "accessory": "Windows 工具",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "lusrmgr.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "以管理员身份运行",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "lusrmgr.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:lusrmgr",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:appsforwebsites",
+          "title": "用于网站的应用",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Apps for Websites",
+            "yong yu wang zhan de ying yong",
+            "web links",
+            "网站链接"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:appsforwebsites"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:appsforwebsites"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:appsforwebsites",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:emailandaccounts",
+          "title": "电子邮件和账户",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Email & Accounts",
+            "dian zi you jian he zhang hu",
+            "email",
+            "accounts used by other apps",
+            "邮箱",
+            "邮件账户"
+          ],
+          "accessory": "帐户",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:emailandaccounts"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:emailandaccounts"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:emailandaccounts",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:maps",
+          "title": "离线地图",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Offline Maps",
+            "li xian di tu",
+            "maps",
+            "地图"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:maps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:maps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:maps",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:deviceusage",
+          "title": "设备使用情况",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Device Usage",
+            "she bei shi yong qing kuang",
+            "usage",
+            "personalized tips",
+            "使用情况"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:deviceusage"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:deviceusage"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:deviceusage",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:advanced-apps",
+          "title": "高级应用设置",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Advanced App Settings",
+            "gao ji ying yong she zhi",
+            "app execution aliases",
+            "choose where to get apps",
+            "应用执行别名",
+            "获取应用的位置"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:advanced-apps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:advanced-apps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:advanced-apps",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:defaultapps",
+          "title": "默认应用",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Default Apps",
+            "mo ren ying yong",
+            "default browser",
+            "file associations",
+            "open with",
+            "默认浏览器",
+            "打开方式",
+            "文件关联"
+          ],
+          "accessory": "应用",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:defaultapps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:defaultapps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:defaultapps",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:storagerecommendations",
+          "title": "清理建议",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Cleanup Recommendations",
+            "qing li jian yi",
+            "clean up",
+            "free up space",
+            "清理",
+            "释放空间"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:storagerecommendations"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:storagerecommendations"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:storagerecommendations",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "settings:signinoptions",
+          "title": "登录选项",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Sign-in Options",
+            "deng lu xuan xiang",
+            "password",
+            "pin",
+            "windows hello",
+            "login",
+            "登录",
+            "密码",
+            "修改密码"
+          ],
+          "accessory": "帐户",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:signinoptions"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:signinoptions"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:signinoptions",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "settings:personalization",
+          "title": "个性化",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Personalization",
+            "ge xing hua",
+            "customize",
+            "appearance",
+            "外观",
+            "自定义"
+          ],
+          "accessory": "个性化",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:display-advancedgraphics",
+          "title": "图形设置",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Graphics",
+            "tu xing she zhi",
+            "gpu",
+            "graphics card",
+            "hardware accelerated gpu scheduling",
+            "显卡",
+            "独显"
+          ],
+          "accessory": "系统",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:display-advancedgraphics"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:display-advancedgraphics"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:display-advancedgraphics",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:windowsupdate-options",
+          "title": "更新高级选项",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Advanced Update Options",
+            "geng xin gao ji xuan xiang",
+            "pause updates",
+            "metered connection updates",
+            "暂停更新",
+            "更新选项"
+          ],
+          "accessory": "Windows 更新",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:windowsupdate-options"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:windowsupdate-options"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:windowsupdate-options",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:privacy-downloadsfolder",
+          "title": "下载文件夹权限",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Downloads Folder Permissions",
+            "xia zai wen jian jia quan xian",
+            "downloads",
+            "下载文件夹"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-downloadsfolder"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-downloadsfolder"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-downloadsfolder",
+          "rank": 0.2937083333333333
+        },
+        {
+          "id": "settings:privacy-tasks",
+          "title": "任务权限",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Tasks Permissions",
+            "ren wu quan xian",
+            "tasks",
+            "任务"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-tasks"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-tasks"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-tasks",
+          "rank": 0.2937083333333333
+        },
+        {
+          "id": "tool:taskmgr",
+          "title": "任务管理器",
+          "subtitle": "taskmgr",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "任务管理器",
+            "进程",
+            "task manager",
+            "processes",
+            "kill process",
+            "taskmgr",
+            "ren wu guan li qi"
+          ],
+          "accessory": "Windows 工具",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "taskmgr.exe"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "以管理员身份运行",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "taskmgr.exe",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:taskmgr",
+          "rank": 0.2937083333333333
+        },
+        {
+          "id": "settings:privacy-customdevices",
+          "title": "其他设备权限",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "Other Devices Permissions",
+            "qi ta she bei quan xian",
+            "other devices",
+            "其他设备"
+          ],
+          "accessory": "隐私和安全性",
+          "group": "设置",
+          "actions": [
+            {
+              "id": "open",
+              "title": "打开",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-customdevices"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "复制 URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-customdevices"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-customdevices",
+          "rank": 0.2937083333333333
+        }
+      ]
+    },
+    {
+      "title": "命令",
+      "items": [
+        {
+          "id": "cmd:installed",
+          "title": "已安装的 Scoop 应用",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "scoop",
+            "卸载",
+            "xz",
+            "Installed Scoop Apps",
+            "uninstall"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "installed"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:installed",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "cmd:update-all",
+          "title": "更新所有 Scoop 应用",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "scoop",
+            "升级",
+            "更新",
+            "sj",
+            "gx",
+            "Update All Scoop Apps",
+            "upgrade"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "update-all"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:update-all",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "cmd:hung",
+          "title": "结束未响应的应用",
+          "subtitle": "进程",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "未响应",
+            "卡死",
+            "强制结束",
+            "无响应",
+            "wxy",
+            "qzjs",
+            "End Apps Not Responding",
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "cmd:tracert",
+          "title": "跟踪路由",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "跟踪路由",
+            "路由",
+            "跃点",
+            "gzly",
+            "ly",
+            "yd",
+            "tracert",
+            "traceroute",
+            "route",
+            "hops",
+            "Trace Route"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "tracert"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "主机或 IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:tracert",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "已保存的 Wi-Fi 网络",
+          "subtitle": "网络工具",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "无线",
+            "无线网络",
+            "密码",
+            "wx",
+            "wxwl",
+            "mm",
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "Saved Wi-Fi Networks"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "cmd:history",
+          "title": "搜索剪贴板历史",
+          "subtitle": "剪贴板历史",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "剪贴板",
+            "jtb",
+            "粘贴",
+            "zt",
+            "历史记录",
+            "lsjl",
+            "Search Clipboard History",
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "cmd:cleanup",
+          "title": "清理 Scoop",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "trash"
+          },
+          "keywords": [
+            "scoop",
+            "缓存",
+            "清理",
+            "hc",
+            "ql",
+            "Clean Up Scoop",
+            "cache"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "cleanup"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:cleanup",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "cmd:open-folder",
+          "title": "打开脚本文件夹",
+          "subtitle": "脚本命令",
+          "icon": {
+            "name": "folder"
+          },
+          "keywords": [
+            "Open Scripts Folder"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "RunCommand",
+                "target": "open-folder"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:open-folder",
+          "rank": 0.302575
+        }
+      ]
+    }
+  ]
+}

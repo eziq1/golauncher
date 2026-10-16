@@ -174,6 +174,7 @@
   "kill.needsAdmin": "它属于其他用户或系统。以管理员身份运行 golauncher 才能结束它。",
   "kill.gone": "{{.name}} 已不再运行",
   "kill.changed": "PID {{.pid}} 已不再是 {{.name}}；没有结束任何进程",
+  "kill.protected": "{{.name}} 是受保护的系统进程，无法结束。",
   "wifi.none": "没有 Wi-Fi 适配器",
   "wifi.noneSubtitle": "这台电脑没有无线网络适配器，或者 WLAN 服务没有运行",
   "wifi.failedList": "无法读取已保存的 Wi-Fi 网络",

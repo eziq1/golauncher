@@ -182,6 +182,23 @@ func InstalledApps(ctx context.Context) ([]App, error) {
 // versionNames returns the FileDescription and ProductName of every
 // language of the version information of exe.
 func versionNames(exe string) []string {
+	return versionStrings(exe, "FileDescription", "ProductName")
+}
+
+// FileDescription returns the FileDescription of the version information
+// of exe (of its first language that has one), or "".
+func FileDescription(exe string) string {
+	for _, s := range versionStrings(exe, "FileDescription") {
+		if s = strings.TrimSpace(s); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+// versionStrings returns the values of keys in every language of the
+// version information of exe, language by language.
+func versionStrings(exe string, keys ...string) []string {
 	n, err := windows.GetFileVersionInfoSize(exe, nil)
 	if err != nil || n == 0 {
 		return nil
@@ -199,7 +216,7 @@ func versionNames(exe string) []string {
 	langs := unsafe.Slice((*uint16)(p), size/2)
 	var names []string
 	for i := 0; i+1 < len(langs); i += 2 {
-		for _, key := range []string{"FileDescription", "ProductName"} {
+		for _, key := range keys {
 			var s unsafe.Pointer
 			var l uint32
 			sub := fmt.Sprintf(`\StringFileInfo\%04x%04x\%s`, langs[i], langs[i+1], key)

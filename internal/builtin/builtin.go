@@ -25,6 +25,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/files"
 	"github.com/eziq1/golauncher/plugins/network"
+	"github.com/eziq1/golauncher/plugins/processes"
 	"github.com/eziq1/golauncher/plugins/quicklinks"
 	"github.com/eziq1/golauncher/plugins/scoop"
 	"github.com/eziq1/golauncher/plugins/scripts"
@@ -57,6 +58,7 @@ func All() []plugin.Plugin {
 		system.New(),
 		terminal.New(),
 		network.New(),
+		processes.New(),
 		quicklinks.New(), // its fallback comes after ai's: FallbackOrderLast (docs/quicklinks.md §3)
 		ai.New(claudecode.New(claudecode.Options{Tools: toolServer()})),
 	}
@@ -133,6 +135,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 		network.NewFake(fixture(dir, "network.json")),
+		processes.NewFake(fixture(dir, "processes.json")),
 		fakeQuicklinks(),
 		fakeAI(),
 	}

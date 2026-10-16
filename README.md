@@ -75,6 +75,13 @@
     `port host:443` checks whether a port can be reached; `wifi` copies the
     password of a saved network; `tracert <host>`, Flush DNS Cache and
     Renew IP Address run in the background.
+  - **Processes**: `ps ` (with a space), `kill` or `进程` lists running apps
+    and processes grouped by app, with live CPU and memory bars; search by
+    name, window title, pinyin or PID. Enter switches to the window; End
+    Task asks an app to close, Force End and End Process Tree ask first;
+    elevated processes are ended through a one-off UAC prompt. Critical
+    system processes and golauncher itself cannot be ended. *Quit <app>*
+    acts on the app in front, and *Force Quit* is offered when it hangs.
   - **AI Chat** (off until you turn it on): press `Tab` after typing a
     question, or pick *Ask AI* when nothing matches, to chat with Claude
     through your installed [Claude Code](https://claude.com/product/claude-code)

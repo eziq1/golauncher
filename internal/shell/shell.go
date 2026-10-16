@@ -29,6 +29,7 @@ import (
 	"github.com/eziq1/golauncher/internal/update"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
+	"github.com/eziq1/golauncher/internal/winapi/process"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -154,6 +155,12 @@ func Run(o Options) error {
 	healthMarker := update.HealthMarker()
 	if len(o.Args) > 0 && o.Args[0] == commandMCP {
 		return runBridge(o)
+	}
+	// The hidden elevated helper that ends one process (or tree) and exits
+	// with a code telling the outcome: no window, no log, no single-instance
+	// lock (docs/process-manager.md §5.5).
+	if len(o.Args) > 0 && o.Args[0] == process.HelperCommand {
+		os.Exit(process.HelperMain(o.Args))
 	}
 	if done, err := selfInstall(&o); done {
 		return err

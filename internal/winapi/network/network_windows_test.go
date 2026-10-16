@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -171,7 +172,19 @@ func TestKillChild(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
-	if err := Kill(uint32(cmd.Process.Pid)); err != nil {
+	pid := uint32(cmd.Process.Pid)
+	p := ProcessInfo(pid)
+	if p.Created == 0 || !strings.EqualFold(p.Name, "PING.EXE") {
+		cmd.Process.Kill()
+		t.Fatalf("child = %+v", p)
+	}
+	// A wrong creation time: the PID belongs to another process; nothing is
+	// ended.
+	if err := Kill(pid, p.Created+1); !errors.Is(err, ErrNotFound) {
+		cmd.Process.Kill()
+		t.Fatalf("wrong creation time: %v", err)
+	}
+	if err := Kill(pid, p.Created); err != nil {
 		cmd.Process.Kill()
 		t.Fatal(err)
 	}
@@ -181,8 +194,35 @@ func TestKillChild(t *testing.T) {
 		cmd.Process.Kill()
 		t.Fatal("the child did not end")
 	}
-	if err := Kill(uint32(os.Getpid())); !errors.Is(err, ErrNeedsAdmin) {
+	if err := Kill(pid, p.Created); !errors.Is(err, ErrNotFound) {
+		t.Errorf("killing it again: %v", err)
+	}
+	if err := Kill(uint32(os.Getpid()), 0); !errors.Is(err, ErrProtected) {
 		t.Errorf("killing itself: %v", err)
+	}
+	if err := Kill(4, 0); !errors.Is(err, ErrProtected) {
+		t.Errorf("killing System: %v", err)
+	}
+}
+
+// TestKillChildWithoutCreated ends a child this test started by PID only
+// (data from before the creation time was known).
+func TestKillChildWithoutCreated(t *testing.T) {
+	cmd := exec.Command(os.Getenv("SystemRoot")+`\System32\PING.EXE`, "-n", "30", "127.0.0.1")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	if err := Kill(uint32(cmd.Process.Pid), 0); err != nil {
+		cmd.Process.Kill()
+		t.Fatal(err)
+	}
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		cmd.Process.Kill()
+		t.Fatal("the child did not end")
 	}
 }
 

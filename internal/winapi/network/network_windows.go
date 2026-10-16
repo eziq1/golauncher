@@ -15,6 +15,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/eziq1/golauncher/internal/winapi/process"
 )
 
 var (
@@ -498,8 +500,9 @@ func table(p *windows.LazyProc, af uint32, class uintptr) ([]byte, error) {
 	return nil, fmt.Errorf("network: %s: the table keeps growing", p.Name)
 }
 
-// ProcessInfo returns the name and path of process pid. Fields that cannot
-// be read are left empty.
+// ProcessInfo returns the name, path and creation time of process pid,
+// through internal/winapi/process. Fields that cannot be read are left
+// empty.
 func ProcessInfo(pid uint32) Process {
 	p := Process{PID: pid}
 	switch pid {
@@ -510,61 +513,57 @@ func ProcessInfo(pid uint32) Process {
 		p.Name = "System"
 		return p
 	}
-	if h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid); err == nil {
-		buf := make([]uint16, windows.MAX_LONG_PATH)
-		n := uint32(len(buf))
-		if windows.QueryFullProcessImageName(h, 0, &buf[0], &n) == nil {
-			p.Path = windows.UTF16ToString(buf[:n])
+	if id, err := process.Identify(pid); err == nil {
+		p.Created = id.Created
+		if info := process.ReadInfo(id); info.Path != "" {
+			p.Path = info.Path
 			p.Name = filepath.Base(p.Path)
 		}
-		windows.CloseHandle(h)
 	}
 	if p.Name == "" {
-		p.Name = snapshotName(pid)
+		// A process that cannot be opened is still named in a snapshot.
+		var s process.Sampler
+		if snap, err := s.Snapshot(); err == nil {
+			for _, q := range snap.Procs {
+				if q.PID == pid && (p.Created == 0 || q.Created == p.Created) {
+					p.Name, p.Created = q.Name, q.Created
+					break
+				}
+			}
+		}
 	}
 	return p
 }
 
-// snapshotName finds the executable name of pid in a process snapshot,
-// which works also for processes that cannot be opened.
-func snapshotName(pid uint32) string {
-	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
-	if err != nil {
-		return ""
-	}
-	defer windows.CloseHandle(snap)
-	var e windows.ProcessEntry32
-	e.Size = uint32(unsafe.Sizeof(e))
-	for err := windows.Process32First(snap, &e); err == nil; err = windows.Process32Next(snap, &e) {
-		if e.ProcessID == pid {
-			return windows.UTF16ToString(e.ExeFile[:])
+// Kill ends process pid created at created (a FILETIME, see
+// Process.Created) with process.Kill, which checks the creation time on the
+// handle that ends it. With created 0 (data from before it was known) the
+// process running as pid now is ended. It returns ErrNeedsAdmin when
+// access is denied, ErrNotFound when the process exited or its PID now
+// belongs to another process, and ErrProtected for the kernel, critical
+// system processes, golauncher itself and protected processes.
+func Kill(pid uint32, created int64) error {
+	id := process.ID{PID: pid, Created: created}
+	if created == 0 && pid > 4 {
+		var err error
+		if id, err = process.Identify(pid); err != nil {
+			return killError(err)
 		}
 	}
-	return ""
+	return killError(process.Kill(id))
 }
 
-// Kill ends process pid. It returns ErrNeedsAdmin when access is denied and
-// ErrNotFound when there is no such process.
-func Kill(pid uint32) error {
-	if pid == 0 || pid == 4 || pid == uint32(os.Getpid()) {
+// killError maps the errors of the process package to this package's.
+func killError(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, process.ErrNeedsAdmin):
 		return ErrNeedsAdmin
+	case errors.Is(err, process.ErrGone):
+		return ErrNotFound
+	case errors.Is(err, process.ErrProtected):
+		return ErrProtected
 	}
-	h, err := windows.OpenProcess(windows.PROCESS_TERMINATE, false, pid)
-	if err != nil {
-		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
-			return ErrNeedsAdmin
-		}
-		if errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
-			return ErrNotFound
-		}
-		return fmt.Errorf("network: OpenProcess: %w", err)
-	}
-	defer windows.CloseHandle(h)
-	if err := windows.TerminateProcess(h, 1); err != nil {
-		if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
-			return ErrNeedsAdmin
-		}
-		return fmt.Errorf("network: TerminateProcess: %w", err)
-	}
-	return nil
+	return fmt.Errorf("network: %w", err)
 }

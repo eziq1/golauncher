@@ -29,6 +29,7 @@ const (
 // RootSearch returns the root search results for text.
 func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error) {
 	cfg := e.cfg.Get()
+	raw := text
 	text = strings.TrimSpace(text)
 	cur := e.pullContext()
 	if text == "" {
@@ -39,7 +40,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 		return nil, err
 	}
 	candidates := e.commandEntries(cfg)
-	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Context: cur})...)
+	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Raw: raw, Context: cur})...)
 	candidates = append(candidates, e.contextEntries(ctx, cfg, cur)...)
 	ranked, best := rank(cfg, text, candidates, freq)
 	out := group(ranked)
@@ -57,6 +58,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 // recorded.
 func (e *Engine) Search(ctx context.Context, text string) ([]Entry, error) {
 	cfg := e.cfg.Get()
+	raw := text
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, nil
@@ -66,7 +68,7 @@ func (e *Engine) Search(ctx context.Context, text string) ([]Entry, error) {
 		return nil, err
 	}
 	candidates := e.commandEntries(cfg)
-	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text})...)
+	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Raw: raw})...)
 	ranked, _ := rank(cfg, text, candidates, freq)
 	return ranked, nil
 }

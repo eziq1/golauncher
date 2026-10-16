@@ -163,6 +163,15 @@ type Item struct {
 	Keywords []string `json:"keywords,omitempty"`
 	// Accessory is short text shown at the right edge (e.g. "Application").
 	Accessory string `json:"accessory,omitempty"`
+	// Accessories are values shown at the right edge after Accessory, each
+	// with an optional small bar, e.g. a process's CPU and memory use. The
+	// host gives them a fixed width, so values that change every second do
+	// not move the row.
+	Accessories []Accessory `json:"accessories,omitempty"`
+	// SubtitleSensitive marks a subtitle that is shown to the user but never
+	// returned to an AI using the launcher's plugins (docs/ai.md §4.2), such
+	// as a window title naming a document.
+	SubtitleSensitive bool `json:"subtitleSensitive,omitzero"`
 	// Group is the section the item is shown under in the root search.
 	Group string `json:"group,omitempty"`
 	// Score in (0, 1] marks the item as already matched; 0 lets the host match it.
@@ -195,6 +204,22 @@ type Detail struct {
 type Metadata struct {
 	Label string `json:"label"`
 	Value string `json:"value"`
+	// Sensitive marks a row that is shown to the user but never returned to
+	// an AI using the launcher's plugins (docs/ai.md §4.2), such as a
+	// command line that may hold a password.
+	Sensitive bool `json:"sensitive,omitzero"`
+}
+
+// Accessory is a value shown at the right edge of an item (Item.Accessories).
+type Accessory struct {
+	Text string `json:"text,omitempty"`
+	// Meter, in [0, 1], draws a small bar before Text; nil for none. Values
+	// outside are clamped.
+	Meter *float64 `json:"meter,omitempty"`
+	// Load colors the bar as a load, in the theme's colors: warning from
+	// 0.5, danger from 0.8. Without it the bar has the success color, as a
+	// progress.
+	Load bool `json:"load,omitzero"`
 }
 
 // ActionStyle changes how an action is presented.
@@ -221,8 +246,12 @@ type Action struct {
 	// (e.g. "Refresh", "Show details"). An AI using the launcher's plugins
 	// (docs/ai.md §4.2) runs such actions without asking the user; other
 	// callbacks always ask first. Destructive actions are never read-only.
-	ReadOnly bool     `json:"readOnly,omitzero"`
-	Do       ActionDo `json:"do"`
+	ReadOnly bool `json:"readOnly,omitzero"`
+	// ConfirmMessage replaces the default text of the confirmation of a
+	// destructive action ("This cannot be undone."), e.g. "12 processes
+	// will be ended." It is also shown when an AI asks to run the action.
+	ConfirmMessage string   `json:"confirmMessage,omitempty"`
+	Do             ActionDo `json:"do"`
 }
 
 // ActionKind is what the host does when an action runs.
