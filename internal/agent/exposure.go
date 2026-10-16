@@ -5,16 +5,17 @@ import (
 	"github.com/eziq1/golauncher/internal/core"
 )
 
-// Plugins that are never offered to AI: the AI chat itself and the activity
-// log of the tools.
+// Plugins that are never offered to AI: the AI chat itself, the selected
+// text (docs/selected-text.md §4.1) and the activity log of the tools.
 const (
 	aiPluginID        = "builtin.ai"
+	selectionPluginID = "builtin.selection"
 	clipboardPluginID = "builtin.clipboard"
 )
 
 // Hidden reports whether plugin id is never offered to AI, whatever the
 // settings say.
-func Hidden(id string) bool { return id == aiPluginID || id == PluginID }
+func Hidden(id string) bool { return id == aiPluginID || id == selectionPluginID || id == PluginID }
 
 // DefaultExposed reports whether AI may use plugin p when the user has not
 // decided (docs/ai.md §4.2): the built-in plugins except the clipboard

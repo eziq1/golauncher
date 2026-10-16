@@ -134,7 +134,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Version:       "1.0.0",
 		Icon:          plugin.Icon{Name: "globe"},
 		DefaultLocale: "en",
-		Permissions:   []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork},
+		Permissions:   []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork, plugin.PermSelection},
 		Commands: []plugin.Command{
 			{Name: cmdLinks, Title: "%command.quicklinks.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "globe"},
 				Keywords: []string{"%command.quicklinks.keywords%"}},

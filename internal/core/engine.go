@@ -317,6 +317,9 @@ type Entry struct {
 	// Context marks an item of a plugin.ContextProvider: it belongs to this
 	// show's context and is never recorded as recently used.
 	Context bool `json:"context,omitzero"`
+	// Selection marks an item of a plugin.SelectionProvider (with Context):
+	// it acts on the text selected when the launcher opened.
+	Selection bool `json:"selection,omitzero"`
 	// Fallback marks an item of a plugin.FallbackProvider (or the Tab
 	// action): it acts on this search's text and is never recorded as
 	// recently used.

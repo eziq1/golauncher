@@ -120,7 +120,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Description: "%plugin.description%",
 		Version:     "1.1.0",
 		Icon:        plugin.Icon{Name: "calculator"},
-		Permissions: []plugin.Permission{plugin.PermNetwork},
+		Permissions: []plugin.Permission{plugin.PermNetwork, plugin.PermSelection},
 		Preferences: []plugin.Preference{
 			{Name: prefUnitSystem, Type: plugin.PrefSelect, Title: "%pref.unitSystem.title%",
 				Description: "%pref.unitSystem.description%", Default: plugin.MustPayload(systemMetric), Group: "%pref.group.units%",

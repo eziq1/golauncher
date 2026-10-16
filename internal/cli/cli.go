@@ -101,6 +101,12 @@ Environment flags (query, run, session new, tasks, plugin, mcp, bench):
                    open in File Explorer (context-aware items appear in the root)
   --context-select FILE  a selected file of that context (repeatable)
   --context-app NAME     the foreground app of that context (default explorer.exe)
+  --selection TEXT       inject the selected text instead of reading it (the
+                   "Selected Text" section appears in the root)
+  --selection-app NAME   the app it was selected in (default notepad.exe)
+  --selection-source uia|clipboard   how it was read (default uia)
+  --selection-truncated  mark it as cut to the maximum length
+  --selection-editable   mark it as in an editable control
   --format json|text
 `
 
@@ -121,6 +127,12 @@ type envFlags struct {
 	ContextFolder string   `json:"contextFolder,omitempty"`
 	ContextSelect []string `json:"contextSelect,omitempty"`
 	ContextApp    string   `json:"contextApp,omitempty"`
+	// The selected text injected instead of reading it (docs/selected-text.md §9.2).
+	Selection          string `json:"selection,omitempty"`
+	SelectionApp       string `json:"selectionApp,omitempty"`
+	SelectionSource    string `json:"selectionSource,omitempty"`
+	SelectionTruncated bool   `json:"selectionTruncated,omitzero"`
+	SelectionEditable  bool   `json:"selectionEditable,omitzero"`
 }
 
 func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
@@ -150,6 +162,11 @@ func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
 			return err
 		})
 		fs.StringVar(&ef.ContextApp, "context-app", "", "inject a context: the foreground app (e.g. explorer.exe)")
+		fs.StringVar(&ef.Selection, "selection", "", "inject the selected text")
+		fs.StringVar(&ef.SelectionApp, "selection-app", "", "the app of the selected text (default notepad.exe)")
+		fs.StringVar(&ef.SelectionSource, "selection-source", "", "how the selected text was read: uia or clipboard")
+		fs.BoolVar(&ef.SelectionTruncated, "selection-truncated", false, "the selected text was truncated")
+		fs.BoolVar(&ef.SelectionEditable, "selection-editable", false, "the selected text is in an editable control")
 	}
 	return fs
 }
@@ -281,7 +298,25 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 	if c := ef.context(); c != nil {
 		e.Engine.SetContext(c)
 	}
+	if s := ef.selection(); s != nil {
+		e.Engine.SetSelection(s)
+	}
 	return e, nil
+}
+
+// selection is the selected text the flags inject, or nil. Nothing is read
+// from any window.
+func (ef envFlags) selection() *plugin.Selection {
+	if ef.Selection == "" {
+		return nil
+	}
+	return &plugin.Selection{
+		Text:      ef.Selection,
+		App:       plugin.AppInfo{Name: cmp.Or(ef.SelectionApp, "notepad.exe")},
+		Source:    cmp.Or(ef.SelectionSource, plugin.SelectionUIA),
+		Truncated: ef.SelectionTruncated,
+		Editable:  ef.SelectionEditable,
+	}
 }
 
 // context is the context the flags inject, or nil. A folder or selection

@@ -18,7 +18,8 @@ import (
 var ErrBusy = errors.New("clip: clipboard is busy")
 
 // ErrNotForeground is returned by PasteTo when the target window could not
-// be brought to the foreground.
+// be brought to the foreground, and by CopySelection when the window is not
+// (or no longer) the foreground window.
 var ErrNotForeground = errors.New("clip: target window did not become the foreground window")
 
 // ReadOptions selects what ReadWith fetches.
@@ -37,6 +38,8 @@ const debounceDelay = 50 * time.Millisecond
 type debouncer struct {
 	delay time.Duration
 	fn    func()
+	// hold, when set and true at the time fn is due, postpones fn by delay.
+	hold func() bool
 
 	mu      sync.Mutex
 	t       *time.Timer
@@ -57,10 +60,14 @@ func (d *debouncer) trigger() {
 }
 
 func (d *debouncer) fire() {
+	held := d.hold != nil && d.hold()
 	d.mu.Lock()
 	stopped := d.stopped
+	if held && !stopped {
+		d.t.Reset(d.delay)
+	}
 	d.mu.Unlock()
-	if !stopped {
+	if !stopped && !held {
 		d.fn()
 	}
 }

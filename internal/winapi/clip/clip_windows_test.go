@@ -1,7 +1,8 @@
 //go:build windows
 
 // Tests that read or write the real clipboard (and TestWatchOtherProcess,
-// which also runs clip.exe) are opt-in: they run only when
+// which also runs clip.exe, and TestCopySelectionReal, which sends Ctrl+C to
+// a window of its own helper process) are opt-in: they run only when
 // GOLAUNCHER_CLIPBOARD_TESTS=1 is set and -short is not given, e.g.
 //
 //	$env:GOLAUNCHER_CLIPBOARD_TESTS=1; go test ./internal/winapi/clip
@@ -30,49 +31,28 @@ import (
 // clipboardTestsEnv enables the tests that use the real clipboard.
 const clipboardTestsEnv = "GOLAUNCHER_CLIPBOARD_TESTS"
 
-var procEnumClipboardFormats = user32.NewProc("EnumClipboardFormats")
+// helperEnv switches the test binary into a helper process (see TestMain).
+const helperEnv = "GOLAUNCHER_CLIP_TEST_HELPER"
 
-// handleFormat reports whether clipboard format f holds a GDI or other
-// handle rather than global memory, so its data cannot be copied as bytes.
-func handleFormat(f uintptr) bool {
-	switch f {
-	case 2, 3, 9, 14, // CF_BITMAP, CF_METAFILEPICT, CF_PALETTE, CF_ENHMETAFILE
-		0x80, 0x82, 0x83, 0x8E: // CF_OWNERDISPLAY, CF_DSP{BITMAP,METAFILEPICT,ENHMETAFILE}
-		return true
+func TestMain(m *testing.M) {
+	if os.Getenv(helperEnv) == "edit" {
+		runEditHelper()
+		return
 	}
-	return f >= 0x300 && f <= 0x3FF // CF_GDIOBJFIRST..CF_GDIOBJLAST
+	os.Exit(m.Run())
 }
 
-// snapshot copies every memory-based format on the clipboard.
-func snapshot() ([]clipData, error) {
-	var out []clipData
-	err := withClipboard(func() error {
-		for f := uintptr(0); ; {
-			r, _, _ := procEnumClipboardFormats.Call(f)
-			if r == 0 {
-				return nil
-			}
-			f = r
-			if handleFormat(f) {
-				continue
-			}
-			if b, ok := getData(f); ok {
-				out = append(out, clipData{f, b})
-			}
-		}
-	})
-	return out, err
+// snapshot copies every memory format on the clipboard with the code of
+// CopySelection, skipping formats that cannot be saved.
+func snapshot() ([]savedFormat, error) {
+	items, _, err := saveClipboard(winCopyAPI{}, saveLimits{maxBytes: maxDataSize})
+	return items, err
 }
 
 // restore replaces the clipboard content with items, best effort.
-func restore(items []clipData) error {
-	return withClipboard(func() error {
-		procEmptyClipboard.Call()
-		for _, it := range items {
-			_ = setData(it.format, it.data)
-		}
-		return nil
-	})
+func restore(items []savedFormat) error {
+	_, err := restoreClipboard(winCopyAPI{}, items, false, false, 0)
+	return err
 }
 
 // realClipboard skips the test unless real-clipboard tests are enabled and

@@ -38,3 +38,5 @@ func ForegroundWindow() uintptr { return 0 }
 
 // PasteTo brings hwnd to the foreground and sends Ctrl+V to it.
 func PasteTo(hwnd uintptr) error { return errors.ErrUnsupported }
+
+func systemCopyAPI() (copyAPI, error) { return nil, errors.ErrUnsupported }

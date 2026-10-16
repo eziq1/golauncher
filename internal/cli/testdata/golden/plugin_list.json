@@ -30,6 +30,20 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.selection",
+    "name": "Selected Text",
+    "description": "Shows the text selected in the window you were in when the launcher opened, with its word count. The actions on the text come from the other plugins.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "text"
+    },
+    "enabled": true,
+    "permissions": [
+      "selection"
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.calc",
     "name": "Calculator",
     "description": "Evaluate math expressions and convert units, currencies, timestamps, colors and sizes right in the search bar",
@@ -39,7 +53,8 @@
     },
     "enabled": true,
     "permissions": [
-      "network"
+      "network",
+      "selection"
     ],
     "preferences": [
       {
@@ -721,7 +736,8 @@
     "permissions": [
       "storage",
       "clipboard",
-      "network"
+      "network",
+      "selection"
     ],
     "commands": [
       {
@@ -792,7 +808,8 @@
       "storage",
       "clipboard",
       "network",
-      "exec"
+      "exec",
+      "selection"
     ],
     "commands": [
       {
@@ -883,6 +900,54 @@
         "title": "Offer “Ask AI” when nothing matches",
         "description": "When the main search finds nothing good, its last entry asks AI about what you typed. Tab always does.",
         "default": true
+      },
+      {
+        "name": "translateTo",
+        "type": "select",
+        "title": "Translate to",
+        "description": "The language that “Translate” turns selected text into. Automatic: the language of golauncher; text already in that language is translated into English.",
+        "options": [
+          {
+            "value": "",
+            "title": "Automatic (the interface language)"
+          },
+          {
+            "value": "en",
+            "title": "English"
+          },
+          {
+            "value": "zh-CN",
+            "title": "Simplified Chinese"
+          },
+          {
+            "value": "zh-TW",
+            "title": "Traditional Chinese"
+          },
+          {
+            "value": "ja",
+            "title": "Japanese"
+          },
+          {
+            "value": "ko",
+            "title": "Korean"
+          },
+          {
+            "value": "fr",
+            "title": "French"
+          },
+          {
+            "value": "de",
+            "title": "German"
+          },
+          {
+            "value": "es",
+            "title": "Spanish"
+          },
+          {
+            "value": "ru",
+            "title": "Russian"
+          }
+        ]
       }
     ],
     "origin": "builtin"

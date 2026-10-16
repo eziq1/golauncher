@@ -20,6 +20,15 @@
   compress to ZIP, copy a SHA-256, search the folder with Everything. Works
   with Windows 11 tabs, and with any window whose title shows a path. Nothing
   is stored, and it can be turned off in Settings.
+- **Selected text**: select some text in any app, press Alt+Space, and the
+  top of the list offers actions for it: translate, ask AI (explain,
+  summarize, rewrite, suggest replies, or type an instruction), search the
+  web, open it if it is a link, calculate it if it is an expression, see the
+  full text and its word count. It is read with UI Automation, without
+  touching the clipboard; copying with Ctrl+C (the clipboard put back at
+  once) is an opt-in fallback for apps that do not support it. The text is
+  never stored and is sent to AI only when you pick an AI action
+  ([docs/selected-text.md](docs/selected-text.md)).
 - **Built-in plugins**
   - **Applications**: Start menu apps, including Store apps, with pinyin
     matching (`wx` finds 微信).
@@ -201,7 +210,7 @@ go test -race ./internal/... ./plugins/...     # needs a C compiler for -race
 go test ./internal/cli -update                 # refresh golden files after an intended output change
 ```
 
-Tests that touch the real clipboard are skipped unless you opt in with `$env:GOLAUNCHER_CLIPBOARD_TESTS=1` (they restore the clipboard afterwards).
+Tests that touch the real clipboard are skipped unless you opt in with `$env:GOLAUNCHER_CLIPBOARD_TESTS=1` (they restore the clipboard afterwards). Tests that read the selected text of real controls (only in windows the test creates) need `$env:GOLAUNCHER_SELECTION_TESTS=1`.
 
 The end-to-end test drives a running GUI through a local control socket, which is only enabled when golauncher is started with `GOLAUNCHER_CONTROL=1`:
 

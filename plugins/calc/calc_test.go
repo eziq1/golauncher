@@ -37,7 +37,7 @@ func TestManifest(t *testing.T) {
 	if m.ID != "builtin.calc" || m.Version != "1.1.0" || m.Icon.Name != "calculator" {
 		t.Errorf("manifest = %+v", m)
 	}
-	if len(m.Commands) != 0 || !slices.Equal(m.Permissions, []plugin.Permission{plugin.PermNetwork}) {
+	if len(m.Commands) != 0 || !slices.Equal(m.Permissions, []plugin.Permission{plugin.PermNetwork, plugin.PermSelection}) {
 		t.Errorf("manifest commands or permissions: %+v", m)
 	}
 	var prefs []string
@@ -72,7 +72,7 @@ func TestManifest(t *testing.T) {
 func TestMessageKeysExist(t *testing.T) {
 	_, h := newPlugin(t)
 	l := h.I18n()
-	keys := []string{"plugin.name", "plugin.description", "group", "action.copy", "action.copyExpression", "action.paste",
+	keys := []string{"plugin.name", "plugin.description", "group", "action.copy", "action.copyExpression", "action.paste", "action.pasteReplace",
 		"action.copyValue", "action.copyWithUnit", "action.pasteValue", "action.showConversions",
 		"view.conversions.title", "view.conversions.empty", "currency.ratesFrom", "currency.noRates.title",
 		"currency.noRates.subtitle", "currency.noRates.failed", "currency.attribution.erapi", "currency.attribution.frankfurter",

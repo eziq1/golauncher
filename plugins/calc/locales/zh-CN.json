@@ -9,6 +9,7 @@
   "action.copyWithUnit": "复制数值和单位",
   "action.pasteValue": "粘贴数值",
   "action.showConversions": "显示所有换算结果",
+  "action.pasteReplace": "粘贴替换选中的文字",
   "view.conversions.title": "换算结果",
   "view.conversions.empty": "没有可换算的内容",
   "currency.ratesFrom": "{{.date}} 的汇率",

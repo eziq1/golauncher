@@ -7,6 +7,7 @@ package shell
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/egoist/mygo"
 	mui "github.com/egoist/mygo/ui"
@@ -23,6 +25,7 @@ import (
 	"github.com/eziq1/golauncher/internal/builtin"
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/control"
+	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/internal/ui"
@@ -30,6 +33,7 @@ import (
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
 	"github.com/eziq1/golauncher/internal/winapi/process"
+	winselection "github.com/eziq1/golauncher/internal/winapi/selection"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -134,6 +138,9 @@ type Shell struct {
 	// showed, which Paste pastes into.
 	prevForeground atomic.Uintptr
 	stopClip       func()
+	// copying is set while the selected text is copied before the launcher
+	// shows (main thread only); hotkeys are ignored meanwhile.
+	copying bool
 
 	// The appearance applied to the windows last (main thread only).
 	source        mygo.ThemeSource
@@ -281,6 +288,7 @@ func (s *Shell) ready(action string) {
 	// once per hide; plugins stop their refresh timers on this event.
 	s.panel.OnHide(func() {
 		touched()
+		s.env.Engine.ClearSelection() // the selected text lives for one show only
 		s.env.Services.Bus.Publish(plugin.EventWindowHidden)
 	})
 	s.env.Controller.OnChange(s.panel.Invalidate)
@@ -372,33 +380,120 @@ func (s *Shell) showLauncher() { s.showLauncherThen(nil) }
 
 // showLauncherThen is showLauncher; then (if not nil) runs on the main
 // thread once the launcher was reset for showing.
-func (s *Shell) showLauncherThen(then func()) {
-	if s.panel == nil {
+func (s *Shell) showLauncherThen(then func()) { s.show(then, false) }
+
+// showForSelection shows the launcher for the selected text (the
+// selection hotkey, docs/selected-text.md §8): as showLauncher, telling the
+// user when no selected text was read.
+func (s *Shell) showForSelection() { s.show(nil, true) }
+
+// show shows the launcher. Main thread only. When it was hidden, the window
+// that was active is recorded and its context and selected text captured
+// before the launcher takes the focus; when the selection must be copied
+// (a simulated Ctrl+C), that happens first, off the main thread, and the
+// launcher shows once it is done (hotkeys pressed meanwhile are ignored).
+func (s *Shell) show(then func(), forSelection bool) {
+	if s.panel == nil || s.copying {
 		return
 	}
 	s.previewing = false
-	if !s.panel.IsVisible() {
-		fg := clip.ForegroundWindow()
-		s.prevForeground.Store(fg)
-		// Before the root search of this show starts (Shown resets it): the
-		// context arrives in the background and refreshes the root.
-		s.env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) { return wincontext.Detect(ctx, fg) })
-		d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
-		w, h := s.panel.Size()
-		s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
-		mygo.RunOnMain(func() {
-			s.launcher.Shown()
-			if then != nil {
-				then()
-			}
-		})
-	} else if then != nil {
-		then()
+	if s.panel.IsVisible() {
+		if then != nil {
+			then()
+		}
+		s.reveal()
+		return
 	}
+	fg := clip.ForegroundWindow()
+	s.prevForeground.Store(fg)
+	// Before the root search of this show starts (Shown resets it): the
+	// context arrives in the background and refreshes the root.
+	s.env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) { return wincontext.Detect(ctx, fg) })
+	sel := s.beginSelection(fg) // the focused element, before we take the focus
+	if sel != nil && sel.NeedsCopy() {
+		s.copying = true
+		go func() {
+			sel.Copy()
+			s.post(func() {
+				s.copying = false
+				s.present(sel, then, forSelection)
+			})
+		}()
+		return
+	}
+	s.present(sel, then, forSelection)
+}
+
+// present shows the hidden launcher for a new show whose selection capture
+// began with sel (nil: none). Main thread only.
+func (s *Shell) present(sel *winselection.Pending, then func(), forSelection bool) {
+	var read chan bool // the outcome of reading the selection, for forSelection
+	if forSelection {
+		read = make(chan bool, 1)
+	}
+	if sel != nil {
+		if err := sel.CopyErr(); errors.Is(err, clip.ErrNotRestored) {
+			s.log.Warn("selection: clipboard not restored", "err", err)
+			s.env.Engine.Notify(core.Notice{Toast: plugin.Toast{Style: plugin.ToastFailure, Title: s.loc.T("toast.clipboardNotRestored")}})
+		}
+		s.env.Engine.DetectSelection(func(ctx context.Context) (plugin.Selection, bool) {
+			v, ok := sel.Read(ctx)
+			if read != nil {
+				read <- ok
+			}
+			return v, ok
+		})
+	}
+	d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
+	w, h := s.panel.Size()
+	s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
+	mygo.RunOnMain(func() {
+		s.launcher.Shown()
+		if read != nil {
+			// After Shown's reset, which clears toasts.
+			s.work.Do(func(context.Context) {
+				go func() {
+					ok := false
+					select {
+					case ok = <-read:
+					case <-time.After(time.Second):
+					}
+					if !ok {
+						s.env.Controller.ShowToast(plugin.Toast{Style: plugin.ToastInfo, Title: s.loc.T("toast.noSelection")})
+					}
+				}()
+			})
+		}
+		if then != nil {
+			then()
+		}
+	})
+	s.reveal()
+}
+
+// reveal shows and focuses the launcher panel.
+func (s *Shell) reveal() {
 	touched()
 	s.panel.Show()
 	s.panel.Focus()
 	s.env.Services.Bus.Publish(plugin.EventWindowShown)
+}
+
+// beginSelection starts capturing the text selected in window fg (phase 1,
+// synchronous and bounded), or returns nil when context awareness is off.
+func (s *Shell) beginSelection(fg uintptr) *winselection.Pending {
+	cfg := s.env.Config.Get()
+	if !cfg.ContextAware || fg == 0 {
+		return nil
+	}
+	sc := cfg.Selection
+	return winselection.Begin(fg, winselection.Options{
+		MaxChars:      sc.EffectiveMaxChars(),
+		ExcludeApps:   sc.ExcludeApps,
+		Clipboard:     sc.Clipboard,
+		ClipboardApps: sc.ClipboardApps,
+		Log:           s.log,
+	})
 }
 
 func (s *Shell) hideLauncher() {
@@ -498,6 +593,8 @@ func (s *Shell) registerHotkeys() {
 	cfg := s.env.Config.Get()
 	hotkeys := s.env.Engine.CommandHotkeys()
 	sig := cfg.Hotkey
+	selKey := selectionHotkey(cfg)
+	sig += "\nselection=" + selKey
 	for _, hk := range hotkeys {
 		sig += "\n" + hk.Plugin + "/" + hk.Command + "=" + hk.Hotkey
 	}
@@ -522,6 +619,11 @@ func (s *Shell) registerHotkeys() {
 		s.failedKey = ""
 		s.settings.SetHotkeyError("")
 	}
+	if selKey != "" && selKey != cfg.Hotkey {
+		if err := mygo.GlobalShortcut.Register(accelerator(selKey), s.showForSelection); err != nil {
+			s.log.Warn("selection hotkey", "hotkey", selKey, "err", err)
+		}
+	}
 	noView := map[string]bool{}
 	for _, p := range s.env.Engine.Plugins() {
 		for _, c := range p.Commands {
@@ -543,6 +645,15 @@ func (s *Shell) registerHotkeys() {
 		}
 	}
 	s.updateTrayMenu()
+}
+
+// selectionHotkey is the hotkey opening the launcher for the selected
+// text, or "" when there is none or context awareness is off.
+func selectionHotkey(cfg config.Config) string {
+	if !cfg.ContextAware {
+		return ""
+	}
+	return cfg.Selection.Hotkey
 }
 
 // hotkeyFailed tells the user that the launcher hotkey is taken, and opens

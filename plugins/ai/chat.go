@@ -24,6 +24,15 @@ type chat struct {
 	// pending is the first message of a chat opened with AI off; it is sent
 	// once AI is turned on.
 	pending string
+	// title replaces the start of the first message as the chat's title
+	// (a selection action: "Translate: Let's move…").
+	title string
+	// editable marks a chat about an editable selection: pasting the answer
+	// replaces it. It is not stored.
+	editable bool
+	// toRoot goes back to the root search once AI is turned on from this
+	// chat's prompt (opened from the selected text).
+	toRoot bool
 
 	// The answer being written.
 	busy    bool
@@ -87,7 +96,12 @@ func (p *Plugin) chatOf(req plugin.ViewRequest) *chat {
 		}
 	}
 	if ch == nil {
-		ch = &chat{sess: Session{ID: p.o.NewID(), Backend: p.be.Name()}, pending: strings.TrimSpace(pl.Text)}
+		ch = &chat{sess: Session{ID: p.o.NewID(), Backend: p.be.Name()}, pending: strings.TrimSpace(pl.Text), toRoot: pl.ToRoot}
+		if strings.TrimSpace(pl.Quote) != "" {
+			ch.pending = selectionMessage(pl, req.Arguments)
+			ch.title = titleOf(pl.Title)
+			ch.editable = pl.Editable
+		}
 	}
 	p.chats[ch.sess.ID] = ch
 	if req.Instance != "" {
@@ -143,6 +157,9 @@ func (p *Plugin) startTurn(ch *chat, text string) func() {
 	if len(ch.msgs) == 0 {
 		ch.sess.Created = now
 		ch.sess.Title = titleOf(text)
+		if ch.title != "" {
+			ch.sess.Title = ch.title
+		}
 	}
 	ch.sess.Updated = now
 	ch.msgs = append(ch.msgs, Message{Role: RoleUser, Text: text, Time: now})
@@ -430,9 +447,13 @@ func (p *Plugin) render(ch *chat, instance string) plugin.View {
 		actions = append(actions, cb("stop", l.T("action.stop"), ""))
 	}
 	if answer := ch.lastAnswer(); answer != "" {
+		paste := l.T("action.paste")
+		if ch.editable {
+			paste = l.T("action.replaceSelection")
+		}
 		actions = append(actions,
 			plugin.Action{ID: "copy", Title: l.T("action.copy"), Shortcut: "Ctrl+Shift+C", Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: answer}},
-			plugin.Action{ID: "paste", Title: l.T("action.paste"), Shortcut: "Ctrl+Shift+V", Do: plugin.ActionDo{Kind: plugin.ActionPaste, Target: answer}},
+			plugin.Action{ID: "paste", Title: paste, Shortcut: "Ctrl+Shift+V", Do: plugin.ActionDo{Kind: plugin.ActionPaste, Target: answer}},
 		)
 	}
 	actions = append(actions,
@@ -469,6 +490,10 @@ func (p *Plugin) offView(ch *chat, instance string) plugin.View {
 		md += "\n\n" + l.T("off.pending") + "\n\n> " + strings.ReplaceAll(ch.pending, "\n", "\n> ")
 	}
 	enable := plugin.Action{ID: "enable", Title: l.T("action.enable"), Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "enable"}}
+	if ch.toRoot {
+		md += "\n\n" + l.T("off.selection")
+		enable.Do.Payload = plugin.MustPayload(enablePayload{ToRoot: true})
+	}
 	return plugin.View{
 		Kind:        plugin.ViewDetail,
 		Title:       l.T("chat.title"),

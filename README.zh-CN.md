@@ -13,6 +13,7 @@
 - 在任意位置按 **Alt+Space** 呼出，可以搜索应用、命令、文件，也可以直接算数。
 - 一切皆插件：内置功能和第三方插件用的是同一套[插件 SDK](pkg/plugin/)。
 - **环境感知**：在资源管理器或桌面上呼出时，列表最上方会针对当前目录和选中的文件给出操作：在此处打开终端或 VS Code、新建文件夹或文本文件、复制路径、压缩为 ZIP、复制 SHA-256、用 Everything 搜索此目录。支持 Windows 11 的多标签页，也支持标题里带路径的其他窗口。获取到的信息不落盘，可以在设置里关闭。
+- **选中的文字**：在任意应用里选中一段文字再按 Alt+Space，列表最上方会针对它给出操作：翻译、问 AI（解释、总结、改写、回复建议，或者直接输入要求）、网页搜索、是网址就打开、是算式就计算，还能查看全文和字数。默认通过 UI Automation 读取，不碰剪贴板；应用不支持时可以在设置里打开“读不到时改用复制的方式”（模拟 Ctrl+C 后立即还原剪贴板）。文字不会保存，只有你选择 AI 操作时才会发给 AI（[设计与实现](docs/selected-text.md)）。
 - **内置插件**
   - **应用启动器**：开始菜单里的应用，包括商店应用；支持拼音搜索，`wx` 能找到微信。
   - **计算器**：精确的十进制运算，支持函数和进制转换，比如 `255 in hex`；还能做**单位换算**：`10 km in mi`、`30 ℃`、`5 GB / 100 Mbps`、`3斤换成kg`、`8 L/100km in mpg`、`16 px in rem`，汇率（`100 usd in cny`，免费接口、不需要 API Key，离线时用缓存）、时间戳（`1700000000 to date`、`now in unix`）、颜色（`#ff8800 to hsl`）和鞋码衣服尺码（`鞋码 42 in us`）。单位可以用英文、中文或拼音（`10 公里 换成 英里`、`3 jin to kg`）。
@@ -89,7 +90,7 @@ go test -race ./internal/... ./plugins/...     # -race 需要 C 编译器
 go test ./internal/cli -update                 # 输出格式有意变更后，更新 golden 文件
 ```
 
-会碰真实剪贴板、资源管理器窗口或正在运行的 Everything 的测试默认跳过，分别设置 `GOLAUNCHER_CLIPBOARD_TESTS=1`、`GOLAUNCHER_CONTEXT_TESTS=1`、`GOLAUNCHER_EVERYTHING_TESTS=1` 才运行。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
+会碰真实剪贴板、资源管理器窗口或正在运行的 Everything 的测试默认跳过，分别设置 `GOLAUNCHER_CLIPBOARD_TESTS=1`、`GOLAUNCHER_CONTEXT_TESTS=1`、`GOLAUNCHER_EVERYTHING_TESTS=1` 才运行；读取真实控件选中文字的测试（只用测试自己创建的窗口）需要 `GOLAUNCHER_SELECTION_TESTS=1`。端到端测试通过本地控制通道驱动正在运行的 GUI，这个通道只有在启动 golauncher 时设置了 `GOLAUNCHER_CONTROL=1` 才开启。
 
 ### 调试界面
 

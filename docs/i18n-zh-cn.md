@@ -71,7 +71,10 @@
 | Opacity | 不透明度 | 背景不透明度、窗口整体不透明度 |
 | Language | 语言 | 选项用语言自己的名称：English、简体中文 |
 | Context awareness | 情境感知 | |
-| Launch at login | 登录时启动 | |
+| Selected Text | 选中的文字 | 根列表分组标题（docs/selected-text.md） |
+| Read selected text | 读取选中的文字 | |
+| Replace selection | 替换选中的文字 | |
+| Fall back to copying | 读不到时改用复制的方式 | 设计稿里叫“剪贴板方式” || Launch at login | 登录时启动 | |
 | Background Tasks | 后台任务 | Queued 排队中，Running 正在运行，Finished 已结束 |
 | Exit code | 退出代码 | |
 | Log / Log file | 日志 / 日志文件 | |

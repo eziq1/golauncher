@@ -1,0 +1,20 @@
+{
+  "plugin.name": "Selected Text",
+  "plugin.description": "Shows the text selected in the window you were in when the launcher opened, with its word count. The actions on the text come from the other plugins.",
+  "preview.keywords": "selected, selection, selected text, word count, characters",
+  "preview.truncated": "Truncated",
+  "words": { "one": "{{.Count}} word", "other": "{{.Count}} words" },
+  "action.show": "Show Text",
+  "view.title": "Selected Text",
+  "detail.app": "App",
+  "detail.words": "Words",
+  "detail.characters": "Characters",
+  "detail.lines": "Lines",
+  "detail.method": "Method",
+  "detail.methodUIA": "UI Automation",
+  "detail.methodClipboard": "Copied",
+  "detail.truncated": "Truncated",
+  "detail.editable": "Editable",
+  "detail.yes": "Yes",
+  "detail.no": "No"
+}
