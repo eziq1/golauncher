@@ -266,6 +266,11 @@ func (l *Library) Reload() error {
 		if err == nil {
 			t.Path = paths[id]
 			p.Warnings = append(p.Warnings, t.Warnings...)
+			for _, c := range CheckContrast(t) {
+				if !c.OK {
+					p.Warnings = append(p.Warnings, fmt.Sprintf("low contrast: %s is %.2f:1, needs %.1f:1", c.Pair, c.Ratio, c.Min))
+				}
+			}
 			t.Warnings = p.Warnings
 			user[id], good[id] = t, files[id]
 		} else {

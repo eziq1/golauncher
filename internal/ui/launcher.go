@@ -22,6 +22,7 @@ import (
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -60,7 +61,12 @@ type Launcher struct {
 	work   *Dispatcher
 	log    *slog.Logger
 	images *imageCache
-	theme  atomic.Value // string: config.Config.Theme
+	themes *theme.Manager
+	// appearance is the configuration's (config.Appearance), kept here so
+	// that a frame does not copy the whole configuration.
+	appearance atomic.Pointer[config.Appearance]
+	// res is what the frame being built draws with (UI thread only).
+	res *theme.Resolved
 
 	// The search field: text is bound to the input, sent is the text last
 	// given to the Controller.
@@ -118,11 +124,16 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 		hoverRow: -1,
 	}
 	l.images = newImageCache(host.Invalidate)
-	l.theme.Store(env.Config.Get().Theme)
+	l.themes = env.Themes
+	a := env.Config.Get().Appearance
+	l.appearance.Store(&a)
 	env.Config.OnChange(func(c config.Config) {
-		l.theme.Store(c.Theme)
+		l.appearance.Store(&c.Appearance)
 		host.Invalidate()
 	})
+	// The themes changed on disk, a setting is previewed, or the
+	// transparency effects were turned on or off.
+	env.Themes.OnChange(host.Invalidate)
 	// The footer's task indicator follows the background tasks.
 	env.Tasks.OnChange(func(state bool) {
 		if state {
@@ -312,13 +323,13 @@ func (l *Launcher) sync(s core.Snapshot) {
 
 // View builds the launcher.
 func (l *Launcher) View(c *mui.Context) {
-	applyTheme(c, l.theme.Load().(string))
-	t := c.Theme()
-	if c.Vibrancy() {
-		c.Root().Background(mui.Transparent)
-	} else {
-		c.Root().Background(t.Background)
-	}
+	// The settings, which show no material, ask whether the launcher does.
+	l.themes.SetNoMaterial(!c.Vibrancy())
+	l.res = resolveTheme(c, l.themes, *l.appearance.Load())
+	ui := l.res.UI
+	c.SetTheme(&ui)
+	// After SetTheme, which gives the root the theme's background.
+	c.Root().Background(l.res.Background)
 	// Whether edits are on their way, asked before the snapshot is taken: it
 	// may otherwise miss edits that were made in between.
 	l.pending = l.work.Pending()
@@ -377,15 +388,39 @@ func (l *Launcher) View(c *mui.Context) {
 	})
 }
 
-// applyTheme forces the light or dark theme when the configuration asks for
-// one; "system" keeps the theme that follows the desktop.
-func applyTheme(c *mui.Context, theme string) {
-	switch dark := c.Theme().Dark; {
-	case theme == "light" && dark:
-		c.SetTheme(mui.LightTheme())
-	case theme == "dark" && !dark:
-		c.SetTheme(mui.DarkTheme())
+// systemOf is the state of the system as the window c sees it. Call it
+// before SetTheme: the frame's theme starts as MyGo's, of the window's
+// appearance.
+func systemOf(c *mui.Context) theme.System {
+	p := c.Preferences()
+	return theme.System{
+		Dark:         c.Theme().Dark,
+		Accent:       p.Accent,
+		HighContrast: p.HighContrast,
+		TextScale:    p.TextScale,
+		NoMaterial:   !c.Vibrancy(),
 	}
+}
+
+// resolveTheme is the theme the launcher draws with in the window c. The
+// manager keeps it until something it depends on changes.
+func resolveTheme(c *mui.Context, m *theme.Manager, a config.Appearance) *theme.Resolved {
+	return m.Resolve(a, systemOf(c))
+}
+
+// rad scales a corner radius of the launcher with the theme's radius.
+func (l *Launcher) rad(r float32) float32 { return r * l.res.RadiusScale }
+
+// sp scales a padding of the launcher with the theme's density.
+func (l *Launcher) sp(v float32) float32 { return v * l.res.SpaceScale }
+
+// shadowed gives text e the faint backdrop of a very translucent
+// background (docs/themes.md §4), if any.
+func (l *Launcher) shadowed(e mui.Element) mui.Element {
+	if s := l.res.Tokens.TextShadow; s != mui.Transparent {
+		e.TextBackground(s)
+	}
+	return e
 }
 
 func (l *Launcher) updateToast(c *mui.Context, s core.Snapshot) {
@@ -404,12 +439,12 @@ func (l *Launcher) updateToast(c *mui.Context, s core.Snapshot) {
 }
 
 func (l *Launcher) searchBar(c *mui.Context, s core.Snapshot) {
-	t := c.Theme()
-	mui.Row(c).Padding(14, 16).Gap(10).AlignItems(mui.Center).Children(func() {
+	t, tk := c.Theme(), &l.res.Tokens
+	mui.Row(c).Padding(l.sp(14), 16).Gap(10).AlignItems(mui.Center).Children(func() {
 		if s.Depth > 0 {
-			back := mui.Box(c).Size(28, 28).Center().Radius(6).Background(t.Text.Alpha(0.08)).Label(l.loc.T("ui.back"))
+			back := mui.Box(c).Size(28, 28).Center().Radius(l.rad(6)).Background(tk.Control).Label(l.loc.T("ui.back"))
 			if back.Hovered() {
-				back.Background(t.Text.Alpha(0.14))
+				back.Background(tk.ControlHover)
 			}
 			if back.Clicked() {
 				l.back()
@@ -427,11 +462,22 @@ func (l *Launcher) searchBar(c *mui.Context, s core.Snapshot) {
 		if s.Form != nil {
 			mui.Box(c).Grow(1).Height(28)
 		} else {
-			in := mui.TextInputBase(c.Key("search"), &l.text).Bind(&l.input).AutoFocus().Grow(1).FontSize(18).
-				Placeholder(s.Placeholder).Label(l.loc.T("ui.search.label")).
+			// MyGo draws placeholders in the theme's muted text color; a
+			// theme with a placeholder color of its own gets it drawn here.
+			ownPlaceholder := tk.SearchPlaceholder != t.TextMuted
+			placeholder := s.Placeholder
+			if ownPlaceholder {
+				placeholder = ""
+			}
+			in := mui.TextInputBase(c.Key("search"), &l.text).Bind(&l.input).AutoFocus().Grow(1).FontSize(18).TextColor(tk.SearchText).
+				Placeholder(placeholder).Label(l.loc.T("ui.search.label")).
 				OnTextKey(func(k mui.TextKey) bool { return l.textKey(k, false) })
 			if in.Changed() {
 				l.setText(l.text, false)
+			}
+			if ownPlaceholder && l.text == "" {
+				mui.Text(c, s.Placeholder).FontSize(18).TextColor(tk.SearchPlaceholder).SingleLine().PassThrough().
+					AttachTo(in, mui.AnchorLeft, mui.AnchorLeft)
 			}
 			l.argumentInputs(c, s, in)
 		}
@@ -528,24 +574,20 @@ func (l *Launcher) results(c *mui.Context, s core.Snapshot) {
 }
 
 func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
-	t := c.Theme()
+	t, tk := c.Theme(), &l.res.Tokens
 	if r.entry == nil {
-		bg := t.Background.Alpha(0.9)
-		if c.Vibrancy() {
-			bg = mui.Transparent
-		}
-		mui.Text(c, r.header).FontSize(11).Bold().TextColor(t.TextMuted).Padding(8, 10, 4, 10).Background(bg).SingleLine()
+		l.shadowed(mui.Text(c, r.header).FontSize(11).Bold().TextColor(tk.SectionHeader).Padding(l.sp(8), 10, l.sp(4), 10).Background(tk.SectionBackground).SingleLine())
 		return
 	}
 	e := r.entry
 	selected := r.flat == s.Selected
 	text, muted := t.Text, t.TextMuted
-	row := mui.Row(c).Padding(6, 10).Gap(12).AlignItems(mui.Center).Radius(8)
+	row := mui.Row(c).Padding(l.sp(6), 10).Gap(12).AlignItems(mui.Center).Radius(l.rad(8))
 	if selected {
-		row.Background(t.Accent.Alpha(0.9))
-		text, muted = t.AccentText, t.AccentText.Alpha(0.75)
+		row.Background(tk.RowSelected)
+		text, muted = tk.RowSelectedText, tk.RowSelectedMuted
 	} else if row.Hovered() {
-		row.Background(t.Text.Alpha(0.05))
+		row.Background(tk.RowHover)
 	}
 	if row.Hovered() && r.flat != l.hoverRow {
 		// The first row under the pointer after showing does not take the
@@ -560,15 +602,15 @@ func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 		l.input.Focus()
 	}
 	row.Children(func() {
-		l.icon(c, e.Icon, rowIconSize, text)
+		l.icon(c, e.Icon, rowIconSize, text, selected && !tk.TintSelected)
 		mui.Row(c).Grow(1).Shrink(1).MinWidth(0).Gap(8).AlignItems(mui.Center).ClipX().Children(func() {
-			mui.Text(c, e.Title).TextColor(text).SingleLine().Shrink(0)
+			l.shadowed(mui.Text(c, e.Title).TextColor(text).SingleLine().Shrink(0))
 			if e.Subtitle != "" {
-				mui.Text(c, e.Subtitle).TextColor(muted).SingleLine().Shrink(1).MinWidth(0)
+				l.shadowed(mui.Text(c, e.Subtitle).TextColor(muted).SingleLine().Shrink(1).MinWidth(0))
 			}
 		})
 		if e.Accessory != "" {
-			mui.Text(c, e.Accessory).FontSize(12).TextColor(muted).SingleLine().Shrink(0)
+			l.shadowed(mui.Text(c, e.Accessory).FontSize(12).TextColor(muted).SingleLine().Shrink(0))
 		}
 	})
 }
@@ -633,8 +675,12 @@ func (l *Launcher) fullDetail(c *mui.Context, s core.Snapshot) {
 }
 
 func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
-	t := c.Theme()
-	mui.Row(c).Height(40).Padding(0, 12, 0, 16).Gap(10).AlignItems(mui.Center).Children(func() {
+	t, tk := c.Theme(), &l.res.Tokens
+	bar := mui.Row(c).Height(40).Padding(0, 12, 0, 16).Gap(10).AlignItems(mui.Center)
+	if tk.Footer.A > 0 {
+		bar.Background(tk.Footer)
+	}
+	bar.Children(func() {
 		if s.Tasks != nil {
 			l.tasksIndicator(c, s.Tasks)
 		}
@@ -659,7 +705,7 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 				label = s.Title
 			}
 			mui.Icon(c, builtinIcon("command")).FontSize(14).TextColor(t.TextMuted)
-			mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0)
+			l.shadowed(mui.Text(c, label).FontSize(12).TextColor(t.TextMuted).SingleLine().Shrink(1).MinWidth(0))
 			if s.Context != nil {
 				l.contextChip(c, s.Context)
 			}
@@ -679,7 +725,7 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 		if primary {
 			l.Key("Enter")
 		}
-		mui.Box(c).Size(1, 16).Background(t.Border)
+		mui.Box(c).Size(1, 16).Background(tk.Divider)
 		if l.footerButton(c, l.loc.T("ui.footer.actions"), "Ctrl+K") {
 			l.Key("Ctrl+K")
 		}
@@ -694,7 +740,7 @@ func (l *Launcher) contextChip(c *mui.Context, ctx *core.ContextSnapshot) {
 	if ctx.Folder != "" {
 		icon = "folder"
 	}
-	chip := mui.Row(c.Key("context-chip")).Gap(5).Padding(2, 7).Radius(6).AlignItems(mui.Center).Shrink(1).MinWidth(0).MaxWidth(200).
+	chip := mui.Row(c.Key("context-chip")).Gap(5).Padding(2, 7).Radius(l.rad(6)).AlignItems(mui.Center).Shrink(1).MinWidth(0).MaxWidth(200).
 		Background(t.Text.Alpha(0.06)).Label(l.loc.T("ui.context.copy", "name", ctx.Name))
 	if ctx.Folder != "" {
 		if chip.Hovered() {
@@ -721,10 +767,10 @@ func (l *Launcher) contextChip(c *mui.Context, ctx *core.ContextSnapshot) {
 // seen yet. Clicking it (like Ctrl+J) opens Background Tasks.
 func (l *Launcher) tasksIndicator(c *mui.Context, ts *core.TasksSnapshot) {
 	t := c.Theme()
-	b := mui.Row(c.Key("tasks-indicator")).Gap(5).Padding(3, 6).Radius(6).AlignItems(mui.Center).
+	b := mui.Row(c.Key("tasks-indicator")).Gap(5).Padding(3, 6).Radius(l.rad(6)).AlignItems(mui.Center).
 		Label(ts.Label).Tooltip(ts.Label)
 	if b.Hovered() {
-		b.Background(t.Text.Alpha(0.08))
+		b.Background(l.res.Tokens.Control)
 	}
 	if b.Clicked() {
 		l.Key(core.KeyTasks)
@@ -743,15 +789,14 @@ func (l *Launcher) tasksIndicator(c *mui.Context, ts *core.TasksSnapshot) {
 
 // footerButton shows a label and its shortcut's key caps, and reports a click.
 func (l *Launcher) footerButton(c *mui.Context, label, shortcut string) bool {
-	t := c.Theme()
-	b := mui.Row(c).Gap(6).Padding(4, 6).Radius(6).AlignItems(mui.Center)
+	b := mui.Row(c).Gap(6).Padding(4, 6).Radius(l.rad(6)).AlignItems(mui.Center)
 	if b.Hovered() {
-		b.Background(t.Text.Alpha(0.08))
+		b.Background(l.res.Tokens.Control)
 	}
 	clicked := b.Clicked()
 	b.Children(func() {
 		mui.Text(c, label).FontSize(12).SingleLine()
-		keyCapsView(c, shortcut)
+		keyCapsView(c, shortcut, l.res.Tokens.Control)
 	})
 	if clicked {
 		l.input.Focus()
@@ -759,18 +804,18 @@ func (l *Launcher) footerButton(c *mui.Context, label, shortcut string) bool {
 	return clicked
 }
 
-// keyCapsView shows a shortcut as key caps.
-func keyCapsView(c *mui.Context, shortcut string) {
+// keyCapsView shows a shortcut as key caps on bg.
+func keyCapsView(c *mui.Context, shortcut string, bg mui.Color) {
 	t := c.Theme()
 	mui.Row(c).Gap(3).Children(func() {
 		for _, k := range keyCaps(shortcut) {
-			mui.Text(c, k).FontSize(11).TextColor(t.TextMuted).Padding(1, 5).Radius(4).Background(t.Text.Alpha(0.08)).SingleLine()
+			mui.Text(c, k).FontSize(11).TextColor(t.TextMuted).Padding(1, 5).Radius(4).Background(bg).SingleLine()
 		}
 	})
 }
 
 func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
-	t := c.Theme()
+	t, tk, colors := c.Theme(), &l.res.Tokens, l.res.Colors
 	if p.Selected != l.lastPanelSel {
 		l.lastPanelSel = p.Selected
 		l.actions.ScrollIntoView(p.Selected)
@@ -779,8 +824,8 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 	l.actions.Key = func(i int) any { return actions[i].ID }
 	l.actions.Label = func(i int) string { return actions[i].Title }
 	mui.Column(c.Key("action-panel")).Attach(mui.AnchorBottomRight, mui.AnchorBottomRight).Right(10).Bottom(46).
-		Width(340).MaxHeight(320).Radius(10).Background(t.Background).Border(1, t.Border).
-		Shadow(0, 8, 24, 0, mui.RGBA(0, 0, 0, 0.25)).Label(l.loc.T("ui.panel.label")).Children(func() {
+		Width(340).MaxHeight(320).Radius(l.rad(10)).Background(colors["background"]).Border(1, t.Border).
+		Shadow(0, 8, 24, 0, tk.Shadow).Label(l.loc.T("ui.panel.label")).Children(func() {
 		mui.Text(c, p.Title).FontSize(11).Bold().TextColor(t.TextMuted).Padding(10, 12, 4, 12).SingleLine()
 		mui.List(c.Key("actions"), &l.actions, len(actions), func(i int) {
 			a := actions[i]
@@ -788,14 +833,16 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 			if a.Style == plugin.StyleDestructive {
 				fg = t.Danger
 			}
-			row := mui.Row(c).Padding(6, 10).Gap(8).Radius(6).AlignItems(mui.Center)
+			// The panel is opaque: its rows are not scaled to the
+			// background's opacity.
+			row := mui.Row(c).Padding(l.sp(6), 10).Gap(8).Radius(l.rad(6)).AlignItems(mui.Center)
 			if i == p.Selected {
-				row.Background(t.Accent.Alpha(0.9))
+				row.Background(colors["rowSelected"])
 				if a.Style != plugin.StyleDestructive {
-					fg = t.AccentText
+					fg = colors["rowSelectedText"]
 				}
 			} else if row.Hovered() {
-				row.Background(t.Text.Alpha(0.05))
+				row.Background(colors["rowHover"])
 			}
 			if row.Clicked() {
 				l.activate(i)
@@ -810,7 +857,7 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 					shortcut = "Enter"
 				}
 				if shortcut != "" {
-					keyCapsView(c, shortcut)
+					keyCapsView(c, shortcut, tk.Control)
 				}
 			})
 		}).Grow(1).Shrink(1).Padding(4).Children(func() {
@@ -830,14 +877,14 @@ func (l *Launcher) actionPanel(c *mui.Context, p *core.PanelSnapshot) {
 
 // confirmDialog asks before a destructive action runs.
 func (l *Launcher) confirmDialog(c *mui.Context, d *core.ConfirmSnapshot) {
-	t := c.Theme()
-	mui.Box(c.Key("confirm")).Absolute().Top(0).Left(0).Fill().Center().Background(mui.RGBA(0, 0, 0, 0.35)).Children(func() {
+	t, tk := c.Theme(), &l.res.Tokens
+	mui.Box(c.Key("confirm")).Absolute().Top(0).Left(0).Fill().Center().Background(tk.Overlay).Children(func() {
 		width := float32(360)
 		if d.External {
 			width = 440 // three buttons
 		}
-		mui.Column(c).Width(width).Padding(18).Gap(10).Radius(12).Background(t.Background).Border(1, t.Border).
-			Shadow(0, 12, 32, 0, mui.RGBA(0, 0, 0, 0.3)).Label(d.Title).Children(func() {
+		mui.Column(c).Width(width).Padding(18).Gap(10).Radius(l.rad(12)).Background(l.res.Colors["background"]).Border(1, t.Border).
+			Shadow(0, 12, 32, 0, tk.DialogShadow).Label(d.Title).Children(func() {
 			mui.Text(c, d.Title).Bold()
 			if d.Message != "" {
 				mui.Text(c, d.Message).FontSize(13).TextColor(t.TextMuted)
@@ -847,10 +894,10 @@ func (l *Launcher) confirmDialog(c *mui.Context, d *core.ConfirmSnapshot) {
 				confirmBg = t.Danger
 			}
 			mui.Row(c).Gap(8).Justify(mui.End).MarginY(6).Wrap().Children(func() {
-				if dialogButton(c, d.Cancel, "Escape", t.Text, t.Text.Alpha(0.08)) {
+				if dialogButton(c, d.Cancel, "Escape", t.Text, tk.Control) {
 					l.Key("Escape")
 				}
-				if d.AllowSession != "" && dialogButton(c, d.AllowSession, "Ctrl+Enter", t.Text, t.Text.Alpha(0.08)) {
+				if d.AllowSession != "" && dialogButton(c, d.AllowSession, "Ctrl+Enter", t.Text, tk.Control) {
 					l.Key("Ctrl+Enter")
 				}
 				if dialogButton(c, d.Confirm, "Enter", t.AccentText, confirmBg) {

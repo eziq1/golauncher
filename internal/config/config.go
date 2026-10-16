@@ -34,11 +34,11 @@ type Config struct {
 	// file without Appearance is migrated from it.
 	Theme string `json:"theme"`
 	// Appearance chooses the theme and adjusts it (docs/themes.md §8.2).
-	Appearance Appearance `json:"appearance"`
-	Language   string     `json:"language"` // "system" or a BCP 47 tag
-	HideOnBlur    bool   `json:"hideOnBlur"`
-	LaunchAtLogin bool   `json:"launchAtLogin"`
-	LogLevel      string `json:"logLevel,omitempty"` // "debug", "info" (default), "warn", "error"
+	Appearance    Appearance `json:"appearance"`
+	Language      string     `json:"language"` // "system" or a BCP 47 tag
+	HideOnBlur    bool       `json:"hideOnBlur"`
+	LaunchAtLogin bool       `json:"launchAtLogin"`
+	LogLevel      string     `json:"logLevel,omitempty"` // "debug", "info" (default), "warn", "error"
 	// ContextAware lets the launcher look at the window that was active when
 	// it opened (docs/context-awareness.md). Off, no other window is read.
 	ContextAware bool `json:"contextAware"`

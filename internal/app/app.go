@@ -22,6 +22,7 @@ import (
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/store"
 	"github.com/eziq1/golauncher/internal/tasks"
+	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -63,6 +64,9 @@ type Options struct {
 	TasksReadOnly bool
 	// Version is the launcher's version, reported by the AI tool server.
 	Version string
+	// ThemesDir holds the user's theme files (default ConfigDir\themes;
+	// none when Fake).
+	ThemesDir string
 }
 
 // Env is a running launcher environment.
@@ -78,6 +82,8 @@ type Env struct {
 	// Agent is the AI tool layer (docs/ai.md §4); it asks Controller to
 	// confirm actions.
 	Agent *agent.Agent
+	// Themes are the themes and the live appearance (docs/themes.md).
+	Themes *theme.Manager
 
 	tempDir   string
 	manifests []plugin.Manifest
@@ -175,6 +181,16 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 	if !o.Fake {
 		env.migrateSecrets(secrets, log)
 	}
+
+	themesDir := o.ThemesDir
+	if themesDir == "" && !o.Fake {
+		themesDir = filepath.Join(configDir, "themes")
+	}
+	themes := theme.NewLibrary(themesDir)
+	if err := themes.Reload(); err != nil {
+		log.Warn("themes", "dir", themesDir, "err", err)
+	}
+	env.Themes = theme.NewManager(themes)
 
 	cfg := env.Config.Get()
 	env.I18n = i18n.NewManager(i18n.Source, log)

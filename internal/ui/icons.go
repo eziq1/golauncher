@@ -151,8 +151,9 @@ func loadImage(path string) mui.ImageSource {
 	return nil
 }
 
-// icon builds an item's icon, size DIPs square.
-func (l *Launcher) icon(c *mui.Context, ic plugin.Icon, size float32, fg mui.Color) {
+// icon builds an item's icon, size DIPs square, in fg unless its tint
+// gives it another color; keep keeps fg (an icon on an accent-colored row).
+func (l *Launcher) icon(c *mui.Context, ic plugin.Icon, size float32, fg mui.Color, keep bool) {
 	if ic.Path != "" {
 		if src := l.images.get(ic.Path); src != nil {
 			mui.Image(c, src).Size(size, size).Fit(mui.Contain)
@@ -163,26 +164,12 @@ func (l *Launcher) icon(c *mui.Context, ic plugin.Icon, size float32, fg mui.Col
 	if name == "" {
 		name = "app"
 	}
-	t := c.Theme()
-	if fg != t.AccentText { // on the selected row the icon keeps the row's color
-		fg = tint(t, ic.Tint, fg)
+	tk := &l.res.Tokens
+	if !keep && ic.Tint != "" {
+		// Plugins name a meaning; the theme has its color ("tint.<name>").
+		fg = tk.Tint(string(ic.Tint), fg)
 	}
-	mui.Box(c).Size(size, size).Center().Radius(size / 4).Background(t.Text.Alpha(0.08)).Children(func() {
+	mui.Box(c).Size(size, size).Center().Radius(size / 4).Background(tk.Control).Children(func() {
 		mui.Icon(c, builtinIcon(name)).FontSize(size * 0.6).TextColor(fg)
 	})
-}
-
-// tint is the color of a built-in icon with plugin.Icon.Tint, or fg.
-func tint(t *mui.Theme, tint plugin.IconTint, fg mui.Color) mui.Color {
-	switch tint {
-	case plugin.TintSuccess:
-		return t.Success
-	case plugin.TintDanger:
-		return t.Danger
-	case plugin.TintAccent:
-		return t.Accent
-	case plugin.TintMuted:
-		return t.TextMuted
-	}
-	return fg
 }

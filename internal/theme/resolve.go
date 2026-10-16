@@ -304,6 +304,7 @@ type Manager struct {
 	last      *Resolved
 	preview   *config.Appearance
 	reduce    bool // transparency effects off
+	noMat     bool // the launcher's window shows no material
 	listeners []func()
 }
 
@@ -398,6 +399,25 @@ func (m *Manager) SetReduceTransparency(off bool) {
 	if !same {
 		m.changed()
 	}
+}
+
+// SetNoMaterial tells whether the launcher's window shows its material,
+// which the settings window, which has none, cannot see.
+func (m *Manager) SetNoMaterial(none bool) {
+	m.mu.Lock()
+	same := m.noMat == none
+	m.noMat = none
+	m.mu.Unlock()
+	if !same {
+		m.changed()
+	}
+}
+
+// NoMaterial reports what SetNoMaterial set.
+func (m *Manager) NoMaterial() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.noMat
 }
 
 // ReduceTransparency reports what SetReduceTransparency set.
