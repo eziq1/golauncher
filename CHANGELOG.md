@@ -10,6 +10,33 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **AI uses your plugins** (docs/ai.md §4, §5, §16): a tool layer with five
+  generic tools (`list_plugins`, `search`, `run_command`, `get_detail`,
+  `run_action`) that run through the launcher's engine. Items come back with
+  short handles that expire after 10 minutes, and only handles can be acted
+  on. Actions have a risk level: reading runs directly, opening (apps,
+  links, folders, copying) runs directly unless you choose *Ask every time*,
+  changes ask every time, destructive actions always ask. The confirmation
+  shows in the launcher window (shown if hidden) with who asks, *Allow*,
+  *Allow for this session* and *Deny*; it is denied after 60 seconds, and
+  requests wait in a queue. Settings › Plugins › AI › AI Tools: which plugins
+  AI may use (clipboard history and third-party plugins off by default;
+  clips from password managers are never shared), the policy for opening,
+  *Allow AI apps to use golauncher* (off by default), *Connect to Claude
+  Desktop* (backs up its configuration and adds only the `golauncher`
+  entry) and the `claude mcp add` command for Claude Code. *AI Activity*
+  lists every tool call (client, tool, a short summary, outcome; no message
+  content) of the last 30 days and can be cleared.
+  - The AI chat uses the tools (preference *Let AI use launcher plugins*, on
+    by default) and shows each step in the answer (`🔧 Search “port 8080”
+    → 1 result`, `✅ Install “7-Zip”`, `⛔ Declined: …`); its confirmations
+    appear over the chat.
+  - `golauncher.exe mcp`: a stdio MCP server for Claude Desktop and Claude
+    Code that forwards to the running launcher over a named pipe only your
+    user can open, starting the launcher in the background when needed.
+  - `glctl mcp`: the same MCP server on glctl's fake environment.
+  - Plugin SDK: `Action.ReadOnly` marks a callback that only reads (AI runs
+    it without asking); `Item.Sensitive` keeps an item from AI.
 - **AI Chat** (`builtin.ai`, off by default): chat with Claude in the
   launcher through your installed Claude Code CLI and your Claude
   subscription. `Tab` after typing opens a chat with the text; *Ask AI:

@@ -31,12 +31,16 @@ var (
 type Controller struct {
 	eng *Engine
 
-	mu       sync.Mutex
-	stack    []*frame // stack[0] is the root search
-	panel    *panel
-	confirm  *pending // a destructive action waiting for confirmation
-	toast    *plugin.Toast
-	onChange func()
+	mu      sync.Mutex
+	stack   []*frame // stack[0] is the root search
+	panel   *panel
+	confirm *pending // a destructive action waiting for confirmation
+	// external are the confirmations AI clients asked for (external.go);
+	// the first one is displayed.
+	external   []*extPending
+	onExternal func(ExternalRequest)
+	toast      *plugin.Toast
+	onChange   func()
 
 	gen    int // incremented for every search; stale results are dropped
 	cancel context.CancelFunc
@@ -620,6 +624,10 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		c.waitSearches()
 	}
 	c.mu.Lock()
+	if len(c.external) > 0 {
+		c.externalKey(key) // unlocks
+		return Outcome{}, nil
+	}
 	if p := c.confirm; p != nil {
 		// While confirming, only Enter (confirm) and Escape (cancel) count.
 		switch key {
@@ -1035,6 +1043,15 @@ type ConfirmSnapshot struct {
 	Message string `json:"message"`
 	Confirm string `json:"confirm"` // confirm button label
 	Cancel  string `json:"cancel"`  // cancel button label
+	// Danger shows the confirm button in red (a destructive action).
+	Danger bool `json:"danger,omitzero"`
+	// External marks a confirmation asked for by an AI client (docs/ai.md
+	// §5): Enter allows, Escape denies. AllowSession is the label of "Allow
+	// for this session" (Ctrl+Enter) when it is offered, and Queued the
+	// number of requests waiting after this one.
+	External     bool   `json:"external,omitzero"`
+	AllowSession string `json:"allowSession,omitempty"`
+	Queued       int    `json:"queued,omitzero"`
 }
 
 // PanelSnapshot is the open action panel.
@@ -1099,6 +1116,7 @@ func (c *Controller) Snapshot() Snapshot {
 			Message: core.T("confirm.message"),
 			Confirm: p.action.Title,
 			Cancel:  core.T("confirm.cancel"),
+			Danger:  true,
 		}
 		if strings.HasPrefix(p.entry.ID, cmdPrefix) || p.action.Title == p.entry.Title {
 			// For a command (or an item named like its action, "Shut Down")
@@ -1115,6 +1133,9 @@ func (c *Controller) Snapshot() Snapshot {
 				}
 			}
 		}
+	}
+	if ext := c.externalSnapshot(); ext != nil {
+		s.Confirm = ext // over the launcher's own confirmation, which waits
 	}
 	if ts := c.eng.tasks; ts != nil {
 		switch active, failed := ts.Indicator(); {

@@ -44,6 +44,9 @@ type conversation struct {
 	started  bool     // the session exists: later processes resume it
 	forceNew bool     // the next process starts a new session (it was lost)
 	perTurn  bool     // the persistent process failed: one process per turn
+	// toolConfig is the MCP configuration file written for the CLI, "" when
+	// none.
+	toolConfig string
 }
 
 // Send implements backend.Conversation.
@@ -121,6 +124,7 @@ func (c *conversation) Close() error {
 			p.stop()
 		}
 	}
+	c.removeToolConfig()
 	c.b.forget(c)
 	return nil
 }
@@ -269,9 +273,13 @@ func (c *conversation) perTurnAttempt(t *turn, info *cliInfo, text string) attem
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
+	mcpConfig, err := c.writeToolConfig(dir)
+	if err != nil {
+		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
+	}
 	resume := c.takeResume()
-	argv := c.argv(info.path, false, resume)
-	p, err := startProcess(argv, dir, c.b.env(), nil)
+	argv := c.argv(info.path, false, resume, mcpConfig)
+	p, err := startProcess(argv, dir, c.env(), nil)
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
@@ -434,9 +442,13 @@ func (c *conversation) ensureProcess(info *cliInfo) (*process, error) {
 	if err != nil {
 		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
 	}
+	mcpConfig, err := c.writeToolConfig(dir)
+	if err != nil {
+		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+	}
 	resume := c.takeResume()
 	var p *process
-	p, err = startProcess(c.argv(info.path, true, resume), dir, c.b.env(), func(p *process) { c.detach(p) })
+	p, err = startProcess(c.argv(info.path, true, resume, mcpConfig), dir, c.env(), func(p *process) { c.detach(p) })
 	if err != nil {
 		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
 	}
@@ -502,8 +514,10 @@ func (c *conversation) setPerTurn() {
 
 // argv is the CLI's command line. Every flag keeps the CLI away from the
 // user's own setup and from this computer: no settings or hooks, no MCP
-// servers, no slash commands, no local tools, no permission prompts.
-func (c *conversation) argv(path string, persistent, resume bool) []string {
+// servers but golauncher's (mcpConfig, when set), no slash commands, no
+// local tools, no permission prompts (toolFlags pre-approves the tools the
+// model may use).
+func (c *conversation) argv(path string, persistent, resume bool, mcpConfig string) []string {
 	a := []string{path, "-p"}
 	if persistent {
 		a = append(a, "--input-format", "stream-json")
@@ -514,12 +528,15 @@ func (c *conversation) argv(path string, persistent, resume bool) []string {
 	} else {
 		a = append(a, "--session-id", c.oo.SessionID)
 	}
-	a = append(a, "--setting-sources", "", "--safe-mode", "--strict-mcp-config", "--disable-slash-commands")
-	if c.oo.WebSearch {
-		a = append(a, "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch")
-	} else {
-		a = append(a, "--tools", "")
+	a = append(a, "--setting-sources", "")
+	if mcpConfig == "" {
+		// --safe-mode also drops the servers of --mcp-config (verified with
+		// 2.1.296), so with golauncher's tools isolation comes from the other
+		// flags and from c.env (no auto memory); see docs/ai.md §16.
+		a = append(a, "--safe-mode")
 	}
+	a = append(a, "--strict-mcp-config", "--disable-slash-commands")
+	a = append(a, toolFlags(c.oo.WebSearch, mcpConfig)...)
 	a = append(a, "--permission-prompts", "none")
 	if sp := c.oo.SystemPrompt; sp != "" {
 		if proc.IsBatch(path) {
@@ -650,4 +667,17 @@ func errString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+// noAutoMemory turns Claude Code's auto memory off; --safe-mode does that
+// too, but it cannot be used with golauncher's MCP server.
+const noAutoMemory = "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
+
+// env is the CLI's environment for this conversation.
+func (c *conversation) env() []string {
+	env := c.b.env()
+	if c.launcherTools() {
+		env = proc.MergeEnv(env, []string{noAutoMemory})
+	}
+	return env
 }

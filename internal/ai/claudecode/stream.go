@@ -39,6 +39,7 @@ type streamEvent struct {
 	} `json:"delta"`
 	ContentBlock *struct {
 		Type string `json:"type"`
+		ID   string `json:"id"`
 		Name string `json:"name"`
 	} `json:"content_block"`
 	Message *struct {
@@ -53,11 +54,58 @@ type message struct {
 	Content json.RawMessage `json:"content"`
 }
 
-// block is a content block of an assistant message.
+// block is a content block of an assistant or user message: text, a tool
+// call (tool_use: ID, Name, Input) or a tool's result (tool_result:
+// ToolUseID, Content, IsError).
 type block struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-	Name string `json:"name"`
+	Type      string          `json:"type"`
+	Text      string          `json:"text"`
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Input     json.RawMessage `json:"input"`
+	ToolUseID string          `json:"tool_use_id"`
+	Content   json.RawMessage `json:"content"`
+	IsError   bool            `json:"is_error"`
+}
+
+// isToolUse reports whether b is a tool call.
+func (b *block) isToolUse() bool { return b.Type == "tool_use" || b.Type == "server_tool_use" }
+
+// toolEvent is the EventTool of a tool call block.
+func (b *block) toolEvent() backend.Event {
+	return backend.Event{Kind: backend.EventTool, Tool: b.Name, ToolID: b.ID, Input: compactJSON(b.Input)}
+}
+
+// resultText is the text of a tool_result block: its content is a string or
+// a list of blocks, whose texts are joined.
+func (b *block) resultText() string {
+	if s := rawString(b.Content); s != "" {
+		return s
+	}
+	var parts []block
+	if json.Unmarshal(b.Content, &parts) != nil {
+		return ""
+	}
+	var texts []string
+	for _, p := range parts {
+		if p.Type == "text" {
+			texts = append(texts, p.Text)
+		}
+	}
+	return strings.Join(texts, "\n")
+}
+
+// compactJSON returns raw as compact JSON text, "" when it is missing or
+// not JSON.
+func compactJSON(raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+	var buf bytes.Buffer
+	if json.Compact(&buf, raw) != nil {
+		return ""
+	}
+	return buf.String()
 }
 
 // usage is a result's token usage.
@@ -122,6 +170,8 @@ func (s *parser) handle(raw []byte) (res *outLine, garbage bool) {
 		s.streamEvent(l.Event)
 	case "assistant":
 		s.assistant(&l)
+	case "user":
+		s.user(&l)
 	case "result":
 		return &l, false
 	}
@@ -141,7 +191,7 @@ func (s *parser) streamEvent(e *streamEvent) {
 	case "content_block_start":
 		if b := e.ContentBlock; b != nil && (b.Type == "tool_use" || b.Type == "server_tool_use") && b.Name != "" {
 			s.emitted = true
-			s.emit(backend.Event{Kind: backend.EventTool, Tool: b.Name})
+			s.emit(backend.Event{Kind: backend.EventTool, Tool: b.Name, ToolID: b.ID})
 		}
 	case "content_block_delta":
 		if d := e.Delta; d != nil && d.Type == "text_delta" && d.Text != "" {
@@ -152,7 +202,9 @@ func (s *parser) streamEvent(e *streamEvent) {
 }
 
 // assistant handles a complete assistant message. Its text already arrived
-// as stream events, unless the CLI made the message up (an error message).
+// as stream events, unless the CLI made the message up (an error message);
+// its tool calls did too, but without their arguments, which are reported
+// now with the call's ID.
 func (s *parser) assistant(l *outLine) {
 	m := l.Message
 	if m == nil {
@@ -161,21 +213,24 @@ func (s *parser) assistant(l *outLine) {
 	code := rawString(l.Error)
 	var blocks []block
 	_ = json.Unmarshal(m.Content, &blocks)
-	if m.ID != "" && s.streamed[m.ID] {
-		return
-	}
-	if m.ID == "" && s.streamedAny && m.Model != syntheticModel && code == "" {
+	if m.ID != "" && s.streamed[m.ID] || m.ID == "" && s.streamedAny && m.Model != syntheticModel && code == "" {
+		for _, b := range blocks {
+			if b.isToolUse() && b.ID != "" && b.Name != "" && len(b.Input) > 0 {
+				s.emitted = true
+				s.emit(b.toolEvent())
+			}
+		}
 		return
 	}
 	var text strings.Builder
 	for _, b := range blocks {
-		switch b.Type {
-		case "text":
+		switch {
+		case b.Type == "text":
 			text.WriteString(b.Text)
-		case "tool_use", "server_tool_use":
+		case b.isToolUse():
 			if b.Name != "" && code == "" {
 				s.emitted = true
-				s.emit(backend.Event{Kind: backend.EventTool, Tool: b.Name})
+				s.emit(b.toolEvent())
 			}
 		}
 	}
@@ -187,6 +242,25 @@ func (s *parser) assistant(l *outLine) {
 	if text.Len() > 0 {
 		s.emitted = true
 		s.emit(backend.Event{Kind: backend.EventText, Text: text.String()})
+	}
+}
+
+// user handles a user line: the results of the model's tool calls. Other
+// user lines (such as "[Request interrupted by user]") are ignored.
+func (s *parser) user(l *outLine) {
+	if l.Message == nil {
+		return
+	}
+	var blocks []block
+	if json.Unmarshal(l.Message.Content, &blocks) != nil {
+		return // a plain string: not a tool result
+	}
+	for _, b := range blocks {
+		if b.Type != "tool_result" || b.ToolUseID == "" {
+			continue
+		}
+		s.emitted = true
+		s.emit(backend.Event{Kind: backend.EventToolResult, ToolID: b.ToolUseID, Result: b.resultText(), IsError: b.IsError})
 	}
 }
 

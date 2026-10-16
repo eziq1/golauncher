@@ -52,7 +52,8 @@
       "title": "Empty Recycle Bin?",
       "message": "This cannot be undone.",
       "confirm": "Empty Recycle Bin",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "danger": true
     }
   }
 }

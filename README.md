@@ -66,8 +66,20 @@
     CLI and your Claude subscription (no API key). Answers stream in; ask
     follow-ups, stop with `Esc`, copy or paste the answer, continue in the
     Claude or ChatGPT app, and reopen chats from *AI Chat History* (kept 30
-    days by default). Claude gets no tools on your computer; web search is
-    an option.
+    days by default). Claude can use the launcher's plugins ("8080 port —
+    who has it?", "install 7-Zip with winget"): it searches and runs them
+    through golauncher's own tools, every step shows in the chat, and
+    anything that changes something asks you first in the launcher
+    (*Allow*, *Allow for this session*, *Deny*; destructive actions always
+    ask). Web search is an option.
+  - **Use golauncher from Claude Desktop or Claude Code** (off until you
+    turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
+    `golauncher.exe mcp` is an MCP server for your plugins. The settings
+    page connects Claude Desktop for you (only its `golauncher` entry, after
+    a backup) and shows the `claude mcp add` command for Claude Code. You
+    choose which plugins AI may use (clipboard history and third-party
+    plugins are off by default); *AI Activity* lists every tool call of the
+    last 30 days.
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
   the theme and the language.
 - **English and Simplified Chinese UI**: golauncher follows the Windows

@@ -47,6 +47,11 @@ type OpenOptions struct {
 	// WebSearch allows the model to search and fetch web pages (never any
 	// tool that touches this computer).
 	WebSearch bool
+	// LauncherTools lets the model use the launcher's plugins through
+	// golauncher's MCP tools (list_plugins, search, run_command, get_detail,
+	// run_action; docs/ai.md §4). It only has an effect when the backend is
+	// configured with a tool server.
+	LauncherTools bool
 	// SystemPrompt is appended to the backend's system prompt.
 	SystemPrompt string
 }
@@ -75,8 +80,14 @@ const (
 	// EventText is a piece of the answer's text (Event.Text).
 	EventText EventKind = "text"
 	// EventTool reports that the model uses a tool (Event.Tool, e.g.
-	// "WebSearch"), shown as a step line.
+	// "WebSearch" or "mcp__golauncher__search"), shown as a step line.
+	// Event.ToolID identifies the call when the backend knows it; the
+	// arguments (Event.Input) may arrive in a later EventTool with the same
+	// ToolID, so consumers update the step by ToolID.
 	EventTool EventKind = "tool"
+	// EventToolResult reports the result of a tool call (Event.ToolID,
+	// Event.Result, Event.IsError).
+	EventToolResult EventKind = "tool-result"
 	// EventDone ends a turn (Event.Usage, Event.Cancelled).
 	EventDone EventKind = "done"
 	// EventError ends a turn that failed (Event.Err, usually a *Error).
@@ -88,6 +99,16 @@ type Event struct {
 	Kind EventKind
 	Text string
 	Tool string
+	// ToolID is the id of the tool call, for EventTool and EventToolResult
+	// (may be "" for EventTool when the backend has none).
+	ToolID string
+	// Input is the JSON text of the tool call's arguments (EventTool; "" when
+	// not known yet).
+	Input string
+	// Result is the text of the tool's result and IsError tells whether the
+	// call failed (EventToolResult).
+	Result  string
+	IsError bool
 	// Usage is set on EventDone when the backend reports it.
 	Usage *Usage
 	// Cancelled is set on EventDone when the answer was stopped.

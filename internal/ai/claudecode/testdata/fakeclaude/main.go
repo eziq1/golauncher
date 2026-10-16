@@ -12,7 +12,10 @@
 // What a turn does depends on the user's text: "slow" writes many deltas
 // with pauses, "crash" exits 3 after a delta, "fail" ends with an error
 // result, "auth" and "quota" imitate a missing login and the usage limit,
-// "tool" uses WebSearch; anything else is echoed as "echo: <text>".
+// "tool" uses WebSearch, "launcher <query>" calls the search tool of the
+// golauncher MCP server from --mcp-config with <query> (as an MCP client,
+// logging the tools it listed and the server's _meta echo) before the
+// answer; anything else is echoed as "echo: <text>".
 package main
 
 import (
@@ -21,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -175,6 +179,9 @@ func turn(text string, controls <-chan map[string]any) bool {
 		return errorResult("Claude AI usage limit reached|1700000000", "rate_limit")
 	}
 	emit(map[string]any{"type": "rate_limit_event", "rate_limit_info": map[string]any{"status": "allowed"}})
+	if q, ok := strings.CutPrefix(text, "launcher"); ok {
+		launcherSearch(strings.TrimSpace(q))
+	}
 	id := fmt.Sprintf("msg_%d", time.Now().UnixNano())
 	stream(map[string]any{"type": "message_start", "message": map[string]any{"id": id, "model": model}})
 	if text == "tool" {
@@ -230,6 +237,160 @@ func turn(text string, controls <-chan map[string]any) bool {
 		"usage":      map[string]any{"input_tokens": 2, "cache_creation_input_tokens": 10, "cache_read_input_tokens": 100, "output_tokens": 4},
 		"modelUsage": map[string]any{model: map[string]any{"inputTokens": 2, "outputTokens": 4}}})
 	return true
+}
+
+// launcherSearch imitates the model calling golauncher's search tool for q,
+// as Claude Code does: the streamed tool_use block, the complete assistant
+// message with the call's input, the call itself to the server from
+// --mcp-config, and the user line with its result.
+func launcherSearch(q string) {
+	toolID := fmt.Sprintf("toolu_%d", time.Now().UnixNano())
+	msgID := fmt.Sprintf("msg_tool_%d", time.Now().UnixNano())
+	name := "mcp__golauncher__search"
+	input := map[string]any{"query": q}
+	inputJSON, _ := json.Marshal(input)
+	stream(map[string]any{"type": "message_start", "message": map[string]any{"id": msgID, "model": model}})
+	stream(map[string]any{"type": "content_block_start", "index": 0, "content_block": map[string]any{"type": "tool_use", "id": toolID, "name": name, "input": map[string]any{}}})
+	stream(map[string]any{"type": "content_block_delta", "index": 0, "delta": map[string]any{"type": "input_json_delta", "partial_json": string(inputJSON)}})
+	stream(map[string]any{"type": "content_block_stop", "index": 0})
+	stream(map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": "tool_use"}, "usage": map[string]any{"output_tokens": 9}})
+	stream(map[string]any{"type": "message_stop"})
+	emit(map[string]any{"type": "assistant", "session_id": session, "message": map[string]any{"id": msgID, "model": model, "role": "assistant",
+		"content": []map[string]any{{"type": "tool_use", "id": toolID, "name": name, "input": input}}}})
+
+	content, isError := callTool("search", input)
+	emit(map[string]any{"type": "user", "session_id": session, "message": map[string]any{"role": "user",
+		"content": []map[string]any{{"type": "tool_result", "tool_use_id": toolID, "content": content, "is_error": isError}}}})
+}
+
+// callTool calls a tool of the "golauncher" server in the --mcp-config file
+// like an MCP client and returns the result's content and isError. A
+// failure is returned as an error result.
+func callTool(tool string, args map[string]any) (any, bool) {
+	content, isError, err := mcpCall(tool, args)
+	if err != nil {
+		logEntry(map[string]any{"mcpError": err.Error()})
+		return []map[string]any{{"type": "text", "text": "fake MCP failure: " + err.Error()}}, true
+	}
+	return content, isError
+}
+
+// mcpConfig is the part of the --mcp-config file the fake uses.
+type mcpConfig struct {
+	MCPServers map[string]struct {
+		Type    string            `json:"type"`
+		Command string            `json:"command"`
+		Args    []string          `json:"args"`
+		Env     map[string]string `json:"env"`
+	} `json:"mcpServers"`
+}
+
+func mcpCall(tool string, args map[string]any) (any, bool, error) {
+	path := ""
+	argv := os.Args[1:]
+	for i, a := range argv {
+		if a == "--mcp-config" && i+1 < len(argv) {
+			path = argv[i+1]
+		}
+	}
+	if path == "" {
+		return nil, false, fmt.Errorf("no --mcp-config")
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false, err
+	}
+	var cfg mcpConfig
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil, false, err
+	}
+	srv, ok := cfg.MCPServers["golauncher"]
+	if !ok || srv.Type != "stdio" {
+		return nil, false, fmt.Errorf("no stdio golauncher server")
+	}
+	cmd := exec.Command(srv.Command, srv.Args...)
+	hide(cmd)
+	cmd.Env = os.Environ()
+	for k, v := range srv.Env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, false, err
+	}
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, false, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, false, err
+	}
+	defer func() {
+		in.Close()
+		_ = cmd.Wait()
+	}()
+	r := bufio.NewScanner(out)
+	r.Buffer(nil, 1<<20)
+	send := func(v map[string]any) error {
+		v["jsonrpc"] = "2.0"
+		b, _ := json.Marshal(v)
+		_, err := in.Write(append(b, '\n'))
+		return err
+	}
+	call := func(id int, method string, params any) (json.RawMessage, error) {
+		if err := send(map[string]any{"id": id, "method": method, "params": params}); err != nil {
+			return nil, err
+		}
+		if !r.Scan() {
+			return nil, fmt.Errorf("%s: no answer", method)
+		}
+		var resp struct {
+			Result json.RawMessage `json:"result"`
+			Error  json.RawMessage `json:"error"`
+		}
+		if err := json.Unmarshal(r.Bytes(), &resp); err != nil {
+			return nil, err
+		}
+		if len(resp.Error) > 0 && string(resp.Error) != "null" {
+			return nil, fmt.Errorf("%s: %s", method, resp.Error)
+		}
+		return resp.Result, nil
+	}
+	if _, err := call(1, "initialize", map[string]any{"protocolVersion": "2025-06-18", "capabilities": map[string]any{},
+		"clientInfo": map[string]any{"name": "claude-code", "version": "2.1.296"}}); err != nil {
+		return nil, false, err
+	}
+	if err := send(map[string]any{"method": "notifications/initialized"}); err != nil {
+		return nil, false, err
+	}
+	listRaw, err := call(2, "tools/list", map[string]any{})
+	if err != nil {
+		return nil, false, err
+	}
+	var list struct {
+		Tools []struct {
+			Name string `json:"name"`
+		} `json:"tools"`
+	}
+	_ = json.Unmarshal(listRaw, &list)
+	var names []string
+	for _, t := range list.Tools {
+		names = append(names, t.Name)
+	}
+	resRaw, err := call(3, "tools/call", map[string]any{"name": tool, "arguments": args})
+	if err != nil {
+		return nil, false, err
+	}
+	var res struct {
+		Content json.RawMessage `json:"content"`
+		IsError bool            `json:"isError"`
+		Meta    json.RawMessage `json:"_meta"`
+	}
+	if err := json.Unmarshal(resRaw, &res); err != nil {
+		return nil, false, err
+	}
+	logEntry(map[string]any{"mcpTools": names, "mcpMeta": res.Meta})
+	return res.Content, res.IsError, nil
 }
 
 // errorResult ends a turn with a synthetic assistant error and an error

@@ -52,7 +52,10 @@ const (
 	actionShow     = "show"
 	actionSettings = "settings"
 	actionQuit     = "quit"
-	actionNone     = "" // started without arguments
+	// actionBackground starts without showing the launcher (golauncher mcp
+	// starts it so).
+	actionBackground = "background"
+	actionNone       = "" // started without arguments
 )
 
 // parseArgs returns what the command line asks for: --show, --settings or
@@ -63,6 +66,7 @@ func parseArgs(args []string) string {
 	show := fs.Bool("show", false, "show the launcher")
 	settings := fs.Bool("settings", false, "open the settings")
 	quit := fs.Bool("quit", false, "quit the running instance")
+	background := fs.Bool("background", false, "start without showing the launcher")
 	// Arguments it does not know (e.g. MyGo's own) are skipped one by one.
 	for rest := args; len(rest) > 0; rest = rest[1:] {
 		if fs.Parse(rest) == nil {
@@ -76,6 +80,8 @@ func parseArgs(args []string) string {
 		return actionSettings
 	case *show:
 		return actionShow
+	case *background:
+		return actionBackground
 	}
 	return actionNone
 }
@@ -121,6 +127,9 @@ type Shell struct {
 // to the running one and returns at once. A copy that is not installed
 // first offers to install itself (docs/self-install.md).
 func Run(o Options) error {
+	if len(o.Args) > 0 && o.Args[0] == commandMCP {
+		return runBridge(o)
+	}
 	if done, err := selfInstall(&o); done {
 		return err
 	}
@@ -155,6 +164,7 @@ func Run(o Options) error {
 		System:    system{s},
 		Clipboard: clipboard{},
 		Log:       log,
+		Version:   o.Version,
 	})
 	if err != nil {
 		log.Error("start failed", "err", err)
@@ -253,6 +263,8 @@ func (s *Shell) ready(action string) {
 		}()
 	}
 
+	s.env.Controller.OnExternalConfirm(s.externalConfirm)
+	s.serveAgent()
 	s.setUpTray()
 	s.setUpTasks()
 	if err := s.env.Config.Recovered(); err != nil {
@@ -263,6 +275,7 @@ func (s *Shell) ready(action string) {
 	switch {
 	case action == actionSettings:
 		s.showSettings(ui.PageGeneral)
+	case action == actionBackground:
 	case action == actionShow || !mygo.App.WasOpenedAtLogin():
 		s.showLauncher()
 	}
@@ -286,6 +299,7 @@ func (s *Shell) handle(action string) {
 		mygo.App.Quit()
 	case actionSettings:
 		s.showSettings(ui.PageGeneral)
+	case actionBackground: // golauncher mcp found it running after all
 	default:
 		s.showLauncher()
 	}

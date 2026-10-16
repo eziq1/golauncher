@@ -16,6 +16,10 @@ import (
 type Fake struct {
 	// Reply returns the pieces of the answer to text (nil: the default).
 	Reply func(text string) []string
+	// Steps, when set, returns tool events (EventTool, EventToolResult)
+	// emitted before the pieces of the answer to text, to simulate tool use.
+	// Delay and Gate apply to each step as to each piece.
+	Steps func(text string) []Event
 	// Delay is waited before each piece, for tests of streaming and Stop.
 	Delay time.Duration
 	// Gate, when set, is received from before each piece instead of
@@ -132,6 +136,15 @@ func (c *fakeConv) Send(ctx context.Context, text string) (<-chan Event, error) 
 		if c.f.SendErr != nil {
 			finish(Event{Kind: EventError, Err: c.f.SendErr})
 			return
+		}
+		if c.f.Steps != nil {
+			for _, e := range c.f.Steps(text) {
+				if err := c.f.wait(ctx); err != nil {
+					finish(Event{Kind: EventDone, Cancelled: true})
+					return
+				}
+				out <- e
+			}
 		}
 		var all strings.Builder
 		for _, piece := range c.f.reply(text) {

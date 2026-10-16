@@ -4,7 +4,9 @@
 // opens a chat when Tab is pressed in the root search with text
 // (plugin.TabProvider), offers "Ask AI: <text>" when the root search finds
 // nothing good (plugin.FallbackProvider), and hands a question over to the
-// Claude or ChatGPT apps.
+// Claude or ChatGPT apps. With the "tools" preference (on by default) Claude
+// may use the launcher's plugins through golauncher's MCP tools (R47); each
+// call is shown as a step line of the answer.
 //
 // Answers come from a backend.Backend: internal/ai/claudecode for real, a
 // backend.Fake in tests and glctl. Nothing is sent while the master switch
@@ -34,6 +36,7 @@ const (
 	prefEnabled   = "enabled"
 	prefModel     = "model"
 	prefWebSearch = "webSearch"
+	prefTools     = "tools"
 	prefRetention = "retentionDays"
 	prefFallback  = "askFallback"
 )
@@ -145,6 +148,8 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				}},
 			{Name: prefWebSearch, Type: plugin.PrefBool, Title: "%pref.webSearch.title%", Description: "%pref.webSearch.description%",
 				Default: plugin.MustPayload(false)},
+			{Name: prefTools, Type: plugin.PrefBool, Title: "%pref.tools.title%", Description: "%pref.tools.description%",
+				Default: plugin.MustPayload(true)},
 			{Name: prefRetention, Type: plugin.PrefSelect, Title: "%pref.retention.title%", Description: "%pref.retention.description%",
 				Default: plugin.MustPayload(strconv.Itoa(defaultRetentionDays)), Options: []plugin.Option{
 					{Value: "7", Title: "%pref.retention.7%"}, {Value: "30", Title: "%pref.retention.30%"},

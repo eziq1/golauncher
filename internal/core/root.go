@@ -41,7 +41,39 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	candidates := e.commandEntries(cfg)
 	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text, Context: cur})...)
 	candidates = append(candidates, e.contextEntries(ctx, cfg, cur)...)
+	ranked, best := rank(cfg, text, candidates, freq)
+	out := group(ranked)
+	if best < FallbackThreshold {
+		if items := e.fallbackEntries(ctx, cfg, plugin.Query{Text: text, Context: cur}); len(items) > 0 {
+			out = append(out, Section{Title: items[0].Group, Items: items})
+		}
+	}
+	return out, nil
+}
 
+// Search is the root search as an AI client sees it (docs/ai.md §4.1): the
+// commands and the plugins' root items ranked for text, without the
+// context of the current show, recent items or fallback items. Nothing is
+// recorded.
+func (e *Engine) Search(ctx context.Context, text string) ([]Entry, error) {
+	cfg := e.cfg.Get()
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil, nil
+	}
+	freq, err := e.svc.DB.Frecency(e.svc.Now())
+	if err != nil {
+		return nil, err
+	}
+	candidates := e.commandEntries(cfg)
+	candidates = append(candidates, e.pluginRootItems(ctx, cfg, plugin.Query{Text: text})...)
+	ranked, _ := rank(cfg, text, candidates, freq)
+	return ranked, nil
+}
+
+// rank scores and orders the candidates of a root search for text, and
+// returns the best match score (before frecency and bonuses).
+func rank(cfg config.Config, text string, candidates []Entry, freq map[string]float64) ([]Entry, float64) {
 	var ranked []Entry
 	best := 0.0 // the best match, to decide on the fallback items
 	for _, c := range candidates {
@@ -81,13 +113,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	if len(ranked) > maxRootItems {
 		ranked = ranked[:maxRootItems]
 	}
-	out := group(ranked)
-	if best < FallbackThreshold {
-		if items := e.fallbackEntries(ctx, cfg, plugin.Query{Text: text, Context: cur}); len(items) > 0 {
-			out = append(out, Section{Title: items[0].Group, Items: items})
-		}
-	}
-	return out, nil
+	return ranked, best
 }
 
 // FallbackThreshold is the match score (0..1, before frecency and bonuses)

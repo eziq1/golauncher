@@ -120,6 +120,7 @@
                 "id": "refresh",
                 "title": "Refresh List",
                 "shortcut": "Ctrl+R",
+                "readOnly": true,
                 "do": {
                   "kind": "Callback",
                   "target": "refresh"

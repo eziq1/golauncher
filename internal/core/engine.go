@@ -89,6 +89,7 @@ type Engine struct {
 	subMu       sync.Mutex
 	controllers []*Controller
 	closedHooks []func(pluginID, instance string)
+	invHooks    invalidateHooks
 
 	// ctx is the context of the current show (context.go).
 	ctx contextState
@@ -206,6 +207,7 @@ func (e *Engine) invalidate(pluginID, viewID string) {
 	for _, c := range e.subscribers() {
 		c.invalidate(pluginID, viewID)
 	}
+	e.invHooks.call(pluginID, viewID)
 }
 
 // render receives Host.Render (design m5 §5.4).

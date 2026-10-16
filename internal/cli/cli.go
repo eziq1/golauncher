@@ -69,10 +69,13 @@ Commands:
   i18n check [--src DIR]             check message catalogs and key references
   attach show|hide|type|key|select|snapshot [arg]
                                      drive the running GUI through its control socket
+  mcp [--confirm deny|allow|session] [--ask-open]
+                                     serve the AI tools as an MCP server on stdio
+                                     (docs/ai.md §4); confirmations get --confirm
   bench [--n N] [queries...]         measure root search latency
   version                            print the glctl version
 
-Environment flags (query, run, session new, tasks, plugin, bench):
+Environment flags (query, run, session new, tasks, plugin, mcp, bench):
   --real           use the real configuration, database, apps and clipboard
                    (default: an isolated in-memory environment)
   --exec           with --real, perform action side effects and run the programs of
@@ -185,6 +188,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.attach(rest)
 	case "bench":
 		return c.bench(ctx, rest)
+	case "mcp":
+		return c.mcp(ctx, rest)
 	case "version":
 		return c.version(rest)
 	default:
@@ -213,7 +218,7 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		now = t
 	}
 	e := &env{rec: &app.Recorder{}}
-	opts := app.Options{Locale: ef.Locale, System: e.rec}
+	opts := app.Options{Locale: ef.Locale, System: e.rec, Version: Version}
 	if ef.Real {
 		real, err := realPlatform(ef.Exec)
 		if err != nil {

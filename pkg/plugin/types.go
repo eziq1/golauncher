@@ -173,6 +173,11 @@ type Item struct {
 	Detail  *Detail  `json:"detail,omitempty"`
 	// Arguments are typed inline before the primary action runs.
 	Arguments []Argument `json:"arguments,omitempty"`
+	// Sensitive marks an item whose content must never leave the launcher,
+	// such as a clip copied from a password manager: it is shown to the user
+	// but never returned to an AI using the launcher's plugins (docs/ai.md
+	// §4.2).
+	Sensitive bool `json:"sensitive,omitzero"`
 }
 
 // Detail is a preview shown next to the list.
@@ -206,8 +211,14 @@ type Action struct {
 	// EndsSession marks a destructive action that ends the Windows session
 	// (shut down, restart, sign out): its confirmation warns that the
 	// running background tasks will be interrupted.
-	EndsSession bool     `json:"endsSession,omitzero"`
-	Do          ActionDo `json:"do"`
+	EndsSession bool `json:"endsSession,omitzero"`
+	// ReadOnly marks an ActionCallback (or ActionRunCommand) that only
+	// reads: it changes nothing on the computer or in the plugin's data
+	// (e.g. "Refresh", "Show details"). An AI using the launcher's plugins
+	// (docs/ai.md §4.2) runs such actions without asking the user; other
+	// callbacks always ask first. Destructive actions are never read-only.
+	ReadOnly bool     `json:"readOnly,omitzero"`
+	Do       ActionDo `json:"do"`
 }
 
 // ActionKind is what the host does when an action runs.

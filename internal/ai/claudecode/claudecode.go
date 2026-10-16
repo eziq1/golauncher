@@ -4,7 +4,9 @@
 // answers as stream-json, so the subscription the user signed in with is
 // used and no API key is needed. The process runs isolated from the user's
 // own Claude Code setup (no settings, hooks, MCP servers, slash commands or
-// local tools) in a Job Object without a console window.
+// local tools) in a Job Object without a console window. The only tools the
+// model may get are web search and golauncher's own MCP server (Options.Tools),
+// through which it uses the launcher's plugins.
 //
 // When the CLI's version is outside the tested range, or the persistent
 // process misbehaves, a conversation falls back to one process per turn
@@ -77,6 +79,23 @@ type Options struct {
 	// GracePeriod is how long a released process may take to exit before it
 	// is killed (DefaultGracePeriod when 0).
 	GracePeriod time.Duration
+	// Tools is golauncher's MCP tool server (docs/ai.md §4.3). With it, a
+	// conversation opened with OpenOptions.LauncherTools lets the model use
+	// the launcher's plugins through that server's tools, and no others.
+	Tools *ToolServer
+}
+
+// ToolServer is how the CLI starts golauncher's MCP server (stdio).
+type ToolServer struct {
+	// Command and Args start the server, e.g. golauncher.exe mcp.
+	Command string
+	Args    []string
+	// Env are variables set for the server (e.g. the pipe's token).
+	Env map[string]string
+	// SessionEnv, when set, is the name of a variable that receives the
+	// conversation's session ID, e.g. "GOLAUNCHER_AGENT_SESSION", so the
+	// server can tie its tool calls to the conversation.
+	SessionEnv string
 }
 
 // Backend is the Claude Code backend. It is safe for concurrent use.
