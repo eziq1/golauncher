@@ -26,6 +26,15 @@ var (
 	materialDark  = mui.Hex("#202020")
 )
 
+// MaterialTint is the material's own layer as the contrast checks assume
+// it, for a light or dark window.
+func MaterialTint(dark bool) mui.Color {
+	if dark {
+		return materialDark.Alpha(materialLayerOpacity)
+	}
+	return materialLight.Alpha(materialLayerOpacity)
+}
+
 // ContrastResult is the contrast of a text color over its background.
 type ContrastResult struct {
 	// Pair is "text/background" and so on: the text color, then what it
@@ -47,11 +56,7 @@ func backdrops(bg mui.Color, dark bool, material Material, isOpaque bool, opacit
 	if isOpaque || opacity >= 1 || material == MaterialNone {
 		return []mui.Color{opaque(bg)}, []string{""}
 	}
-	layer := materialLight
-	if dark {
-		layer = materialDark
-	}
-	layer = layer.Alpha(materialLayerOpacity)
+	layer := MaterialTint(dark)
 	var out []mui.Color
 	for _, behind := range []mui.Color{white, black} {
 		out = append(out, over(bg.Alpha(float32(opacity)), over(layer, behind)))

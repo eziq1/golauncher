@@ -64,6 +64,11 @@
 | Hotkey / Shortcut | 快捷键 | 录制快捷键 = Record shortcut |
 | System (theme, language) | 跟随系统 | |
 | Light / Dark | 浅色 / 深色 | |
+| Appearance | 外观 | 设置页 |
+| Theme | 主题 | 内置主题的专有名称不翻译（Nord、Dracula……）；Paper → 宣纸，High Contrast → 高对比度 |
+| Acrylic / Mica / Solid | 亚克力 / 云母 / 纯色 | 背景材质，与 Windows 设置的叫法一致 |
+| Accent color | 强调色 | |
+| Opacity | 不透明度 | 背景不透明度、窗口整体不透明度 |
 | Language | 语言 | 选项用语言自己的名称：English、简体中文 |
 | Context awareness | 情境感知 | |
 | Launch at login | 登录时启动 | |

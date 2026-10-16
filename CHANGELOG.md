@@ -10,6 +10,33 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Themes** (R50, R51, docs/themes.md): *Settings › Appearance* (the theme
+  option moved there from *General*) has a gallery of 18 built-in themes
+  drawn live with launcher components: golauncher Light/Dark (the look so
+  far, unchanged), Raycast-style Light/Dark, GitHub Light/Dark, Nord,
+  Dracula, Catppuccin Latte/Mocha, Tokyo Night, Solarized Light/Dark,
+  Gruvbox Dark, One Dark, Paper (宣纸) and High Contrast Light/Dark.
+  Following Windows, a light and a dark theme are chosen separately. The
+  background opacity slider lets the Acrylic or Mica material show through
+  while text and icons stay solid, with the launcher shown beside the
+  settings as you drag; the background turns solid when Windows
+  transparency effects are off, a contrast theme is on or the material is
+  not available, and the settings say why. Also: material (Acrylic, Mica,
+  solid), accent color (the theme's, the Windows accent, or your own),
+  corner radius, density, text size, whole-window opacity (70–100%) and a
+  faint backdrop under text below 40% opacity. All launcher colors,
+  including the plugin icon tints, now come from the theme.
+- **Custom themes**: JSON files in `%APPDATA%\golauncher\themes` with
+  `extends`, any of `#rgb`, `#rrggbbaa` or `rgba(…)` colors, colors left out
+  derived from others, a JSON Schema (`docs/theme.schema.json`), WCAG
+  contrast checks (translucent backgrounds at their worst case), and hot
+  reload: a file saved broken keeps its last good version and the settings
+  list the problem. The settings import a file or pasted JSON, export the
+  current theme with your adjustments, and duplicate any theme as an
+  editable copy.
+- `glctl theme list | show <id> | validate <file> | export <id>`
+  (`--themes DIR`, `--real`): `validate` prints errors, warnings and the
+  contrast results.
 - **Timers and reminders** (`builtin.timer`, docs/timers.md): `timer 25m`,
   `timer 1h30m tea`, `timer 1:30:00`, `计时 半小时`, `倒计时 10分钟` start a
   countdown; `remind 15:30 meeting`, `remind tomorrow 9am standup`,
@@ -86,6 +113,11 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- Configuration: the new `appearance` object replaces `theme`, which is
+  migrated (`system` follows Windows, `light` and `dark` become golauncher
+  Light and Dark) and still written for older versions. The schema version
+  stays 1, so an older golauncher still reads the file (it ignores
+  `appearance`).
 - The notification and the settings message about a launcher hotkey that
   cannot be registered name the usual culprits (the ChatGPT app and
   PowerToys Run also use Alt+Space).

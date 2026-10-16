@@ -400,10 +400,7 @@ func themeThumbnail(c *mui.Context, r *theme.Resolved, w, h float32) {
 	col, tk := r.Colors, &r.Tokens
 	// The material, as the contrast checks assume it: a tint of the
 	// system's over what is behind the window.
-	material := mui.Hex("#f3f3f3").Alpha(0.8)
-	if r.Dark {
-		material = mui.Hex("#202020").Alpha(0.8)
-	}
+	material := theme.MaterialTint(r.Dark)
 	rs := r.RadiusScale
 	desk := mui.Box(c).Size(w, h).Radius(8*rs).Clip().Gradient(mui.Hex("#5b8def"), mui.Hex("#f2a65a"), 135)
 	desk.Children(func() {

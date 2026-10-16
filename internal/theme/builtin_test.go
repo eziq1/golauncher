@@ -1,7 +1,6 @@
 package theme
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 
@@ -10,8 +9,9 @@ import (
 
 // legacyContrast lists the contrast checks that golauncher's own themes,
 // which keep the look from before themes (MyGo's default colors), are
-// known to miss: white on MyGo's blue accent. Every other built-in theme,
-// and every one added later, must pass all of them.
+// known to miss (docs/themes.md §13.2): white on MyGo's blue accent, and
+// the light theme's muted text with no background over black. Every other
+// built-in theme, and every one added later, must pass all of them.
 var legacyContrast = map[string][]string{
 	"golauncher-light": {"textMuted/background", "rowSelectedText/rowSelected"},
 	"golauncher-dark":  {"accentText/accent", "rowSelectedText/rowSelected"},
@@ -73,17 +73,6 @@ func TestGolauncherThemesAreMyGos(t *testing.T) {
 		r := Resolve(lib, defaultAppearance(), System{Dark: dark, NoMaterial: true})
 		if got := r.UI; got != *want {
 			t.Errorf("dark %v:\n got %+v\nwant %+v", dark, got, *want)
-		}
-	}
-}
-
-func TestPrintContrast(t *testing.T) {
-	if !testing.Verbose() {
-		t.Skip()
-	}
-	for _, th := range Builtin() {
-		for _, r := range CheckContrast(th) {
-			fmt.Printf("%-20s %-28s %6.2f %v %s\n", th.ID, r.Pair, r.Ratio, r.OK, r.Over)
 		}
 	}
 }
