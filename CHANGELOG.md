@@ -8,6 +8,10 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- The settings window (and the installer's) showed Windows' generic icon in its title bar and taskbar button instead of golauncher's (R62): the program's icon resource is now ID 1, the one the windows load.
+
 ## [0.5.0] - 2026-10-16
 
 ### Added
