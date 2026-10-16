@@ -268,7 +268,8 @@ func TestKillTree(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, p := range snap.Procs {
-			if p.Parent == c.id.PID && p.Created >= c.id.Created {
+			// By name: cmd.exe may also start a conhost.exe, sooner or later.
+			if p.Parent == c.id.PID && p.Created >= c.id.Created && strings.EqualFold(p.Name, "PING.EXE") {
 				ping = p.ID
 			}
 		}
@@ -281,7 +282,9 @@ func TestKillTree(t *testing.T) {
 	}
 	t.Cleanup(func() { Kill(ping) }) // ours: started by our cmd.exe
 	r := KillTree(c.id)
-	if !slices.Equal(r.Ended, []ID{c.id, ping}) {
+	// The tree may hold a conhost.exe too: ping and cmd must both be ended,
+	// nothing may fail.
+	if !slices.Contains(r.Ended, c.id) || !slices.Contains(r.Ended, ping) || len(r.Failed)+len(r.NeedsAdmin)+len(r.Protected) != 0 {
 		t.Errorf("report = %+v", r)
 	}
 	c.ended(t)
