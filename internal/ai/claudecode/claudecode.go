@@ -1,12 +1,17 @@
 // Package claudecode is the AI backend that chats through the user's
-// installed Claude Code CLI (docs/ai.md §6.1). A conversation keeps one
-// `claude -p` process running that reads user messages and writes the
-// answers as stream-json, so the subscription the user signed in with is
-// used and no API key is needed. The process runs isolated from the user's
-// own Claude Code setup (no settings, hooks, MCP servers, slash commands or
-// local tools) in a Job Object without a console window. The only tools the
-// model may get are web search and golauncher's own MCP server (Options.Tools),
-// through which it uses the launcher's plugins.
+// installed Claude Code CLI (docs/ai.md §6.1). It is the Claude Code adapter
+// of the agent runtime (internal/ai/agentrt, docs/ai.md §20): the runtime
+// runs the processes, this package knows Claude Code's command line and its
+// stream-json protocol.
+//
+// A conversation keeps one `claude -p` process running that reads user
+// messages and writes the answers as stream-json, so the subscription the
+// user signed in with is used and no API key is needed. The process runs
+// isolated from the user's own Claude Code setup (no settings, hooks, MCP
+// servers, slash commands or local tools) in a Job Object without a console
+// window. The only tools the model may get are web search and golauncher's
+// own MCP server (Options.Tools), through which it uses the launcher's
+// plugins.
 //
 // When the CLI's version is outside the tested range, or the persistent
 // process misbehaves, a conversation falls back to one process per turn
@@ -14,22 +19,20 @@
 package claudecode
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"log/slog"
+	"encoding/json"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
+	"sync/atomic"
 
+	"github.com/eziq1/golauncher/internal/ai/agentrt"
 	"github.com/eziq1/golauncher/internal/winapi/proc"
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
+
+// ID is the backend's ID in the AI plugin's "Backend" preference.
+const ID = "claude-code"
 
 // The CLI versions the stream-json protocol was verified with. Versions
 // below MinVersion are refused; versions with another major version than
@@ -41,352 +44,152 @@ const (
 
 // Defaults for Options.
 const (
-	DefaultMaxProcesses = 2
-	DefaultGracePeriod  = 2 * time.Second
+	DefaultMaxProcesses = agentrt.DefaultMaxProcesses
+	DefaultGracePeriod  = agentrt.DefaultGracePeriod
 )
-
-// interruptTimeout is how long an interrupted answer may take to end before
-// the process is killed.
-const interruptTimeout = 5 * time.Second
-
-// checkTimeout caps `claude --version`.
-const checkTimeout = 30 * time.Second
 
 // envDrop are variables that Claude Code sets for programs it starts; the
 // launcher has them when it was started from inside Claude Code, and the CLI
 // must not see them.
 var envDrop = []string{"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SSE_PORT"}
 
-// Options configure a Backend.
-type Options struct {
-	// Path is the CLI to run (the "Claude Code path" preference); empty
-	// looks it up on PATH and in the usual install locations.
-	Path string
-	// Dir is the working directory of the CLI; empty is
-	// %LOCALAPPDATA%\golauncher\ai. It is created when missing.
-	Dir string
-	// Log receives lengths, durations and errors, never message content.
-	Log *slog.Logger
-	// PerTurn forces one process per turn.
-	PerTurn bool
-	// MaxProcesses caps the persistent processes kept across conversations
-	// (DefaultMaxProcesses when 0). A busy one is never stopped, so the cap
-	// can be exceeded for a while.
-	MaxProcesses int
-	// Env are NAME=value entries added to (or replacing in) the CLI's
-	// environment.
-	Env []string
-	// GracePeriod is how long a released process may take to exit before it
-	// is killed (DefaultGracePeriod when 0).
-	GracePeriod time.Duration
-	// Tools is golauncher's MCP tool server (docs/ai.md §4.3). With it, a
-	// conversation opened with OpenOptions.LauncherTools lets the model use
-	// the launcher's plugins through that server's tools, and no others.
-	Tools *ToolServer
-}
+// Options configure a Backend (see agentrt.Options).
+type Options = agentrt.Options
 
 // ToolServer is how the CLI starts golauncher's MCP server (stdio).
-type ToolServer struct {
-	// Command and Args start the server, e.g. golauncher.exe mcp.
-	Command string
-	Args    []string
-	// Env are variables set for the server (e.g. the pipe's token).
-	Env map[string]string
-	// SessionEnv, when set, is the name of a variable that receives the
-	// conversation's session ID, e.g. "GOLAUNCHER_AGENT_SESSION", so the
-	// server can tie its tool calls to the conversation.
-	SessionEnv string
-}
+type ToolServer = agentrt.ToolServer
 
-// Backend is the Claude Code backend. It is safe for concurrent use.
+// Backend is the Claude Code backend: the agent runtime with the Claude Code
+// adapter. It is safe for concurrent use.
 type Backend struct {
-	o   Options
-	log *slog.Logger
-
-	mu     sync.Mutex
-	info   *cliInfo
-	convs  map[*conversation]bool
-	live   []*conversation // with a persistent process, least recently used first
-	closed bool
-}
-
-// cliInfo is what Check found.
-type cliInfo struct {
-	path     string
-	version  string
-	untested bool
+	*agentrt.Runtime
+	o Options
 }
 
 // New returns a backend configured by o.
 func New(o Options) *Backend {
-	if o.MaxProcesses <= 0 {
-		o.MaxProcesses = DefaultMaxProcesses
-	}
-	if o.GracePeriod <= 0 {
-		o.GracePeriod = DefaultGracePeriod
-	}
-	log := o.Log
-	if log == nil {
-		log = slog.New(slog.DiscardHandler)
-	}
-	return &Backend{o: o, log: log.With("backend", "claudecode"), convs: map[*conversation]bool{}}
+	return &Backend{Runtime: agentrt.New(adapter{}, o), o: o}
 }
 
-// Name implements backend.Backend.
-func (b *Backend) Name() string { return "Claude Code" }
+// adapter is Claude Code's agentrt.Adapter.
+type adapter struct{}
 
-// Check implements backend.Backend: it finds the CLI and runs
-// `claude --version`.
-func (b *Backend) Check(ctx context.Context) (backend.Status, error) {
-	path, err := b.find()
-	if err != nil {
-		return backend.Status{}, err
-	}
-	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
-	defer cancel()
-	out, code, err := b.runVersion(ctx, path)
-	if err != nil {
-		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
-	}
-	ver := parseVersion(out)
-	if code != 0 || ver == "" {
-		msg := strings.TrimSpace(out)
-		if msg == "" {
-			msg = fmt.Sprintf("claude --version: exit code %d", code)
-		}
-		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: msg}
-	}
-	if compareVersions(ver, MinVersion) < 0 {
-		return backend.Status{}, &backend.Error{Kind: backend.ErrVersion, Version: ver}
-	}
-	info := &cliInfo{path: path, version: ver, untested: majorOf(ver) != TestedMajor}
-	b.mu.Lock()
-	b.info = info
-	b.mu.Unlock()
-	b.log.Info("claude code found", "version", ver, "untested", info.untested)
-	return backend.Status{Version: ver, Untested: info.untested}, nil
-}
+var _ agentrt.Adapter = adapter{}
 
-// resolve returns what the last Check found, running it when needed.
-func (b *Backend) resolve(ctx context.Context) (*cliInfo, error) {
-	b.mu.Lock()
-	info := b.info
-	b.mu.Unlock()
-	if info != nil {
-		return info, nil
-	}
-	if _, err := b.Check(ctx); err != nil {
-		return nil, err
-	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.info, nil
-}
-
-// Open implements backend.Backend. The process is started by the first Send.
-func (b *Backend) Open(ctx context.Context, o backend.OpenOptions) (backend.Conversation, error) {
-	if o.SessionID == "" {
-		return nil, errors.New("claudecode: no session ID")
-	}
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.closed {
-		return nil, errors.New("claudecode: backend closed")
-	}
-	c := &conversation{b: b, oo: o, closedCh: make(chan struct{})}
-	b.convs[c] = true
-	return c, nil
-}
-
-// Close ends every conversation and kills their processes.
-func (b *Backend) Close() error {
-	b.mu.Lock()
-	b.closed = true
-	convs := make([]*conversation, 0, len(b.convs))
-	for c := range b.convs {
-		convs = append(convs, c)
-	}
-	b.mu.Unlock()
-	for _, c := range convs {
-		c.Close()
-	}
-	return nil
-}
-
-// forget removes a closed conversation.
-func (b *Backend) forget(c *conversation) {
-	b.mu.Lock()
-	delete(b.convs, c)
-	b.live = slices.DeleteFunc(b.live, func(x *conversation) bool { return x == c })
-	b.mu.Unlock()
-}
-
-// acquire records that c started a persistent process and returns the idle
-// conversations whose processes must be released to stay within
-// MaxProcesses, least recently used first.
-func (b *Backend) acquire(c *conversation) []*conversation {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.live = slices.DeleteFunc(b.live, func(x *conversation) bool { return x == c })
-	b.live = append(b.live, c)
-	var victims []*conversation
-	excess := len(b.live) - b.o.MaxProcesses
-	for _, x := range b.live {
-		if excess <= 0 {
-			break
-		}
-		if x != c && !x.busy.Load() {
-			victims = append(victims, x)
-			excess--
-		}
-	}
-	return victims
-}
-
-// touch marks c as the most recently used, if it has a process.
-func (b *Backend) touch(c *conversation) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if i := slices.Index(b.live, c); i >= 0 {
-		b.live = append(slices.Delete(b.live, i, i+1), c)
-	}
-}
-
-// drop records that c no longer has a persistent process.
-func (b *Backend) drop(c *conversation) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.live = slices.DeleteFunc(b.live, func(x *conversation) bool { return x == c })
-}
-
-// liveCount is the number of conversations with a persistent process.
-func (b *Backend) liveCount() int {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return len(b.live)
-}
-
-// find locates the CLI.
-func (b *Backend) find() (string, error) {
-	if b.o.Path != "" {
-		if fi, err := os.Stat(b.o.Path); err == nil && !fi.IsDir() {
-			return b.o.Path, nil
-		}
-		return "", &backend.Error{Kind: backend.ErrNotInstalled, Message: b.o.Path}
-	}
-	if p, err := exec.LookPath("claude"); err == nil {
-		if abs, err := filepath.Abs(p); err == nil {
-			return abs, nil
-		}
-		return p, nil
-	}
-	var candidates []string
+// Info implements agentrt.Adapter.
+func (adapter) Info() agentrt.Info {
+	var paths []string
 	if home, err := os.UserHomeDir(); err == nil {
-		candidates = append(candidates, filepath.Join(home, ".local", "bin", "claude.exe"))
+		paths = append(paths, filepath.Join(home, ".local", "bin", "claude.exe"))
 	}
 	if appData := os.Getenv("APPDATA"); appData != "" {
-		candidates = append(candidates, filepath.Join(appData, "npm", "claude.cmd"))
+		paths = append(paths, filepath.Join(appData, "npm", "claude.cmd"))
 	}
-	for _, p := range candidates {
-		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-			return p, nil
+	return agentrt.Info{
+		ID:           "claudecode",
+		Name:         "Claude Code",
+		Commands:     []string{"claude"},
+		InstallPaths: paths,
+		VersionArgs:  []string{"--version"},
+		MinVersion:   MinVersion,
+		TestedMajor:  TestedMajor,
+		EnvDrop:      envDrop,
+	}
+}
+
+// noAutoMemory turns Claude Code's auto memory off; --safe-mode does that
+// too, but it cannot be used with golauncher's MCP server.
+const noAutoMemory = "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
+
+// Command implements agentrt.Adapter. Every flag keeps the CLI away from the
+// user's own setup and from this computer: no settings or hooks, no MCP
+// servers but golauncher's (l.MCPConfig, when set), no slash commands, no
+// local tools, no permission prompts (toolFlags pre-approves the tools the
+// model may use).
+func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
+	a := []string{l.Path, "-p"}
+	if l.Persistent {
+		a = append(a, "--input-format", "stream-json")
+	}
+	a = append(a, "--output-format", "stream-json", "--include-partial-messages", "--verbose")
+	if l.Resume {
+		a = append(a, "--resume", l.SessionID)
+	} else {
+		a = append(a, "--session-id", l.SessionID)
+	}
+	a = append(a, "--setting-sources", "")
+	if l.MCPConfig == "" {
+		// --safe-mode also drops the servers of --mcp-config (verified with
+		// 2.1.296), so with golauncher's tools isolation comes from the other
+		// flags and from the environment (no auto memory); see docs/ai.md §16.
+		a = append(a, "--safe-mode")
+	}
+	a = append(a, "--strict-mcp-config", "--disable-slash-commands")
+	a = append(a, toolFlags(l.WebSearch, l.MCPConfig)...)
+	a = append(a, "--permission-prompts", "none")
+	if sp := l.SystemPrompt; sp != "" {
+		if proc.IsBatch(l.Path) {
+			// cmd.exe ends the command line at a line break.
+			sp = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(sp)
 		}
+		a = append(a, "--append-system-prompt", sp)
 	}
-	return "", &backend.Error{Kind: backend.ErrNotInstalled}
+	if l.Model != "" {
+		a = append(a, "--model", l.Model)
+	}
+	cmd := agentrt.Command{Argv: a}
+	if l.Tools != nil {
+		cmd.Env = []string{noAutoMemory}
+	}
+	return cmd, nil
 }
 
-// dir returns the CLI's working directory, creating it.
-func (b *Backend) dir() (string, error) {
-	d := b.o.Dir
-	if d == "" {
-		cache, err := os.UserCacheDir()
-		if err != nil {
-			return "", err
-		}
-		d = filepath.Join(cache, "golauncher", "ai")
+// MCPConfig implements agentrt.Adapter: Claude Code reads the tool server
+// from an --mcp-config file.
+func (adapter) MCPConfig(s agentrt.MCPServer) ([]byte, error) { return toolConfig(s) }
+
+// NewCodec implements agentrt.Adapter.
+func (adapter) NewCodec(agentrt.Launch) agentrt.Codec { return codec{} }
+
+// ExitOutcome implements agentrt.Adapter.
+func (adapter) ExitOutcome(text string) agentrt.Outcome {
+	if sessionInUse(text) {
+		return agentrt.Outcome{Kind: agentrt.SessionInUse, Err: &backend.Error{Kind: classify("", text, false), Message: text}}
 	}
-	if err := os.MkdirAll(d, 0o700); err != nil {
-		return "", err
-	}
-	return d, nil
+	return agentrt.Outcome{Kind: agentrt.Failed, Err: &backend.Error{Kind: classify("", text, false), Message: text}}
 }
 
-// env returns the CLI's environment.
-func (b *Backend) env() []string {
-	env := slices.DeleteFunc(os.Environ(), func(kv string) bool {
-		k, _, _ := strings.Cut(kv, "=")
-		return slices.ContainsFunc(envDrop, func(d string) bool { return strings.EqualFold(k, d) })
-	})
-	return proc.MergeEnv(env, b.o.Env)
+// interruptSeq numbers interrupt requests.
+var interruptSeq atomic.Int64
+
+// codec is Claude Code's stream-json protocol; it keeps no state between
+// turns.
+type codec struct{}
+
+// Message implements agentrt.Codec.
+func (codec) Message(text string) ([]byte, error) { return jsonLine(userLine(text)) }
+
+// Prompt implements agentrt.Codec: a per-turn process reads the question
+// from stdin.
+func (codec) Prompt(text string) []byte { return []byte(promptText(text)) }
+
+// Interrupt implements agentrt.Codec: the control request that stops the
+// answer.
+func (codec) Interrupt() []byte {
+	b, _ := jsonLine(interruptLine("golauncher-interrupt-" + strconv.FormatInt(interruptSeq.Add(1), 10)))
+	return b
 }
 
-// runVersion runs `claude --version` and returns its output and exit code.
-func (b *Backend) runVersion(ctx context.Context, path string) (string, int, error) {
-	dir, err := b.dir()
+// NewDecoder implements agentrt.Codec.
+func (codec) NewDecoder(io agentrt.TurnIO) agentrt.Decoder {
+	return &decoder{p: newParser(io.Emit)}
+}
+
+// jsonLine is v as one line of input.
+func jsonLine(v any) ([]byte, error) {
+	b, err := json.Marshal(v)
 	if err != nil {
-		return "", 0, err
+		return nil, err
 	}
-	out := &tail{max: 4096}
-	p, err := proc.Start(proc.Options{Argv: []string{path, "--version"}, Dir: dir, Env: b.env(), Output: out})
-	if err != nil {
-		return "", 0, err
-	}
-	stop := context.AfterFunc(ctx, p.Stop)
-	defer stop()
-	code, err := p.Wait()
-	if err != nil {
-		return "", 0, err
-	}
-	if ctx.Err() != nil {
-		return "", 0, ctx.Err()
-	}
-	return out.String(), code, nil
+	return append(b, '\n'), nil
 }
-
-// parseVersion returns the first x.y.z in out, e.g. "2.1.296" from
-// "2.1.296 (Claude Code)".
-func parseVersion(out string) string {
-	for f := range strings.FieldsSeq(out) {
-		f = strings.TrimPrefix(f, "v")
-		parts := strings.Split(f, ".")
-		if len(parts) < 3 {
-			continue
-		}
-		ok := true
-		for _, p := range parts[:3] {
-			if _, err := strconv.Atoi(p); err != nil {
-				ok = false
-			}
-		}
-		if ok {
-			return strings.Join(parts[:3], ".")
-		}
-	}
-	return ""
-}
-
-// versionParts returns the numbers of a x.y.z version.
-func versionParts(v string) [3]int {
-	var n [3]int
-	for i, p := range strings.SplitN(v, ".", 3) {
-		n[i], _ = strconv.Atoi(p)
-	}
-	return n
-}
-
-// compareVersions compares two x.y.z versions like strings.Compare.
-func compareVersions(a, b string) int {
-	pa, pb := versionParts(a), versionParts(b)
-	for i := range pa {
-		if pa[i] != pb[i] {
-			if pa[i] < pb[i] {
-				return -1
-			}
-			return 1
-		}
-	}
-	return 0
-}
-
-// majorOf returns the major version.
-func majorOf(v string) int { return versionParts(v)[0] }

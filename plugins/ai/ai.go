@@ -34,6 +34,7 @@ const ID = "builtin.ai"
 // Preference names.
 const (
 	prefEnabled   = "enabled"
+	prefBackend   = "backend"
 	prefModel     = "model"
 	prefWebSearch = "webSearch"
 	prefTools     = "tools"
@@ -66,7 +67,11 @@ var locales embed.FS
 
 // Options configure the plugin.
 type Options struct {
-	// Backend answers the questions. Required.
+	// Backends are the backends the "Backend" preference chooses from, by ID;
+	// the first is the default. internal/builtin passes its registry.
+	Backends []BackendOption
+	// Backend answers the questions when Backends is empty: it is then the
+	// only choice, with the ID DefaultBackendID.
 	Backend backend.Backend
 	// Sync writes each answer before the action (or view) that asked for it
 	// returns, so that results are deterministic (glctl, tests).
@@ -87,19 +92,20 @@ type Options struct {
 // Plugin is the AI chat plugin.
 type Plugin struct {
 	o  Options
-	be backend.Backend
+	be *chooser // the backend chosen in the preferences
 	h  plugin.Host
 	st *store
 
-	mu      sync.Mutex
-	chats   map[string]*chat  // live chats by session ID
-	views   map[string]string // open chat view instance -> session ID
-	idle    *time.Timer       // releases the processes after the window hid
-	unsubs  []func()
-	checked time.Time // when the backend was last found usable
-	status  backend.Status
-	closed  bool
-	turns   sync.WaitGroup // answers being written
+	mu        sync.Mutex
+	chats     map[string]*chat  // live chats by session ID
+	views     map[string]string // open chat view instance -> session ID
+	idle      *time.Timer       // releases the processes after the window hid
+	unsubs    []func()
+	checked   time.Time // when the backend was last found usable
+	checkedID string    // which backend
+	status    backend.Status
+	closed    bool
+	turns     sync.WaitGroup // answers being written
 }
 
 var (
@@ -130,7 +136,13 @@ func NewWithOptions(o Options) *Plugin {
 	if o.NewID == nil {
 		o.NewID = newSessionID
 	}
-	return &Plugin{o: o, be: o.Backend, chats: map[string]*chat{}, views: map[string]string{}}
+	opts := o.Backends
+	if len(opts) == 0 {
+		opts = []BackendOption{{ID: DefaultBackendID, Backend: o.Backend}}
+	}
+	p := &Plugin{o: o, chats: map[string]*chat{}, views: map[string]string{}}
+	p.be = &chooser{p: p, opts: opts}
+	return p
 }
 
 // Manifest implements plugin.Plugin.
@@ -151,6 +163,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Preferences: []plugin.Preference{
 			{Name: prefEnabled, Type: plugin.PrefBool, Title: "%pref.enabled.title%", Description: "%pref.enabled.description%",
 				Default: plugin.MustPayload(false)},
+			p.be.preference(),
 			{Name: prefModel, Type: plugin.PrefSelect, Title: "%pref.model.title%", Description: "%pref.model.description%",
 				Default: plugin.MustPayload(""), Options: []plugin.Option{
 					{Value: "", Title: "%pref.model.default%"}, {Value: "sonnet", Title: "%pref.model.sonnet%"},
@@ -219,10 +232,7 @@ func (p *Plugin) Close() error {
 			_ = ch.conv.Close()
 		}
 	}
-	if c, ok := p.be.(interface{ Close() error }); ok {
-		return c.Close()
-	}
-	return nil
+	return p.be.Close()
 }
 
 func (p *Plugin) enabled() bool { return p.h.Preferences().Bool(prefEnabled) }

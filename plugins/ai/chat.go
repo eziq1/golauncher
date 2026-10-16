@@ -18,8 +18,9 @@ type chat struct {
 	sess Session
 	msgs []Message
 
-	conv     backend.Conversation
-	convOpts backend.OpenOptions
+	conv        backend.Conversation
+	convOpts    backend.OpenOptions
+	convBackend string // the ID of conv's backend
 
 	// pending is the first message of a chat opened with AI off; it is sent
 	// once AI is turned on.
@@ -219,6 +220,12 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 			ch.addStep(ev)
 			p.mu.Unlock()
 			p.push(ch)
+		case backend.EventPermission:
+			// The chat cannot ask yet (phase 2 shows a confirmation), so it
+			// rejects. Claude Code never asks (docs/ai.md §20).
+			if ev.Permission != nil && ev.Permission.Respond != nil {
+				ev.Permission.Respond("")
+			}
 		case backend.EventDone, backend.EventError:
 			p.finish(ch, ev, start)
 			return
@@ -299,33 +306,34 @@ func errorText(err error) string {
 // preferences.
 func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversation, error) {
 	opts := p.openOptions(ch)
+	id, be := p.be.current()
 	p.mu.Lock()
-	conv, old := ch.conv, ch.convOpts
-	checked := !p.checked.IsZero() && time.Since(p.checked) < checkTTL
+	conv, old, oldID := ch.conv, ch.convOpts, ch.convBackend
+	checked := p.checkedID == id && !p.checked.IsZero() && time.Since(p.checked) < checkTTL
 	p.mu.Unlock()
 	// Resume changes after the first answer; the conversation knows that.
 	old.Resume = opts.Resume
-	if conv != nil && old == opts {
+	if conv != nil && old == opts && oldID == id {
 		return conv, nil
 	}
 	if !checked {
-		st, err := p.be.Check(ctx)
+		st, err := be.Check(ctx)
 		if err != nil {
 			return nil, err
 		}
 		p.mu.Lock()
-		p.checked, p.status = time.Now(), st
+		p.checked, p.checkedID, p.status = time.Now(), id, st
 		p.mu.Unlock()
 	}
 	if conv != nil {
-		_ = conv.Close() // the preferences changed
+		_ = conv.Close() // the preferences (or the backend) changed
 	}
-	conv, err := p.be.Open(ctx, opts)
+	conv, err := be.Open(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	p.mu.Lock()
-	ch.conv, ch.convOpts = conv, opts
+	ch.conv, ch.convOpts, ch.convBackend = conv, opts, id
 	p.mu.Unlock()
 	return conv, nil
 }
@@ -565,6 +573,8 @@ func (p *Plugin) errorMarkdown(recorded string) string {
 		text = l.T("error.version")
 	case backend.ErrQuota:
 		text = l.T("error.quota")
+	case backend.ErrUnavailable:
+		text = l.T("error.unavailable")
 	default:
 		text = l.T("error.failed", "backend", p.be.Name())
 	}
@@ -587,7 +597,7 @@ func (p *Plugin) metadata(ch *chat) []plugin.Metadata {
 		model = l.T("pref.model.default")
 	}
 	md := []plugin.Metadata{{Label: p.be.Name(), Value: model}}
-	if p.status.Untested {
+	if id, _ := p.be.current(); p.checkedID == id && p.status.Untested {
 		md[0].Value += " · " + l.T("meta.untested", "version", p.status.Version)
 	}
 	if u := ch.usage; u != nil && (u.InputTokens > 0 || u.OutputTokens > 0) {

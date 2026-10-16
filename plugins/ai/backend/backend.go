@@ -1,6 +1,7 @@
 // Package backend is the contract between the builtin.ai plugin and where its
-// answers come from (docs/ai.md §6): the user's Claude Code CLI
-// (internal/ai/claudecode) or a fake for tests and glctl.
+// answers come from (docs/ai.md §6): an agent CLI driven by the agent
+// runtime (internal/ai/agentrt; Claude Code is internal/ai/claudecode,
+// docs/ai.md §20) or a fake for tests and glctl.
 package backend
 
 import (
@@ -88,6 +89,12 @@ const (
 	// EventToolResult reports the result of a tool call (Event.ToolID,
 	// Event.Result, Event.IsError).
 	EventToolResult EventKind = "tool-result"
+	// EventPermission asks the user to allow a tool call (Event.Permission):
+	// the agent waits until Permission.Respond is called. Reserved for ACP
+	// agents (session/request_permission, docs/ai.md §20); Claude Code never
+	// sends it (its tools are pre-approved and golauncher's own tool layer
+	// asks). A consumer that cannot ask must respond with "" (reject).
+	EventPermission EventKind = "permission"
 	// EventDone ends a turn (Event.Usage, Event.Cancelled).
 	EventDone EventKind = "done"
 	// EventError ends a turn that failed (Event.Err, usually a *Error).
@@ -114,6 +121,29 @@ type Event struct {
 	// Cancelled is set on EventDone when the answer was stopped.
 	Cancelled bool
 	Err       error
+	// Permission is the request of an EventPermission.
+	Permission *PermissionRequest
+}
+
+// PermissionRequest is an agent asking to run a tool call (EventPermission).
+type PermissionRequest struct {
+	// ToolID identifies the call (as in EventTool); Tool and Input describe
+	// it, Title is the agent's own description of it.
+	ToolID, Tool, Input, Title string
+	// Options are the answers the agent offers (allow once, always, reject…).
+	Options []PermissionOption
+	// Respond answers with the ID of one of Options; "" rejects (also when the
+	// turn was stopped). Only the first call counts.
+	Respond func(optionID string)
+}
+
+// PermissionOption is an answer to a PermissionRequest.
+type PermissionOption struct {
+	ID    string
+	Title string
+	// Kind is "allow_once", "allow_always", "reject_once" or "reject_always"
+	// (ACP's option kinds).
+	Kind string
 }
 
 // Usage is what a turn consumed.
@@ -137,6 +167,9 @@ const (
 	ErrQuota ErrorKind = "quota"
 	// ErrVersion: the CLI is too old.
 	ErrVersion ErrorKind = "version"
+	// ErrUnavailable: the backend chosen in the preferences does not exist
+	// in this version; Message is its ID.
+	ErrUnavailable ErrorKind = "unavailable"
 	// ErrFailed: anything else; Message is the CLI's text.
 	ErrFailed ErrorKind = "failed"
 )

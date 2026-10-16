@@ -1,8 +1,9 @@
-package claudecode
+package agentrt
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
+	"errors"
 	"io"
 	"strings"
 	"sync"
@@ -61,13 +62,27 @@ func (pr *process) alive() bool {
 	}
 }
 
-// writeJSON writes v as one line to the process's input.
-func (pr *process) writeJSON(v any) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
+// Write implements Conn.
+func (pr *process) Write(b []byte) error { return pr.write(b) }
+
+// Read implements Conn: the next output line, waiting for it.
+func (pr *process) Read(ctx context.Context) ([]byte, error) {
+	exited := false
+	for {
+		if raw, ok := pr.lines.pop(); ok {
+			return raw, nil
+		}
+		if exited {
+			return nil, errors.New("agentrt: the process ended")
+		}
+		select {
+		case <-pr.lines.sig:
+		case <-pr.done:
+			exited = true // read what is left first
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
-	return pr.write(append(b, '\n'))
 }
 
 // write writes b to the process's input.

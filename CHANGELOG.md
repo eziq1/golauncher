@@ -22,6 +22,21 @@ Before 1.0.0, minor versions may contain breaking changes.
   Chinese) offers *Retry as Administrator* in Background Tasks (Enter), and
   its failure notification says so.
 
+### Changed
+
+- **AI chat: Backend setting** (R71): Settings › Plugins › AI has a
+  *Backend* choice, with one option for now (Claude Code, the default). A
+  configuration naming a backend this version does not have explains that
+  in the chat.
+- **AI chat internals** (R71, docs/ai.md §20): the Claude Code backend is
+  now the first adapter of a shared agent runtime (`internal/ai/agentrt`:
+  processes, fallback to one process per turn, idle release, process limit,
+  working directory, golauncher's MCP tool server, version gate, error
+  kinds), so that other agent CLIs (ACP agents such as Gemini CLI, Codex
+  CLI) can be added later. Nothing changes in how the chat works; the
+  command lines Claude Code is started with are pinned byte for byte by a
+  test.
+
 ### Fixed
 
 - **Flush DNS Cache** and **Renew IP Address** failed with "The requested

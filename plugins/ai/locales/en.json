@@ -8,6 +8,8 @@
 
   "pref.enabled.title": "Use AI",
   "pref.enabled.description": "Sends the questions you type in an AI chat to Claude through the Claude Code CLI installed on this computer, with your Claude subscription (no API key). Nothing is sent while this is off.",
+  "pref.backend.title": "Backend",
+  "pref.backend.description": "The AI tool on this computer that answers. It must be installed and signed in.",
   "pref.model.title": "Model",
   "pref.model.description": "The Claude model that answers.",
   "pref.model.default": "Default",
@@ -84,6 +86,7 @@
   "error.notLoggedIn": "Claude Code is not signed in. Run `claude` in a terminal and sign in with your Claude account, then try again.",
   "error.version": "This version of Claude Code is too old. Update it with `claude update`, then try again.",
   "error.quota": "Your Claude usage limit was reached. Claude Code says:",
+  "error.unavailable": "The AI backend chosen in Settings › Plugins › AI is not available in this version of golauncher. Choose another one there.",
   "error.failed": "{{.backend}} reported an error:",
 
   "meta.untested": "untested version {{.version}}",
