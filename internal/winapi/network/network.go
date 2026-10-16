@@ -30,6 +30,10 @@ var (
 	ErrNoPassword = errors.New("network: the profile has no password")
 	// ErrNotFound reports a profile or process that does not exist.
 	ErrNotFound = errors.New("network: not found")
+	// ErrProtected reports a process that must not or cannot be ended: the
+	// kernel, a critical system process, golauncher itself, or a protected
+	// process that refuses even an administrator (process.ErrProtected).
+	ErrProtected = errors.New("network: protected process")
 )
 
 // Adapter is a network adapter with its configuration.
@@ -250,6 +254,9 @@ type Process struct {
 	PID  uint32
 	Name string // e.g. "node.exe"
 	Path string // full path, "" when it cannot be read
+	// Created is the creation time (FILETIME, 100 ns since 1601), which
+	// identifies the process instance with its PID; 0 when unknown.
+	Created int64
 }
 
 // FormatMAC formats a hardware address as Windows does: "AA-BB-CC-DD-EE-FF".

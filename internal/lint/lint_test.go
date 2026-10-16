@@ -96,7 +96,7 @@ var uiCalls = map[string]bool{
 
 // shownFields are struct fields of SDK and UI types that are shown to the user.
 var shownFields = map[string]bool{
-	"Title": true, "Subtitle": true, "Message": true, "Accessory": true,
+	"Title": true, "Subtitle": true, "Message": true, "Accessory": true, "ConfirmMessage": true,
 	"Placeholder": true, "EmptyText": true, "Label": true, "ToolTip": true, "Description": true,
 }
 

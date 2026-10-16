@@ -104,7 +104,7 @@ they are created without a console window.
 | Method | Params | Result |
 |--------|--------|--------|
 | `initialize` | `{protocol, hostVersion, pluginId, locale, dataDir, cacheDir, preferences}` | `{protocol: 1, capabilities: {rootItems, views, actions, preferenceOptions, render, contextItems}}` |
-| `rootItems` | `{query, context?}` | `Item[]` |
+| `rootItems` | `{query, raw?, context?}` (`raw`: the text as typed, untrimmed) | `Item[]` |
 | `contextItems` | `{context: Context}` | `Item[]` |
 | `view` | `{request: ViewRequest}` | `View` |
 | `handleAction` | `{action: ActionDo}` | `Result` |
@@ -141,6 +141,14 @@ they are created without a console window.
   `Result` may carry `do`, an action the host carries out afterwards (one of
   the host's own kinds, e.g. `{"kind": "ShowTask", "target": "<task id>"}`
   to open a task started with `host/task.runProcess`).
+- Optional fields added to the data types travel in the same JSON, with no
+  new capability or protocol version; an older host ignores them. For
+  example an `Item` may carry `"accessories": [{"text": "3.2%", "meter":
+  0.032, "load": true}]` (values at the right edge with a small bar) and
+  `"subtitleSensitive": true` (a subtitle never given to an AI), a
+  `Metadata` row `"sensitive": true` (a detail row never given to an AI),
+  and an `Action` `"confirmMessage": "3 processes will be ended."` (the text
+  of its confirmation, also shown when an AI asks to run it).
 
 ## 5. Host → plugin notifications
 

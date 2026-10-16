@@ -174,6 +174,7 @@ func findKeyword(text string, links []Quicklink, engines []Engine) (match, bool)
 var reservedPrefixes = []string{
 	"time", "tz", "timer", "计时", "倒计时", "remind", "提醒",
 	"winget", "wg", "scoop", "sc", "ip", "ping", "dns", "port", "wifi", "tracert",
+	"ps", "kill", "进程",
 }
 
 // localName is the engine's name in the current language.

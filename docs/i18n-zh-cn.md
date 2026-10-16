@@ -121,6 +121,14 @@
 | Source (WinGet) | 源 | “更新源”“WinGet 源” |
 | Moniker (WinGet) | 别名 | |
 | Pin Version (WinGet) | 固定版本 / 取消固定版本 | 和剪贴板的“固定”一致 |
+| Process / Processes | 进程 | 进程管理插件，用任务管理器的译法 |
+| End Task / Force End / End Process Tree | 结束任务 / 强制结束 / 结束进程树 | |
+| Not responding | 未响应 | |
+| Apps / Background processes / Windows processes | 应用 / 后台进程 / Windows 进程 | |
+| Memory (private working set) / Working set / Commit size | 内存（专用工作集）/ 工作集 / 提交大小 | |
+| Handles / Threads | 句柄 / 线程 | |
+| Elevated / Not elevated | 已提升 / 未提升 | |
+| Restart Windows Explorer | 重启 Windows 资源管理器 | |
 
 ### 4.3 不翻译
 

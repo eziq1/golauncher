@@ -118,7 +118,7 @@ func (s *server) handle(ctx context.Context, method string, params jsontext.Valu
 		if err != nil {
 			return nil, err
 		}
-		items, err := rp.RootItems(ctx, plugin.Query{Text: a.Query, Context: a.Context})
+		items, err := rp.RootItems(ctx, plugin.Query{Text: a.Query, Raw: a.Raw, Context: a.Context})
 		if items == nil {
 			items = []plugin.Item{}
 		}

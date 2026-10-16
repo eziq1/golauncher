@@ -571,6 +571,145 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.processes",
+    "name": "Processes",
+    "description": "Find running apps and processes, see their CPU and memory use, switch to them or end them. Type “ps ” (with a space), “kill” or “进程” in the main search.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "activity"
+    },
+    "enabled": true,
+    "permissions": [
+      "clipboard",
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "processes",
+        "title": "Processes",
+        "mode": "view"
+      },
+      {
+        "name": "hung",
+        "title": "End Apps Not Responding",
+        "mode": "view"
+      },
+      {
+        "name": "restart-explorer",
+        "title": "Restart Windows Explorer",
+        "mode": "no-view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "prefixes",
+        "type": "stringList",
+        "title": "Prefixes",
+        "description": "Words that list processes in the main search. “ps” needs a space after it; with “kill”, Enter ends the task. Leave empty to turn them off.",
+        "default": [
+          "ps",
+          "kill",
+          "进程"
+        ]
+      },
+      {
+        "name": "interval",
+        "type": "select",
+        "title": "Refresh every",
+        "default": "1",
+        "options": [
+          {
+            "value": "1",
+            "title": "1 second"
+          },
+          {
+            "value": "2",
+            "title": "2 seconds"
+          },
+          {
+            "value": "5",
+            "title": "5 seconds"
+          }
+        ]
+      },
+      {
+        "name": "cpuMode",
+        "type": "select",
+        "title": "CPU use",
+        "description": "Share of all processors (as in Task Manager), or of one processor (as in top: up to 100% per processor).",
+        "default": "total",
+        "options": [
+          {
+            "value": "total",
+            "title": "Share of all processors"
+          },
+          {
+            "value": "perCore",
+            "title": "Share of one processor"
+          }
+        ]
+      },
+      {
+        "name": "groupByApp",
+        "type": "bool",
+        "title": "Group processes by app",
+        "default": true
+      },
+      {
+        "name": "showWindowsProcesses",
+        "type": "bool",
+        "title": "Show Windows processes",
+        "default": true
+      },
+      {
+        "name": "defaultSort",
+        "type": "select",
+        "title": "Sort by",
+        "default": "cpu",
+        "options": [
+          {
+            "value": "cpu",
+            "title": "CPU"
+          },
+          {
+            "value": "memory",
+            "title": "Memory"
+          },
+          {
+            "value": "io",
+            "title": "I/O"
+          },
+          {
+            "value": "name",
+            "title": "Name"
+          }
+        ]
+      },
+      {
+        "name": "closeTimeout",
+        "type": "number",
+        "title": "Wait for apps to close (seconds)",
+        "description": "End task asks an app to close and waits this long before offering to force it.",
+        "default": 5
+      },
+      {
+        "name": "redactCommandLine",
+        "type": "bool",
+        "title": "Hide secrets in command lines",
+        "description": "Show values of options such as --password or --token as •••.",
+        "default": true
+      },
+      {
+        "name": "foregroundQuit",
+        "type": "bool",
+        "title": "Offer to quit the app in front",
+        "description": "“Quit <app>” in the search, and “Force quit” when the app in front is not responding.",
+        "default": true
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.quicklinks",
     "name": "Quicklinks & Web Search",
     "description": "Search the web with keywords (“g golang generics”, “bd 天气”), open typed URLs, and keep named links to websites, files, folders and programs. When nothing matches, the main search offers to search the web.",

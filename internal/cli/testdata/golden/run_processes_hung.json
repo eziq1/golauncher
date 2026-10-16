@@ -1,0 +1,399 @@
+{
+  "step": "run builtin.processes/hung",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.processes",
+      "request": {
+        "id": "hung",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Apps Not Responding",
+    "placeholder": "Filter by name or PID…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "p:3500:134364440000000000",
+            "title": "Litware Paint",
+            "subtitle": "Untitled - Litware Paint",
+            "icon": {
+              "name": "alert",
+              "tint": "danger"
+            },
+            "accessory": "Not responding",
+            "accessories": [
+              {
+                "text": "CPU 0.0%",
+                "meter": 0,
+                "load": true
+              },
+              {
+                "text": "120 MB",
+                "meter": 0.003662109375,
+                "load": true
+              }
+            ],
+            "subtitleSensitive": true,
+            "actions": [
+              {
+                "id": "end-task",
+                "title": "End Task",
+                "shortcut": "Ctrl+X",
+                "style": "destructive",
+                "confirmMessage": "The process will be ended at once; unsaved work is lost.",
+                "do": {
+                  "kind": "Callback",
+                  "target": "end-task",
+                  "payload": {
+                    "id": {
+                      "pid": 3500,
+                      "created": 134364440000000000
+                    },
+                    "name": "Litware Paint"
+                  }
+                }
+              },
+              {
+                "id": "switch",
+                "title": "Switch to Window",
+                "do": {
+                  "kind": "Callback",
+                  "target": "switch",
+                  "payload": {
+                    "id": {
+                      "pid": 3500,
+                      "created": 134364440000000000
+                    },
+                    "name": "Litware Paint",
+                    "hwnd": 896001
+                  }
+                }
+              },
+              {
+                "id": "show",
+                "title": "Show Processes",
+                "shortcut": "Ctrl+D",
+                "do": {
+                  "kind": "Push",
+                  "target": "group",
+                  "payload": {
+                    "root": {
+                      "pid": 3500,
+                      "created": 134364440000000000
+                    }
+                  }
+                }
+              },
+              {
+                "id": "force-end",
+                "title": "Force End",
+                "shortcut": "Ctrl+Shift+X",
+                "style": "destructive",
+                "confirmMessage": "The process will be ended at once; unsaved work is lost.",
+                "do": {
+                  "kind": "Callback",
+                  "target": "force-end",
+                  "payload": {
+                    "id": {
+                      "pid": 3500,
+                      "created": 134364440000000000
+                    },
+                    "name": "Litware Paint"
+                  }
+                }
+              },
+              {
+                "id": "reveal",
+                "title": "Show in File Explorer",
+                "shortcut": "Ctrl+Shift+F",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Program Files\\Litware\\Paint\\paint.exe",
+                  "payload": {
+                    "reveal": true
+                  }
+                }
+              },
+              {
+                "id": "copy-pid",
+                "title": "Copy PID",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "3500"
+                }
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy Path",
+                "shortcut": "Ctrl+Alt+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "C:\\Program Files\\Litware\\Paint\\paint.exe"
+                }
+              },
+              {
+                "id": "copy-name",
+                "title": "Copy Name",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "paint.exe"
+                }
+              },
+              {
+                "id": "copy-command-line",
+                "title": "Copy Command Line",
+                "do": {
+                  "kind": "Callback",
+                  "target": "copy-command-line",
+                  "payload": {
+                    "id": {
+                      "pid": 3500,
+                      "created": 134364440000000000
+                    },
+                    "name": "Litware Paint"
+                  }
+                }
+              },
+              {
+                "id": "search-online",
+                "title": "Search Online",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.google.com/search?q=%22paint.exe%22"
+                }
+              },
+              {
+                "id": "sort-memory",
+                "title": "Sort by Memory",
+                "do": {
+                  "kind": "Callback",
+                  "target": "sort",
+                  "payload": {
+                    "sort": "memory"
+                  }
+                }
+              },
+              {
+                "id": "sort-io",
+                "title": "Sort by I/O",
+                "do": {
+                  "kind": "Callback",
+                  "target": "sort",
+                  "payload": {
+                    "sort": "io"
+                  }
+                }
+              },
+              {
+                "id": "sort-name",
+                "title": "Sort by Name",
+                "do": {
+                  "kind": "Callback",
+                  "target": "sort",
+                  "payload": {
+                    "sort": "name"
+                  }
+                }
+              },
+              {
+                "id": "toggle-group",
+                "title": "Do Not Group by App",
+                "do": {
+                  "kind": "Callback",
+                  "target": "toggle-group"
+                }
+              },
+              {
+                "id": "task-manager",
+                "title": "Open Task Manager",
+                "do": {
+                  "kind": "Open",
+                  "target": "taskmgr.exe"
+                }
+              },
+              {
+                "id": "resource-monitor",
+                "title": "Open Resource Monitor",
+                "do": {
+                  "kind": "Open",
+                  "target": "resmon.exe"
+                }
+              },
+              {
+                "id": "refresh",
+                "title": "Refresh",
+                "shortcut": "Ctrl+R",
+                "readOnly": true,
+                "do": {
+                  "kind": "Callback",
+                  "target": "refresh"
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Executable",
+                  "value": "paint.exe"
+                },
+                {
+                  "label": "CPU",
+                  "value": "0.0%"
+                },
+                {
+                  "label": "Memory (private working set)",
+                  "value": "120 MB"
+                },
+                {
+                  "label": "Working set",
+                  "value": "168 MB"
+                },
+                {
+                  "label": "Commit size",
+                  "value": "144 MB"
+                },
+                {
+                  "label": "Peak working set",
+                  "value": "192 MB"
+                },
+                {
+                  "label": "I/O",
+                  "value": "0 B/s"
+                },
+                {
+                  "label": "PID",
+                  "value": "3500"
+                },
+                {
+                  "label": "Parent",
+                  "value": "Windows Explorer (2000)"
+                },
+                {
+                  "label": "Path",
+                  "value": "C:\\Program Files\\Litware\\Paint\\paint.exe"
+                },
+                {
+                  "label": "User",
+                  "value": "CONTOSO\\demo (not elevated)"
+                },
+                {
+                  "label": "Started",
+                  "value": "2026-10-14 09:33 (26 minutes ago)"
+                },
+                {
+                  "label": "Handles",
+                  "value": "300"
+                },
+                {
+                  "label": "Threads",
+                  "value": "9"
+                },
+                {
+                  "label": "Windows",
+                  "value": "Untitled - Litware Paint",
+                  "sensitive": true
+                },
+                {
+                  "label": "Command line",
+                  "value": "Cannot be read (needs administrator rights)",
+                  "sensitive": true
+                },
+                {
+                  "label": "About CPU",
+                  "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+                }
+              ]
+            },
+            "plugin": "builtin.processes",
+            "key": "builtin.processes/p:3500:134364440000000000"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "metadata": [
+        {
+          "label": "Executable",
+          "value": "paint.exe"
+        },
+        {
+          "label": "CPU",
+          "value": "0.0%"
+        },
+        {
+          "label": "Memory (private working set)",
+          "value": "120 MB"
+        },
+        {
+          "label": "Working set",
+          "value": "168 MB"
+        },
+        {
+          "label": "Commit size",
+          "value": "144 MB"
+        },
+        {
+          "label": "Peak working set",
+          "value": "192 MB"
+        },
+        {
+          "label": "I/O",
+          "value": "0 B/s"
+        },
+        {
+          "label": "PID",
+          "value": "3500"
+        },
+        {
+          "label": "Parent",
+          "value": "Windows Explorer (2000)"
+        },
+        {
+          "label": "Path",
+          "value": "C:\\Program Files\\Litware\\Paint\\paint.exe"
+        },
+        {
+          "label": "User",
+          "value": "CONTOSO\\demo (not elevated)"
+        },
+        {
+          "label": "Started",
+          "value": "2026-10-14 09:33 (26 minutes ago)"
+        },
+        {
+          "label": "Handles",
+          "value": "300"
+        },
+        {
+          "label": "Threads",
+          "value": "9"
+        },
+        {
+          "label": "Windows",
+          "value": "Untitled - Litware Paint",
+          "sensitive": true
+        },
+        {
+          "label": "Command line",
+          "value": "Cannot be read (needs administrator rights)",
+          "sensitive": true
+        },
+        {
+          "label": "About CPU",
+          "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+        }
+      ]
+    },
+    "emptyText": "Every app is responding"
+  }
+}

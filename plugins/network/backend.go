@@ -41,8 +41,11 @@ type Backend interface {
 	Dial(ctx context.Context, address string, timeout time.Duration) (time.Duration, string, error)
 	// Sockets returns the TCP listeners and bound UDP sockets.
 	Sockets(ctx context.Context) ([]winnet.Socket, error)
+	// Process describes process pid, with its creation time when known.
 	Process(pid uint32) winnet.Process
-	Kill(pid uint32) error
+	// Kill ends process pid. A non-zero created (Process.Created) guards
+	// against a PID reused by another process: winnet.ErrNotFound.
+	Kill(pid uint32, created int64) error
 }
 
 // Record is a DNS record.
@@ -94,7 +97,7 @@ func (s *System) Sockets(context.Context) ([]winnet.Socket, error) { return winn
 
 func (s *System) Process(pid uint32) winnet.Process { return winnet.ProcessInfo(pid) }
 
-func (s *System) Kill(pid uint32) error { return winnet.Kill(pid) }
+func (s *System) Kill(pid uint32, created int64) error { return winnet.Kill(pid, created) }
 
 func (s *System) Ping(ctx context.Context, addr netip.Addr, timeout time.Duration) (winnet.EchoReply, error) {
 	return winnet.Ping(ctx, addr, timeout)

@@ -18,11 +18,14 @@ import (
 // cbRecheck pulls the port view again, which checks the remote port again.
 const cbRecheck = "recheck"
 
-// killPayload is the payload of the kill callback. Name guards against a
-// PID reused by another process since the list was shown.
+// killPayload is the payload of the kill callback. Created (the creation
+// time) guards against a PID reused by another process since the list was
+// shown, checked on the handle that ends the process
+// (docs/process-manager.md §5.4); without it (older data) Name does.
 type killPayload struct {
-	PID  uint32 `json:"pid"`
-	Name string `json:"name,omitempty"`
+	PID     uint32 `json:"pid"`
+	Name    string `json:"name,omitempty"`
+	Created int64  `json:"created,omitzero"`
 }
 
 // owner is a process with its sockets on one port (or on all ports).
@@ -104,7 +107,7 @@ func (p *Plugin) ownerItem(o owner, list bool) plugin.Item {
 			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: o.proc.Path, Payload: plugin.MustPayload(plugin.OpenOptions{Reveal: true})}})
 	}
 	if o.proc.PID > 4 && o.proc.PID != uint32(os.Getpid()) { // not the system or the launcher itself
-		kill := callback("kill", l.T("action.kill", "name", name), cbKill, killPayload{PID: o.proc.PID, Name: o.proc.Name}, "Ctrl+X")
+		kill := callback("kill", l.T("action.kill", "name", name), cbKill, killPayload{PID: o.proc.PID, Name: o.proc.Name, Created: o.proc.Created}, "Ctrl+X")
 		kill.Style = plugin.StyleDestructive
 		it.Actions = append(it.Actions, kill)
 	}
@@ -219,12 +222,18 @@ func (p *Plugin) checkItem(ctx context.Context, t portTarget) plugin.Item {
 func (p *Plugin) kill(pl killPayload) plugin.Result {
 	l := p.h.I18n()
 	name := cmp.Or(pl.Name, l.T("port.unknownProcess"))
-	if cur := p.b.Process(pl.PID); pl.Name != "" && cur.Name != "" && !strings.EqualFold(cur.Name, pl.Name) {
-		return failure(l.T("kill.changed", "name", name, "pid", pl.PID), "")
+	// With the creation time the backend checks the instance itself;
+	// without it (older data) the name must not have changed.
+	if pl.Created == 0 {
+		if cur := p.b.Process(pl.PID); pl.Name != "" && cur.Name != "" && !strings.EqualFold(cur.Name, pl.Name) {
+			return failure(l.T("kill.changed", "name", name, "pid", pl.PID), "")
+		}
 	}
-	switch err := p.b.Kill(pl.PID); {
+	switch err := p.b.Kill(pl.PID, pl.Created); {
 	case errors.Is(err, winnet.ErrNeedsAdmin):
 		return failure(l.T("kill.failed", "name", name), l.T("kill.needsAdmin"))
+	case errors.Is(err, winnet.ErrProtected):
+		return failure(l.T("kill.protected", "name", name), "")
 	case errors.Is(err, winnet.ErrNotFound):
 		r := failure(l.T("kill.gone", "name", name), "")
 		r.Refresh = true

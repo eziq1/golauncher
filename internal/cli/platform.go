@@ -15,6 +15,7 @@ import (
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/processes"
 	"github.com/eziq1/golauncher/plugins/system"
 )
 
@@ -38,8 +39,11 @@ func realPlugins(extra []string, exec bool) []plugin.Plugin {
 	all := builtin.All()
 	if !exec {
 		for i, p := range all {
-			if _, ok := p.(*system.Plugin); ok {
+			switch p.(type) {
+			case *system.Plugin:
 				all[i] = system.NewWithOptions(system.Options{System: system.DryRun()})
+			case *processes.Plugin:
+				all[i] = processes.NewDryRun() // reads the real processes, ends none
 			}
 		}
 	}

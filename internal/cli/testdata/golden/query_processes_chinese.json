@@ -1,0 +1,265 @@
+{
+  "query": "进程 nfbj",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Processes",
+      "items": [
+        {
+          "id": "p:3600:134364440500000000",
+          "title": "南风笔记",
+          "subtitle": "会议记录 - 南风笔记",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0.00001125,
+              "load": true
+            },
+            {
+              "text": "75.0 MB",
+              "meter": 0.002288818359375,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "Processes",
+          "score": 1,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "Switch to Window",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3600,
+                    "created": 134364440500000000
+                  },
+                  "name": "南风笔记",
+                  "hwnd": 921601
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3600,
+                    "created": 134364440500000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3600,
+                    "created": 134364440500000000
+                  },
+                  "name": "南风笔记"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3600,
+                    "created": 134364440500000000
+                  },
+                  "name": "南风笔记"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Adatum\\Notes\\notes.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3600"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Adatum\\Notes\\notes.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "notes.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3600,
+                    "created": 134364440500000000
+                  },
+                  "name": "南风笔记"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22notes.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "notes.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "75.0 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "105 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "90.0 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "120 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3600"
+              },
+              {
+                "label": "Parent",
+                "value": "Windows Explorer (2000)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\Adatum\\Notes\\notes.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:34 (25 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "280"
+              },
+              {
+                "label": "Threads",
+                "value": "10"
+              },
+              {
+                "label": "Windows",
+                "value": "会议记录 - 南风笔记",
+                "sensitive": true
+              },
+              {
+                "label": "Command line",
+                "value": "Cannot be read (needs administrator rights)",
+                "sensitive": true
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3600:134364440500000000",
+          "rank": 1.7
+        },
+        {
+          "id": "open-view",
+          "title": "Search “nfbj” in Processes",
+          "icon": {
+            "name": "activity"
+          },
+          "group": "Processes",
+          "score": 0.999,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Processes",
+              "do": {
+                "kind": "Push",
+                "target": "processes",
+                "payload": {
+                  "query": "nfbj"
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/open-view",
+          "rank": 1.6993
+        }
+      ]
+    }
+  ]
+}

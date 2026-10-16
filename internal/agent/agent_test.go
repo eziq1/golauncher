@@ -59,12 +59,12 @@ func (c *clock) Add(d time.Duration) {
 	c.mu.Unlock()
 }
 
-func newWorld(t *testing.T, cfg func(*config.Config)) *world {
+func newWorld(t *testing.T, cfg func(*config.Config), extra ...plugin.Plugin) *world {
 	t.Helper()
 	clip := &hostfake.Clipboard{}
 	rec := &app.Recorder{Clipboard: clip}
 	env, err := app.Build(t.Context(), app.Options{Fake: true, Locale: "en", System: rec, Clipboard: clip,
-		Plugins: builtin.Fake(fixtures), Now: func() time.Time { return hostfake.Fixed }})
+		Plugins: append(builtin.Fake(fixtures), extra...), Now: func() time.Time { return hostfake.Fixed }})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,6 +478,102 @@ func TestSensitiveClips(t *testing.T) {
 	out := marshal(t, r)
 	if !strings.Contains(out, "meeting notes") || strings.Contains(out, "hunter2") || strings.Contains(out, "never recorded") {
 		t.Errorf("history: %s", out)
+	}
+}
+
+// workers is a plugin whose items, like the process manager's, have a
+// sensitive subtitle (a window title) and a sensitive detail row (a command
+// line), values at the right edge and a destructive action that says what
+// it does.
+type workers struct{}
+
+// Text the AI must never see.
+const (
+	secretTitle = "Salaries-Draft.xlsx - Spreadsheet"
+	secretArgs  = "--token=hunter2"
+)
+
+func (workers) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "test.workers", Name: "Workers", Version: "1",
+		Commands: []plugin.Command{{Name: "list", Title: "List Workers", Mode: plugin.ModeView}}}
+}
+func (workers) Init(context.Context, plugin.Host) error { return nil }
+func (workers) Close() error                            { return nil }
+
+func (workers) items() []plugin.Item {
+	half := 0.5
+	return []plugin.Item{{ID: "w1", Title: "worker.exe", Subtitle: secretTitle, SubtitleSensitive: true, Accessory: "Process",
+		Accessories: []plugin.Accessory{{Text: "CPU 3.2%", Meter: &half, Load: true}, {Text: "1.2 GB"}},
+		Detail: &plugin.Detail{Metadata: []plugin.Metadata{
+			{Label: "PID", Value: "4242"}, {Label: "Command line", Value: "worker.exe " + secretArgs, Sensitive: true}}},
+		Actions: []plugin.Action{{ID: "end", Title: "End Process Tree", Style: plugin.StyleDestructive,
+			ConfirmMessage: "3 processes will be ended.", Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "end"}}},
+	}}
+}
+
+func (p workers) RootItems(context.Context, plugin.Query) ([]plugin.Item, error) {
+	return p.items(), nil
+}
+
+func (p workers) View(context.Context, plugin.ViewRequest) (plugin.View, error) {
+	return plugin.View{Kind: plugin.ViewList, Title: "Workers", FilterLocally: true, Sections: []plugin.Section{{Items: p.items()}},
+		Detail: &plugin.Detail{Metadata: []plugin.Metadata{{Label: "Total", Value: "1"}, {Label: "Owner", Value: secretArgs, Sensitive: true}}}}, nil
+}
+
+func (workers) HandleAction(context.Context, plugin.ActionDo) (plugin.Result, error) {
+	return plugin.Result{}, nil
+}
+
+// TestSensitiveSubtitleAndMetadata: a sensitive subtitle or detail row never
+// reaches an AI, in search, run_command (a view) or get_detail results, nor
+// can a search find an item by it; the accessories' texts are its info, and
+// a destructive action's ConfirmMessage is shown when the AI asks to run it.
+func TestSensitiveSubtitleAndMetadata(t *testing.T) {
+	w := newWorld(t, nil, workers{})
+	s := w.chat()
+	leaks := func(what string, r result) {
+		t.Helper()
+		out := marshal(t, r)
+		for _, secret := range []string{"Salaries", "hunter2"} {
+			if strings.Contains(out, secret) {
+				t.Errorf("%s shows %q: %s", what, secret, out)
+			}
+		}
+	}
+	r := w.mustCall(s, agent.ToolSearch, map[string]any{"query": "worker.exe"})
+	leaks("search", r)
+	it := find(t, r, "worker.exe")
+	if it["info"] != "Process · CPU 3.2% · 1.2 GB" || it["subtitle"] != nil || it["details"] != true {
+		t.Errorf("item %v", it)
+	}
+	d := w.mustCall(s, agent.ToolGetDetail, map[string]any{"handle": it["handle"]})
+	leaks("get_detail", d)
+	if !strings.Contains(marshal(t, d), "4242") {
+		t.Errorf("detail lost the other rows: %v", d)
+	}
+	// Searching for the sensitive subtitle finds nothing.
+	r = w.mustCall(s, agent.ToolSearch, map[string]any{"query": "Salaries Draft", "plugin": "test.workers"})
+	if len(items(r)) != 0 {
+		t.Errorf("found by its sensitive subtitle: %v", r)
+	}
+
+	r = w.mustCall(s, agent.ToolRunCommand, map[string]any{"plugin": "test.workers", "command": "list"})
+	leaks("run_command", r)
+	view := r["view"].(map[string]any)
+	if !strings.Contains(marshal(t, r), "Total") || len(items(r)) != 1 {
+		t.Errorf("view %v", r)
+	}
+	r = w.mustCall(s, agent.ToolSearch, map[string]any{"view": view["handle"], "query": "Salaries"})
+	if len(items(r)) != 0 {
+		t.Errorf("found in the view by its sensitive subtitle: %v", r)
+	}
+	r = w.mustCall(s, agent.ToolSearch, map[string]any{"view": view["handle"], "query": "worker"})
+	h := find(t, r, "worker.exe")["handle"]
+	leaks("get_detail of a view item", w.mustCall(s, agent.ToolGetDetail, map[string]any{"handle": h}))
+
+	w.call(s, agent.ToolRunAction, map[string]any{"handle": h, "action": "end"})
+	if a := w.takeAsked(); len(a) != 1 || a[0].Message != "3 processes will be ended." || !a[0].Destructive {
+		t.Errorf("asked %+v", a)
 	}
 }
 

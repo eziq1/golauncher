@@ -1,0 +1,3437 @@
+{
+  "query": "ps ",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Processes",
+      "items": [
+        {
+          "id": "summary",
+          "title": "CPU 23.0% · Memory 57.8% (18.5 GB / 32.0 GB) · 36 processes",
+          "icon": {
+            "name": "activity"
+          },
+          "accessories": [
+            {
+              "text": "CPU 23.0%",
+              "meter": 0.23,
+              "load": true
+            },
+            {
+              "text": "18.5 GB",
+              "meter": 0.578125,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Processes",
+              "do": {
+                "kind": "Push",
+                "target": "processes"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/summary",
+          "rank": 1.7
+        },
+        {
+          "id": "p:3100:134364438600000000",
+          "title": "Fabrikam Browser (8)",
+          "subtitle": "New Tab - Fabrikam",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.8%",
+              "meter": 0.008,
+              "load": true
+            },
+            {
+              "text": "1.2 GB",
+              "meter": 0.0384521484375,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "Processes",
+          "score": 0.999,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "Switch to Window",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser",
+                  "hwnd": 793601
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "group": true,
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "8 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "group": true,
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "End Process Tree",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "8 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3100"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "fabrikam.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3100,
+                    "created": 134364438600000000
+                  },
+                  "name": "Fabrikam Browser"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22fabrikam.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "fabrikam.exe"
+              },
+              {
+                "label": "Processes",
+                "value": "8"
+              },
+              {
+                "label": "CPU",
+                "value": "0.8%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "1.2 GB"
+              },
+              {
+                "label": "Working set",
+                "value": "588 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "504 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "672 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "120 KB/s"
+              },
+              {
+                "label": "PID",
+                "value": "3100"
+              },
+              {
+                "label": "Parent",
+                "value": "Windows Explorer (2000)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Integrity level",
+                "value": "Medium"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:31 (29 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "2,100"
+              },
+              {
+                "label": "Threads",
+                "value": "45"
+              },
+              {
+                "label": "Windows",
+                "value": "New Tab - Fabrikam",
+                "sensitive": true
+              },
+              {
+                "label": "Command line",
+                "value": "\"C:\\Program Files\\Fabrikam\\Browser\\fabrikam.exe\"",
+                "sensitive": true
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3100:134364438600000000",
+          "rank": 1.6993
+        },
+        {
+          "id": "p:1500:134364384200000000",
+          "title": "Desktop Window Manager",
+          "subtitle": "dwm.exe · PID 1500",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.6%",
+              "meter": 0.006,
+              "load": true
+            },
+            {
+              "text": "95.0 MB",
+              "meter": 0.002899169921875,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 0.998,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. The screen may flicker or go black while Windows restarts it.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. The screen may flicker or go black while Windows restarts it.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\System32\\dwm.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "1500"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\System32\\dwm.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "dwm.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 1500,
+                    "created": 134364384200000000
+                  },
+                  "name": "Desktop Window Manager"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22dwm.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "dwm.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.6%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "95.0 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "133 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "114 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "152 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "1500"
+              },
+              {
+                "label": "Parent",
+                "value": "Windows Start-Up Application (812)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Windows\\System32\\dwm.exe"
+              },
+              {
+                "label": "User",
+                "value": "Window Manager\\DWM-1 (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 08:00 (1 hour ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "1,800"
+              },
+              {
+                "label": "Threads",
+                "value": "18"
+              },
+              {
+                "label": "Command line",
+                "value": "Cannot be read (needs administrator rights)",
+                "sensitive": true
+              },
+              {
+                "label": "Note",
+                "value": "The screen may flicker or go black while Windows restarts it."
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:1500:134364384200000000",
+          "rank": 1.6985999999999999
+        },
+        {
+          "id": "p:4:134364384000000000",
+          "title": "System",
+          "subtitle": "System · PID 4",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.4%",
+              "meter": 0.004,
+              "load": true
+            },
+            {
+              "text": "20.0 KB",
+              "meter": 5.960464477539062e-7,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 0.997,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 4,
+                    "created": 134364384000000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "4"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "System"
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22System%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "System"
+              },
+              {
+                "label": "CPU",
+                "value": "0.4%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "20.0 KB"
+              },
+              {
+                "label": "Working set",
+                "value": "28.0 KB"
+              },
+              {
+                "label": "Commit size",
+                "value": "24.0 KB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "32.0 KB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "4"
+              },
+              {
+                "label": "User",
+                "value": "System service"
+              },
+              {
+                "label": "Handles",
+                "value": "5,100"
+              },
+              {
+                "label": "Threads",
+                "value": "240"
+              },
+              {
+                "label": "Note",
+                "value": "Part of Windows itself."
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:4:134364384000000000",
+          "rank": 1.6979
+        },
+        {
+          "id": "p:3410:134364439300000000",
+          "title": "Node.js JavaScript Runtime (2)",
+          "subtitle": "node.exe · PID 3410",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.001105,
+              "load": true
+            },
+            {
+              "text": "240 MB",
+              "meter": 0.00732421875,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 0.996,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "2 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "group": true,
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "2 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "group": true,
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "End Process Tree",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "2 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "name": "Node.js JavaScript Runtime",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\nodejs\\node.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3410"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\nodejs\\node.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "node.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3410,
+                    "created": 134364439300000000
+                  },
+                  "name": "Node.js JavaScript Runtime"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22node.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "node.exe"
+              },
+              {
+                "label": "Processes",
+                "value": "2"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "240 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "252 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "216 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "288 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3410"
+              },
+              {
+                "label": "Parent",
+                "value": "Contoso Code (3400)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\nodejs\\node.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:32 (27 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "250"
+              },
+              {
+                "label": "Threads",
+                "value": "11"
+              },
+              {
+                "label": "Listening",
+                "value": "TCP 3000, TCP 9229"
+              },
+              {
+                "label": "Command line",
+                "value": "node server.js --port 3000 --token=••• --db https://•••@db.example.com/shop",
+                "sensitive": true
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3410:134364439300000000",
+          "rank": 1.6972
+        },
+        {
+          "id": "p:2000:134364384600000000",
+          "title": "Windows Explorer",
+          "subtitle": "Project files",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.0005,
+              "load": true
+            },
+            {
+              "text": "140 MB",
+              "meter": 0.0042724609375,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "Processes",
+          "score": 0.995,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "Switch to Window",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  },
+                  "name": "Windows Explorer",
+                  "hwnd": 512002
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "restart-explorer",
+              "title": "Restart Windows Explorer",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "The taskbar, the desktop and File Explorer windows close and start again.",
+              "do": {
+                "kind": "Callback",
+                "target": "restart-explorer"
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\explorer.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "2000"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\explorer.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "explorer.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 2000,
+                    "created": 134364384600000000
+                  },
+                  "name": "Windows Explorer"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22explorer.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "explorer.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "140 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "196 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "168 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "224 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "2000"
+              },
+              {
+                "label": "Parent",
+                "value": "Exited (PID 1999)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Windows\\explorer.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Integrity level",
+                "value": "Medium"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 08:01 (1 hour ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "4,200"
+              },
+              {
+                "label": "Threads",
+                "value": "90"
+              },
+              {
+                "label": "Windows",
+                "value": "Project files",
+                "sensitive": true
+              },
+              {
+                "label": "Command line",
+                "value": "C:\\Windows\\Explorer.EXE",
+                "sensitive": true
+              },
+              {
+                "label": "Note",
+                "value": "Windows Explorer runs the taskbar and the desktop: it is restarted rather than ended."
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:2000:134364384600000000",
+          "rank": 1.6965
+        },
+        {
+          "id": "p:3400:134364439200000000",
+          "title": "Contoso Code",
+          "subtitle": "main.go - shop - Contoso Code",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.1%",
+              "meter": 0.0005,
+              "load": true
+            },
+            {
+              "text": "380 MB",
+              "meter": 0.0115966796875,
+              "load": true
+            }
+          ],
+          "subtitleSensitive": true,
+          "group": "Processes",
+          "score": 0.994,
+          "actions": [
+            {
+              "id": "switch",
+              "title": "Switch to Window",
+              "do": {
+                "kind": "Callback",
+                "target": "switch",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code",
+                  "hwnd": 870401
+                }
+              }
+            },
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "end-tree",
+              "title": "End Process Tree",
+              "shortcut": "Ctrl+Alt+X",
+              "style": "destructive",
+              "confirmMessage": "3 processes will be ended at once; unsaved work is lost.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-tree",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code",
+                  "tree": true
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Contoso Code\\code.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3400"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Program Files\\Contoso Code\\code.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "code.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3400,
+                    "created": 134364439200000000
+                  },
+                  "name": "Contoso Code"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22code.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "code.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.1%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "380 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "532 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "456 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "608 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3400"
+              },
+              {
+                "label": "Parent",
+                "value": "Windows Explorer (2000)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Program Files\\Contoso Code\\code.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:32 (28 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "1,200"
+              },
+              {
+                "label": "Threads",
+                "value": "40"
+              },
+              {
+                "label": "Windows",
+                "value": "main.go - shop - Contoso Code",
+                "sensitive": true
+              },
+              {
+                "label": "Command line",
+                "value": "Cannot be read (needs administrator rights)",
+                "sensitive": true
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3400:134364439200000000",
+          "rank": 1.6958
+        },
+        {
+          "id": "p:1100:134364384070000000",
+          "title": "Host Process for Windows Services",
+          "subtitle": "svchost.exe · PID 1100",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0.000375,
+              "load": true
+            },
+            {
+              "text": "22.0 MB",
+              "meter": 0.00067138671875,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 0.993,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. It hosts Windows services, which stop with it.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. It hosts Windows services, which stop with it.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Windows\\System32\\svchost.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "1100"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Windows\\System32\\svchost.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "svchost.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 1100,
+                    "created": 134364384070000000
+                  },
+                  "name": "Host Process for Windows Services"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22svchost.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "svchost.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "22.0 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "30.8 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "26.4 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "35.2 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "1100"
+              },
+              {
+                "label": "Parent",
+                "value": "services (900)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Windows\\System32\\svchost.exe"
+              },
+              {
+                "label": "User",
+                "value": "NT AUTHORITY\\SYSTEM (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 08:00 (1 hour ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "1,300"
+              },
+              {
+                "label": "Threads",
+                "value": "20"
+              },
+              {
+                "label": "Command line",
+                "value": "C:\\Windows\\system32\\svchost.exe -k DcomLaunch -p",
+                "sensitive": true
+              },
+              {
+                "label": "Note",
+                "value": "It hosts Windows services, which stop with it."
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:1100:134364384070000000",
+          "rank": 1.6951
+        },
+        {
+          "id": "p:3710:134364441000000000",
+          "title": "Tailspin CLI",
+          "subtitle": "tailspin-cli.exe · PID 3710",
+          "icon": {
+            "name": "app"
+          },
+          "accessories": [
+            {
+              "text": "CPU 0.0%",
+              "meter": 0.00025,
+              "load": true
+            },
+            {
+              "text": "25.0 MB",
+              "meter": 0.000762939453125,
+              "load": true
+            }
+          ],
+          "group": "Processes",
+          "score": 0.992,
+          "actions": [
+            {
+              "id": "show",
+              "title": "Show Processes",
+              "shortcut": "Ctrl+D",
+              "do": {
+                "kind": "Push",
+                "target": "group",
+                "payload": {
+                  "root": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  }
+                }
+              }
+            },
+            {
+              "id": "end-task",
+              "title": "End Task",
+              "shortcut": "Ctrl+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. It is a background task of golauncher; stop it in Background Tasks instead to keep its status.",
+              "do": {
+                "kind": "Callback",
+                "target": "end-task",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "force-end",
+              "title": "Force End",
+              "shortcut": "Ctrl+Shift+X",
+              "style": "destructive",
+              "confirmMessage": "The process will be ended at once; unsaved work is lost. It is a background task of golauncher; stop it in Background Tasks instead to keep its status.",
+              "do": {
+                "kind": "Callback",
+                "target": "force-end",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "reveal",
+              "title": "Show in File Explorer",
+              "shortcut": "Ctrl+Shift+F",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe",
+                "payload": {
+                  "reveal": true
+                }
+              }
+            },
+            {
+              "id": "copy-pid",
+              "title": "Copy PID",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "3710"
+              }
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy Path",
+              "shortcut": "Ctrl+Alt+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe"
+              }
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy Name",
+              "do": {
+                "kind": "CopyText",
+                "target": "tailspin-cli.exe"
+              }
+            },
+            {
+              "id": "copy-command-line",
+              "title": "Copy Command Line",
+              "do": {
+                "kind": "Callback",
+                "target": "copy-command-line",
+                "payload": {
+                  "id": {
+                    "pid": 3710,
+                    "created": 134364441000000000
+                  },
+                  "name": "Tailspin CLI"
+                }
+              }
+            },
+            {
+              "id": "search-online",
+              "title": "Search Online",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.google.com/search?q=%22tailspin-cli.exe%22"
+              }
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Executable",
+                "value": "tailspin-cli.exe"
+              },
+              {
+                "label": "CPU",
+                "value": "0.0%"
+              },
+              {
+                "label": "Memory (private working set)",
+                "value": "25.0 MB"
+              },
+              {
+                "label": "Working set",
+                "value": "35.0 MB"
+              },
+              {
+                "label": "Commit size",
+                "value": "30.0 MB"
+              },
+              {
+                "label": "Peak working set",
+                "value": "40.0 MB"
+              },
+              {
+                "label": "I/O",
+                "value": "0 B/s"
+              },
+              {
+                "label": "PID",
+                "value": "3710"
+              },
+              {
+                "label": "Parent",
+                "value": "golauncher (3700)"
+              },
+              {
+                "label": "Path",
+                "value": "C:\\Users\\demo\\scoop\\apps\\tailspin\\current\\tailspin-cli.exe"
+              },
+              {
+                "label": "User",
+                "value": "CONTOSO\\demo (not elevated)"
+              },
+              {
+                "label": "Started",
+                "value": "2026-10-14 09:35 (25 minutes ago)"
+              },
+              {
+                "label": "Handles",
+                "value": "90"
+              },
+              {
+                "label": "Threads",
+                "value": "5"
+              },
+              {
+                "label": "Command line",
+                "value": "tailspin-cli.exe update --all",
+                "sensitive": true
+              },
+              {
+                "label": "Note",
+                "value": "It is a background task of golauncher; stop it in Background Tasks instead to keep its status."
+              },
+              {
+                "label": "About CPU",
+                "value": "Share of all processors. Task Manager shows processor utility, which counts turbo speeds, so it can differ by a few percent."
+              }
+            ]
+          },
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/p:3710:134364441000000000",
+          "rank": 1.6944
+        }
+      ]
+    },
+    {
+      "title": "Terminal",
+      "items": [
+        {
+          "id": "profile:developer powershell for vs 2022",
+          "title": "Developer PowerShell for VS 2022",
+          "subtitle": "Windows Terminal profile · powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\"",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Developer PowerShell for VS 2022\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Developer PowerShell for VS 2022\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "powershell.exe -NoExit -Command \"&{Import-Module DevShell.dll}\""
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:developer powershell for vs 2022",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "title": "PowerShell",
+          "subtitle": "Windows Terminal profile",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "accessory": "Default",
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p PowerShell"
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p PowerShell",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "title": "Windows PowerShell",
+          "subtitle": "Windows Terminal profile · %SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p \"Windows PowerShell\""
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p \"Windows PowerShell\"",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "profile:{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+          "title": "命令提示符",
+          "subtitle": "Windows Terminal profile · %SystemRoot%\\System32\\cmd.exe",
+          "icon": {
+            "name": "terminal"
+          },
+          "keywords": [
+            "terminal",
+            "wt",
+            "windows terminal",
+            "shell",
+            "console",
+            "profile",
+            "终端",
+            "命令行"
+          ],
+          "group": "Terminal",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in New Window",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p 命令提示符"
+                }
+              }
+            },
+            {
+              "id": "new-tab",
+              "title": "Open in New Tab",
+              "shortcut": "Ctrl+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w 0 nt -p 命令提示符"
+                }
+              }
+            },
+            {
+              "id": "admin",
+              "title": "Open as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "style": "destructive",
+              "do": {
+                "kind": "Open",
+                "target": "wt.exe",
+                "payload": {
+                  "args": "-w new -p 命令提示符",
+                  "verb": "runas"
+                }
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy Command Line",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "%SystemRoot%\\System32\\cmd.exe"
+              }
+            }
+          ],
+          "plugin": "builtin.terminal",
+          "key": "builtin.terminal/profile:{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+          "rank": 0.33599999999999997
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "items": [
+        {
+          "id": "settings:powersleep",
+          "title": "Power & Sleep",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "电源和睡眠",
+            "dian yuan he shui mian",
+            "power",
+            "sleep",
+            "screen timeout",
+            "power plan",
+            "battery",
+            "电源",
+            "睡眠",
+            "休眠",
+            "息屏"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:powersleep"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:powersleep"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:powersleep",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "settings:printers",
+          "title": "Printers & Scanners",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "打印机和扫描仪",
+            "da yin ji he sao miao yi",
+            "printer",
+            "scanner",
+            "print",
+            "打印机",
+            "扫描仪",
+            "打印"
+          ],
+          "accessory": "Bluetooth & devices",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:printers"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:printers"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:printers",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "settings:privacy",
+          "title": "Privacy & Security",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "隐私和安全性",
+            "yin si he an quan xing",
+            "privacy",
+            "security",
+            "permissions",
+            "隐私",
+            "安全",
+            "权限"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy",
+          "rank": 0.5599999999999999
+        },
+        {
+          "id": "settings:regionlanguage-chsime-pinyin",
+          "title": "Microsoft Pinyin",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "微软拼音",
+            "wei ruan pin yin",
+            "pinyin",
+            "chinese ime",
+            "拼音",
+            "微软拼音输入法",
+            "中文输入法"
+          ],
+          "accessory": "Time & language",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:regionlanguage-chsime-pinyin"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:regionlanguage-chsime-pinyin"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:regionlanguage-chsime-pinyin",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:mousetouchpad",
+          "title": "Mouse",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "鼠标",
+            "shu biao",
+            "pointer speed",
+            "scroll",
+            "primary button",
+            "鼠标速度",
+            "滚轮"
+          ],
+          "accessory": "Bluetooth & devices",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:mousetouchpad"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:mousetouchpad"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:mousetouchpad",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:easeofaccess-mouse",
+          "title": "Mouse Keys",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "鼠标键",
+            "shu biao jian",
+            "mouse keys",
+            "numeric keypad mouse",
+            "数字键盘控制鼠标"
+          ],
+          "accessory": "Accessibility",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:easeofaccess-mouse"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:easeofaccess-mouse"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:easeofaccess-mouse",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "tool:ncpa",
+          "title": "Network Connections",
+          "subtitle": "ncpa.cpl",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "network adapters",
+            "ncpa",
+            "网络连接",
+            "网络适配器",
+            "更改适配器设置",
+            "wang luo lian jie"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl"
+                }
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "control.exe",
+                "payload": {
+                  "args": "ncpa.cpl",
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:ncpa",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:network-proxy",
+          "title": "Proxy",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "代理",
+            "dai li",
+            "proxy server",
+            "pac",
+            "代理服务器"
+          ],
+          "accessory": "Network & internet",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:network-proxy"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:network-proxy"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:network-proxy",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:keyboard",
+          "title": "Typing Languages & Keyboards",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "键盘",
+            "jian pan",
+            "keyboard",
+            "input method",
+            "switch input",
+            "advanced keyboard settings",
+            "输入法",
+            "切换输入法",
+            "高级键盘设置"
+          ],
+          "accessory": "Time & language",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:keyboard"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:keyboard"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:keyboard",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "settings:appsforwebsites",
+          "title": "Apps for Websites",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "用于网站的应用",
+            "yong yu wang zhan de ying yong",
+            "web links",
+            "网站链接"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:appsforwebsites"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:appsforwebsites"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:appsforwebsites",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:defaultapps",
+          "title": "Default Apps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "默认应用",
+            "mo ren ying yong",
+            "default browser",
+            "file associations",
+            "open with",
+            "默认浏览器",
+            "打开方式",
+            "文件关联"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:defaultapps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:defaultapps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:defaultapps",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:appsfeatures",
+          "title": "Installed Apps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "安装的应用",
+            "an zhuang de ying yong",
+            "apps & features",
+            "uninstall",
+            "programs",
+            "remove app",
+            "应用和功能",
+            "卸载",
+            "卸载程序",
+            "程序"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:appsfeatures"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:appsfeatures"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:appsfeatures",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "tool:lusrmgr",
+          "title": "Local Users and Groups",
+          "subtitle": "lusrmgr.msc",
+          "icon": {
+            "name": "wrench"
+          },
+          "keywords": [
+            "users",
+            "groups",
+            "lusrmgr",
+            "本地用户和组",
+            "ben di yong hu he zu"
+          ],
+          "accessory": "Windows Tools",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "lusrmgr.msc"
+              }
+            },
+            {
+              "id": "runas",
+              "title": "Run as Administrator",
+              "shortcut": "Ctrl+Shift+Enter",
+              "do": {
+                "kind": "Open",
+                "target": "lusrmgr.msc",
+                "payload": {
+                  "verb": "runas"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/tool:lusrmgr",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:maps",
+          "title": "Offline Maps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "离线地图",
+            "li xian di tu",
+            "maps",
+            "地图"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:maps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:maps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:maps",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:privacy-graphicscaptureprogrammatic",
+          "title": "Screenshots and Apps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "屏幕截图和应用",
+            "ping mu jie tu he ying yong",
+            "screen capture",
+            "screenshot permission",
+            "截屏权限"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-graphicscaptureprogrammatic"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-graphicscaptureprogrammatic",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:startupapps",
+          "title": "Startup Apps",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "启动应用",
+            "qi dong ying yong",
+            "startup",
+            "autostart",
+            "run at login",
+            "开机启动",
+            "自启动",
+            "启动项"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:startupapps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:startupapps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:startupapps",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "settings:advanced-apps",
+          "title": "Advanced App Settings",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "高级应用设置",
+            "gao ji ying yong she zhi",
+            "app execution aliases",
+            "choose where to get apps",
+            "应用执行别名",
+            "获取应用的位置"
+          ],
+          "accessory": "Apps",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:advanced-apps"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:advanced-apps"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:advanced-apps",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:deviceusage",
+          "title": "Device Usage",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "设备使用情况",
+            "she bei shi yong qing kuang",
+            "usage",
+            "personalized tips",
+            "使用情况"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:deviceusage"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:deviceusage"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:deviceusage",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:emailandaccounts",
+          "title": "Email & Accounts",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "电子邮件和账户",
+            "dian zi you jian he zhang hu",
+            "email",
+            "accounts used by other apps",
+            "邮箱",
+            "邮件账户"
+          ],
+          "accessory": "Accounts",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:emailandaccounts"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:emailandaccounts"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:emailandaccounts",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:privacy-location",
+          "title": "Location",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "位置",
+            "wei zhi",
+            "gps",
+            "location services",
+            "定位",
+            "位置服务"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-location"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-location"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-location",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:multitasking",
+          "title": "Multitasking",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "多任务处理",
+            "duo ren wu chu li",
+            "snap",
+            "alt tab",
+            "virtual desktops",
+            "窗口贴靠",
+            "分屏",
+            "多任务",
+            "虚拟桌面"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:multitasking"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:multitasking"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:multitasking",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "settings:storagerecommendations",
+          "title": "Cleanup Recommendations",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "清理建议",
+            "qing li jian yi",
+            "clean up",
+            "free up space",
+            "清理",
+            "释放空间"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:storagerecommendations"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:storagerecommendations"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:storagerecommendations",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "settings:signinoptions",
+          "title": "Sign-in Options",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "登录选项",
+            "deng lu xuan xiang",
+            "password",
+            "pin",
+            "windows hello",
+            "login",
+            "登录",
+            "密码",
+            "修改密码"
+          ],
+          "accessory": "Accounts",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:signinoptions"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:signinoptions"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:signinoptions",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "settings:personalization",
+          "title": "Personalization",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "个性化",
+            "ge xing hua",
+            "customize",
+            "appearance",
+            "外观",
+            "自定义"
+          ],
+          "accessory": "Personalization",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:personalization"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:personalization"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:personalization",
+          "rank": 0.3325
+        },
+        {
+          "id": "settings:windowsupdate-options",
+          "title": "Advanced Update Options",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "更新高级选项",
+            "geng xin gao ji xuan xiang",
+            "pause updates",
+            "metered connection updates",
+            "暂停更新",
+            "更新选项"
+          ],
+          "accessory": "Windows Update",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:windowsupdate-options"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:windowsupdate-options"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:windowsupdate-options",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:display-advancedgraphics",
+          "title": "Graphics",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "图形设置",
+            "tu xing she zhi",
+            "gpu",
+            "graphics card",
+            "hardware accelerated gpu scheduling",
+            "显卡",
+            "独显"
+          ],
+          "accessory": "System",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:display-advancedgraphics"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:display-advancedgraphics"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:display-advancedgraphics",
+          "rank": 0.31587499999999996
+        },
+        {
+          "id": "settings:privacy-accountinfo",
+          "title": "Account Info Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "账户信息权限",
+            "zhang hu xin xi quan xian",
+            "account info access",
+            "账户访问"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-accountinfo"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-accountinfo"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-accountinfo",
+          "rank": 0.30916666666666665
+        },
+        {
+          "id": "settings:privacy-calendar",
+          "title": "Calendar Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "日历权限",
+            "ri li quan xian",
+            "calendar",
+            "日历"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-calendar"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-calendar"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-calendar",
+          "rank": 0.30916666666666665
+        },
+        {
+          "id": "settings:privacy-callhistory",
+          "title": "Call History Permissions",
+          "icon": {
+            "name": "settings"
+          },
+          "keywords": [
+            "通话记录权限",
+            "tong hua ji lu quan xian",
+            "call history",
+            "通话记录"
+          ],
+          "accessory": "Privacy & security",
+          "group": "Settings",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "do": {
+                "kind": "Open",
+                "target": "ms-settings:privacy-callhistory"
+              }
+            },
+            {
+              "id": "copy-uri",
+              "title": "Copy URI",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "ms-settings:privacy-callhistory"
+              }
+            }
+          ],
+          "plugin": "builtin.system",
+          "key": "builtin.system/settings:privacy-callhistory",
+          "rank": 0.30916666666666665
+        }
+      ]
+    },
+    {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:hung",
+          "title": "End Apps Not Responding",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit",
+            "未响应",
+            "卡死",
+            "wxy"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "cmd:installed",
+          "title": "Installed Scoop Apps",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "scoop",
+            "uninstall"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "installed"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:installed",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "cmd:update-all",
+          "title": "Update All Scoop Apps",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "package"
+          },
+          "keywords": [
+            "scoop",
+            "upgrade"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "update-all"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:update-all",
+          "rank": 0.48999999999999994
+        },
+        {
+          "id": "cmd:tracert",
+          "title": "Trace Route",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "network"
+          },
+          "keywords": [
+            "tracert",
+            "traceroute",
+            "route",
+            "hops",
+            "路由"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "tracert"
+              }
+            }
+          ],
+          "arguments": [
+            {
+              "name": "host",
+              "type": "text",
+              "placeholder": "Host or IP",
+              "required": true
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:tracert",
+          "rank": 0.4654999999999999
+        },
+        {
+          "id": "cmd:cleanup",
+          "title": "Clean Up Scoop",
+          "subtitle": "Scoop",
+          "icon": {
+            "name": "trash"
+          },
+          "keywords": [
+            "scoop",
+            "cache"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "cleanup"
+              }
+            }
+          ],
+          "plugin": "builtin.scoop",
+          "key": "builtin.scoop/cmd:cleanup",
+          "rank": 0.3558333333333333
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "cmd:history",
+          "title": "Search Clipboard History",
+          "subtitle": "Clipboard History",
+          "icon": {
+            "name": "clipboard"
+          },
+          "keywords": [
+            "clip",
+            "paste",
+            "history"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.clipboard",
+          "key": "builtin.clipboard/cmd:history",
+          "rank": 0.33804166666666663
+        },
+        {
+          "id": "cmd:open-folder",
+          "title": "Open Scripts Folder",
+          "subtitle": "Script Commands",
+          "icon": {
+            "name": "folder"
+          },
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "RunCommand",
+                "target": "open-folder"
+              }
+            }
+          ],
+          "plugin": "builtin.scripts",
+          "key": "builtin.scripts/cmd:open-folder",
+          "rank": 0.3185
+        }
+      ]
+    }
+  ]
+}

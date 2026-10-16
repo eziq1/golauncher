@@ -3,6 +3,110 @@
   "elapsedMs": 0,
   "sections": [
     {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:hung",
+          "title": "End Apps Not Responding",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit",
+            "未响应",
+            "卡死",
+            "wxy"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung",
+          "rank": 0.6206666666666666
+        },
+        {
+          "id": "cmd:wifi",
+          "title": "Saved Wi-Fi Networks",
+          "subtitle": "Network Tools",
+          "icon": {
+            "name": "wifi"
+          },
+          "keywords": [
+            "wifi",
+            "wi-fi",
+            "wireless",
+            "password",
+            "wlan",
+            "无线",
+            "密码"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "wifi"
+              }
+            }
+          ],
+          "plugin": "builtin.network",
+          "key": "builtin.network/cmd:wifi",
+          "rank": 0.5319999999999999
+        },
+        {
+          "id": "cmd:restart-explorer",
+          "title": "Restart Windows Explorer",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "rotate-cw"
+          },
+          "keywords": [
+            "explorer",
+            "restart explorer",
+            "taskbar",
+            "start menu",
+            "任务栏",
+            "资源管理器",
+            "cqzyglq",
+            "zyglq"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "restart-explorer"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:restart-explorer",
+          "rank": 0.2405
+        }
+      ]
+    },
+    {
       "title": "Applications",
       "items": [
         {
@@ -588,43 +692,6 @@
           ],
           "plugin": "builtin.system",
           "key": "builtin.system/settings:windowsupdate",
-          "rank": 0.5319999999999999
-        }
-      ]
-    },
-    {
-      "title": "Commands",
-      "items": [
-        {
-          "id": "cmd:wifi",
-          "title": "Saved Wi-Fi Networks",
-          "subtitle": "Network Tools",
-          "icon": {
-            "name": "wifi"
-          },
-          "keywords": [
-            "wifi",
-            "wi-fi",
-            "wireless",
-            "password",
-            "wlan",
-            "无线",
-            "密码"
-          ],
-          "accessory": "Command",
-          "group": "Commands",
-          "actions": [
-            {
-              "id": "run",
-              "title": "Open Command",
-              "do": {
-                "kind": "Push",
-                "target": "wifi"
-              }
-            }
-          ],
-          "plugin": "builtin.network",
-          "key": "builtin.network/cmd:wifi",
           "rank": 0.5319999999999999
         }
       ]

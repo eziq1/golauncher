@@ -235,6 +235,38 @@
           "key": "builtin.network/cmd:dns"
         },
         {
+          "id": "cmd:hung",
+          "title": "End Apps Not Responding",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "circle-stop"
+          },
+          "keywords": [
+            "not responding",
+            "hung",
+            "frozen",
+            "kill",
+            "force quit",
+            "未响应",
+            "卡死",
+            "wxy"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "hung"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:hung"
+        },
+        {
           "id": "cmd:flush-dns",
           "title": "Flush DNS Cache",
           "subtitle": "Network Tools",
@@ -393,6 +425,41 @@
           "key": "builtin.network/cmd:port"
         },
         {
+          "id": "cmd:processes",
+          "title": "Processes",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "activity"
+          },
+          "keywords": [
+            "process",
+            "processes",
+            "task manager",
+            "cpu",
+            "memory",
+            "end task",
+            "kill",
+            "进程",
+            "任务管理器",
+            "rwglq",
+            "jc"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "processes"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:processes"
+        },
+        {
           "id": "cmd:reload",
           "title": "Reload Applications",
           "subtitle": "Applications",
@@ -443,6 +510,39 @@
           ],
           "plugin": "builtin.network",
           "key": "builtin.network/cmd:renew-ip"
+        },
+        {
+          "id": "cmd:restart-explorer",
+          "title": "Restart Windows Explorer",
+          "subtitle": "Processes",
+          "icon": {
+            "name": "rotate-cw"
+          },
+          "keywords": [
+            "explorer",
+            "restart explorer",
+            "taskbar",
+            "start menu",
+            "任务栏",
+            "资源管理器",
+            "cqzyglq",
+            "zyglq"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "style": "destructive",
+              "do": {
+                "kind": "RunCommand",
+                "target": "restart-explorer"
+              }
+            }
+          ],
+          "plugin": "builtin.processes",
+          "key": "builtin.processes/cmd:restart-explorer"
         },
         {
           "id": "cmd:wifi",

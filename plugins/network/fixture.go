@@ -74,6 +74,8 @@ type fixProcess struct {
 	PID  uint32 `json:"pid"`
 	Name string `json:"name"`
 	Path string `json:"path"`
+	// Created is the creation time (FILETIME); 0 when unknown.
+	Created int64 `json:"created"`
 }
 
 // FixtureBackend is a backend answering from a Fixture.
@@ -237,13 +239,23 @@ func (b *FixtureBackend) Sockets(context.Context) ([]winnet.Socket, error) {
 func (b *FixtureBackend) Process(pid uint32) winnet.Process {
 	for _, p := range b.F.Processes {
 		if p.PID == pid {
-			return winnet.Process{PID: pid, Name: p.Name, Path: p.Path}
+			return winnet.Process{PID: pid, Name: p.Name, Path: p.Path, Created: p.Created}
 		}
 	}
 	return winnet.Process{PID: pid}
 }
 
-func (b *FixtureBackend) Kill(pid uint32) error {
+// Kill records pid as ended. It returns winnet.ErrNotFound, and records
+// nothing, when created and the fixture process's creation time are both
+// known and differ (the PID now belongs to another process).
+func (b *FixtureBackend) Kill(pid uint32, created int64) error {
+	if created != 0 {
+		for _, p := range b.F.Processes {
+			if p.PID == pid && p.Created != 0 && p.Created != created {
+				return winnet.ErrNotFound
+			}
+		}
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.killed = append(b.killed, pid)

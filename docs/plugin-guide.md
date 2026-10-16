@@ -19,6 +19,12 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
 | [`timer`](../plugins/timer/) | keep state in `Storage`, run a scheduler on `Host.Go`, notify with `Host.Toast` |
 | [`quicklinks`](../plugins/quicklinks/) | offer fallback items, take keyword-prefixed text, create and edit data with forms, fetch in the background with debouncing and cancellation |
+| [`processes`](../plugins/processes/) | sample only while shown (one loop for the root search and every open view), put system calls behind a `Backend` with a fixture and a dry-run variant, show values with bars (`Accessories`), keep sensitive parts from AI, need a space after a prefix (`Query.Raw`) |
+
+A prefix that must be followed by a space (`ps ` but not `ps`, which finds
+PowerShell) cannot be told apart in `Query.Text`, which the host trims:
+read `Query.Raw`, the root search text as typed (empty outside the root
+search, so fall back to `Text`).
 
 ## The model
 
@@ -131,6 +137,11 @@ Commands declared in the manifest appear in the root search under
 - Also set `EndsSession: true` on destructive actions that end the Windows
   session (shut down, restart, sign out): the confirmation then says how
   many background tasks would be interrupted.
+- `ConfirmMessage` replaces the confirmation's default text ("This cannot
+  be undone.") with what the action will do, e.g. `l.N("end.confirm", n)`
+  for "12 processes will be ended.". It is a user-visible string, so it
+  comes from your catalog. It is also shown when an AI asks to run the
+  action, destructive or not. `EndsSession`'s own message takes precedence.
 
 ### Preferences
 
@@ -251,6 +262,30 @@ is opened. Push a complete new `View` for it with
 Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
 stay simple, testable and deterministic.
 
+### Values at the right edge: Accessories
+
+`Item.Accessory` is one short text at the right edge of a row ("Application").
+For values, such as a process's CPU and memory use, add `Item.Accessories`
+after it, each a text with an optional small bar:
+
+```go
+cpu := 0.032 // a fraction in [0, 1]
+plugin.Item{ID: "pid:4242", Title: "worker.exe", Accessories: []plugin.Accessory{
+	{Text: l.T("cpu", "value", "3.2%"), Meter: &cpu, Load: true},
+	{Text: "1.2 GB"},
+}}
+```
+
+- `Meter` (nil for none) draws the bar, `0` empty to `1` full; the host
+  clamps other values.
+- `Load: true` colors it as a load, in the theme's colors: warning from 0.5,
+  danger from 0.8. Without it the bar has the success color, as a progress.
+- The host gives each value a fixed width with the text right-aligned, so
+  values that change every second (a view refreshed with `Invalidate`) do not
+  move the row. Keep the texts short: about seven characters.
+- `glctl` shows the texts after the accessory, `(Process · CPU 3.2% · 1.2 GB)`;
+  AI sees them joined the same way as the item's info.
+
 ### Acting on the search text: fallbacks and Tab
 
 Two optional interfaces let a plugin act on whatever the user typed (the
@@ -318,6 +353,13 @@ it can only act on what your plugin actually returned.
   AI (the clipboard history marks clips copied from password managers). The
   user still sees them; AI never does, even when the user lets AI use your
   plugin.
+- **`Item.SubtitleSensitive`** and **`Metadata.Sensitive`**: for an item AI
+  may see but with a part it may not — a window title naming a document,
+  a command line that may hold a password. AI gets the item without that
+  subtitle or detail row, and a search does not find the item by its
+  sensitive subtitle. The user sees everything.
+- **`Action.ConfirmMessage`** is shown in the confirmation AI asks for, so
+  say there what the action will do ("3 processes will be ended.").
 - **Exposure**: the user decides which plugins AI may use (Settings ›
   Plugins › AI). Built-in plugins are on by default except the clipboard
   history; plugins in their own process (third-party) are off until the user

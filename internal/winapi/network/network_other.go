@@ -33,4 +33,4 @@ func Sockets() ([]Socket, error) { return nil, errors.ErrUnsupported }
 func ProcessInfo(pid uint32) Process { return Process{PID: pid} }
 
 // Kill is only supported on Windows.
-func Kill(pid uint32) error { return errors.ErrUnsupported }
+func Kill(pid uint32, created int64) error { return errors.ErrUnsupported }

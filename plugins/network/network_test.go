@@ -439,6 +439,47 @@ func TestWiFi(t *testing.T) {
 	}
 }
 
+// protectedBackend refuses to end any process, as for a critical system
+// process.
+type protectedBackend struct{ *FixtureBackend }
+
+func (protectedBackend) Kill(uint32, int64) error { return winnet.ErrProtected }
+
+// TestKillChecksCreationTime ends a process by PID and creation time: a
+// payload whose creation time no longer matches ends nothing.
+func TestKillChecksCreationTime(t *testing.T) {
+	b := &FixtureBackend{F: Fixture{
+		Sockets:   []fixSocket{{Proto: "tcp", Local: netip.MustParseAddrPort("127.0.0.1:3000"), PID: 7070}},
+		Processes: []fixProcess{{PID: 7070, Name: "fabrikam.exe", Path: `C:\Program Files\Fabrikam\fabrikam.exe`, Created: 133700000000000000}},
+	}}
+	p, _ := newPlugin(t, Options{Backend: b})
+	items := root(t, p, "port 3000")
+	if len(items) != 1 {
+		t.Fatalf("items = %+v", items)
+	}
+	kill := action(t, items[0], "kill")
+	var pl killPayload
+	if err := json.Unmarshal(kill.Do.Payload, &pl); err != nil || pl.Created != 133700000000000000 {
+		t.Fatalf("payload = %s (%v)", kill.Do.Payload, err)
+	}
+	// The PID now belongs to a process created later: nothing is ended.
+	stale := callback("kill", "", cbKill, killPayload{PID: 7070, Name: "fabrikam.exe", Created: 133600000000000000}, "")
+	r, err := p.HandleAction(t.Context(), stale.Do)
+	if err != nil || r.Toast == nil || r.Toast.Style != plugin.ToastFailure || r.Toast.Title != "fabrikam.exe is no longer running" || len(b.Killed()) != 0 {
+		t.Errorf("stale: %+v %v %v", r.Toast, err, b.Killed())
+	}
+	r, err = p.HandleAction(t.Context(), kill.Do)
+	if err != nil || r.Toast.Title != "Ended fabrikam.exe (PID 7070)" || !slices.Equal(b.Killed(), []uint32{7070}) {
+		t.Errorf("kill: %+v %v %v", r.Toast, err, b.Killed())
+	}
+
+	pp, _ := newPlugin(t, Options{Backend: protectedBackend{b}})
+	r, _ = pp.HandleAction(t.Context(), kill.Do)
+	if r.Toast == nil || r.Toast.Style != plugin.ToastFailure || r.Toast.Title != "fabrikam.exe is a protected system process and cannot be ended." {
+		t.Errorf("protected: %+v", r.Toast)
+	}
+}
+
 func TestLocalPortFromFixture(t *testing.T) {
 	b := fixture(t)
 	p, _ := newPlugin(t, Options{Backend: b})

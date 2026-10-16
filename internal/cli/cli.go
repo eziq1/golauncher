@@ -408,8 +408,8 @@ func writeSections(w io.Writer, sections []core.Section, selected int) {
 			if it.Subtitle != "" {
 				line += " — " + it.Subtitle
 			}
-			if it.Accessory != "" {
-				line += "  (" + it.Accessory + ")"
+			if acc := accessories(it.Item); acc != "" {
+				line += "  (" + acc + ")"
 			}
 			var acts []string
 			for _, a := range it.Actions {
@@ -422,6 +422,21 @@ func writeSections(w io.Writer, sections []core.Section, selected int) {
 	if i == 0 {
 		fmt.Fprintln(w, "(no results)")
 	}
+}
+
+// accessories joins an item's Accessory and the texts of its Accessories,
+// e.g. "CPU 3.2% · 1.2 GB".
+func accessories(it plugin.Item) string {
+	var parts []string
+	if it.Accessory != "" {
+		parts = append(parts, it.Accessory)
+	}
+	for _, a := range it.Accessories {
+		if a.Text != "" {
+			parts = append(parts, a.Text)
+		}
+	}
+	return strings.Join(parts, " · ")
 }
 
 func cmpShortcut(s string) string {

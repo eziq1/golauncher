@@ -291,7 +291,7 @@ func (p *Proxy) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, e
 		return nil, nil
 	}
 	var items []plugin.Item
-	err := p.call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: q.Text, Context: q.Context}, &items)
+	err := p.call(ctx, protocol.MethodRootItems, protocol.RootItemsParams{Query: q.Text, Raw: q.Raw, Context: q.Context}, &items)
 	return items, err
 }
 

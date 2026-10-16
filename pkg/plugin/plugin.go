@@ -90,6 +90,10 @@ type TabProvider interface {
 // Query is the search text typed by the user.
 type Query struct {
 	Text string `json:"text"`
+	// Raw is the text as typed, with its leading and trailing spaces (Text
+	// is trimmed), for a prefix that needs a space after it ("ps "). It is
+	// set in the root search only.
+	Raw string `json:"raw,omitempty"`
 	// Context is what the user was doing when the launcher opened (root
 	// search only; nil when unknown or turned off). See ContextProvider.
 	Context *Context `json:"context,omitempty"`

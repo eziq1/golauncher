@@ -1,6 +1,6 @@
 # 进程管理插件设计方案
 
-> 状态：设计 v1（待 review）· 2026-10-16 · 对应需求 R52（见 [requirements.md](requirements.md)）
+> 状态：设计 v1 · 已确认（§14）· 第一期已实现（待合并，实现记录见 §15）· 2026-10-16 · 对应需求 R52、R55（见 [requirements.md](requirements.md)）
 >
 > 需求：增加进程管理插件：① 搜索进程；② 结束进程；③ 查看各进程的资源占用。其他功能自行设计。
 >
@@ -447,3 +447,63 @@ func Wait(ctx context.Context, ids []ID) (exited []ID)
 6. **CPU 和内存条形图放在第一期**。
 7. **在网上搜索进程用 Google**。
 8. **每秒刷新，CPU% 按任务管理器的算法**，同意。
+## 15. 实现记录（第一期，2026-10-16，R52 / R55）
+
+### 15.1 做了什么
+
+| 位置 | 内容 |
+|------|------|
+| `internal/winapi/process`（新） | `process.go`（纯 Go）：`ID`、`Proc`、`Snapshot`、`Info`、`Window`；`Rates`（总量归一 / 按核、计数回退按 0、两次采样之间新启动的进程按启动时间判断）、`SystemCPU`、`MemoryUsed`；`GroupRoots`（打包应用按包名，其他按"同一路径的父进程链"）、`Tree`（根在前、逐层）、`ParentOf`（父进程启动时间晚于子进程时不算父进程）；`Classify`；`RedactCommandLine`；提权助手的参数 `HelperRequest.Args` / `ParseHelperArgs`（严格：只接受 `kill --pid N --created N [--tree]`，PID 必须大于 4，纯十进制，不能重复、不能有多余参数）和退出码。`process_windows.go`：`Sampler.Snapshot`（`NtQuerySystemInformation`，缓冲区复用）、`ReadInfo`、`CommandLine`、`Windows`（`EnumWindows` + `IsHungAppWindow`，UWP 取 `CoreWindow` 的进程，标题用 `InternalGetWindowText`，不发消息）、`Identify`、`Kill`、`KillTree`、`CloseWindows`（`PostMessage(WM_CLOSE)`）、`Wait`、`SwitchTo`、`RunElevated`（`ShellExecuteExW` + `runas`）、`IsElevated`、`StartExplorer`、`HelperMain` |
+| `internal/winapi/shell` | 导出 `FileDescription`，和应用插件共用读版本信息的代码 |
+| `internal/winapi/network`、`plugins/network` | `ProcessInfo` 和 `Kill` 改为调用 `process`，删掉 Toolhelp 代码；`killPayload` 带 `created`（`omitzero`，旧 golden 不变）；旧数据没有 `created` 时仍按进程名核对；受保护的进程有单独的提示 |
+| `plugins/processes`（新） | `processes.go`（manifest、前缀、根搜索、视图入口、动作分发）、`sampler.go`（唯一的采样循环、使用者计数、隐藏 30 秒后释放缓存）、`model.go`（分组、分节、排序防抖动、搜索和拼音）、`items.go`（条目、条形图、详情、动作、确认文字、三个视图）、`actions.go`（结束任务、强制结束、结束进程树、提权结束、切换窗口、复制命令行、结束所有未响应的应用、重启资源管理器、前台应用条目）、`backend.go`（`System`、`DryRun`、`Fixture`）、中英文目录 |
+| `pkg/plugin` | `Item.Accessories`（`Accessory{Text, Meter, Load}`）、`Item.SubtitleSensitive`、`Metadata.Sensitive`、`Action.ConfirmMessage`、`Query.Raw`；外部插件协议的 `rootItems` 带 `raw`，其余字段随原有 JSON 传递 |
+| `internal/ui` | 列表行在附注后面画 `Accessories`：`mui.Meter`（固定 40 px，`Load` 时 50% / 80% 变成主题的警告色 / 危险色，否则主题的成功色）加固定最小宽度、右对齐的文字，每秒刷新不跳动；颜色全部来自主题 |
+| `internal/core`、`internal/agent` | 确认框和 AI 的外部确认框显示 `ConfirmMessage`；工具层去掉 `SubtitleSensitive` 的副标题和 `Sensitive` 的详情行，也不按敏感副标题匹配；`info` 带上 `Accessories` 的文字 |
+| `internal/shell` | `golauncher kill …` 隐藏子命令，在单实例检查之前处理，用退出码报告结果 |
+| `internal/cli` | `glctl --real` 不带 `--exec` 时用 `DryRun`（读真实进程，不结束任何进程）；文本输出带上 `Accessories` |
+| `plugins/quicklinks/engines.go` | `reservedPrefixes` 加 `ps`、`kill`、`进程` |
+| `testdata/fixtures/processes.json` | 36 个虚构进程（Contoso Writer、Fabrikam Browser ×8、Northwind Sync、Contoso Code + 两个 node、未响应的 Litware Paint、中文名的"南风笔记"、golauncher 自己和它的后台任务、需要管理员权限的 Tailspin Admin Tool、系统服务、关键系统进程、放在下载目录里的假 `lsass.exe`、父进程已退出 / PID 被复用的进程），带两次采样的计数 |
+
+### 15.2 和设计不同的地方
+
+1. **`ps` 必须带空格，需要宿主配合**：宿主在调用 `RootItems` 之前会去掉首尾空格，插件分不出 `ps` 和 `ps `。SDK 增加 `Query.Raw`（根搜索里未裁剪的原文），插件优先看它。只输入 `ps` 时插件不返回任何条目（§1.1 说返回一条"进程"命令条目，但"进程"命令本身已经由宿主匹配，再返回一条是重复的）。
+2. **`ps` 前缀下按 Enter**：和进程视图一致（§14 第 3 条）——有窗口切换到窗口，没有窗口打开这个应用的进程列表（组视图，带详情），而不是"打开进程视图并选中"（SDK 没有"推入视图并选中某项"的办法）。
+3. **没有窗口或未响应时的"结束任务"仍然确认**：§14 第 2 条说正常结束不需要确认，指的是请应用自己关闭（`WM_CLOSE`）。没有窗口可关、或者窗口未响应时，"结束任务"等于立即 `TerminateProcess`，所以按强制结束处理，要确认。见 §15.5 第 1 条。
+4. **AI 的风险等级**：有窗口时的"结束任务"不再是"破坏性"，而是普通回调（"改动"：每次询问，但可以"本次会话内都允许"），和用户这边不确认保持一致；强制结束、结束进程树、重启资源管理器、结束所有未响应的应用仍是"破坏性"。见 §15.5 第 2 条。
+5. **窗口标题**：§14 第 4 条要求对 AI 隐藏。为了列表里仍然显示窗口标题（区分多个窗口），SDK 除了设计里的 `Metadata.Sensitive` 之外，又加了 `Item.SubtitleSensitive`。限制：AI 用窗口标题里的词搜索时，插件仍会返回那个进程（不带标题），所以 AI 能推断"某个进程有一个标题含这个词的窗口"。见 §15.5 第 3 条。
+6. **`Accessory` 没有 `Tint`**：改成 `Load bool`（按负载变色）。进度类的条用主题的成功色。
+7. **图标**：没有新增 `cpu`、`process`、`stop` 图标，用已有的 `activity`、`circle-stop`、`rotate-cw`、`alert`；进程自己的图标在后台画进 `CacheDir/icons`（按路径哈希命名），画好后 `Invalidate`。
+8. **提权助手**只有 `--pid`、`--created`、`--tree` 三个参数，总是 `TerminateProcess`（没有 `--force`）。助手里 `Kill` 照样做分类（关键进程、PID 0/4、助手自己）和启动时间核对；`KillTree` 遇到受保护的根就停，不会去结束它的子孙（比如 `services.exe` 下面的服务）。"以管理员身份结束"本身不是破坏性动作：UAC 就是确认。
+9. **命令行**：在生成详情时读取（每个进程读一次，按 (PID, 启动时间) 缓存），而不是"打开详情面板时"——SDK 的详情是随条目一起给出的。
+10. **分节规则**：路径在 `%SystemRoot%` 下、系统账户运行、会话 0、或者打不开也读不到路径的进程归入"Windows 进程"；有窗口的、以及拥有任务栏的 `explorer.exe` 归入"应用"。golauncher 自己、资源管理器和 golauncher 的后台任务总是单独一行，不并入别的组。
+11. **fixture 的计数**：第 k 次采样按前两次的增量外推，所以在测试里多次刷新时 CPU% 保持不变。
+12. `glctl --real --exec` 时提权结束会以 `glctl.exe kill …` 运行，而 glctl 没有这个子命令：提权只在 golauncher 里可用。
+
+### 15.3 测试
+
+- `internal/winapi/process`：纯 Go 的计算、分组、进程树、分类（`System32\lsass.exe` 和别处的 `lsass.exe`）、命令行脱敏、助手参数（缺参数、PID 0/4、非数字、十六进制、重复、多余参数、溢出）、退出码；手工构造的 `SYSTEM_PROCESS_INFORMATION` 缓冲区解析。结束类测试**只碰测试自己启动的进程**：`PING.EXE`（错误的启动时间返回 `ErrGone` 且进程还活着，正确的结束成功）、`cmd /c ping` 的进程树、`Wait`、`HelperMain`、测试自己创建的隐藏窗口收到 `WM_CLOSE`；PID 0、4 和自己被拒绝；对自己做 `KillTree` 时，它的子进程（测试启动的 ping）不被结束。不调用 `RunElevated`，不弹 UAC。真机只读测试（快照里有自己和 PID 4、窗口枚举、计时）要设置 `GOLAUNCHER_PROCESS_TESTS=1`，日志里只有数量和耗时。
+- `plugins/processes`（fixture 后端）：前缀（`ps` 必须带空格、`进程fab`、`kill`、自定义和清空前缀，不带前缀不采样）；搜索（名称、exe、窗口标题、拼音全拼和首字母、PID 精确优先）；条形图（总量归一和按核）；三个分节、隐藏 Windows 进程、不分组；组视图的树和缩进；每类进程的动作和确认规则（关键进程、golauncher 自己、内核没有结束操作；资源管理器只有重启；有窗口的结束任务不确认、没窗口或未响应的要确认；强制结束和结束进程树确认，确认文字写明数量和后果）；结束任务的成功、超时后提示强制结束（同步和异步两种）；强制结束一组；结束进程树；PID 复用；伪造的动作也结束不了关键进程；需要管理员权限 → 出现"以管理员身份结束" → 提权参数正确；未响应视图；重启资源管理器；隐私（窗口标题和命令行标为敏感、命令行脱敏、复制命令行用 `WriteSecret` 且不在动作数据里）；前台应用条目（`Transient`、未响应时的强制结束、按名字注入、资源管理器 / 桌面 / 自己 / 关键进程不出现、关闭偏好）；排序防抖动；采样生命周期（注入的计时器：根搜索每个周期 `Invalidate`、视图每个周期 `Render` 并保留搜索文字、无前缀 / 两个周期没拉取 / `ViewClosed` / 隐藏 / `Close` 后停止、隐藏 30 秒后清缓存、多个使用者只有一个循环）。
+- `internal/agent`：用 fixture 走 AI 工具，搜索、进程视图和每个条目的 `get_detail` 里都没有窗口标题和命令行；结束任务是"改动"，强制结束是"破坏性"、不能本次会话内都允许、确认框带插件的说明。
+- `internal/cli` golden：`ps `、`ps fab`、`kill writer`、`进程 nfbj`、中文界面、进程视图、未响应视图、`--context-app paint.exe`；会话：`kill writer` → Enter 不确认直接完成，Ctrl+Shift+X 先确认再完成；`ps` 不带空格不列进程；真的 `lsass.exe` 没有结束操作、假的有。新进程插件的命令使 `query_empty` 等 8 个已有 golden 多了几条命令。
+- `go vet ./...`、`go test ./...` 通过；改动过的包 `go test -race` 通过；`glctl i18n check` 通过。
+
+### 15.4 实测耗时
+
+在一台约 500 个进程、约 1.2 万个线程的台式机上（`GOLAUNCHER_PROCESS_TESTS=1`，只记录耗时）：
+
+| 项目 | 目标（§2.6，按 300 个进程） | 实测 |
+|------|------|------|
+| 快照（`NtQuerySystemInformation` + 解析），10 次的中位数 | < 5 ms | 5.2 ms（基准测试 5.8 ms/次，每次分配约 78 KB） |
+| 稳定状态的一次采样（快照 + 窗口枚举），中位数 | < 10 ms | 7.9 ms |
+| 第一次采样（再加上为每个进程读路径、用户、提升状态、版本描述） | < 40 ms | 42.5 ms（约三分之一的进程打不开，按"受保护"处理） |
+| `glctl query "ps " --real`（含启动 glctl 和所有插件） | — | 约 0.36 s |
+
+进程数比设计假设的 300 多了约 70%，按比例算三项都在目标以内。
+
+### 15.5 待定问题
+
+1. 没有窗口的进程（`node.exe` 这类后台进程）"结束任务"现在要确认（§15.2 第 3 条）。如果你希望它和有窗口的应用一样不确认，改一行即可。
+2. AI 的"结束任务"现在是"改动"，可以"本次会话内都允许"（§15.2 第 4 条）。要不要对 AI 仍按"破坏性"处理（每次都问）？这需要 SDK 多一个"只对 AI 是破坏性"的标记。
+3. AI 能通过窗口标题里的词搜到进程（§15.2 第 5 条）。要彻底避免，可以让插件不按窗口标题匹配（用户也就不能按标题搜了），或者宿主告诉插件"这是 AI 的查询"。
+4. 第二期（设置优先级、效率模式、svchost 托管的服务、按命令行搜索、重启应用、谁占用了文件）未做。
