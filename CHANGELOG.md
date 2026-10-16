@@ -10,6 +10,23 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Timers and reminders** (`builtin.timer`, docs/timers.md): `timer 25m`,
+  `timer 1h30m tea`, `timer 1:30:00`, `计时 半小时`, `倒计时 10分钟` start a
+  countdown; `remind 15:30 meeting`, `remind tomorrow 9am standup`,
+  `remind in 20m tea`, `提醒 明天 9点 交周报` set a reminder (a time that has
+  passed today means tomorrow, and the preview says so). `timer` alone and
+  the *Timers* command list the running timers with the time left, ticking
+  every second while shown, plus presets (Pomodoro, short and long break)
+  and recent countdowns; actions pause, resume, add 1 or 5 minutes,
+  restart, rename, copy the end time and cancel (restorable from the
+  history). When a timer ends, a Windows notification (or a toast in the
+  launcher when it is visible) says so, once. Timers are stored with their
+  wall-clock end, so they survive restarts, sleep and clock changes;
+  reminders that came due while golauncher was not running are announced
+  as missed when it starts. Preferences: prefixes, sound, history size,
+  24-hour clock.
+- SDK: `Toast.Silent` (JSON `silent`) shows the Windows notification of a
+  `Host.Toast` without sound.
 - **AI uses your plugins** (docs/ai.md §4, §5, §16): a tool layer with five
   generic tools (`list_plugins`, `search`, `run_command`, `get_detail`,
   `run_action`) that run through the launcher's engine. Items come back with

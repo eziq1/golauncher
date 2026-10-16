@@ -1,0 +1,37 @@
+{
+  "query": "remind 15:30 开会",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Timers",
+      "items": [
+        {
+          "id": "new:reminder",
+          "title": "Remind Me: 开会",
+          "subtitle": "Due at 15:30 · in 5 h 30 min",
+          "icon": {
+            "name": "alarm-clock"
+          },
+          "group": "Timers",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Set Reminder",
+              "do": {
+                "kind": "Callback",
+                "target": "remind",
+                "payload": {
+                  "text": "15:30 开会"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:reminder",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

@@ -422,6 +422,48 @@
           "key": "builtin.tasks/cmd:tasks"
         },
         {
+          "id": "cmd:timers",
+          "title": "计时器",
+          "subtitle": "计时器",
+          "icon": {
+            "name": "timer"
+          },
+          "keywords": [
+            "计时器",
+            "倒计时",
+            "提醒",
+            "闹钟",
+            "番茄钟",
+            "定时",
+            "jsq",
+            "djs",
+            "tx",
+            "nz",
+            "fqz",
+            "ds",
+            "timer",
+            "countdown",
+            "reminder",
+            "Timers",
+            "alarm",
+            "pomodoro"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "timers"
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/cmd:timers"
+        },
+        {
           "id": "cmd:clear",
           "title": "清除剪贴板历史",
           "subtitle": "剪贴板历史",

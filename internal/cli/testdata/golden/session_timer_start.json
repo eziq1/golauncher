@@ -1,0 +1,194 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "hide": true,
+    "toast": {
+      "style": "success",
+      "title": "Started tea",
+      "message": "Ends at 10:25"
+    }
+  },
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "timer 25m tea",
+    "sections": [
+      {
+        "title": "Timers",
+        "items": [
+          {
+            "id": "new:timer",
+            "title": "Start 25 min Timer: tea",
+            "subtitle": "Ends at 10:25",
+            "icon": {
+              "name": "timer"
+            },
+            "group": "Timers",
+            "score": 1,
+            "actions": [
+              {
+                "id": "start",
+                "title": "Start Timer",
+                "do": {
+                  "kind": "Callback",
+                  "target": "start",
+                  "payload": {
+                    "ms": 1500000,
+                    "label": "tea",
+                    "kind": "timer"
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.timer",
+            "key": "builtin.timer/new:timer",
+            "rank": 1.7999999999999998
+          },
+          {
+            "id": "timer:1",
+            "title": "25:00  tea",
+            "subtitle": "Ends at 10:25",
+            "icon": {
+              "name": "timer",
+              "tint": "accent"
+            },
+            "accessory": "0%",
+            "group": "Timers",
+            "score": 0.9,
+            "actions": [
+              {
+                "id": "pause",
+                "title": "Pause",
+                "do": {
+                  "kind": "Callback",
+                  "target": "pause",
+                  "payload": {
+                    "id": "1"
+                  }
+                }
+              },
+              {
+                "id": "add5",
+                "title": "Add 5 min",
+                "do": {
+                  "kind": "Callback",
+                  "target": "add",
+                  "payload": {
+                    "id": "1",
+                    "ms": 300000
+                  }
+                }
+              },
+              {
+                "id": "add1",
+                "title": "Add 1 min",
+                "do": {
+                  "kind": "Callback",
+                  "target": "add",
+                  "payload": {
+                    "id": "1",
+                    "ms": 60000
+                  }
+                }
+              },
+              {
+                "id": "restart",
+                "title": "Restart",
+                "shortcut": "Ctrl+R",
+                "do": {
+                  "kind": "Callback",
+                  "target": "restart",
+                  "payload": {
+                    "id": "1"
+                  }
+                }
+              },
+              {
+                "id": "rename",
+                "title": "Rename",
+                "do": {
+                  "kind": "Push",
+                  "target": "rename",
+                  "payload": {
+                    "id": "1"
+                  }
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy End Time",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "10:25"
+                }
+              },
+              {
+                "id": "cancel",
+                "title": "Cancel Timer",
+                "shortcut": "Ctrl+X",
+                "do": {
+                  "kind": "Callback",
+                  "target": "cancel",
+                  "payload": {
+                    "id": "1"
+                  }
+                }
+              },
+              {
+                "id": "open",
+                "title": "Open Timers",
+                "do": {
+                  "kind": "Push",
+                  "target": "timers"
+                }
+              }
+            ],
+            "detail": {
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Countdown"
+                },
+                {
+                  "label": "Label",
+                  "value": "tea"
+                },
+                {
+                  "label": "Started",
+                  "value": "10/15 10:00"
+                },
+                {
+                  "label": "Length",
+                  "value": "25 min"
+                },
+                {
+                  "label": "Ends",
+                  "value": "10/15 10:25"
+                },
+                {
+                  "label": "Left",
+                  "value": "25:00"
+                },
+                {
+                  "label": "Progress",
+                  "value": "0%"
+                }
+              ]
+            },
+            "plugin": "builtin.timer",
+            "key": "builtin.timer/timer:1",
+            "rank": 1.63
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "toast": {
+      "style": "success",
+      "title": "Started tea",
+      "message": "Ends at 10:25"
+    }
+  }
+}

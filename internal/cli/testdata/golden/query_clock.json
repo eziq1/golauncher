@@ -1302,6 +1302,36 @@
           "plugin": "builtin.clock",
           "key": "builtin.clock/cmd:world-clock",
           "rank": 0.6649999999999999
+        },
+        {
+          "id": "cmd:timers",
+          "title": "Timers",
+          "subtitle": "Timers",
+          "icon": {
+            "name": "timer"
+          },
+          "keywords": [
+            "timer",
+            "countdown",
+            "reminder",
+            "alarm",
+            "pomodoro"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "timers"
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/cmd:timers",
+          "rank": 0.6533333333333333
         }
       ]
     },

@@ -273,6 +273,71 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.timer",
+    "name": "Timers",
+    "description": "Countdowns and reminders with a notification when they end. Type “timer 25m” or “remind 15:30 meeting” in the main search.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "timer"
+    },
+    "enabled": true,
+    "permissions": [
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "timers",
+        "title": "Timers",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "prefixes",
+        "type": "stringList",
+        "title": "Timer prefixes",
+        "description": "Words that start a countdown in the main search, as in “timer 25m tea”.",
+        "default": [
+          "timer",
+          "计时",
+          "倒计时"
+        ]
+      },
+      {
+        "name": "remindPrefixes",
+        "type": "stringList",
+        "title": "Reminder prefixes",
+        "description": "Words that set a reminder in the main search, as in “remind 15:30 meeting”.",
+        "default": [
+          "remind",
+          "提醒"
+        ]
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "title": "Play a sound",
+        "description": "Windows notifications of ended timers make a sound.",
+        "default": true
+      },
+      {
+        "name": "historySize",
+        "type": "number",
+        "title": "History",
+        "description": "How many ended and cancelled timers to keep (0 to 100).",
+        "default": 10
+      },
+      {
+        "name": "hour24",
+        "type": "bool",
+        "title": "24-hour clock",
+        "description": "Show times as 15:30 rather than 3:30 PM.",
+        "default": true
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.files",
     "name": "Files",
     "description": "Actions for the folder you are working in when the launcher opens: open a terminal or VS Code there, create folders and text files, copy paths, compress and hash files.",

@@ -1,0 +1,80 @@
+{
+  "step": "run builtin.timer/timers",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.timer",
+      "request": {
+        "id": "timers",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Timers",
+    "placeholder": "Start a timer (25m) or a reminder (15:30 meeting)…",
+    "text": "15:30 call",
+    "sections": [
+      {
+        "title": "New",
+        "items": [
+          {
+            "id": "new:timer",
+            "title": "Start 15 min 30 s Timer: call",
+            "subtitle": "Ends at 10:15",
+            "icon": {
+              "name": "timer"
+            },
+            "actions": [
+              {
+                "id": "start",
+                "title": "Start Timer",
+                "do": {
+                  "kind": "Callback",
+                  "target": "start",
+                  "payload": {
+                    "ms": 930000,
+                    "label": "call",
+                    "kind": "timer",
+                    "view": true
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.timer",
+            "key": "builtin.timer/new:timer"
+          },
+          {
+            "id": "new:reminder",
+            "title": "Remind Me: call",
+            "subtitle": "Due at 15:30 · in 5 h 30 min",
+            "icon": {
+              "name": "alarm-clock"
+            },
+            "actions": [
+              {
+                "id": "start",
+                "title": "Set Reminder",
+                "do": {
+                  "kind": "Callback",
+                  "target": "remind",
+                  "payload": {
+                    "text": "15:30 call",
+                    "view": true
+                  }
+                }
+              }
+            ],
+            "plugin": "builtin.timer",
+            "key": "builtin.timer/new:reminder"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "emptyText": "No timers"
+  }
+}

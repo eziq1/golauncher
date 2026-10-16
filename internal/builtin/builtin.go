@@ -29,6 +29,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/scripts"
 	"github.com/eziq1/golauncher/plugins/system"
 	"github.com/eziq1/golauncher/plugins/terminal"
+	"github.com/eziq1/golauncher/plugins/timer"
 	"github.com/eziq1/golauncher/plugins/winget"
 )
 
@@ -46,6 +47,7 @@ func All() []plugin.Plugin {
 		calc.NewWithOptions(calc.Options{UserAgent: "golauncher/" + HostVersion}),
 		clipboard.New(),
 		clock.New(),
+		timer.New(),
 		files.New(),
 		everything.New(),
 		scripts.New(),
@@ -120,6 +122,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		fakeCalc(dir),
 		clipboard.New(),
 		clock.NewWithOptions(clock.Options{Sync: true}), // deterministic loading
+		timer.New(),
 		files.NewWithOptions(files.Options{Which: fakeWhich}),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
 		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),

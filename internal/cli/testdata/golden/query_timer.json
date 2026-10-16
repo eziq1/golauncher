@@ -1,0 +1,38 @@
+{
+  "query": "timer 25m",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Timers",
+      "items": [
+        {
+          "id": "new:timer",
+          "title": "Start 25 min Timer",
+          "subtitle": "Ends at 10:25",
+          "icon": {
+            "name": "timer"
+          },
+          "group": "Timers",
+          "score": 1,
+          "actions": [
+            {
+              "id": "start",
+              "title": "Start Timer",
+              "do": {
+                "kind": "Callback",
+                "target": "start",
+                "payload": {
+                  "ms": 1500000,
+                  "kind": "timer"
+                }
+              }
+            }
+          ],
+          "plugin": "builtin.timer",
+          "key": "builtin.timer/new:timer",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}
