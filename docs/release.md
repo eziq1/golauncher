@@ -99,3 +99,4 @@
   - 计时器测试的时序问题；
   - 主题“文字衬底”默认开启，导致选中行的文字后面有方框（你在真机上发现）。
 - **版本号**：0.4.0。新增功能，升次版本号。配置新增 `appearance` 对象，旧版读到时会忽略，并继续使用旧的 `theme` 字段。
+- **结果**：2026-10-16 打了 `v0.4.0` 标签，CI 和发布工作流都通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64（20.9MB）、arm64（19.2MB）两个 zip 和 `checksums.txt`。<https://github.com/eziq1/golauncher/releases/tag/v0.4.0>
