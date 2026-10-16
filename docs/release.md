@@ -130,3 +130,7 @@
   - 设置等窗口使用 golauncher 自己的图标（R62）。
 - **版本号**：0.6.0。新增功能，升次版本号。配置新增 `selection` 对象，旧版读到时会忽略。
 - **第一次真机自动升级**：已安装 0.5.0 的电脑，会在空闲时自动升级到 0.6.0。这是自动升级（R54）第一次在真机上跑完整流程，结果看 `%LOCALAPPDATA%\golauncher\logs\update.log`。
+- **发布前修的问题**：CI 上读取选中文字的两个测试偶发失败。
+  - 第一个：测试释放选中文字的时间超过了 250ms 预算。改为 glctl 和测试用的假环境不受这个预算限制（`core.Options.SelectionBudget`），真实环境仍是 250ms。
+  - 第二个：测试断言了插件"最后一次"收到的查询，而设置选中文字引起的刷新可能晚到。改为检查收到的查询里是否有输入的文字。
+- **结果**：2026-10-16 打了 `v0.6.0` 标签，CI 和发布工作流都通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64（21.9MB）、arm64（20.1MB）两个 zip 和 `checksums.txt`。<https://github.com/eziq1/golauncher/releases/tag/v0.6.0>
