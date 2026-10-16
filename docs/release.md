@@ -121,4 +121,4 @@
   - 自动升级的限流测试在 UTC 9 点后必然失败（客户端和服务用了不同的时钟）。
 - **版本号**：0.5.0。新增功能，升次版本号。配置新增 `updates` 对象，旧版读到时会忽略。
 - **自动升级从这一版开始**：0.4.0 及更早的版本没有自动升级，需要手动装一次 0.5.0；之后的版本会自动更新。第一次真机自动升级会发生在下一次发布时，届时看 `%LOCALAPPDATA%\golauncher\logs\update.log`。
-- **签名**：仓库没有设置 `UPDATE_PUBLIC_KEY`，这一版只靠 `checksums.txt` 的 SHA-256 校验（见 §9）。
+- **签名**：仓库没有设置 `UPDATE_PUBLIC_KEY`，这一版只靠 `checksums.txt` 的 SHA-256 校验（见 §9）。- **结果**：2026-10-16 打了 `v0.5.0` 标签，CI 和发布工作流都通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64（21.7MB）、arm64（20.0MB）两个 zip 和 `checksums.txt`。`glctl update check --real` 能发现 0.5.0。<https://github.com/eziq1/golauncher/releases/tag/v0.5.0>
