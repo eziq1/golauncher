@@ -60,6 +60,14 @@
     cancel and undo); a notification comes when they end. Timers survive
     restarts, and reminders missed while golauncher was not running are
     announced when it starts.
+  - **Quicklinks & Web Search**: `g golang generics`, `bd 天气`, `gh`, `yt`,
+    `wiki`, `zhihu`, `bili`… (20 built-in engines) search the web (add
+    your own engines, change keywords); a typed URL (`github.com/foo`,
+    `localhost:3000`) opens directly; when nothing matches, *Search Google
+    for “…”* is offered (Bing in the Chinese UI). Quicklinks are your named
+    links to websites, files, folders and programs with `{query}`,
+    `{clipboard}` and `{date}` placeholders, created with a form and
+    imported or exported as JSON. Search suggestions are off by default.
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;

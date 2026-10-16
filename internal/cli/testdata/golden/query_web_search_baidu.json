@@ -1,0 +1,55 @@
+{
+  "query": "bd 北京 天气",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Web Search",
+      "items": [
+        {
+          "id": "search:baidu",
+          "title": "Search Baidu for “北京 天气”",
+          "subtitle": "https://www.baidu.com/s?ie=utf-8&wd=%E5%8C%97%E4%BA%AC%20%E5%A4%A9%E6%B0%94",
+          "icon": {
+            "name": "search"
+          },
+          "group": "Web Search",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Search",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.baidu.com/s?ie=utf-8&wd=%E5%8C%97%E4%BA%AC%20%E5%A4%A9%E6%B0%94"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.baidu.com/s?ie=utf-8&wd=%E5%8C%97%E4%BA%AC%20%E5%A4%A9%E6%B0%94"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "Open in Firefox",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://www.baidu.com/s?ie=utf-8&wd=%E5%8C%97%E4%BA%AC%20%E5%A4%A9%E6%B0%94\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/search:baidu",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

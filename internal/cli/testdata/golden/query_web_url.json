@@ -1,0 +1,55 @@
+{
+  "query": "github.com/foo",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Web Search",
+      "items": [
+        {
+          "id": "url",
+          "title": "Open github.com/foo",
+          "subtitle": "https://github.com/foo",
+          "icon": {
+            "name": "globe"
+          },
+          "group": "Web Search",
+          "score": 1,
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open URL",
+              "do": {
+                "kind": "Open",
+                "target": "https://github.com/foo"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://github.com/foo"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "Open in Firefox",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://github.com/foo\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/url",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

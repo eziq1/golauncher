@@ -271,6 +271,39 @@
           "key": "builtin.scripts/cmd:new"
         },
         {
+          "id": "cmd:create",
+          "title": "创建快速链接",
+          "subtitle": "快速链接与网页搜索",
+          "icon": {
+            "name": "file-plus"
+          },
+          "keywords": [
+            "新建链接",
+            "xjlj",
+            "添加链接",
+            "书签",
+            "quicklink",
+            "new link",
+            "bookmark",
+            "Create Quicklink",
+            "add link"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "create"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:create"
+        },
+        {
           "id": "cmd:open-folder",
           "title": "打开脚本文件夹",
           "subtitle": "脚本命令",
@@ -594,6 +627,40 @@
           "key": "builtin.clipboard/cmd:history"
         },
         {
+          "id": "cmd:quicklinks",
+          "title": "搜索快速链接",
+          "subtitle": "快速链接与网页搜索",
+          "icon": {
+            "name": "globe"
+          },
+          "keywords": [
+            "快速链接",
+            "kslj",
+            "链接",
+            "书签",
+            "收藏",
+            "quicklinks",
+            "links",
+            "bookmarks",
+            "Search Quicklinks",
+            "favorites"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "quicklinks"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:quicklinks"
+        },
+        {
           "id": "cmd:search",
           "title": "搜索文件",
           "subtitle": "文件搜索（Everything）",
@@ -626,6 +693,40 @@
           ],
           "plugin": "builtin.everything",
           "key": "builtin.everything/cmd:search"
+        },
+        {
+          "id": "cmd:engines",
+          "title": "搜索引擎",
+          "subtitle": "快速链接与网页搜索",
+          "icon": {
+            "name": "search"
+          },
+          "keywords": [
+            "搜索引擎",
+            "ssyq",
+            "网页搜索",
+            "关键词",
+            "web search",
+            "search engines",
+            "google",
+            "bing",
+            "Search Engines",
+            "keywords"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "engines"
+              }
+            }
+          ],
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/cmd:engines"
         },
         {
           "id": "cmd:renew-ip",

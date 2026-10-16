@@ -9,6 +9,49 @@
         "title": "Fallback Commands",
         "items": [
           {
+            "id": "fallback:google",
+            "title": "Search Google for “zzqx ask something”",
+            "subtitle": "https://www.google.com/search?q=zzqx%20ask%20something",
+            "icon": {
+              "name": "search"
+            },
+            "group": "Fallback Commands",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Search",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.google.com/search?q=zzqx%20ask%20something"
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://www.google.com/search?q=zzqx%20ask%20something"
+                }
+              },
+              {
+                "id": "browser1",
+                "title": "Open in Firefox",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                  "payload": {
+                    "args": "\"https://www.google.com/search?q=zzqx%20ask%20something\""
+                  }
+                }
+              }
+            ],
+            "transient": true,
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/fallback:google",
+            "fallback": true
+          },
+          {
             "id": "ask",
             "title": "Ask AI: zzqx ask something",
             "subtitle": "Claude Code",

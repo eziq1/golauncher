@@ -204,6 +204,34 @@
             "key": "example.go-hello/cmd:count"
           },
           {
+            "id": "cmd:create",
+            "title": "Create Quicklink",
+            "subtitle": "Quicklinks & Web Search",
+            "icon": {
+              "name": "file-plus"
+            },
+            "keywords": [
+              "quicklink",
+              "new link",
+              "bookmark",
+              "add link"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "create"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/cmd:create"
+          },
+          {
             "id": "cmd:new",
             "title": "Create Script Command",
             "subtitle": "Script Commands",
@@ -559,6 +587,35 @@
             "key": "builtin.clipboard/cmd:history"
           },
           {
+            "id": "cmd:engines",
+            "title": "Search Engines",
+            "subtitle": "Quicklinks & Web Search",
+            "icon": {
+              "name": "search"
+            },
+            "keywords": [
+              "web search",
+              "search engines",
+              "google",
+              "bing",
+              "keywords"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "engines"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/cmd:engines"
+          },
+          {
             "id": "cmd:search",
             "title": "Search Files",
             "subtitle": "File Search (Everything)",
@@ -585,6 +642,34 @@
             ],
             "plugin": "builtin.everything",
             "key": "builtin.everything/cmd:search"
+          },
+          {
+            "id": "cmd:quicklinks",
+            "title": "Search Quicklinks",
+            "subtitle": "Quicklinks & Web Search",
+            "icon": {
+              "name": "globe"
+            },
+            "keywords": [
+              "quicklinks",
+              "links",
+              "bookmarks",
+              "favorites"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "quicklinks"
+                }
+              }
+            ],
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/cmd:quicklinks"
           },
           {
             "id": "cmd:timers",

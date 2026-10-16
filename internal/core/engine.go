@@ -368,7 +368,7 @@ type Outcome struct {
 
 // Run executes action a of entry. fromRoot records the use for ranking.
 func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot bool) (Outcome, error) {
-	if fromRoot && !entry.Context && !entry.Fallback {
+	if fromRoot && !entry.Context && !entry.Fallback && !entry.Transient {
 		if b, err := json.Marshal(entry); err == nil {
 			if err := e.svc.DB.RecordUse(entry.Key, b, e.svc.Now()); err != nil {
 				e.log.Warn("record use", "err", err)

@@ -1,0 +1,74 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "hide": true
+  },
+  "effects": [
+    {
+      "kind": "Open",
+      "target": "https://jira.example.com/browse/ABC-123"
+    }
+  ],
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "jira ABC-123",
+    "sections": [
+      {
+        "title": "Quicklinks",
+        "items": [
+          {
+            "id": "linkquery:1",
+            "title": "Open Issue: ABC-123",
+            "subtitle": "https://jira.example.com/browse/ABC-123",
+            "icon": {
+              "name": "globe"
+            },
+            "group": "Quicklinks",
+            "score": 1,
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://jira.example.com/browse/ABC-123"
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "https://jira.example.com/browse/ABC-123"
+                }
+              },
+              {
+                "id": "browser1",
+                "title": "Open in Firefox",
+                "do": {
+                  "kind": "Open",
+                  "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                  "payload": {
+                    "args": "\"https://jira.example.com/browse/ABC-123\""
+                  }
+                }
+              }
+            ],
+            "transient": true,
+            "plugin": "builtin.quicklinks",
+            "key": "builtin.quicklinks/linkquery:1",
+            "rank": 1.7
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "toast": {
+      "style": "success",
+      "title": "Created Open Issue"
+    }
+  }
+}

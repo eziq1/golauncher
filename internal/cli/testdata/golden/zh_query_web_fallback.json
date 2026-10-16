@@ -1,0 +1,54 @@
+{
+  "query": "zzqx qwv",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "备选命令",
+      "items": [
+        {
+          "id": "fallback:bing",
+          "title": "用 必应 搜索“zzqx qwv”",
+          "subtitle": "https://www.bing.com/search?q=zzqx%20qwv",
+          "icon": {
+            "name": "search"
+          },
+          "group": "备选命令",
+          "actions": [
+            {
+              "id": "open",
+              "title": "搜索",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.bing.com/search?q=zzqx%20qwv"
+              }
+            },
+            {
+              "id": "copy",
+              "title": "复制网址",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "https://www.bing.com/search?q=zzqx%20qwv"
+              }
+            },
+            {
+              "id": "browser1",
+              "title": "用 Firefox 打开",
+              "do": {
+                "kind": "Open",
+                "target": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "payload": {
+                  "args": "\"https://www.bing.com/search?q=zzqx%20qwv\""
+                }
+              }
+            }
+          ],
+          "transient": true,
+          "plugin": "builtin.quicklinks",
+          "key": "builtin.quicklinks/fallback:bing",
+          "fallback": true
+        }
+      ]
+    }
+  ]
+}

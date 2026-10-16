@@ -18,6 +18,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`scripts`](../plugins/scripts/) | run processes, stream output into a view with `Invalidate`, take arguments |
 | [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
 | [`timer`](../plugins/timer/) | keep state in `Storage`, run a scheduler on `Host.Go`, notify with `Host.Toast` |
+| [`quicklinks`](../plugins/quicklinks/) | offer fallback items, take keyword-prefixed text, create and edit data with forms, fetch in the background with debouncing and cancellation |
 
 ## The model
 
@@ -263,6 +264,12 @@ AI chat, `builtin.ai`, uses both; a "search the web" plugin would too):
 - **`TabProvider.TabAction(q)`**: `Tab` in the root search with text runs
   the action of the first enabled plugin that answers `ok` — unless the
   selected entry takes arguments, which keep `Tab`.
+- **`Item.Transient`**: a root item that carries the typed text (a web
+  search for it, a typed URL) can set it so that, like fallback items, it
+  is never recorded in Recent and the text is not stored.
+
+Fallback items are listed in the order the plugins are registered: the web
+search of `builtin.quicklinks` comes before *Ask AI* of `builtin.ai`.
 
 These are in-process only for now; the external plugin protocol does not
 carry them.
