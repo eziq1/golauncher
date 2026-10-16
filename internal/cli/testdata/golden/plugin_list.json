@@ -704,7 +704,7 @@
         "type": "bool",
         "title": "Allow web search",
         "description": "Lets Claude search the web and read web pages to answer.",
-        "default": false
+        "default": true
       },
       {
         "name": "tools",

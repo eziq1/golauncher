@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/eziq1/golauncher/internal/config"
 )
 
 //go:embed builtin/*.json
@@ -21,7 +23,7 @@ var builtinFS embed.FS
 // BuiltinOrder is the order of the built-in themes in the gallery.
 var BuiltinOrder = []string{
 	"golauncher-light", "golauncher-dark",
-	"raycast-light", "raycast-dark",
+	"crimson-light", "crimson-dark",
 	"github-light", "github-dark",
 	"nord", "dracula",
 	"catppuccin-latte", "catppuccin-mocha",
@@ -170,7 +172,9 @@ func (l *Library) Themes() []*Theme {
 	return out
 }
 
-// Get returns the theme id.
+// Get returns the theme id. The old ID of a renamed built-in theme
+// (config.RenamedTheme) finds the theme by its new one, unless a theme file
+// has that name.
 func (l *Library) Get(id string) (*Theme, bool) {
 	for _, t := range builtins {
 		if t.ID == id {
@@ -178,9 +182,28 @@ func (l *Library) Get(id string) (*Theme, bool) {
 		}
 	}
 	l.mu.RLock()
-	defer l.mu.RUnlock()
 	t, ok := l.user[id]
+	l.mu.RUnlock()
+	if !ok {
+		if n, renamed := config.RenamedTheme(id); renamed {
+			return l.Get(n)
+		}
+	}
 	return t, ok
+}
+
+// withRenamed makes lookup find a renamed built-in theme by its old ID too
+// (an extends written before the rename), unless a file has that name.
+func withRenamed(lookup func(string) (*File, bool)) func(string) (*File, bool) {
+	return func(id string) (*File, bool) {
+		if f, ok := lookup(id); ok {
+			return f, true
+		}
+		if n, ok := config.RenamedTheme(id); ok {
+			return lookup(n)
+		}
+		return nil, false
+	}
 }
 
 // Problems returns what is wrong with the user's theme files.
@@ -240,7 +263,7 @@ func (l *Library) Reload() error {
 
 	l.mu.Lock()
 	// Themes extend the files as they are now, or the last that worked.
-	lookup := func(id string) (*File, bool) {
+	lookup := withRenamed(func(id string) (*File, bool) {
 		if f, ok := builtinFiles[id]; ok {
 			return f, true
 		}
@@ -252,7 +275,7 @@ func (l *Library) Reload() error {
 			return nil, false // removed
 		}
 		return f, ok
-	}
+	})
 	user := map[string]*Theme{}
 	good := map[string]*File{}
 	var problems []Problem
@@ -372,7 +395,7 @@ func (l *Library) Validate(path string, data []byte) Report {
 	}
 	r.Warnings = append(r.Warnings, warnings...)
 	l.mu.RLock()
-	t, err := build(r.ID, func(id string) (*File, bool) {
+	t, err := build(r.ID, withRenamed(func(id string) (*File, bool) {
 		if id == r.ID {
 			return f, true
 		}
@@ -381,7 +404,7 @@ func (l *Library) Validate(path string, data []byte) Report {
 		}
 		uf, ok := l.good[id]
 		return uf, ok
-	})
+	}))
 	l.mu.RUnlock()
 	if err != nil {
 		r.Errors = append(r.Errors, err.Error())

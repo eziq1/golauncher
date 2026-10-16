@@ -344,7 +344,7 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
 
 ### 15.4 通用机制（不是 AI 专用）
 
-- **`plugin.FallbackProvider`**：根搜索没有结果、或最好的匹配分（不含使用频率和加成）低于 `core.FallbackThreshold`（0.5）时，宿主才调用它，把条目放在最后的"备选命令"分组；这些条目不记入"最近使用"。AI 插件用它提供"问 AI：<文字>"，偏好项可以关掉。
+- **`plugin.FallbackProvider`**：根搜索没有结果、或最好的匹配分（不含使用频率和加成）低于 `core.FallbackThreshold`（0.5）时，宿主才调用它，把条目放在最后的"备选命令"分组；这些条目不记入"最近使用"。AI 插件用它提供"问 AI：<文字>"，偏好项可以关掉。几个插件都有备选条目时的顺序见 §17。
 - **`plugin.TabProvider`**：根搜索里有文字时按 `Tab`，如果选中的条目有参数，`Tab` 照旧进入参数（M5 的命令参数）；否则运行第一个启用插件给出的 Tab 动作。AI 插件始终给出"打开新对话并发送这段文字"；AI 没打开时先显示打开提示，打开后自动发送。
 - **全窗口的 `ViewDetail`**：Markdown 占满整个窗口，内容增长时跟随到底（用户往上滚时不跟随）；视图的第一个条目不显示，只提供动作；搜索框就是输入框，回调的 `ActionDo.Query` 带着输入的文字，`Result.ClearText` 清空它。这种视图里 `Up`/`Down`、`Ctrl+N`/`Ctrl+P` 不移动选中项，所以 `Ctrl+N` 可以给"新对话"用。
 - **`View.Escape`**：视图可以接管 `Esc`。AI 对话只在回答进行中设置"停止"，所以第一次 `Esc` 停止回答，第二次返回。
@@ -356,7 +356,7 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
 - 对话视图：显示"你"和"Claude"的消息，回答流式显示（末尾有光标），工具步骤显示成一行（"搜索了网页"）；底部一行显示后端、模型和上一次回答的用量。
 - 动作：发送（Enter）、停止（回答中；Esc）、复制回答（`Ctrl+Shift+C`）、粘贴回答到前一个窗口（`Ctrl+Shift+V`）、在 Claude 中继续、在 ChatGPT 中继续、新对话（`Ctrl+N`）、AI 对话历史、复制会话 ID。
 - 交给应用继续：只带当前问题（输入框里的文字，没有就用最后一个问题）；链接超过 8000 个字符（Claude 桌面版超过 14000 个字符）时，把问题复制到剪贴板、打开空白对话，并用通知提示粘贴。
-- 设置 › 插件 › AI：使用 AI（总开关，默认关）、模型（默认、Sonnet、Opus、Haiku）、允许联网搜索（默认关）、对话保留时间（默认 30 天）、没有匹配结果时显示"问 AI"（默认开）。
+- 设置 › 插件 › AI：使用 AI（总开关，默认关）、模型（默认、Sonnet、Opus、Haiku）、允许联网搜索（默认关；R56 起默认开，见 §17）、对话保留时间（默认 30 天）、没有匹配结果时显示"问 AI"（默认开）。
 - 热键冲突：注册失败时的通知和设置页提示原来就有（会打开设置的热键项），这次在文字里点明 ChatGPT 应用和 PowerToys Run 也用 Alt+Space。
 
 ### 15.6 测试
@@ -480,3 +480,8 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
 - `internal/ai/claudecode`：假 `claude` 读取 `--mcp-config`，启动其中的服务器（测试用的假 MCP 服务器），做握手并调用 `search`，按真实格式输出工具步骤；检查命令行（有工具时没有 `--safe-mode`、有 `--mcp-config` 和 `--allowedTools`，没有时照旧）、配置文件内容和删除、错误结果。真实 CLI 的 `TestRealCLITools` 只在 `GOLAUNCHER_AI_TESTS=1` 时运行。
 - `plugins/ai`：工具步骤的显示（中英文）、保存和重新打开、拒绝和错误、偏好关掉时的系统提示。
 - `glctl mcp` 金样：`mcp_deny`、`mcp_allow`。
+
+## 17. 修订（2026-10-16，R56）
+
+- **联网搜索默认打开**：偏好 `webSearch`（"允许联网搜索"）的默认值从 `false` 改为 `true`。从没改过这一项的用户，新开的对话就能搜索网页（`--tools WebSearch,WebFetch`，§15.2），系统提示里也会加上"可以搜索网页"那一句（`systemPrompt` 本来就按这个偏好决定）；在设置里明确关掉过的（配置里存了 `false`）保持关闭。联网工具只访问网络，不涉及本机，仍然不弹任何授权。测试：`plugins/ai` 的 `TestWebSearchPreference`（默认开、明确关掉时关），`plugin_list` golden 的默认值。
+- **"问 AI"排在网页搜索前面**：主搜索没有好结果时，"备选命令"一节先列"问 AI：…"，再列"用 Google/Bing 搜索…"（以前反过来）。做法不是调整插件的注册顺序，而是 SDK 新增一个可选接口 `plugin.FallbackOrderer`（`FallbackOrder() int`）：宿主按它从小到大排列各插件的备选条目，相同的（没实现这个接口的都是 0）按注册顺序。网页搜索是"什么都能接"的兜底，`builtin.quicklinks` 返回 `plugin.FallbackOrderLast`（100），排在所有其他备选条目之后，以后新增的插件的备选条目也会排在它前面。打开了 AI 时，没有结果按 `Enter` 现在运行"问 AI"；AI 没打开（默认）或关掉了"问 AI"偏好时，"问 AI"不出现，只有网页搜索，和以前一样。`Tab` 不受影响，仍然是 AI（quicklinks 没有 `TabProvider`）。测试：`internal/core` 的 `TestFallbackOrder`（网页搜索的插件注册在前，仍然排在后面），`session_ai_fallback` golden 里两条的顺序。

@@ -142,6 +142,33 @@ func TestFallbackItems(t *testing.T) {
 	}
 }
 
+// webPlugin is a catch-all fallback, like the web search of quicklinks: it
+// asks to come last (plugin.FallbackOrderer).
+type webPlugin struct{}
+
+func (webPlugin) Manifest() plugin.Manifest {
+	return plugin.Manifest{ID: "web", Name: "Web", Version: "1"}
+}
+func (webPlugin) Init(context.Context, plugin.Host) error { return nil }
+func (webPlugin) Close() error                            { return nil }
+func (webPlugin) FallbackOrder() int                      { return plugin.FallbackOrderLast }
+func (webPlugin) FallbackItems(_ context.Context, q plugin.Query) ([]plugin.Item, error) {
+	return []plugin.Item{{ID: "web", Title: "Search the web for " + q.Text,
+		Actions: []plugin.Action{{ID: "copy", Title: "Copy", Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: q.Text}}}}}, nil
+}
+
+// TestFallbackOrder: fallback items follow plugin.FallbackOrderer, not only
+// the order the plugins are registered in.
+func TestFallbackOrder(t *testing.T) {
+	env := buildWith(t, webPlugin{}, &askPlugin{}) // web registered first
+	s := typeText(t, env.Controller, "zzqx")
+	last := s.Sections[len(s.Sections)-1]
+	if last.Title != "Fallback Commands" || len(last.Items) != 2 ||
+		last.Items[0].Title != "Ask: zzqx" || last.Items[1].Title != "Search the web for zzqx" {
+		t.Fatalf("fallbacks = %+v", last.Items)
+	}
+}
+
 // typedPlugin returns a transient item (it carries the typed text) and a
 // normal one.
 type typedPlugin struct{}

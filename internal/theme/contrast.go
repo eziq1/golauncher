@@ -94,6 +94,83 @@ func checkContrast(c Colors, dark bool, material Material, isOpaque bool, opacit
 	}
 }
 
+// textOnAccent is the text derived for an accent: white, or near black where
+// white would not stand out, as on yellow (MyGo's rule), or where only near
+// black reaches MinTextContrast, as on cyan.
+func textOnAccent(a mui.Color) mui.Color {
+	a = opaque(a)
+	if gray(a) > 165 || ContrastRatio(white, a) < MinTextContrast && ContrastRatio(darkAccentText, a) >= MinTextContrast {
+		return darkAccentText
+	}
+	return white
+}
+
+var darkAccentText = mui.RGB(24, 24, 27)
+
+// rowSelectedAlpha is the opacity of the selected row derived from the
+// accent.
+const rowSelectedAlpha = 0.9
+
+// Steps of readableAccent: it moves the accent toward black or white by
+// 1/accentSteps at a time, and darkens it under white text by up to
+// accentDarkenFirst steps before it considers dark text instead.
+const (
+	accentSteps       = 50
+	accentDarkenFirst = 15
+)
+
+// readableAccent returns the Windows accent a as a theme with background bg
+// uses it: unchanged when the text on it (textOnAccent) and on the selected
+// row (the accent at rowSelectedAlpha) reach min; else the accent darkened
+// under white text, in small steps, just until they do. Where that takes
+// more than 30% of the way to black and dark text needs less (a light
+// cyan or green), the accent is kept, lightened if need be, under dark
+// text. The selected row is checked over every backdrop the background can
+// have (any opacity, over the material over white or black, docs/themes.md
+// §13.2), so the accent stays readable whatever the system's accent and the
+// background opacity.
+func readableAccent(a, bg mui.Color, dark bool, min float64) mui.Color {
+	a = opaque(a)
+	bgs, _ := backdrops(bg, dark, MaterialAcrylic, false, 0)
+	bgs = append(bgs, opaque(bg))
+	// steps is how far toward the color the accent must go for text on it.
+	steps := func(toward, text mui.Color) (mui.Color, int) {
+		for i := range accentSteps + 1 {
+			c := a.Mix(toward, float32(i)/accentSteps)
+			if accentReadable(c, text, bgs, min) {
+				return c, i
+			}
+		}
+		return toward, accentSteps + 1
+	}
+	if gray(a) > 165 { // dark text already (MyGo's rule)
+		c, _ := steps(white, darkAccentText)
+		return c
+	}
+	cw, nw := steps(black, white)
+	if nw <= accentDarkenFirst {
+		return cw
+	}
+	if cd, nd := steps(white, darkAccentText); nd < nw {
+		return cd
+	}
+	return cw
+}
+
+// accentReadable reports whether text reaches min on accent c and on the
+// selected row over each of bgs, and is the text derived for c.
+func accentReadable(c, text mui.Color, bgs []mui.Color, min float64) bool {
+	if textOnAccent(c) != text || ContrastRatio(text, c) < min {
+		return false
+	}
+	for _, bg := range bgs {
+		if ContrastRatio(text, over(c.Alpha(rowSelectedAlpha), bg)) < min {
+			return false
+		}
+	}
+	return true
+}
+
 // CheckContrast checks theme t as it comes, at its own opacity, with
 // nothing adjusted.
 func CheckContrast(t *Theme) []ContrastResult {

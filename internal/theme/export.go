@@ -17,11 +17,11 @@ func accentOverride(t *Theme, accent string, sys System) overrides {
 	switch accent {
 	case config.AccentTheme, "":
 		if t.SystemAccent && sys.Accent.A > 0 {
-			o.accent, o.hasAccent = opaque(sys.Accent), true
+			o.accent, o.hasAccent, o.readable = opaque(sys.Accent), true, true
 		}
 	case config.AccentWindows:
 		if sys.Accent.A > 0 {
-			o.accent, o.hasAccent = opaque(sys.Accent), true
+			o.accent, o.hasAccent, o.readable = opaque(sys.Accent), true, true
 		}
 	default:
 		if c, err := ParseColor(accent); err == nil && c.A > 0 {

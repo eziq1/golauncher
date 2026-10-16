@@ -8,6 +8,27 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- **AI web search is on by default** (R56): the AI chat's *Allow web
+  search* preference now defaults to on; a preference you turned off stays
+  off.
+- **Ask AI comes before the web search** (R56): when the main search finds
+  nothing good, *Ask AI: …* is listed before *Search Google/Bing for …*.
+  SDK: the new optional `FallbackOrderer` (`FallbackOrder() int`, lowest
+  first; `FallbackOrderLast` for a catch-all) orders fallback items instead
+  of the order plugins are registered in. `Tab` still opens the AI chat.
+- **"Raycast-style" themes renamed to Crimson Light/Dark** (绯红, R56), IDs
+  `crimson-light` and `crimson-dark`; a configuration or a theme's `extends`
+  naming `raycast-light`/`raycast-dark` gets the new theme.
+- **golauncher Light/Dark slightly darker so text passes the contrast
+  checks** (R56): dark accent `#3b82f6` → `#3472d8` (white on it 3.67 →
+  4.62:1, selected row 3.98 → 4.95:1); light accent `#2563eb` → `#2461e6`
+  (selected row 4.42 → 4.52:1) and secondary text `#71717a` → `#68686f`
+  (3.10:1 over the material at worst). The Windows accent color is darkened
+  just enough (or, for light colors such as cyan, gets dark text) so text
+  on it and on the selected row stays readable whatever the accent.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

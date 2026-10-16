@@ -70,7 +70,7 @@
   - 偏好设置里选了"第二个兜底搜索引擎"时，再加一条。
 - **默认引擎**：偏好 `defaultEngine`，默认值"自动"：界面语言是简体中文时用 **Bing**，其他语言用 **Google**。理由：Google 在中国大陆通常打不开；Bing 在大陆可以访问（`www.bing.com` 会自动转到 `cn.bing.com`），结果里广告比百度少，中英文都好用；想用百度的人在设置里选一下即可。第二个兜底引擎默认不设。
 - 停用的引擎不能作为默认引擎；如果选中的默认引擎被停用了，退回"自动"的选择。
-- **和 AI 的"问 AI"的顺序**：兜底条目按插件注册顺序排列，`builtin.quicklinks` 注册在 `builtin.ai` 前面，所以固定是：**网页搜索在前，"问 AI：…"在后**。没有结果时 `Enter` 选中第一条，即网页搜索；AI 对话本来就有自己的 `Tab`（`TabProvider`），两者互补。AI 关闭时（默认）只有网页搜索。
+- **和 AI 的"问 AI"的顺序**：~~兜底条目按插件注册顺序排列，`builtin.quicklinks` 注册在 `builtin.ai` 前面，所以固定是：网页搜索在前，"问 AI：…"在后。~~ **修订（2026-10-16，R56）**：改为 **"问 AI：…"在前，网页搜索在后**。不再靠注册顺序：插件实现 `plugin.FallbackOrderer` 声明自己的备选条目排在哪，quicklinks 返回 `plugin.FallbackOrderLast`，总是排在最后（见 §14）。打开了 AI 时，没有结果按 `Enter` 运行"问 AI"；`Tab` 仍然是 AI。AI 关闭时（默认）只有网页搜索。
 - 偏好 `fallback`（默认开）可以关掉兜底。
 - 兜底条目本来就不记入最近使用；载荷里带着完整网址。
 
@@ -280,11 +280,19 @@ JSON 格式（快速链接和自定义搜索引擎在同一个文件里）：
 
 ### 合并注意
 
-- `internal/builtin/builtin.go` 的 `All` 和 `Fake` 各加了一行（在 `network` 和 `ai` 之间），和其他新插件分支可能有相邻改动的冲突，两边都保留，**保持 quicklinks 在 ai 前面**。
+- `internal/builtin/builtin.go` 的 `All` 和 `Fake` 各加了一行（在 `network` 和 `ai` 之间），和其他新插件分支可能有相邻改动的冲突，两边都保留。（R56 起兜底顺序由 `FallbackOrderer` 决定，与注册顺序无关。）
 - 上面列出的 golden 会随其他新插件、命令变化，合并后运行 `go test ./internal/cli -update` 重新生成并检查。兜底条目会出现在任何"没有好结果"的查询的 golden 里。
 
 ### 待定
 
 - 快速链接的全局快捷键（需要宿主支持动态命令）。
-- 兜底条目里"用 Google 搜索"在"问 AI"前面是固定的；如果以后需要让用户调整兜底顺序，要宿主提供一个通用设置。
+- 兜底条目的顺序（R56 起"问 AI"在前、网页搜索在后）由插件的 `FallbackOrderer` 决定；如果以后需要让用户调整兜底顺序，要宿主提供一个通用设置。
 - "用某浏览器打开"只列出注册的浏览器，不区分哪个是默认浏览器。
+## 14. 修订（2026-10-16，R56）
+
+- **兜底顺序改为"问 AI"在前、网页搜索在后**（R56 的决定）。实现：
+  - SDK（`pkg/plugin`）新增可选接口 `FallbackOrderer`（`FallbackOrder() int`）和常量 `FallbackOrderLast`（100）。宿主（`internal/core` 的 `fallbackEntries`）按 `FallbackOrder` 从小到大、相同时按注册顺序排列各插件的备选条目；没实现这个接口的插件是 0。
+  - quicklinks 实现它，返回 `FallbackOrderLast`：网页搜索是什么都能接的兜底，排在所有其他备选条目（问 AI、以后其他插件的）之后。
+  - 选这个做法而不是调换 `internal/builtin` 里的注册顺序：顺序是明确声明的，不会因为以后有人调整插件列表而悄悄改变；外部插件协议目前不支持备选条目（plugin-guide），以后支持时可以照用。
+- `Tab` 不受影响（quicklinks 没有 `TabProvider`）。
+- 测试：`internal/core` 的 `TestFallbackOrder`；`session_ai_fallback` golden 里只有两条兜底条目的顺序变了。

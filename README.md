@@ -98,7 +98,7 @@
 - **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
   the appearance and the language.
 - **Themes** (*Settings › Appearance*, [docs/themes.md](docs/themes.md)): 18
-  built-in themes (golauncher Light/Dark, Raycast-style, GitHub, Nord,
+  built-in themes (golauncher Light/Dark, Crimson, GitHub, Nord,
   Dracula, Catppuccin, Tokyo Night, Solarized, Gruvbox, One Dark, Paper and
   two high-contrast themes) in a gallery of live thumbnails; separate light
   and dark themes when following Windows; a background opacity slider that

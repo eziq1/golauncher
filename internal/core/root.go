@@ -122,13 +122,19 @@ func rank(cfg config.Config, text string, candidates []Entry, freq map[string]fl
 const FallbackThreshold = 0.5
 
 // fallbackEntries collects the items of the plugin.FallbackProviders for a
-// search that found nothing good, within the root time limit.
+// search that found nothing good, within the root time limit. They are
+// listed by plugin.FallbackOrderer's order, then as the plugins are
+// registered: "Ask AI" before the web search (docs/quicklinks.md §3).
 func (e *Engine) fallbackEntries(ctx context.Context, cfg config.Config, q plugin.Query) []Entry {
 	ctx, cancel := context.WithTimeout(ctx, e.rootTimeout)
 	defer cancel()
 	var out []Entry
 	group := e.core.T("section.fallback")
-	for _, l := range e.enabled(cfg) {
+	providers := slices.Clone(e.enabled(cfg))
+	slices.SortStableFunc(providers, func(a, b *loaded) int {
+		return cmp.Compare(fallbackOrder(a.p), fallbackOrder(b.p))
+	})
+	for _, l := range providers {
 		fp, ok := l.p.(plugin.FallbackProvider)
 		if !ok {
 			continue
@@ -148,6 +154,14 @@ func (e *Engine) fallbackEntries(ctx context.Context, cfg config.Config, q plugi
 		}
 	}
 	return out
+}
+
+// fallbackOrder is p's plugin.FallbackOrderer order, 0 without one.
+func fallbackOrder(p plugin.Plugin) int {
+	if o, ok := p.(plugin.FallbackOrderer); ok {
+		return o.FallbackOrder()
+	}
+	return 0
 }
 
 // tabAction returns the action that Tab runs in the root search with text

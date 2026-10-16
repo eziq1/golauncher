@@ -61,6 +61,29 @@ func writeTheme(t *testing.T, dir, id, data string) {
 	}
 }
 
+// TestRenamedBuiltinThemes: the old IDs of the "Raycast-style" themes still
+// find them, as Crimson (R56), in the configuration and in extends.
+func TestRenamedBuiltinThemes(t *testing.T) {
+	dir := t.TempDir()
+	writeTheme(t, dir, "mine", `{"name": "Mine", "extends": "raycast-light", "colors": {"accent": "#aa0000"}}`)
+	lib := loaded(t, dir)
+	if th, ok := lib.Get("raycast-dark"); !ok || th.ID != "crimson-dark" || th.DisplayName("zh-CN") != "绯红（深色）" {
+		t.Fatalf("raycast-dark = %+v, %v", th, ok)
+	}
+	th, ok := lib.Get("mine")
+	if !ok || th.Dark || th.Colors()["border"] != mui.Hex("#e2e2e5") || len(lib.Problems()) != 0 {
+		t.Fatalf("mine = %+v, %v, problems %+v", th, ok, lib.Problems())
+	}
+	a := config.DefaultAppearance()
+	a.FollowSystem, a.Theme = false, "raycast-dark"
+	if r := Resolve(lib, a, System{}); r.Missing || r.Theme.ID != "crimson-dark" {
+		t.Fatalf("resolved %s, missing %v", r.Theme.ID, r.Missing)
+	}
+	if rep := lib.Validate("other.json", []byte(`{"extends": "raycast-dark"}`)); !rep.OK {
+		t.Fatalf("validate: %+v", rep)
+	}
+}
+
 func loaded(t *testing.T, dir string) *Library {
 	t.Helper()
 	lib := NewLibrary(dir)
@@ -313,7 +336,7 @@ func TestResolveOpaque(t *testing.T) {
 	}
 	a.Material = nil
 	a.FollowSystem = true // golauncher: opacity 0, as before themes
-	if r := Resolve(lib, a, System{}); r.Background != mui.Transparent || r.Tokens.RowSelected != mui.Hex("#2563eb").Alpha(0.9) {
+	if r := Resolve(lib, a, System{}); r.Background != mui.Transparent || r.Tokens.RowSelected != mui.Hex("#2461e6").Alpha(0.9) {
 		t.Errorf("golauncher: %v, row %v", r.Background, r.Tokens.RowSelected)
 	}
 	a.FollowSystem, a.Theme = false, "high-contrast-dark"
@@ -363,14 +386,14 @@ func TestResolveHighContrastAndContrast(t *testing.T) {
 	a := config.DefaultAppearance()
 	r := Resolve(lib, a, System{HighContrast: true})
 	want := mui.LightTheme()
-	if r.UI.TextMuted != want.TextMuted.Mix(want.Text, 0.4) || r.UI.Border != want.Border.Mix(want.Text, 0.45) {
+	if r.UI.TextMuted != mui.Hex("#68686f").Mix(want.Text, 0.4) || r.UI.Border != want.Border.Mix(want.Text, 0.45) {
 		t.Error("high contrast strengthens muted text and borders, as MyGo does")
 	}
 	if r.Tokens.SectionHeader != r.UI.TextMuted {
 		t.Error("launcher colors follow")
 	}
 	// Too translucent: the check says so.
-	a.FollowSystem, a.Theme, a.Opacity = false, "golauncher-light", ptr(0.0)
+	a.FollowSystem, a.Theme, a.Opacity = false, "solarized-dark", ptr(0.0)
 	r = Resolve(lib, a, System{})
 	bad := slices.IndexFunc(r.Contrast, func(c ContrastResult) bool { return !c.OK })
 	if bad < 0 {

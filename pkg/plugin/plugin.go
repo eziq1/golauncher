@@ -78,6 +78,18 @@ type FallbackProvider interface {
 	FallbackItems(ctx context.Context, q Query) ([]Item, error)
 }
 
+// FallbackOrderer places a FallbackProvider's items among the others: the
+// host lists fallback items by FallbackOrder, lowest first, and plugins of
+// equal order (0 without this interface) as they are registered. A generic
+// catch-all, such as searching the web, uses a high order to come last.
+type FallbackOrderer interface {
+	FallbackOrder() int
+}
+
+// FallbackOrderLast is the FallbackOrder of a catch-all fallback that comes
+// after every other (the web search of builtin.quicklinks).
+const FallbackOrderLast = 100
+
 // TabProvider takes the Tab key in the root search: when the user pressed
 // Tab with some text typed and the selected entry takes no arguments (Tab
 // fills in arguments then), the host runs the action of the first enabled

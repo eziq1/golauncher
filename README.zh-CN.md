@@ -30,7 +30,7 @@
   - **AI 对话**（默认关闭，需要你打开）：输入问题后按 `Tab`，或在没有匹配结果时选“问 AI”，就能通过本机安装的 [Claude Code](https://claude.com/product/claude-code) 命令行和你的 Claude 订阅与 Claude 对话（不需要 API Key）。回答实时显示，可以追问，按 `Esc` 停止，复制或粘贴回答，在 Claude 或 ChatGPT 应用中继续；“AI 对话历史”可以打开以前的对话（默认保留 30 天）。Claude 可以使用启动器的插件（“8080 端口被谁占了”“用 winget 装 7-Zip”）：它通过 golauncher 自己的工具搜索和运行插件，每一步都显示在对话里；会改动东西的操作先在启动器里问你（“允许”“本次会话内都允许”“拒绝”，破坏性操作每次都问）。联网搜索可选。
   - **在 Claude 桌面版或 Claude Code 里使用 golauncher**（默认关闭，在“设置 › 插件 › AI › 允许 AI 应用使用 golauncher”打开）：`golauncher.exe mcp` 是一个提供你的插件的 MCP 服务器。设置页可以一键连接 Claude 桌面版（先备份，只改 `golauncher` 这一项），并给出添加到 Claude Code 的 `claude mcp add` 命令。哪些插件允许 AI 使用由你决定（剪贴板历史和第三方插件默认关闭）；“AI 活动记录”列出最近 30 天的每一次工具调用。
 - **设置窗口**（`Ctrl+,`）：快捷键、别名、插件偏好、外观、语言。
-- **主题**（“设置 › 外观”，[docs/themes.md](docs/themes.md)）：18 个内置主题（golauncher 浅色/深色、Raycast 风格、GitHub、Nord、Dracula、Catppuccin、Tokyo Night、Solarized、Gruvbox、One Dark、宣纸和两个高对比度主题），画廊里是实时绘制的缩略图；跟随系统时可以分别选浅色和深色主题；背景不透明度滑块让亚克力或云母材质透出来，文字始终清晰（Windows 关闭透明效果或开启对比度主题时自动变为纯色）；强调色可以用主题的、Windows 的或自己选；还能调圆角、密度和字号。自己的主题是 `%APPDATA%\golauncher\themes` 里的 JSON 文件，可以 `extends` 别的主题，保存后立即生效；`glctl theme validate` 检查格式和对比度。
+- **主题**（“设置 › 外观”，[docs/themes.md](docs/themes.md)）：18 个内置主题（golauncher 浅色/深色、绯红、GitHub、Nord、Dracula、Catppuccin、Tokyo Night、Solarized、Gruvbox、One Dark、宣纸和两个高对比度主题），画廊里是实时绘制的缩略图；跟随系统时可以分别选浅色和深色主题；背景不透明度滑块让亚克力或云母材质透出来，文字始终清晰（Windows 关闭透明效果或开启对比度主题时自动变为纯色）；强调色可以用主题的、Windows 的或自己选；还能调圆角、密度和字号。自己的主题是 `%APPDATA%\golauncher\themes` 里的 JSON 文件，可以 `extends` 别的主题，保存后立即生效；`glctl theme validate` 检查格式和对比度。
 - **中英文界面**：默认跟随 Windows 的显示语言（zh-CN、zh-Hans、zh-SG 显示简体中文，其他显示英文）。要切换语言，打开“设置 › 通用 › 语言”，选择“跟随系统”“English”或“简体中文”，立即生效，不需要重启。在中文界面里，命令的英文名称和关键词照样能搜到，也支持拼音和拼音首字母。
 - **`glctl`**：无头 CLI，驱动的是同一个引擎，你或 AI Agent 不打开界面也能测试所有交互流程。
 
