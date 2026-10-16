@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/eziq1/golauncher/internal/ai/agentrt"
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
@@ -325,6 +326,69 @@ func rawString(raw json.RawMessage) string {
 		return ""
 	}
 	return s
+}
+
+// lostSessionText is the CLI's error when the session to resume is unknown.
+const lostSessionText = "No conversation found with session ID"
+
+// sessionInUse reports whether text is the CLI's error for a session ID
+// that exists already (matched loosely: "… is already in use").
+func sessionInUse(text string) bool {
+	t := strings.ToLower(text)
+	return strings.Contains(t, "already") && (strings.Contains(t, "in use") || strings.Contains(t, "exists"))
+}
+
+// decoder is the agentrt.Decoder of a turn: the parser, and the result line
+// that ended the turn.
+type decoder struct {
+	p   *parser
+	res *outLine
+}
+
+// Line implements agentrt.Decoder.
+func (d *decoder) Line(raw []byte) (end, garbage bool) {
+	res, garbage := d.p.handle(raw)
+	if res != nil {
+		d.res = res
+		return true, false
+	}
+	return false, garbage
+}
+
+// Progress implements agentrt.Decoder. The session ID of init lines is the
+// one golauncher chose (--session-id), so it is not reported.
+func (d *decoder) Progress() agentrt.Progress {
+	return agentrt.Progress{Output: d.p.sawJSON, Started: d.p.sawInit, Emitted: d.p.emitted}
+}
+
+// Outcome implements agentrt.Decoder: it maps the result line that ended
+// the turn.
+func (d *decoder) Outcome(cancelled bool) agentrt.Outcome {
+	st, res := d.p, d.res
+	text := resultText(res)
+	if res.TerminalReason == "aborted_streaming" || cancelled && res.Subtype == "error_during_execution" {
+		return agentrt.Outcome{Kind: agentrt.Cancelled}
+	}
+	if strings.Contains(text, lostSessionText) {
+		return agentrt.Outcome{Kind: agentrt.LostSession}
+	}
+	if !res.IsError && st.errCode == "" {
+		if !st.emitted && text != "" {
+			st.emitted = true
+			st.emit(backend.Event{Kind: backend.EventText, Text: text})
+		}
+		return agentrt.Outcome{Kind: agentrt.Done, Usage: st.usageOf(res)}
+	}
+	if sessionInUse(text) {
+		return agentrt.Outcome{Kind: agentrt.SessionInUse}
+	}
+	if text == "" {
+		text = st.errText
+	}
+	if text == "" {
+		text = res.Subtype
+	}
+	return agentrt.Outcome{Kind: agentrt.Failed, Err: &backend.Error{Kind: classify(st.errCode, text, st.rateLimited), Message: text}}
 }
 
 // userLine is the stream-json input line of a user message. A message that

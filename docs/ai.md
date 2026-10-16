@@ -517,7 +517,7 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
   - 设置里加"连接到 Antigravity"按钮（`--add-mcp`）；
   - 加"在 Antigravity 中继续"（`antigravity chat`）；
   - 启动器里用 Gemini 回答时，走 **Gemini CLI**：`-p`、`-o stream-json`、MCP、`--approval-mode plan` 只读、Google 账号登录。它的 `--resume` 只接受 `latest` 或序号，不接受会话 ID，需要每个对话用单独的工作目录，要实测。
-## 19. 多 CLI 抽象层（R70，方案待确认）
+## 19. 多 CLI 抽象层（R70，方案已确认；第一期见 §20）
 
 **结论**：保留 `backend.Backend`/`Conversation` 作为对话插件的唯一接口，下面拆出共用的"Agent 运行层"和每家的"适配器"；适配器里加一个 **ACP（Agent Client Protocol）通用适配器**。本机 Gemini CLI 0.34 原生支持 `--acp`；Claude Code、Codex 没有内置，可通过 Zed 的 `claude-code-acp`、`codex-acp` 适配器接入（未在本机验证）。
 
@@ -549,3 +549,105 @@ Agent 运行层（新，共用）
 Antigravity 的"连接到 Antigravity"（`--add-mcp`）和"在 Antigravity 中继续"（`antigravity chat`）与此独立，可以并行做。
 
 **风险**：ACP 和各家 CLI 都在快速变化，要锁定验证过的版本、只用协议核心；会话续接是可选能力；用 Zed 适配器需要 Node。
+
+## 20. 实现记录（第一期：Agent 运行层，2026-10-16，R71）
+
+§19 的第一期：把 Claude Code 后端里和具体 CLI 无关的部分抽成共用的运行层，Claude Code 改成它的第一个适配器；设置里加"后端"选择。**用户看到的行为不变。**
+
+### 20.1 结构
+
+| 部分 | 位置 | 说明 |
+|------|------|------|
+| 后端契约 | `plugins/ai/backend` | 不变的 `Backend`/`Conversation`；事件新增 `EventPermission`（`Event.Permission`：工具、参数、选项、`Respond`），错误新增 `ErrUnavailable` |
+| 运行层 | `internal/ai/agentrt` | `Runtime` 实现 `backend.Backend`；`adapter.go`（适配器接口）、`runtime.go`（查找、版本、LRU、工作目录、环境）、`conversation.go`（一轮的重试和退路、停止、释放、关闭）、`process.go`（进程、行队列）、`tools.go`（MCP 工具服务器）、`sessions.go`（会话 ID 映射）、`version.go` |
+| Claude Code 适配器 | `internal/ai/claudecode` | `claudecode.go`（`Info`、命令行、编解码器）、`stream.go`（stream-json 解析，原样保留）、`tools.go`（`--tools`/`--allowedTools`/`--mcp-config` 和配置文件格式）；`Backend` 就是 `agentrt.Runtime` 加这个适配器，`Options`、`ToolServer` 是运行层类型的别名 |
+| 后端注册表 | `internal/builtin/aibackends.go` | `aiBackends()`：按 ID 列出后端（现在只有 `claude-code`），第一个是默认；第二期在这里加 |
+| 插件 | `plugins/ai/backends.go` | `Options.Backends`（`BackendOption{ID, Backend}`）；偏好 `backend`；`chooser` 按偏好转发到选中的后端 |
+
+### 20.2 适配器接口
+
+```go
+type Adapter interface {
+	Info() Info                            // 怎么找、版本范围、要去掉的环境变量、能力
+	Command(l Launch) (Command, error)     // 命令行和要加的环境变量
+	MCPConfig(s MCPServer) ([]byte, error) // 要写成文件的 MCP 配置；nil 表示用别的方式传（Launch.Tools）
+	NewCodec(l Launch) Codec               // 一个进程的协议状态
+	ExitOutcome(text string) Outcome       // 进程没结束这一轮就退出时，按 stderr 末尾分类
+}
+
+type Info struct {
+	ID, Name                string   // "claudecode"（日志、内部错误）、"Claude Code"（显示）
+	Commands, InstallPaths  []string // PATH 上找的命令名、常见安装位置
+	VersionArgs             []string
+	ParseVersion            func(string) string // nil：取第一个 x.y.z
+	MinVersion              string
+	TestedMajor             int
+	EnvDrop                 []string
+	WorkDir                 string // 工作目录下的子目录（Claude 为空）
+	PerTurnOnly, NoPerTurn  bool   // 只有单轮模式（Codex exec）/ 没有单轮模式（ACP）
+	AssignsSessionID        bool   // 会话 ID 由 CLI 分配（ACP、Codex），运行层记映射
+}
+
+// Launch：Path、Dir、Persistent、SessionID、Resume、Model、WebSearch、SystemPrompt、
+//         Tools *MCPServer、MCPConfig（写好的文件路径）、Prompt（单轮的问题）
+
+type Codec interface {
+	Message(text string) ([]byte, error) // 常驻进程：一条用户消息
+	Prompt(text string) []byte           // 单轮进程：写进 stdin 后关闭
+	Interrupt() []byte                   // 常驻进程：停止回答；nil 表示直接结束进程
+	NewDecoder(io TurnIO) Decoder        // TurnIO：Emit（事件）、Reply（往 stdin 写，回答授权请求）
+}
+type Handshaker interface { // 可选：第一条消息前的握手（ACP 的 initialize、session/new|load）
+	Handshake(ctx context.Context, c Conn) (sessionID string, err error)
+}
+type Decoder interface {
+	Line(line []byte) (end, garbage bool) // 一行输出；end：这一轮结束；garbage：根本不是协议
+	Outcome(cancelled bool) Outcome       // Done（含用量）/ Cancelled / Failed / LostSession / SessionInUse
+	Progress() Progress                   // Output、Started、Emitted、SessionID
+}
+```
+
+### 20.3 运行层负责的事（和 §15、§16、§17 的行为一致）
+
+- 查找 CLI（`Options.Path`、`Info.Commands`、`Info.InstallPaths`）和版本门槛（低于 `MinVersion` 报"版本太旧"，主版本不是 `TestedMajor` 时标为未验证并用单轮模式）。
+- 进程：Job Object、不弹控制台；第一次发送时才启动；常驻和单轮两种模式及其退路（第一轮就退出或输出不是协议 → 单轮；崩溃后下一轮重启；会话丢失时用同一 ID 新开；会话被占用时改为续接）；最多 `MaxProcesses` 个常驻进程，超出时释放最久没用的空闲对话；停止回答时常驻进程发 `Interrupt`，5 秒内没结束就杀掉，单轮进程直接杀掉；`Release` 是闲置释放的钩子（3 分钟和窗口隐藏 10 分钟的计时仍在插件里，R59）。
+- 工作目录 `%LOCALAPPDATA%\golauncher\ai`（加 `Info.WorkDir`），去掉 `Info.EnvDrop` 里的环境变量。
+- MCP：由 `ToolServer` 算出这个对话的服务器（令牌、`GOLAUNCHER_AGENT_SESSION`）；适配器要文件时写 `mcp-<对话ID>.json`（0600），对话关闭时删除。
+- 会话 ID：`AssignsSessionID` 的 CLI 把"对话 ID → CLI 会话 ID"记在工作目录的 `sessions.json`，续接时用它；Claude Code 的会话 ID 就是对话 ID，不写这个文件。
+- 错误种类：没安装、版本太旧、"没有回答就结束了"、进程退出码；CLI 自己的错误（没登录、额度）由适配器的解码器分类。
+- 日志：只记长度、耗时、错误种类和进程号，日志带 `backend=<Info.ID>`。
+
+### 20.4 "后端"设置
+
+- 设置 › 插件 › AI 的第二项"后端"（`backend`，下拉框），选项来自注册表，标题是后端的产品名（不翻译）；默认 `claude-code`，保存在插件偏好里。
+- 对话按偏好选后端；换了后端，已有的对话下次发送时关掉旧的对话、在新后端上重新打开。
+- 偏好里的 ID 没有对应的后端（比如别的版本写的配置）：对话里显示"在 设置 › 插件 › AI 里选的后端在这个版本的 golauncher 里没有"，下面附上 ID。
+- `glctl` 的假环境同样只有一个选项，所以 `plugin_list` 金样只多了这一项偏好，其他金样不变。
+
+### 20.5 ACP 和 Codex 怎么接（第二期，没有实现）
+
+| | ACP（`gemini --acp`，或 Zed 的 `claude-code-acp`、`codex-acp`） | Codex CLI（`codex exec --json`） |
+|---|---|---|
+| 模式 | `NoPerTurn`：只有常驻，出问题时重启进程 | `PerTurnOnly`：每轮一个进程 |
+| 会话 | `AssignsSessionID`：`Handshake` 发 `initialize`，再发 `session/load`（续接且对方支持）或 `session/new`，返回对方给的会话 ID | `AssignsSessionID`：解码器从 `thread.started` 报 `Progress.SessionID`；续接用 `codex exec resume <id>` |
+| MCP | `MCPConfig` 返回 nil，`Handshake` 把 `Launch.Tools` 放进 `session/new` 的 `mcpServers` | `MCPConfig` 返回 nil，`Command` 用 `-c mcp_servers.golauncher.*` |
+| 消息 | `Message`：`session/prompt` 请求；它的响应就是这一轮的结束（`stopReason`） | `Prompt`：问题从 stdin 读 |
+| 事件 | `session/update`：`agent_message_chunk` → 文本，`tool_call` → 工具步骤，`tool_call_update` → 结果 | `item.*` → 文本和工具步骤，`turn.completed` → 用量和结束 |
+| 授权 | `session/request_permission` → `EventPermission`，`Respond` 经 `TurnIO.Reply` 回 JSON-RPC 响应 | `--sandbox read-only`，不问 |
+| 停止 | `Interrupt`：`session/cancel` 通知 | 结束进程 |
+
+运行层已经支持这些钩子（`Handshaker`、`TurnIO.Reply`、会话映射、`PerTurnOnly`/`NoPerTurn`），用测试里的假 CLI（测试程序自己按一个简单的行协议回答）验证过，所以第二期只需要写适配器、注册，并在插件里接确认框。
+
+### 20.6 怎么证明行为不变
+
+- **命令行**：重构前先加了 `TestArgvTable`，把 2 种 CLI（`claude.exe`、npm 的 `claude.cmd`）× 常驻/单轮 × 新开/续接 × 工具（关、开、开但没有工具服务器）× 联网 × 模型 × 系统提示（无、两行）共 192 种组合的命令行和额外环境变量录进 `testdata/argv.golden.json`，在重构前的代码上提交；重构后逐字节一致。
+- **原有测试**：`internal/ai/claudecode` 的 `claudecode_test.go`、`real_test.go`、假 `claude`、假 MCP 服务器一行没改；测试里用到的内部名字（`parseVersion`、`compareVersions`、`toolConfigName`、`liveCount`、`env`）在 `export_test.go` 里接到运行层。`plugins/ai` 的原有测试也没改。
+- **金样**：只有 `plugin_list` 多了"后端"偏好。
+- `go test -race` 覆盖 `agentrt`、`claudecode`、`plugins/ai`、`builtin`；真实 CLI 的 `TestRealCLI`、`TestRealCLITools`（`GOLAUNCHER_AI_TESTS=1`）在完成后跑过一次，通过。
+
+### 20.7 和方案不同的地方、遗留问题
+
+- **授权桥接**：§19 把它画在运行层里。实际上运行层只提供通道（`TurnIO.Reply`），请求作为 `EventPermission` 交给插件回答；插件现在没有界面，一律拒绝（`Respond("")`）。第二期接 §5 的确认框，并要定超时和"停止回答时自动拒绝"由谁负责（建议适配器）。Claude Code 不会发这种事件（工具预先批准，确认在启动器自己的工具层里）。
+- **会话映射**的文件不会随删除对话而清理（插件删除对话时没有通知后端）；换后端时，新后端看不到旧后端的上下文（Claude Code 的会话 ID 就是对话 ID，换回来还能接上）。
+- 日志文字变成通用的（例如"agent turn ended"，带 `backend=claudecode`），内容规则不变；内部错误仍以 `claudecode:` 开头。
+- 运行层的"预览命令行"`Runtime.Command` 是为测试导出的，不启动任何进程。

@@ -832,6 +832,19 @@
         "default": false
       },
       {
+        "name": "backend",
+        "type": "select",
+        "title": "Backend",
+        "description": "The AI tool on this computer that answers. It must be installed and signed in.",
+        "default": "claude-code",
+        "options": [
+          {
+            "value": "claude-code",
+            "title": "Claude Code"
+          }
+        ]
+      },
+      {
         "name": "model",
         "type": "select",
         "title": "Model",

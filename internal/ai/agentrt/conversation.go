@@ -1,12 +1,10 @@
-package claudecode
+package agentrt
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,22 +13,9 @@ import (
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
-// lostSessionText is the CLI's error when the session to resume is unknown.
-const lostSessionText = "No conversation found with session ID"
-
-// sessionInUse reports whether text is the CLI's error for a session ID
-// that exists already (matched loosely: "… is already in use").
-func sessionInUse(text string) bool {
-	t := strings.ToLower(text)
-	return strings.Contains(t, "already") && (strings.Contains(t, "in use") || strings.Contains(t, "exists"))
-}
-
-// interruptSeq numbers interrupt requests.
-var interruptSeq atomic.Int64
-
 // conversation is a backend.Conversation.
 type conversation struct {
-	b        *Backend
+	r        *Runtime
 	oo       backend.OpenOptions
 	closedCh chan struct{}
 	busy     atomic.Bool // a turn is running
@@ -39,6 +24,7 @@ type conversation struct {
 	closed   bool
 	turn     *turn
 	proc     *process // the persistent process, nil when none
+	codec    Codec    // the persistent process's codec
 	prev     *process // a released process that may still be exiting
 	oneShot  *process // the per-turn process of the running turn
 	started  bool     // the session exists: later processes resume it
@@ -54,17 +40,17 @@ func (c *conversation) Send(ctx context.Context, text string) (<-chan backend.Ev
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
-		return nil, errors.New("claudecode: conversation closed")
+		return nil, c.r.errorf("conversation closed")
 	}
 	if c.turn != nil {
 		c.mu.Unlock()
-		return nil, errors.New("claudecode: an answer is being written")
+		return nil, c.r.errorf("an answer is being written")
 	}
 	t := newTurn()
 	c.turn = t
 	c.busy.Store(true)
 	c.mu.Unlock()
-	c.b.touch(c)
+	c.r.touch(c)
 	go t.forward(c.closedCh)
 	go func() {
 		select {
@@ -96,11 +82,11 @@ func (c *conversation) Release() {
 		c.mu.Unlock()
 		return
 	}
-	c.proc, c.prev = nil, p
+	c.proc, c.codec, c.prev = nil, nil, p
 	c.mu.Unlock()
-	c.b.drop(c)
-	c.b.log.Debug("releasing process")
-	go p.shutdown(c.b.o.GracePeriod)
+	c.r.drop(c)
+	c.r.log.Debug("releasing process")
+	go p.shutdown(c.r.o.GracePeriod)
 }
 
 // Close implements backend.Conversation.
@@ -113,7 +99,7 @@ func (c *conversation) Close() error {
 	c.closed = true
 	t := c.turn
 	procs := []*process{c.proc, c.prev, c.oneShot}
-	c.proc, c.prev, c.oneShot = nil, nil, nil
+	c.proc, c.codec, c.prev, c.oneShot = nil, nil, nil, nil
 	c.mu.Unlock()
 	close(c.closedCh)
 	if t != nil {
@@ -125,7 +111,7 @@ func (c *conversation) Close() error {
 		}
 	}
 	c.removeToolConfig()
-	c.b.forget(c)
+	c.r.forget(c)
 	return nil
 }
 
@@ -138,7 +124,7 @@ const (
 	kError                          // failed with err
 	kLostSession                    // the CLI does not know the session to resume
 	kInUse                          // the session to start exists already
-	kGarbage                        // the persistent process wrote something that is not JSON
+	kGarbage                        // the persistent process wrote something that is not the protocol
 	kSilentExit                     // the process ended without writing anything for the turn
 )
 
@@ -151,13 +137,41 @@ type attempt struct {
 	first   bool // the process's first turn
 }
 
+// attemptOf maps a decoder's outcome.
+func attemptOf(o Outcome) attempt {
+	switch o.Kind {
+	case Done:
+		return attempt{kind: kDone, usage: o.Usage}
+	case Cancelled:
+		return attempt{kind: kCancelled}
+	case LostSession:
+		return attempt{kind: kLostSession}
+	case SessionInUse:
+		return attempt{kind: kInUse}
+	}
+	return attempt{kind: kError, err: o.Err}
+}
+
+// perTurnMode reports whether the next attempt runs a process of its own.
+func (c *conversation) perTurnMode(cli *cliInfo) bool {
+	if c.r.info.PerTurnOnly {
+		return true
+	}
+	if c.r.info.NoPerTurn {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.r.o.PerTurn || cli.untested || c.perTurn
+}
+
 // run answers a turn, retrying where the CLI's failure allows it.
 func (c *conversation) run(ctx context.Context, t *turn, text string) {
 	start := time.Now()
 	var final backend.Event
 	defer func() {
 		if r := recover(); r != nil {
-			c.b.log.Error("claude code turn panicked", "panic", r, "stack", string(debug.Stack()))
+			c.r.log.Error("agent turn panicked", "panic", r, "stack", string(debug.Stack()))
 			final = backend.Event{Kind: backend.EventError, Err: &backend.Error{Kind: backend.ErrFailed, Message: fmt.Sprint(r)}}
 		}
 		c.mu.Lock()
@@ -166,11 +180,11 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 		}
 		c.busy.Store(false)
 		c.mu.Unlock()
-		c.b.log.Info("claude code turn ended", "kind", final.Kind, "cancelled", final.Cancelled,
+		c.r.log.Info("agent turn ended", "kind", final.Kind, "cancelled", final.Cancelled,
 			"error", errString(final.Err), "duration", time.Since(start), "input_len", len(text), "output_len", t.textLength())
 		t.end(final)
 	}()
-	info, err := c.b.resolve(ctx)
+	cli, err := c.r.resolve(ctx)
 	if err != nil {
 		if t.cancelled() {
 			final = backend.Event{Kind: backend.EventDone, Cancelled: true}
@@ -185,14 +199,12 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 			final = backend.Event{Kind: backend.EventDone, Cancelled: true}
 			return
 		}
-		c.mu.Lock()
-		perTurn := c.b.o.PerTurn || info.untested || c.perTurn
-		c.mu.Unlock()
+		perTurn := c.perTurnMode(cli)
 		var a attempt
 		if perTurn {
-			a = c.perTurnAttempt(t, info, text)
+			a = c.perTurnAttempt(t, cli, text)
 		} else {
-			a = c.persistentAttempt(t, info, text)
+			a = c.persistentAttempt(t, cli, text)
 		}
 		switch a.kind {
 		case kDone:
@@ -204,7 +216,7 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 		case kLostSession:
 			if !retriedLost && !a.emitted {
 				retriedLost = true
-				c.b.log.Warn("claude code lost the session; starting it again")
+				c.r.log.Warn("the CLI lost the session; starting it again")
 				c.mu.Lock()
 				c.forceNew = true
 				c.mu.Unlock()
@@ -217,15 +229,23 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 				continue
 			}
 		case kGarbage:
-			c.b.log.Warn("claude code wrote output that is not stream-json; using one process per turn")
+			if c.r.info.NoPerTurn {
+				c.r.log.Warn("the CLI wrote output that is not its protocol; restarting it")
+				if !retriedRestart && !a.emitted {
+					retriedRestart = true
+					continue
+				}
+				break
+			}
+			c.r.log.Warn("the CLI wrote output that is not its protocol; using one process per turn")
 			c.setPerTurn()
 			if !retriedFallback && !a.emitted {
 				retriedFallback = true
 				continue
 			}
 		case kSilentExit:
-			if !perTurn && a.first && !retriedFallback {
-				c.b.log.Warn("claude code process ended at once; using one process per turn", "error", errString(a.err))
+			if !perTurn && a.first && !retriedFallback && !c.r.info.NoPerTurn {
+				c.r.log.Warn("the CLI's process ended at once; using one process per turn", "error", errString(a.err))
 				c.setPerTurn()
 				retriedFallback = true
 				continue
@@ -236,7 +256,7 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 			}
 		}
 		if a.err == nil {
-			a.err = &backend.Error{Kind: backend.ErrFailed, Message: "Claude Code ended without an answer"}
+			a.err = &backend.Error{Kind: backend.ErrFailed, Message: c.r.info.Name + " ended without an answer"}
 		}
 		final = backend.Event{Kind: backend.EventError, Err: a.err}
 		return
@@ -245,18 +265,22 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 
 // persistentAttempt sends the message to the conversation's persistent
 // process, starting it when needed.
-func (c *conversation) persistentAttempt(t *turn, info *cliInfo, text string) attempt {
-	p, err := c.ensureProcess(info)
+func (c *conversation) persistentAttempt(t *turn, cli *cliInfo, text string) attempt {
+	p, codec, err := c.ensureProcess(cli)
 	if err != nil {
 		return attempt{kind: kError, err: err}
 	}
 	p.turns++
 	first := p.turns == 1
-	if err := p.writeJSON(userLine(text)); err != nil {
+	msg, err := codec.Message(text)
+	if err == nil {
+		err = p.write(msg)
+	}
+	if err != nil {
 		// The process ended; what it wrote is still read below.
 		p.stop()
 	}
-	a := c.pump(t, p, true)
+	a := c.pump(t, p, codec, true)
 	a.first = first
 	if !p.alive() || a.kind != kDone && a.kind != kCancelled && a.kind != kError {
 		// It ended (crashed) or is in no state for another turn: the next
@@ -268,8 +292,8 @@ func (c *conversation) persistentAttempt(t *turn, info *cliInfo, text string) at
 }
 
 // perTurnAttempt answers the turn with a process of its own.
-func (c *conversation) perTurnAttempt(t *turn, info *cliInfo, text string) attempt {
-	dir, err := c.b.dir()
+func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attempt {
+	dir, err := c.r.dir()
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
@@ -278,12 +302,18 @@ func (c *conversation) perTurnAttempt(t *turn, info *cliInfo, text string) attem
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
 	resume := c.takeResume()
-	argv := c.argv(info.path, false, resume, mcpConfig)
-	p, err := startProcess(argv, dir, c.env(), nil)
+	l := c.launch(cli.path, dir, false, resume, mcpConfig)
+	l.Prompt = text
+	cmd, err := c.r.a.Command(l)
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
-	c.b.log.Debug("claude code started", "mode", "per-turn", "pid", p.p.Pid(), "resume", resume)
+	codec := c.r.a.NewCodec(l)
+	p, err := startProcess(cmd.Argv, dir, c.env(cmd), nil)
+	if err != nil {
+		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
+	}
+	c.r.log.Debug("agent CLI started", "mode", "per-turn", "pid", p.p.Pid(), "resume", resume)
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
@@ -292,26 +322,28 @@ func (c *conversation) perTurnAttempt(t *turn, info *cliInfo, text string) attem
 	}
 	c.oneShot = p
 	c.mu.Unlock()
-	if err := p.write([]byte(promptText(text))); err != nil {
-		p.stop()
+	if in := codec.Prompt(text); in != nil {
+		if err := p.write(in); err != nil {
+			p.stop()
+		}
 	}
 	p.closeStdin()
-	a := c.pump(t, p, false)
+	a := c.pump(t, p, codec, false)
 	c.mu.Lock()
 	if c.oneShot == p {
 		c.oneShot = nil
 	}
 	c.mu.Unlock()
 	// The process exits after its result; make sure it does.
-	go p.shutdown(c.b.o.GracePeriod)
+	go p.shutdown(c.r.o.GracePeriod)
 	return a
 }
 
-// pump reads the output of p for one turn until the turn's result or the
-// end of the process. A cancel request interrupts the answer (persistent)
-// or kills the process (per turn).
-func (c *conversation) pump(t *turn, p *process, persistent bool) attempt {
-	st := newParser(t.emit)
+// pump reads the output of p for one turn until the turn's end or the end
+// of the process. A cancel request interrupts the answer (persistent, when
+// the protocol can) or kills the process.
+func (c *conversation) pump(t *turn, p *process, codec Codec, persistent bool) attempt {
+	dec := codec.NewDecoder(TurnIO{Emit: t.emit, Reply: p.write})
 	cancel := t.cancelCh
 	var killTimer <-chan time.Time
 	cancelled := false
@@ -322,19 +354,23 @@ func (c *conversation) pump(t *turn, p *process, persistent bool) attempt {
 			if !ok {
 				break
 			}
-			res, garbage := c.handleLine(st, raw)
-			if st.sawInit {
+			end, garbage := c.decodeLine(dec, raw)
+			pr := dec.Progress()
+			if pr.Started {
 				c.markStarted()
+			}
+			if pr.SessionID != "" {
+				c.recordSession(pr.SessionID)
 			}
 			if garbage {
 				if persistent {
-					return attempt{kind: kGarbage, emitted: st.emitted}
+					return attempt{kind: kGarbage, emitted: pr.Emitted}
 				}
 				continue
 			}
-			if res != nil {
-				a := c.interpret(st, res, cancelled)
-				a.emitted = st.emitted
+			if end {
+				a := attemptOf(dec.Outcome(cancelled))
+				a.emitted = dec.Progress().Emitted
 				return a
 			}
 		}
@@ -342,18 +378,23 @@ func (c *conversation) pump(t *turn, p *process, persistent bool) attempt {
 			if cancelled {
 				return attempt{kind: kCancelled}
 			}
+			pr := dec.Progress()
 			msg := p.stderrText()
-			if sessionInUse(msg) && !st.emitted {
+			if msg == "" {
+				msg = c.r.info.Name + " exited with code " + strconv.Itoa(p.code)
+			}
+			o := c.r.a.ExitOutcome(msg)
+			if o.Kind == SessionInUse && !pr.Emitted {
 				return attempt{kind: kInUse}
 			}
-			if msg == "" {
-				msg = "Claude Code exited with code " + strconv.Itoa(p.code)
+			err := o.Err
+			if err == nil {
+				err = &backend.Error{Kind: backend.ErrFailed, Message: msg}
 			}
-			err := &backend.Error{Kind: classify("", msg, false), Message: msg}
-			if !st.sawJSON && !st.emitted {
+			if !pr.Output && !pr.Emitted {
 				return attempt{kind: kSilentExit, err: err}
 			}
-			return attempt{kind: kError, err: err, emitted: st.emitted}
+			return attempt{kind: kError, err: err, emitted: pr.Emitted}
 		}
 		select {
 		case <-p.lines.sig:
@@ -361,9 +402,12 @@ func (c *conversation) pump(t *turn, p *process, persistent bool) attempt {
 			exited = true // read what is left, then report the end
 		case <-cancel:
 			cancel, cancelled = nil, true
+			var in []byte
 			if persistent {
-				id := "golauncher-interrupt-" + strconv.FormatInt(interruptSeq.Add(1), 10)
-				if err := p.writeJSON(interruptLine(id)); err != nil {
+				in = codec.Interrupt()
+			}
+			if in != nil {
+				if err := p.write(in); err != nil {
 					p.stop()
 				}
 				killTimer = time.After(interruptTimeout)
@@ -371,66 +415,39 @@ func (c *conversation) pump(t *turn, p *process, persistent bool) attempt {
 				p.stop()
 			}
 		case <-killTimer:
-			c.b.log.Warn("claude code did not stop the answer; killing it")
+			c.r.log.Warn("the CLI did not stop the answer; killing it")
 			p.stop()
 		}
 	}
 }
 
-// handleLine parses a line, containing a panic over unexpected output.
-func (c *conversation) handleLine(st *parser, raw []byte) (res *outLine, garbage bool) {
+// decodeLine decodes a line, containing a panic over unexpected output.
+func (c *conversation) decodeLine(dec Decoder, raw []byte) (end, garbage bool) {
 	defer func() {
 		if r := recover(); r != nil {
-			c.b.log.Error("claude code output line panicked", "panic", r, "len", len(raw))
-			res, garbage = nil, false
+			c.r.log.Error("agent CLI output line panicked", "panic", r, "len", len(raw))
+			end, garbage = false, false
 		}
 	}()
-	return st.handle(raw)
+	return dec.Line(raw)
 }
 
-// interpret maps the result line that ended a turn.
-func (c *conversation) interpret(st *parser, res *outLine, cancelled bool) attempt {
-	text := resultText(res)
-	if res.TerminalReason == "aborted_streaming" || cancelled && res.Subtype == "error_during_execution" {
-		return attempt{kind: kCancelled}
-	}
-	if strings.Contains(text, lostSessionText) {
-		return attempt{kind: kLostSession}
-	}
-	if !res.IsError && st.errCode == "" {
-		if !st.emitted && text != "" {
-			st.emitted = true
-			st.emit(backend.Event{Kind: backend.EventText, Text: text})
-		}
-		return attempt{kind: kDone, usage: st.usageOf(res)}
-	}
-	if sessionInUse(text) {
-		return attempt{kind: kInUse}
-	}
-	if text == "" {
-		text = st.errText
-	}
-	if text == "" {
-		text = res.Subtype
-	}
-	return attempt{kind: kError, err: &backend.Error{Kind: classify(st.errCode, text, st.rateLimited), Message: text}}
-}
-
-// ensureProcess returns the conversation's persistent process, starting
-// one when there is none (resuming the session once it exists).
-func (c *conversation) ensureProcess(info *cliInfo) (*process, error) {
+// ensureProcess returns the conversation's persistent process and its codec,
+// starting one when there is none (resuming the session once it exists).
+func (c *conversation) ensureProcess(cli *cliInfo) (*process, Codec, error) {
 	c.mu.Lock()
 	if p := c.proc; p != nil && p.alive() {
+		codec := c.codec
 		c.mu.Unlock()
-		return p, nil
+		return p, codec, nil
 	}
-	c.proc = nil
+	c.proc, c.codec = nil, nil
 	prev := c.prev
 	c.prev = nil
 	c.mu.Unlock()
 	if prev != nil {
 		// Let the released process finish writing the session first.
-		t := time.NewTimer(c.b.o.GracePeriod + time.Second)
+		t := time.NewTimer(c.r.o.GracePeriod + time.Second)
 		select {
 		case <-prev.done:
 		case <-t.C:
@@ -438,36 +455,94 @@ func (c *conversation) ensureProcess(info *cliInfo) (*process, error) {
 		t.Stop()
 		prev.stop()
 	}
-	dir, err := c.b.dir()
+	failed := func(err error) (*process, Codec, error) {
+		return nil, nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+	}
+	dir, err := c.r.dir()
 	if err != nil {
-		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+		return failed(err)
 	}
 	mcpConfig, err := c.writeToolConfig(dir)
 	if err != nil {
-		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+		return failed(err)
 	}
 	resume := c.takeResume()
-	var p *process
-	p, err = startProcess(c.argv(info.path, true, resume, mcpConfig), dir, c.env(), func(p *process) { c.detach(p) })
+	l := c.launch(cli.path, dir, true, resume, mcpConfig)
+	cmd, err := c.r.a.Command(l)
 	if err != nil {
-		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+		return failed(err)
 	}
-	c.b.log.Debug("claude code started", "mode", "persistent", "pid", p.p.Pid(), "resume", resume)
+	codec := c.r.a.NewCodec(l)
+	p, err := startProcess(cmd.Argv, dir, c.env(cmd), func(p *process) { c.detach(p) })
+	if err != nil {
+		return failed(err)
+	}
+	c.r.log.Debug("agent CLI started", "mode", "persistent", "pid", p.p.Pid(), "resume", resume)
+	if hs, ok := codec.(Handshaker); ok {
+		ctx, cancel := context.WithTimeout(context.Background(), handshakeTimeout)
+		go func() {
+			select {
+			case <-c.closedCh: // closed meanwhile
+				cancel()
+			case <-ctx.Done():
+			}
+		}()
+		id, err := hs.Handshake(ctx, p)
+		cancel()
+		if err != nil {
+			p.stop()
+			return failed(err)
+		}
+		if id != "" {
+			c.recordSession(id)
+			c.markStarted()
+		}
+	}
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
 		p.stop()
-		return nil, errors.New("claudecode: conversation closed")
+		return nil, nil, c.r.errorf("conversation closed")
 	}
-	c.proc = p
+	c.proc, c.codec = p, codec
 	c.mu.Unlock()
-	for _, v := range c.b.acquire(c) {
+	for _, v := range c.r.acquire(c) {
 		v.Release()
 	}
 	if !p.alive() {
 		c.detach(p)
 	}
-	return p, nil
+	return p, codec, nil
+}
+
+// launch is what a process of the conversation is started for.
+func (c *conversation) launch(path, dir string, persistent, resume bool, mcpConfig string) Launch {
+	id := c.oo.SessionID
+	if m := c.r.sessionMap(); m != nil {
+		id = ""
+		if resume {
+			id = m.Get(c.oo.SessionID)
+		}
+		resume = id != ""
+	}
+	return Launch{
+		Path: path, Dir: dir, Persistent: persistent,
+		SessionID: id, Resume: resume,
+		Model: c.oo.Model, WebSearch: c.oo.WebSearch, SystemPrompt: c.oo.SystemPrompt,
+		Tools: c.toolServer(), MCPConfig: mcpConfig,
+	}
+}
+
+// recordSession keeps the session ID the CLI reported, for a CLI that
+// assigns them.
+func (c *conversation) recordSession(id string) {
+	m := c.r.sessionMap()
+	if m == nil {
+		return
+	}
+	if err := m.Set(c.oo.SessionID, id); err != nil {
+		c.r.log.Warn("saving the session ID failed", "error", err)
+	}
 }
 
 // detach forgets p as the conversation's persistent process.
@@ -475,11 +550,11 @@ func (c *conversation) detach(p *process) {
 	c.mu.Lock()
 	mine := c.proc == p
 	if mine {
-		c.proc = nil
+		c.proc, c.codec = nil, nil
 	}
 	c.mu.Unlock()
 	if mine {
-		c.b.drop(c)
+		c.r.drop(c)
 	}
 }
 
@@ -504,51 +579,21 @@ func (c *conversation) setPerTurn() {
 	c.mu.Lock()
 	c.perTurn = true
 	p := c.proc
-	c.proc = nil
+	c.proc, c.codec = nil, nil
 	c.mu.Unlock()
 	if p != nil {
 		p.stop()
-		c.b.drop(c)
+		c.r.drop(c)
 	}
 }
 
-// argv is the CLI's command line. Every flag keeps the CLI away from the
-// user's own setup and from this computer: no settings or hooks, no MCP
-// servers but golauncher's (mcpConfig, when set), no slash commands, no
-// local tools, no permission prompts (toolFlags pre-approves the tools the
-// model may use).
-func (c *conversation) argv(path string, persistent, resume bool, mcpConfig string) []string {
-	a := []string{path, "-p"}
-	if persistent {
-		a = append(a, "--input-format", "stream-json")
+// env is the CLI's environment for a process started with cmd.
+func (c *conversation) env(cmd Command) []string {
+	env := c.r.Env()
+	if len(cmd.Env) > 0 {
+		env = proc.MergeEnv(env, cmd.Env)
 	}
-	a = append(a, "--output-format", "stream-json", "--include-partial-messages", "--verbose")
-	if resume {
-		a = append(a, "--resume", c.oo.SessionID)
-	} else {
-		a = append(a, "--session-id", c.oo.SessionID)
-	}
-	a = append(a, "--setting-sources", "")
-	if mcpConfig == "" {
-		// --safe-mode also drops the servers of --mcp-config (verified with
-		// 2.1.296), so with golauncher's tools isolation comes from the other
-		// flags and from c.env (no auto memory); see docs/ai.md §16.
-		a = append(a, "--safe-mode")
-	}
-	a = append(a, "--strict-mcp-config", "--disable-slash-commands")
-	a = append(a, toolFlags(c.oo.WebSearch, mcpConfig)...)
-	a = append(a, "--permission-prompts", "none")
-	if sp := c.oo.SystemPrompt; sp != "" {
-		if proc.IsBatch(path) {
-			// cmd.exe ends the command line at a line break.
-			sp = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(sp)
-		}
-		a = append(a, "--append-system-prompt", sp)
-	}
-	if c.oo.Model != "" {
-		a = append(a, "--model", c.oo.Model)
-	}
-	return a
+	return env
 }
 
 // turn is a running turn: the events go through an unbounded queue to the
@@ -660,24 +705,4 @@ func (t *turn) forward(closed <-chan struct{}) {
 			return
 		}
 	}
-}
-
-func errString(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
-// noAutoMemory turns Claude Code's auto memory off; --safe-mode does that
-// too, but it cannot be used with golauncher's MCP server.
-const noAutoMemory = "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
-
-// env is the CLI's environment for this conversation.
-func (c *conversation) env() []string {
-	env := c.b.env()
-	if c.launcherTools() {
-		env = proc.MergeEnv(env, []string{noAutoMemory})
-	}
-	return env
 }

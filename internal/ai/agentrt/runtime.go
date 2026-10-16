@@ -1,0 +1,372 @@
+package agentrt
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"slices"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/eziq1/golauncher/internal/winapi/proc"
+	"github.com/eziq1/golauncher/plugins/ai/backend"
+)
+
+// Defaults for Options.
+const (
+	DefaultMaxProcesses = 2
+	DefaultGracePeriod  = 2 * time.Second
+)
+
+// interruptTimeout is how long an interrupted answer may take to end before
+// the process is killed.
+const interruptTimeout = 5 * time.Second
+
+// checkTimeout caps the version check; handshakeTimeout a Handshaker.
+const (
+	checkTimeout     = 30 * time.Second
+	handshakeTimeout = 60 * time.Second
+)
+
+// Options configure a Runtime.
+type Options struct {
+	// Path is the CLI to run (a "CLI path" preference); empty looks it up on
+	// PATH and in the usual install locations (Info.Commands,
+	// Info.InstallPaths).
+	Path string
+	// Dir is the working directory of the CLI; empty is
+	// %LOCALAPPDATA%\golauncher\ai (plus Info.WorkDir). It is created when
+	// missing.
+	Dir string
+	// Log receives lengths, durations and errors, never message content.
+	Log *slog.Logger
+	// PerTurn forces one process per turn (unless the CLI has no per-turn
+	// mode).
+	PerTurn bool
+	// MaxProcesses caps the persistent processes kept across conversations
+	// (DefaultMaxProcesses when 0). A busy one is never stopped, so the cap
+	// can be exceeded for a while.
+	MaxProcesses int
+	// Env are NAME=value entries added to (or replacing in) the CLI's
+	// environment.
+	Env []string
+	// GracePeriod is how long a released process may take to exit before it
+	// is killed (DefaultGracePeriod when 0).
+	GracePeriod time.Duration
+	// Tools is golauncher's MCP tool server (docs/ai.md §4.3). With it, a
+	// conversation opened with OpenOptions.LauncherTools lets the model use
+	// the launcher's plugins through that server's tools, and no others.
+	Tools *ToolServer
+}
+
+// Runtime is a backend.Backend running an agent CLI through an Adapter. It is
+// safe for concurrent use.
+type Runtime struct {
+	a    Adapter
+	info Info
+	o    Options
+	log  *slog.Logger
+
+	mu       sync.Mutex
+	cli      *cliInfo
+	convs    map[*conversation]bool
+	live     []*conversation // with a persistent process, least recently used first
+	sessions *SessionMap
+	closed   bool
+}
+
+var _ backend.Backend = (*Runtime)(nil)
+
+// cliInfo is what Check found.
+type cliInfo struct {
+	path     string
+	version  string
+	untested bool
+}
+
+// New returns a runtime for the CLI of a, configured by o.
+func New(a Adapter, o Options) *Runtime {
+	if o.MaxProcesses <= 0 {
+		o.MaxProcesses = DefaultMaxProcesses
+	}
+	if o.GracePeriod <= 0 {
+		o.GracePeriod = DefaultGracePeriod
+	}
+	log := o.Log
+	if log == nil {
+		log = slog.New(slog.DiscardHandler)
+	}
+	info := a.Info()
+	return &Runtime{a: a, info: info, o: o, log: log.With("backend", info.ID), convs: map[*conversation]bool{}}
+}
+
+// Name implements backend.Backend.
+func (r *Runtime) Name() string { return r.info.Name }
+
+// errorf is an internal error of this backend, prefixed with its ID.
+func (r *Runtime) errorf(format string, args ...any) error {
+	return fmt.Errorf(r.info.ID+": "+format, args...)
+}
+
+// Check implements backend.Backend: it finds the CLI and checks its version.
+func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
+	path, err := r.find()
+	if err != nil {
+		return backend.Status{}, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
+	defer cancel()
+	out, code, err := r.runVersion(ctx, path)
+	if err != nil {
+		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+	}
+	parse := r.info.ParseVersion
+	if parse == nil {
+		parse = ParseVersion
+	}
+	ver := parse(out)
+	if code != 0 || ver == "" {
+		msg := strings.TrimSpace(out)
+		if msg == "" {
+			msg = fmt.Sprintf("%s: exit code %d", strings.Join(append([]string{r.command()}, r.info.VersionArgs...), " "), code)
+		}
+		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: msg}
+	}
+	if r.info.MinVersion != "" && CompareVersions(ver, r.info.MinVersion) < 0 {
+		return backend.Status{}, &backend.Error{Kind: backend.ErrVersion, Version: ver}
+	}
+	cli := &cliInfo{path: path, version: ver, untested: MajorOf(ver) != r.info.TestedMajor}
+	r.mu.Lock()
+	r.cli = cli
+	r.mu.Unlock()
+	r.log.Info("agent CLI found", "version", ver, "untested", cli.untested)
+	return backend.Status{Version: ver, Untested: cli.untested}, nil
+}
+
+// command is the CLI's command name, for messages.
+func (r *Runtime) command() string {
+	if len(r.info.Commands) > 0 {
+		return r.info.Commands[0]
+	}
+	return r.info.ID
+}
+
+// resolve returns what the last Check found, running it when needed.
+func (r *Runtime) resolve(ctx context.Context) (*cliInfo, error) {
+	r.mu.Lock()
+	cli := r.cli
+	r.mu.Unlock()
+	if cli != nil {
+		return cli, nil
+	}
+	if _, err := r.Check(ctx); err != nil {
+		return nil, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.cli, nil
+}
+
+// Open implements backend.Backend. The process is started by the first Send.
+func (r *Runtime) Open(_ context.Context, o backend.OpenOptions) (backend.Conversation, error) {
+	if o.SessionID == "" {
+		return nil, r.errorf("no session ID")
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed {
+		return nil, r.errorf("backend closed")
+	}
+	c := &conversation{r: r, oo: o, closedCh: make(chan struct{})}
+	r.convs[c] = true
+	return c, nil
+}
+
+// Close ends every conversation and kills their processes.
+func (r *Runtime) Close() error {
+	r.mu.Lock()
+	r.closed = true
+	convs := make([]*conversation, 0, len(r.convs))
+	for c := range r.convs {
+		convs = append(convs, c)
+	}
+	r.mu.Unlock()
+	for _, c := range convs {
+		c.Close()
+	}
+	return nil
+}
+
+// LiveCount is the number of conversations with a persistent process.
+func (r *Runtime) LiveCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.live)
+}
+
+// Command is the command line, and the variables added to the environment,
+// of a process of a conversation opened with o, for the CLI at path
+// (diagnostics and tests; nothing is written or started).
+func (r *Runtime) Command(o backend.OpenOptions, path string, persistent, resume bool) (Command, error) {
+	c := &conversation{r: r, oo: o}
+	dir := r.o.Dir
+	l := c.launch(path, dir, persistent, resume, "")
+	if l.Tools != nil {
+		if b, err := r.a.MCPConfig(*l.Tools); err == nil && b != nil {
+			l.MCPConfig = filepath.Join(dir, MCPConfigName(o.SessionID))
+		}
+	}
+	return r.a.Command(l)
+}
+
+// forget removes a closed conversation.
+func (r *Runtime) forget(c *conversation) {
+	r.mu.Lock()
+	delete(r.convs, c)
+	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
+	r.mu.Unlock()
+}
+
+// acquire records that c started a persistent process and returns the idle
+// conversations whose processes must be released to stay within
+// MaxProcesses, least recently used first.
+func (r *Runtime) acquire(c *conversation) []*conversation {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
+	r.live = append(r.live, c)
+	var victims []*conversation
+	excess := len(r.live) - r.o.MaxProcesses
+	for _, x := range r.live {
+		if excess <= 0 {
+			break
+		}
+		if x != c && !x.busy.Load() {
+			victims = append(victims, x)
+			excess--
+		}
+	}
+	return victims
+}
+
+// touch marks c as the most recently used, if it has a process.
+func (r *Runtime) touch(c *conversation) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if i := slices.Index(r.live, c); i >= 0 {
+		r.live = append(slices.Delete(r.live, i, i+1), c)
+	}
+}
+
+// drop records that c no longer has a persistent process.
+func (r *Runtime) drop(c *conversation) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
+}
+
+// find locates the CLI.
+func (r *Runtime) find() (string, error) {
+	if r.o.Path != "" {
+		if fi, err := os.Stat(r.o.Path); err == nil && !fi.IsDir() {
+			return r.o.Path, nil
+		}
+		return "", &backend.Error{Kind: backend.ErrNotInstalled, Message: r.o.Path}
+	}
+	info := r.a.Info() // the install locations may depend on the environment
+	for _, name := range info.Commands {
+		if p, err := exec.LookPath(name); err == nil {
+			if abs, err := filepath.Abs(p); err == nil {
+				return abs, nil
+			}
+			return p, nil
+		}
+	}
+	for _, p := range info.InstallPaths {
+		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+			return p, nil
+		}
+	}
+	return "", &backend.Error{Kind: backend.ErrNotInstalled}
+}
+
+// dir returns the CLI's working directory, creating it.
+func (r *Runtime) dir() (string, error) {
+	d := r.o.Dir
+	if d == "" {
+		cache, err := os.UserCacheDir()
+		if err != nil {
+			return "", err
+		}
+		d = filepath.Join(cache, "golauncher", "ai")
+		if r.info.WorkDir != "" {
+			d = filepath.Join(d, r.info.WorkDir)
+		}
+	}
+	if err := os.MkdirAll(d, 0o700); err != nil {
+		return "", err
+	}
+	return d, nil
+}
+
+// sessionMap returns the map of the CLI's session IDs, nil when the chat's
+// ID is the CLI's.
+func (r *Runtime) sessionMap() *SessionMap {
+	if !r.info.AssignsSessionID {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.sessions == nil {
+		dir, err := r.dir()
+		if err != nil {
+			dir = os.TempDir()
+		}
+		r.sessions = NewSessionMap(filepath.Join(dir, "sessions.json"))
+	}
+	return r.sessions
+}
+
+// Env returns the CLI's environment: the launcher's without Info.EnvDrop,
+// with Options.Env.
+func (r *Runtime) Env() []string {
+	env := slices.DeleteFunc(os.Environ(), func(kv string) bool {
+		k, _, _ := strings.Cut(kv, "=")
+		return slices.ContainsFunc(r.info.EnvDrop, func(d string) bool { return strings.EqualFold(k, d) })
+	})
+	return proc.MergeEnv(env, r.o.Env)
+}
+
+// runVersion runs the version command and returns its output and exit code.
+func (r *Runtime) runVersion(ctx context.Context, path string) (string, int, error) {
+	dir, err := r.dir()
+	if err != nil {
+		return "", 0, err
+	}
+	out := &tail{max: 4096}
+	p, err := proc.Start(proc.Options{Argv: append([]string{path}, r.info.VersionArgs...), Dir: dir, Env: r.Env(), Output: out})
+	if err != nil {
+		return "", 0, err
+	}
+	stop := context.AfterFunc(ctx, p.Stop)
+	defer stop()
+	code, err := p.Wait()
+	if err != nil {
+		return "", 0, err
+	}
+	if ctx.Err() != nil {
+		return "", 0, ctx.Err()
+	}
+	return out.String(), code, nil
+}
+
+func errString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
