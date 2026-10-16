@@ -107,3 +107,18 @@
 - 正式版本才会被自动安装；带后缀的 tag（预发布）不会出现在 `/releases/latest`。
 - 可选的 ed25519 签名：仓库变量 `UPDATE_PUBLIC_KEY` 有值时，工作流把公钥写进程序，用 Secret `UPDATE_SIGNING_KEY` 对 `checksums.txt` 签名、验证，并上传 `checksums.txt.sig`；只配了公钥没有私钥会让发布失败。配置步骤见 [auto-update.md §9](auto-update.md)。
 - 发布后可以用 `glctl update check --real` 和 `glctl update download --dry-run --real` 确认新 Release 能被检查到、校验通过（只读，不安装）。
+
+## 10. v0.5.0（2026-10-16，R61）
+
+- **范围**：发布当时的 `main`。自 v0.4.0 以来：
+  - 自动升级（R54）；
+  - 进程管理第一期（R52、R55、R60）；
+  - AI 对话闲置 3 分钟释放进程（R58、R59）；
+  - AI 默认联网，"Ask AI"排在网页搜索前（R56）；
+  - Crimson 主题（原"Raycast-style"），默认主题调深到对比度达标（R56）。
+- **发布前修的问题**：
+  - 自动升级测试辅助代码的数据竞争；
+  - 自动升级的限流测试在 UTC 9 点后必然失败（客户端和服务用了不同的时钟）。
+- **版本号**：0.5.0。新增功能，升次版本号。配置新增 `updates` 对象，旧版读到时会忽略。
+- **自动升级从这一版开始**：0.4.0 及更早的版本没有自动升级，需要手动装一次 0.5.0；之后的版本会自动更新。第一次真机自动升级会发生在下一次发布时，届时看 `%LOCALAPPDATA%\golauncher\logs\update.log`。
+- **签名**：仓库没有设置 `UPDATE_PUBLIC_KEY`，这一版只靠 `checksums.txt` 的 SHA-256 校验（见 §9）。
