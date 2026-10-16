@@ -344,3 +344,51 @@ func (l *Library) Watch(ctx context.Context, interval time.Duration) {
 		}
 	}
 }
+
+// Report is the result of checking a theme file (glctl theme validate).
+type Report struct {
+	File string `json:"file"`
+	ID   string `json:"id"`
+	// OK is false when the theme cannot be used; Warnings and low
+	// Contrast do not stop it.
+	OK       bool             `json:"ok"`
+	Errors   []string         `json:"errors"`
+	Warnings []string         `json:"warnings"`
+	Contrast []ContrastResult `json:"contrast"`
+}
+
+// Validate checks the theme file at path, holding data, as if it were in
+// the theme folder: it may extend a built-in theme or one of l's.
+func (l *Library) Validate(path string, data []byte) Report {
+	r := Report{File: path, ID: IDOf(path), Errors: []string{}, Warnings: []string{}, Contrast: []ContrastResult{}}
+	if _, ok := builtinFiles[r.ID]; ok {
+		r.Errors = append(r.Errors, fmt.Sprintf("%q is the ID of a built-in theme; rename the file", r.ID))
+		return r
+	}
+	f, warnings, err := ParseFile(data)
+	if err != nil {
+		r.Errors = append(r.Errors, err.Error())
+		return r
+	}
+	r.Warnings = append(r.Warnings, warnings...)
+	l.mu.RLock()
+	t, err := build(r.ID, func(id string) (*File, bool) {
+		if id == r.ID {
+			return f, true
+		}
+		if bf, ok := builtinFiles[id]; ok {
+			return bf, true
+		}
+		uf, ok := l.good[id]
+		return uf, ok
+	})
+	l.mu.RUnlock()
+	if err != nil {
+		r.Errors = append(r.Errors, err.Error())
+		return r
+	}
+	r.OK = true
+	r.Warnings = append(r.Warnings, t.Warnings...)
+	r.Contrast = CheckContrast(t)
+	return r
+}

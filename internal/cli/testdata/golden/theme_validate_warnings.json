@@ -1,0 +1,47 @@
+{
+  "file": "testdata/themes/faint.json",
+  "id": "faint",
+  "ok": true,
+  "errors": [],
+  "warnings": [
+    "color \"warning\": invalid color \"rgba(300, 0, 0)\": 300 is not within 0–255; keeping the base theme's",
+    "opacity 1.5: want 0 to 1"
+  ],
+  "contrast": [
+    {
+      "pair": "text/background",
+      "ratio": 2.65,
+      "min": 4.5,
+      "ok": false,
+      "over": "black"
+    },
+    {
+      "pair": "searchText/background",
+      "ratio": 2.65,
+      "min": 4.5,
+      "ok": false,
+      "over": "black"
+    },
+    {
+      "pair": "textMuted/background",
+      "ratio": 5.24,
+      "min": 3,
+      "ok": true,
+      "over": "black"
+    },
+    {
+      "pair": "accentText/accent",
+      "ratio": 1.4,
+      "min": 4.5,
+      "ok": false,
+      "over": "white"
+    },
+    {
+      "pair": "rowSelectedText/rowSelected",
+      "ratio": 1.37,
+      "min": 4.5,
+      "ok": false,
+      "over": "white"
+    }
+  ]
+}

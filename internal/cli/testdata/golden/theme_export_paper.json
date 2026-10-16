@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/eziq1/golauncher/main/docs/theme.schema.json",
+  "colors": {
+    "accent": "#b5352a",
+    "accentText": "#ffffff",
+    "background": "#f6f1e7",
+    "border": "#d8cdb6",
+    "danger": "#9e2a2a",
+    "rowSelected": "#e6dcc6",
+    "rowSelectedText": "#1f1a14",
+    "success": "#3b6e34",
+    "surface": "#ece5d6",
+    "text": "#1f1a14",
+    "textMuted": "#6b5f4f",
+    "tint.accent": "#b5352a",
+    "warning": "#8a5a00"
+  },
+  "dark": false,
+  "density": "standard",
+  "license": "MIT",
+  "material": "acrylic",
+  "name": "Paper",
+  "name.zh-CN": "宣纸",
+  "opacity": 0.88,
+  "radius": 6,
+  "source": "golauncher's own: rice paper, ink and vermilion"
+}

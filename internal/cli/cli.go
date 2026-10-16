@@ -67,6 +67,10 @@ Commands:
   config path | get [key] | set <key> <value>
                                      the user configuration (always the real file)
   i18n check [--src DIR]             check message catalogs and key references
+  theme list | show <id> | validate <file> | export <id> [--themes DIR] [--real]
+                                     themes (docs/themes.md): built-in, plus the files
+                                     in DIR or, with --real, the user's theme folder;
+                                     validate prints errors, warnings and contrast
   attach show|hide|type|key|select|snapshot [arg]
                                      drive the running GUI through its control socket
   mcp [--confirm deny|allow|session] [--ask-open]
@@ -184,6 +188,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.config(rest)
 	case "i18n":
 		return c.i18n(ctx, rest)
+	case "theme":
+		return c.theme(rest)
 	case "attach":
 		return c.attach(rest)
 	case "bench":
