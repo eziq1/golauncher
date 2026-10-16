@@ -31,6 +31,18 @@ type chat struct {
 	steps   []ToolStep
 	cancel  context.CancelFunc
 	usage   *backend.Usage
+
+	// idle stops the chat's process when no message follows for a while.
+	idle    *time.Timer
+	idleGen int // which timer is current
+}
+
+// stopIdle stops the chat's idle timer. Plugin.mu must be held.
+func (ch *chat) stopIdle() {
+	if ch.idle != nil {
+		ch.idle.Stop()
+		ch.idle = nil
+	}
 }
 
 // lastAnswer returns the text of the last answer, or "".
@@ -135,6 +147,7 @@ func (p *Plugin) startTurn(ch *chat, text string) func() {
 	ch.sess.Updated = now
 	ch.msgs = append(ch.msgs, Message{Role: RoleUser, Text: text, Time: now})
 	p.save(ch)
+	ch.stopIdle()
 	ch.busy = true
 	ch.partial.Reset()
 	ch.steps = nil
@@ -225,9 +238,35 @@ func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 	ch.cancel = nil
 	if !p.closed && p.chats[ch.sess.ID] == ch { // not deleted meanwhile
 		p.save(ch)
+		p.armIdle(ch)
 	}
 	p.mu.Unlock()
 	p.push(ch)
+}
+
+// armIdle (re)starts the timer that stops the chat's process once no
+// message has followed its answer for Options.ChatIdleRelease (R59).
+// Plugin.mu must be held.
+func (p *Plugin) armIdle(ch *chat) {
+	ch.stopIdle()
+	ch.idleGen++
+	gen := ch.idleGen
+	ch.idle = time.AfterFunc(p.o.ChatIdleRelease, func() { p.h.Go(func() { p.releaseChat(ch, gen) }) })
+}
+
+// releaseChat stops the process of an idle chat (the timer of generation
+// gen fired); the conversation stays, and the next message resumes the
+// session.
+func (p *Plugin) releaseChat(ch *chat, gen int) {
+	p.mu.Lock()
+	if ch.idle == nil || ch.idleGen != gen || ch.busy || ch.conv == nil || p.closed {
+		p.mu.Unlock()
+		return
+	}
+	ch.idle = nil
+	conv := ch.conv
+	p.mu.Unlock()
+	conv.Release()
 }
 
 // errorText is the backend's own message of err.

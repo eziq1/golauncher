@@ -485,3 +485,13 @@ claude -p --input-format stream-json --output-format stream-json --include-parti
 
 - **联网搜索默认打开**：偏好 `webSearch`（"允许联网搜索"）的默认值从 `false` 改为 `true`。从没改过这一项的用户，新开的对话就能搜索网页（`--tools WebSearch,WebFetch`，§15.2），系统提示里也会加上"可以搜索网页"那一句（`systemPrompt` 本来就按这个偏好决定）；在设置里明确关掉过的（配置里存了 `false`）保持关闭。联网工具只访问网络，不涉及本机，仍然不弹任何授权。测试：`plugins/ai` 的 `TestWebSearchPreference`（默认开、明确关掉时关），`plugin_list` golden 的默认值。
 - **"问 AI"排在网页搜索前面**：主搜索没有好结果时，"备选命令"一节先列"问 AI：…"，再列"用 Google/Bing 搜索…"（以前反过来）。做法不是调整插件的注册顺序，而是 SDK 新增一个可选接口 `plugin.FallbackOrderer`（`FallbackOrder() int`）：宿主按它从小到大排列各插件的备选条目，相同的（没实现这个接口的都是 0）按注册顺序。网页搜索是"什么都能接"的兜底，`builtin.quicklinks` 返回 `plugin.FallbackOrderLast`（100），排在所有其他备选条目之后，以后新增的插件的备选条目也会排在它前面。打开了 AI 时，没有结果按 `Enter` 现在运行"问 AI"；AI 没打开（默认）或关掉了"问 AI"偏好时，"问 AI"不出现，只有网页搜索，和以前一样。`Tab` 不受影响，仍然是 AI（quicklinks 没有 `TabProvider`）。测试：`internal/core` 的 `TestFallbackOrder`（网页搜索的插件注册在前，仍然排在后面），`session_ai_fallback` golden 里两条的顺序。
+### 修订：对话闲置 3 分钟释放进程（R58、R59，2026-10-16）
+
+- **问题**（R58）：每个对话常驻一个 `claude.exe`，它又启动一个 `golauncher mcp` 桥，所以两个对话就多出两个 golauncher 进程。原来只在"窗口隐藏满 10 分钟"后释放，而每次显示窗口都会重新计时，常用时几乎不释放。
+- **修改**（R59，你只选了这一条）：
+  - 每个对话有自己的闲置计时器，发消息时停止计时，回答结束时重新开始；
+  - 满 3 分钟且不在回答中，就释放这个对话的 `claude.exe`，不管窗口是否显示。进程在 Job Object 里，它启动的桥进程也一起结束；
+  - 之后再发消息时，用 `--resume` 接上原来的会话，第一句会慢几秒。
+  - 原来的"窗口隐藏 10 分钟"规则保留：它还会把不再显示的对话从内存里移走。
+- **没做的**：关闭对话后 2 分钟释放、启动器内的对话改用 HTTP 方式的 MCP（不再启动桥进程）。所以对话进行中，仍然是一个 `claude.exe` 加一个桥。
+- **测试**：`TestChatIdleRelease` 验证窗口显示时，对话闲置后会释放进程，下一条消息后又会重新计时。

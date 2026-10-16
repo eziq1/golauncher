@@ -96,6 +96,10 @@ Before 1.0.0, minor versions may contain breaking changes.
   code: it checks the process's creation time instead of its name, and
   refuses protected processes with a message.
 
+### Fixed
+
+- **AI Chat no longer leaves processes running** (R58, R59): a chat's `claude.exe` (and the `golauncher mcp` bridge it starts) stops 3 minutes after its last answer, even while the launcher is in use; the next message resumes the session. Before, they stopped only 10 minutes after the window hid, which rarely happened.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

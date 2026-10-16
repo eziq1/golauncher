@@ -467,3 +467,39 @@ func TestBusy(t *testing.T) {
 		t.Fatal("not busy while an answer is written")
 	}
 }
+
+// TestChatIdleRelease: a chat's process stops once no message follows its
+// answer for ChatIdleRelease, while the window still shows (R59).
+func TestChatIdleRelease(t *testing.T) {
+	fake := &backend.Fake{}
+	p := NewWithOptions(Options{Backend: fake, Sync: true, ChatIdleRelease: 20 * time.Millisecond})
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.Prefs.SetValues(map[string]jsontext.Value{prefEnabled: jsontext.Value("true")})
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	defer p.Close()
+	openChat(t, p, "v1", chatPayload{Text: "q"})
+	deadline := time.Now().Add(5 * time.Second)
+	for fake.Released() != 1 {
+		if time.Now().After(deadline) {
+			t.Fatal("the idle chat's conversation was not released")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	// A new message resumes the chat (the conversation is in use again)
+	// and starts the timer again.
+	p.send("v1", "again")
+	if s := fake.Sends(); len(s) != 2 {
+		t.Fatalf("sends = %q", s)
+	}
+	for fake.Released() != 1 {
+		if time.Now().After(deadline) {
+			t.Fatal("the chat was not released again after the next answer")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}

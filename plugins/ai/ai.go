@@ -51,6 +51,10 @@ const (
 	// defaultIdleRelease is how long after the window hides the CLI
 	// processes are stopped (docs/ai.md §6.1); the chats resume later.
 	defaultIdleRelease = 10 * time.Minute
+	// defaultChatIdleRelease is how long after its last message or answer a
+	// chat's CLI process is stopped, whether the window shows or not (R59);
+	// the next message resumes the session.
+	defaultChatIdleRelease = 3 * time.Minute
 	// defaultRetentionDays is how long chats are kept (docs/ai.md §14).
 	defaultRetentionDays = 30
 	// checkTTL is how long a successful backend check is trusted.
@@ -73,6 +77,8 @@ type Options struct {
 	HasProtocol func(scheme string) bool
 	// IdleRelease overrides defaultIdleRelease.
 	IdleRelease time.Duration
+	// ChatIdleRelease overrides defaultChatIdleRelease.
+	ChatIdleRelease time.Duration
 	// NewID returns the ID of a new chat (nil: a random UUID). glctl numbers
 	// them so that its output is reproducible.
 	NewID func() string
@@ -116,6 +122,9 @@ func NewWithOptions(o Options) *Plugin {
 	}
 	if o.IdleRelease == 0 {
 		o.IdleRelease = defaultIdleRelease
+	}
+	if o.ChatIdleRelease == 0 {
+		o.ChatIdleRelease = defaultChatIdleRelease
 	}
 	if o.NewID == nil {
 		o.NewID = newSessionID
@@ -191,6 +200,9 @@ func (p *Plugin) Close() error {
 	}
 	if p.idle != nil {
 		p.idle.Stop()
+	}
+	for _, ch := range p.chats {
+		ch.stopIdle()
 	}
 	chats := p.chats
 	p.chats = map[string]*chat{}
