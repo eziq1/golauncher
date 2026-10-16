@@ -18,13 +18,14 @@ import (
 // The selected text (docs/selected-text.md): when the launcher shows, the
 // front end hands the engine a reader of the text selected in the window
 // that was active; the engine runs it in the background within
-// selectionBudget, keeps the result for this show only (never on disk,
+// the selection budget, keeps the result for this show only (never on disk,
 // never logged), clears it when the launcher hides, and gives it to the
 // plugins declaring plugin.PermSelection (plugin.SelectionProvider), whose
 // items form the "Selected Text" section at the top of the root search.
 
-// selectionBudget bounds reading the selection (phase 2, §3.4).
-var selectionBudget = 250 * time.Millisecond
+// defaultSelectionBudget bounds reading the selection (phase 2, §3.4);
+// Options.SelectionBudget overrides it.
+const defaultSelectionBudget = 250 * time.Millisecond
 
 // maxSelectionRows is the number of rows of the selected-text section while
 // nothing is typed: the preview row and at most 6 actions (§12.5).
@@ -56,7 +57,7 @@ func (e *Engine) DetectSelection(read SelectionReader) {
 	e.ctx.mu.Unlock()
 	host.Go(e.log, "selection", func() {
 		start := time.Now()
-		ctx, cancel := context.WithTimeout(context.Background(), selectionBudget)
+		ctx, cancel := context.WithTimeout(context.Background(), e.selBudget)
 		defer cancel()
 		type result struct {
 			s  plugin.Selection
@@ -76,7 +77,7 @@ func (e *Engine) DetectSelection(read SelectionReader) {
 				e.setSelection(gen, selGen, &r.s)
 			}
 		case <-ctx.Done():
-			e.log.Info("selection read timed out", "after", selectionBudget)
+			e.log.Info("selection read timed out", "after", e.selBudget)
 		}
 	})
 }

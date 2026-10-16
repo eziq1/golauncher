@@ -237,6 +237,9 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		System:      o.System,
 		Tasks:       env.Tasks,
 		RootTimeout: rootTimeout(o.Fake),
+		// The same for the selected text: the fake environment's readers
+		// (tests, glctl) are not bound by the real 250ms budget.
+		SelectionBudget: rootTimeout(o.Fake),
 	})
 	if err != nil {
 		env.Tasks.Close()

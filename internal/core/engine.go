@@ -43,6 +43,9 @@ type Options struct {
 	System   System
 	// RootTimeout bounds each plugin's RootItems call (default 150ms).
 	RootTimeout time.Duration
+	// SelectionBudget bounds reading the selected text (default 250ms,
+	// docs/selected-text.md §3.4).
+	SelectionBudget time.Duration
 	// Tasks is the background task manager (nil: no background tasks).
 	Tasks TaskService
 }
@@ -75,6 +78,7 @@ type Engine struct {
 	log         *slog.Logger
 	core        *i18n.Localizer
 	rootTimeout time.Duration
+	selBudget   time.Duration // reading the selected text
 	tasks       TaskService
 
 	notifyMu sync.Mutex
@@ -131,6 +135,7 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 		log:         o.Services.Log,
 		core:        o.Services.I18n.Localizer(i18n.CoreNamespace),
 		rootTimeout: cmp.Or(o.RootTimeout, 150*time.Millisecond),
+		selBudget:   cmp.Or(o.SelectionBudget, defaultSelectionBudget),
 		tasks:       o.Tasks,
 		byID:        map[string]*loaded{},
 	}
