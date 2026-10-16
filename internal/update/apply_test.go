@@ -103,7 +103,7 @@ func (f *fakeSystem) ScheduleRemoval(string, []string) error    { return nil }
 type helperSystem struct {
 	mu       sync.Mutex
 	started  []started
-	procs    []*exec.Cmd
+	procs    []*proc
 	waitErr  error
 	startErr error
 }
@@ -142,7 +142,7 @@ func (h *helperSystem) Start(exe string, args, env []string) (update.Process, er
 	}()
 	h.mu.Lock()
 	h.started = append(h.started, started{exe, args, env, data})
-	h.procs = append(h.procs, cmd)
+	h.procs = append(h.procs, p)
 	h.mu.Unlock()
 	return p, nil
 }
@@ -151,9 +151,13 @@ func (h *helperSystem) Start(exe string, args, env []string) (update.Process, er
 func (h *helperSystem) killAll() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for _, c := range h.procs {
-		if c.ProcessState == nil {
-			_ = c.Process.Kill()
+	for _, p := range h.procs {
+		// The done channel, not cmd.ProcessState: Wait writes that on
+		// another goroutine.
+		select {
+		case <-p.done:
+		default:
+			_ = p.Kill()
 		}
 	}
 }
