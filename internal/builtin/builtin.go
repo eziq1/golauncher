@@ -167,7 +167,7 @@ func FakeOn(platform, dir string, pluginRoots ...string) []plugin.Plugin {
 		timer.New(),
 		files.NewWithOptions(files.Options{Which: fakeWhich}),
 		everything.NewWithBackend(everything.FixtureBackend(fixture(dir, "files.json"))),
-		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen}),
+		scripts.NewWithOptions(scripts.Options{Directories: fixtureDirs(dir, "scripts"), Open: noOpen, Sync: true}),
 		fakeScoop(dir),
 		winget.NewWithOptions(winget.FixtureOptions(dir)),
 		system.NewWithOptions(system.Options{System: system.NewFake(), Sync: true}),

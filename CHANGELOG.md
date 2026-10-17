@@ -8,6 +8,21 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A slow scripts folder no longer holds up the start** (R88, code review
+  3.2): the Script Commands plugin scans its folders in the background
+  instead of during startup, so a slow or disconnected network folder cannot
+  delay the launcher. A search made before the scan ends is shown again
+  when the scripts are known.
+
+### Changed
+
+- Internal: the background refresh scheduling of the Homebrew, WinGet and
+  Scoop plugins and the whole-second refresh of the World Clock and Timers
+  share small helpers in `pkg/plugin/bg`; the Files plugin quotes command
+  lines with `internal/winapi/cmdline` (code review 5). No visible change.
+
 ## [0.8.0] - 2026-10-17
 
 ### Added

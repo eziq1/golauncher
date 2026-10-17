@@ -805,8 +805,4 @@ func TestIndexStampRefresh(t *testing.T) {
 }
 
 // isListing reports whether a winget list runs.
-func (p *Plugin) isListing() bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.listing
-}
+func (p *Plugin) isListing() bool { return p.listing.Running() }

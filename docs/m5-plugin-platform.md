@@ -290,7 +290,7 @@ func main() { rpcserve.Serve(hello.New()) }
 
 **插件 `builtin.scripts`**：
 
-- **扫描目录**：偏好项 `directories`（stringList），默认是 `%APPDATA%\golauncher\scripts`。扫描时机：启动时、目录内容变化时（每次窗口显示时检查修改时间），变化后调用 `Invalidate("")`。
+- **扫描目录**：偏好项 `directories`（stringList），默认是 `%APPDATA%\golauncher\scripts`。扫描时机：启动时、目录内容变化时（每次窗口显示时检查修改时间），变化后调用 `Invalidate("")`。启动时的扫描在后台进行（R88），`Init` 不等它，慢速或断开的网络目录不会拖住启动；扫描完成前的根搜索只返回已知结果，扫描完成后调用 `Invalidate("")` 让宿主重新拉取。glctl 的假环境用 `Options.Sync` 在 `Init` 里同步扫描，保证结果确定。
 - **解释器**：
 
   | 扩展名 | 执行方式 |

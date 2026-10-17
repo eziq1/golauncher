@@ -54,7 +54,7 @@ func TestWithHost(t *testing.T) {
 	ticks.tick(t) // pulled since the last tick (before the text was cleared)
 	ticks.tick(t) // first miss
 	ticks.tick(t) // second miss: stop
-	eventually(t, "the root loop stopped", func() bool { return p.running.Load() == 0 })
+	eventually(t, "the root loop stopped", func() bool { return p.loops.Running() == 0 })
 
 	// The view gets pushes and stops when closed.
 	if _, err := ctrl.OpenCommand(t.Context(), ID, cmdWorld); err != nil {
@@ -70,14 +70,14 @@ func TestWithHost(t *testing.T) {
 		}
 		ctrl.Wait()
 	}
-	eventually(t, "the view loop stopped", func() bool { return p.running.Load() == 0 })
+	eventually(t, "the view loop stopped", func() bool { return p.loops.Running() == 0 })
 
 	// Hiding the launcher stops the root refresh.
 	ctrl.SetText(t.Context(), "time")
 	ctrl.Wait()
-	if p.running.Load() != 1 {
-		t.Fatalf("%d loops", p.running.Load())
+	if p.loops.Running() != 1 {
+		t.Fatalf("%d loops", p.loops.Running())
 	}
 	env.Services.Bus.Publish(plugin.EventWindowHidden)
-	eventually(t, "the loops stopped", func() bool { return p.running.Load() == 0 })
+	eventually(t, "the loops stopped", func() bool { return p.loops.Running() == 0 })
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
-func (e *env) running() int { return int(e.p.running.Load()) }
+func (e *env) running() int { return e.p.loops.Running() }
 
 func (e *env) waitStopped(t *testing.T) {
 	t.Helper()

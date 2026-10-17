@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/internal/winapi/cmdline"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -197,7 +198,7 @@ func TestSelectionItems(t *testing.T) {
 	if slices.Contains(ids(items), "sha256") {
 		t.Error("checksum for two files")
 	}
-	if a := find(t, items, "vscode-selected").Actions[0]; openOpts(t, a).Args != quoteArgs(doc, file) {
+	if a := find(t, items, "vscode-selected").Actions[0]; openOpts(t, a).Args != cmdline.Join(doc, file) {
 		t.Errorf("vscode args %q", openOpts(t, a).Args)
 	}
 }
@@ -335,19 +336,39 @@ func TestSHA256(t *testing.T) {
 	}
 }
 
+// TestQuoteArg: the plugin quotes command-line arguments with cmdline.Quote
+// and cmdline.Join, which replaced its own copy (code review 5); these are
+// the cases that copy was tested with, plus a few more.
 func TestQuoteArg(t *testing.T) {
 	for in, want := range map[string]string{
-		`C:\work`:     `C:\work`,
-		`C:\My Files`: `"C:\My Files"`,
-		`C:\`:         `C:\`,
-		`D:\a b\`:     `"D:\a b\\"`,
-		``:            `""`,
-		`say "hi"`:    `"say \"hi\""`,
-		`C:\x y\"q`:   `"C:\x y\\\"q"`,
-		`D:\项目\季度 报告`: `"D:\项目\季度 报告"`,
+		`C:\work`:      `C:\work`,
+		`C:\My Files`:  `"C:\My Files"`,
+		`C:\`:          `C:\`,
+		`D:\a b\`:      `"D:\a b\\"`,
+		`D:\a b\\`:     `"D:\a b\\\\"`,
+		``:             `""`,
+		`say "hi"`:     `"say \"hi\""`,
+		`"`:            `"\""`,
+		`C:\x y\"q`:    `"C:\x y\\\"q"`,
+		`a\\b`:         `a\\b`,
+		"tab\there":    "\"tab\there\"",
+		`D:\项目\季度 报告`:  `"D:\项目\季度 报告"`,
+		`C:\no\quote\`: `C:\no\quote\`,
 	} {
-		if got := quoteArg(in); got != want {
-			t.Errorf("quoteArg(%q) = %s, want %s", in, got, want)
+		if got := cmdline.Quote(in); got != want {
+			t.Errorf("cmdline.Quote(%q) = %s, want %s", in, got, want)
+		}
+	}
+	for _, tt := range []struct {
+		args []string
+		want string
+	}{
+		{nil, ``},
+		{[]string{``}, `""`},
+		{[]string{`C:\a b\`, `x`, ``}, `"C:\a b\\" x ""`},
+	} {
+		if got := cmdline.Join(tt.args...); got != tt.want {
+			t.Errorf("cmdline.Join(%q) = %s, want %s", tt.args, got, tt.want)
 		}
 	}
 }

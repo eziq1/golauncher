@@ -139,10 +139,7 @@ func (p *Plugin) start(req opRequest) (plugin.Result, error) {
 	if err != nil {
 		return failure(t.T("toast.cannotRun"), err.Error()), nil
 	}
-	p.mu.Lock()
-	closed := p.closed
-	p.mu.Unlock()
-	if closed {
+	if p.work.Closed() {
 		return failure(t.T("toast.cannotRun"), t.T("error.closed")), nil
 	}
 	cmd := p.command(steps)
@@ -162,9 +159,8 @@ func (p *Plugin) start(req opRequest) (plugin.Result, error) {
 func (p *Plugin) opDone(plugin.TaskResult) {
 	p.mu.Lock()
 	p.reclaimIx = nil // folders and the cache may have changed
-	closed := p.closed
 	p.mu.Unlock()
-	if closed {
+	if p.work.Closed() {
 		return
 	}
 	if p.opts.Sync {

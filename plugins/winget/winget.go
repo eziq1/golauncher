@@ -26,6 +26,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // ID is the plugin ID.
@@ -118,25 +119,22 @@ type Plugin struct {
 	ctx    context.Context // cancelled by Close
 	cancel context.CancelFunc
 	unsubs []func()
-	wg     sync.WaitGroup
+	work   bg.Group // background work; closed by Close
 
-	indexMu sync.Mutex // serializes index refreshes
+	indexMu    sync.Mutex   // serializes index refreshes
+	indexing   bg.Refresher // background index refreshes
+	indexReady bg.Ready     // the first index refresh ended
+	listing    bg.Refresher // background runs of `winget list`
+	listReady  bg.Ready     // the installed packages are known
 
-	mu         sync.Mutex
-	closed     bool
-	sources    []Source
-	index      *Index
-	indexErr   error
-	indexReady chan struct{} // closed when the first index refresh ended
-	indexing   bool
-	indexAgain bool
-	inst       *installedState
-	listReady  chan struct{} // closed when installed packages are known
-	listing    bool
-	listAgain  bool
-	listTried  time.Time
-	pins       map[string]Pin
-	shows      map[string]*Details // by "source/id/version"
+	mu        sync.Mutex
+	sources   []Source
+	index     *Index
+	indexErr  error
+	inst      *installedState
+	listTried time.Time
+	pins      map[string]Pin
+	shows     map[string]*Details // by "source/id/version"
 }
 
 var (
@@ -155,7 +153,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Getenv == nil {
 		o.Getenv = os.Getenv
 	}
-	return &Plugin{opts: o, indexReady: make(chan struct{}), listReady: make(chan struct{}), shows: map[string]*Details{}}
+	return &Plugin{opts: o, shows: map[string]*Details{}}
 }
 
 // Manifest implements plugin.Plugin.
@@ -237,7 +235,7 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if st, err := loadInstalledCache(h.CacheDir()); err == nil {
 		p.inst = st
-		close(p.listReady)
+		p.listReady.Done()
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		h.Logger().Warn("winget: ignoring the cache of installed packages", "err", err)
 	}
@@ -256,36 +254,17 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 // and waits for background work. Operations are tasks of the host, which
 // stops them when golauncher quits.
 func (p *Plugin) Close() error {
-	p.mu.Lock()
-	if p.closed || p.h == nil {
-		p.closed = true
-		p.mu.Unlock()
+	if !p.work.Close() || p.h == nil {
 		return nil
 	}
-	p.closed = true
-	p.mu.Unlock()
 	for _, u := range p.unsubs {
 		u()
 	}
 	if p.cancel != nil {
 		p.cancel()
 	}
-	p.wg.Wait()
+	p.work.Wait()
 	return nil
-}
-
-// spawnLocked runs fn in the background through Host.Go unless the plugin
-// is closed; p.mu is held. It reports whether fn was started.
-func (p *Plugin) spawnLocked(fn func()) bool {
-	if p.closed {
-		return false
-	}
-	p.wg.Add(1)
-	p.h.Go(func() {
-		defer p.wg.Done()
-		fn()
-	})
-	return true
 }
 
 // ---- sources and index ----
@@ -329,13 +308,7 @@ func (p *Plugin) waitIndex(ctx context.Context) (*Index, error) {
 	if ix != nil {
 		return ix, err
 	}
-	timer := time.NewTimer(indexWait)
-	defer timer.Stop()
-	select {
-	case <-p.indexReady:
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	p.indexReady.Wait(ctx, indexWait)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.index, cmpErr(p.indexErr, err)
@@ -350,28 +323,15 @@ func cmpErr(a, b error) error {
 
 // scheduleIndex refreshes the index in the background (listing the sources
 // first with withSources); calls during a refresh cause one more.
+// (The runs requested during a refresh do not list the sources again.)
 func (p *Plugin) scheduleIndex(withSources bool) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.indexing {
-		p.indexAgain = true
-		return
-	}
-	p.indexing = p.spawnLocked(func() {
-		if withSources || p.Sources() == nil {
+	first := true
+	p.indexing.Request(&p.work, p.h, func() {
+		if first && (withSources || p.Sources() == nil) {
 			p.loadSources()
 		}
-		for {
-			p.refreshIndex(true)
-			p.mu.Lock()
-			if !p.indexAgain || p.closed {
-				p.indexing, p.indexAgain = false, false
-				p.mu.Unlock()
-				return
-			}
-			p.indexAgain = false
-			p.mu.Unlock()
-		}
+		first = false
+		p.refreshIndex(true)
 	})
 }
 
@@ -424,7 +384,6 @@ func (p *Plugin) refreshIndex(notify bool) {
 		log.Warn("winget: reading the index", "err", err)
 	}
 	p.mu.Lock()
-	first := p.index == nil && p.indexErr == nil
 	if changed || p.index == nil {
 		p.index = newIndex(cats)
 	}
@@ -434,9 +393,7 @@ func (p *Plugin) refreshIndex(notify bool) {
 		p.indexErr = nil
 	}
 	p.mu.Unlock()
-	if first {
-		close(p.indexReady)
-	}
+	p.indexReady.Done()
 	if notify && changed {
 		p.h.Invalidate("")
 	}
@@ -490,38 +447,14 @@ func (p *Plugin) waitInstalled(ctx context.Context) *installedState {
 	if st := p.Installed(); st != nil {
 		return st
 	}
-	timer := time.NewTimer(listWait)
-	defer timer.Stop()
-	select {
-	case <-p.listReady:
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	p.listReady.Wait(ctx, listWait)
 	return p.Installed()
 }
 
 // scheduleInstalled runs `winget list` in the background; calls while it
 // runs cause one more run afterwards.
 func (p *Plugin) scheduleInstalled() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.listing {
-		p.listAgain = true
-		return
-	}
-	p.listing = p.spawnLocked(func() {
-		for {
-			p.refreshInstalled(true)
-			p.mu.Lock()
-			if !p.listAgain || p.closed {
-				p.listing, p.listAgain = false, false
-				p.mu.Unlock()
-				return
-			}
-			p.listAgain = false
-			p.mu.Unlock()
-		}
-	})
+	p.listing.Request(&p.work, p.h, func() { p.refreshInstalled(true) })
 }
 
 // listArgs are the arguments of the `winget list` that reads the installed
@@ -550,11 +483,10 @@ func (p *Plugin) refreshInstalled(notify bool) {
 	pins := p.loadPins(ctx)
 	now := p.h.Now()
 	p.mu.Lock()
-	if p.closed {
+	if p.work.Closed() {
 		p.mu.Unlock()
 		return
 	}
-	first := p.inst == nil
 	p.listTried = now
 	p.pins = pins
 	switch {
@@ -569,9 +501,7 @@ func (p *Plugin) refreshInstalled(notify bool) {
 	}
 	st := p.inst
 	p.mu.Unlock()
-	if first {
-		close(p.listReady)
-	}
+	p.listReady.Done()
 	if err != nil {
 		log.Warn("winget: listing installed packages", "err", err)
 	} else {

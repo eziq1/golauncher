@@ -23,6 +23,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // ID is the plugin ID.
@@ -86,18 +87,16 @@ type Plugin struct {
 	root   string
 	global string
 	unsubs []func()
-	wg     sync.WaitGroup
+	work   bg.Group // background work; closed by Close
 
-	refreshMu sync.Mutex // serializes index refreshes
-	shellOnce sync.Once
-	shellPath string
+	refreshMu  sync.Mutex   // serializes index refreshes
+	refreshing bg.Refresher // background index refreshes
+	ready      bg.Ready     // the first index is set
+	shellOnce  sync.Once
+	shellPath  string
 
-	mu         sync.Mutex
-	closed     bool
-	index      *Index
-	ready      chan struct{} // closed when the first index is set
-	refreshing bool
-	again      bool
+	mu    sync.Mutex
+	index *Index
 	// The last cleanup measurement (see reclaimFor).
 	reclaim   Reclaim
 	reclaimIx *Index
@@ -120,7 +119,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Getenv == nil {
 		o.Getenv = os.Getenv
 	}
-	return &Plugin{opts: o, ready: make(chan struct{})}
+	return &Plugin{opts: o}
 }
 
 // Manifest implements plugin.Plugin.
@@ -205,39 +204,14 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 // Close implements plugin.Plugin. It waits for background work. Operations
 // are tasks of the host, which stops them when golauncher quits.
 func (p *Plugin) Close() error {
-	p.mu.Lock()
-	if p.closed || p.h == nil {
-		p.closed = true
-		p.mu.Unlock()
+	if !p.work.Close() || p.h == nil {
 		return nil
 	}
-	p.closed = true
-	p.mu.Unlock()
 	for _, u := range p.unsubs {
 		u()
 	}
-	p.wg.Wait()
+	p.work.Wait()
 	return nil
-}
-
-// spawn runs fn in the background through Host.Go unless the plugin is
-// closed. It reports whether fn was started.
-func (p *Plugin) spawn(fn func()) bool {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.spawnLocked(fn)
-}
-
-func (p *Plugin) spawnLocked(fn func()) bool {
-	if p.closed {
-		return false
-	}
-	p.wg.Add(1)
-	p.h.Go(func() {
-		defer p.wg.Done()
-		fn()
-	})
-	return true
 }
 
 // goFn runs fn through Host.Go; it is used for parallel manifest parsing,
@@ -260,49 +234,22 @@ func (p *Plugin) waitIndex(ctx context.Context) *Index {
 	if ix := p.Index(); ix != nil {
 		return ix
 	}
-	timer := time.NewTimer(indexWait)
-	defer timer.Stop()
-	select {
-	case <-p.ready:
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	p.ready.Wait(ctx, indexWait)
 	return p.Index()
 }
 
 // setIndex publishes ix.
 func (p *Plugin) setIndex(ix *Index) {
 	p.mu.Lock()
-	first := p.index == nil
 	p.index = ix
 	p.mu.Unlock()
-	if first {
-		close(p.ready)
-	}
+	p.ready.Done()
 }
 
 // scheduleRefresh refreshes the index in the background; calls during a
 // refresh cause one more afterwards.
 func (p *Plugin) scheduleRefresh() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.refreshing {
-		p.again = true
-		return
-	}
-	p.refreshing = p.spawnLocked(func() {
-		for {
-			p.refresh(true)
-			p.mu.Lock()
-			if !p.again || p.closed {
-				p.refreshing, p.again = false, false
-				p.mu.Unlock()
-				return
-			}
-			p.again = false
-			p.mu.Unlock()
-		}
-	})
+	p.refreshing.Request(&p.work, p.h, func() { p.refresh(true) })
 }
 
 // refresh brings the index up to date: buckets whose stamp changed are read
