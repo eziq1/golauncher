@@ -457,7 +457,7 @@ func (p *Plugin) askAction(text string) plugin.Action {
 }
 
 // HandleAction implements plugin.ActionHandler.
-func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
+func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	switch a.Target {
 	case "enable":
 		var ep enablePayload

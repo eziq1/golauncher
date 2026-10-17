@@ -80,6 +80,9 @@ type Runtime struct {
 	live     []*conversation // with a persistent process, least recently used first
 	sessions *SessionMap
 	closed   bool
+
+	caps       capsCache  // the probed flags of the CLIs
+	capsFileMu sync.Mutex // writes of the cache file
 }
 
 var _ backend.Backend = (*Runtime)(nil)
@@ -89,6 +92,8 @@ type cliInfo struct {
 	path     string
 	version  string
 	untested bool
+	flags    Flags // nil when unknown
+	fit      Fit
 	// fallback: the configured CLI no longer exists and this is the
 	// automatic choice (the chat says so, backend.NoticeProgramMissing).
 	fallback bool
@@ -171,8 +176,9 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 	r.mu.Lock()
 	r.cli, r.tried = best, ""
 	r.mu.Unlock()
-	r.log.Info("agent CLI found", "version", best.version, "untested", best.untested, "candidates", len(paths))
-	return backend.Status{Version: best.version, Untested: best.untested}, nil
+	r.log.Info("agent CLI found", "version", best.version, "untested", best.untested, "candidates", len(paths),
+		"probed", best.flags != nil, "perTurn", best.fit.PerTurn)
+	return backend.Status{Version: best.version, Untested: best.untested, Reduced: slices.Clone(best.fit.Reduced)}, nil
 }
 
 // checkOne checks the version of the CLI at path.
@@ -194,9 +200,23 @@ func (r *Runtime) checkOne(ctx context.Context, path string) (*cliInfo, error) {
 		return nil, &backend.Error{Kind: backend.ErrFailed, Message: msg}
 	}
 	if r.info.MinVersion != "" && CompareVersions(ver, r.info.MinVersion) < 0 {
-		return nil, &backend.Error{Kind: backend.ErrVersion, Version: ver}
+		return nil, &backend.Error{Kind: backend.ErrVersion, Version: ver,
+			Message: fmt.Sprintf("%s %s was found; golauncher needs %s or later.", r.info.Name, ver, r.info.MinVersion)}
 	}
-	return &cliInfo{path: path, version: ver, untested: MajorOf(ver) != r.info.TestedMajor}, nil
+	flags, fresh := r.probeFlags(ctx, path, ver)
+	fit, err := r.fit(ver, flags)
+	if err != nil {
+		if fresh {
+			r.log.Info("the agent CLI lacks what golauncher needs", "version", ver, "probed", flags != nil, "error", err.Error())
+		}
+		return nil, err
+	}
+	if fresh && (len(fit.Dropped) > 0 || len(fit.Reduced) > 0 || fit.PerTurn) {
+		// Once per probe: what this CLI is run without.
+		r.log.Info("older agent CLI: running it with fewer flags", "version", ver, "probed", flags != nil,
+			"dropped", strings.Join(fit.Dropped, "; "), "reduced", strings.Join(fit.Reduced, ","), "perTurn", fit.PerTurn)
+	}
+	return &cliInfo{path: path, version: ver, untested: MajorOf(ver) != r.info.TestedMajor, flags: flags, fit: fit}, nil
 }
 
 // Forget implements backend.Forgetter: the CLI's session ID of a deleted
@@ -282,10 +302,16 @@ func (r *Runtime) Command(o backend.OpenOptions, path string, persistent, resume
 
 // CommandAt is Command for a CLI of the given version.
 func (r *Runtime) CommandAt(o backend.OpenOptions, path, version string, persistent, resume bool) (Command, error) {
+	return r.CommandFor(o, path, version, nil, persistent, resume)
+}
+
+// CommandFor is Command for a CLI of the given version and probed flags
+// (nil: unknown).
+func (r *Runtime) CommandFor(o backend.OpenOptions, path, version string, flags Flags, persistent, resume bool) (Command, error) {
 	c := &conversation{r: r, oo: o}
 	dir := r.o.Dir
 	l := c.launch(path, dir, persistent, resume, "")
-	l.Version = version
+	l.Version, l.Flags = version, flags
 	if l.Tools != nil {
 		if b, err := r.a.MCPConfig(*l.Tools); err == nil && b != nil {
 			l.MCPConfig = filepath.Join(dir, MCPConfigName(o.SessionID))
@@ -461,11 +487,16 @@ func (r *Runtime) envFor(path string) []string {
 // run runs the CLI with args (the version or login check) and returns its
 // output and exit code.
 func (r *Runtime) run(ctx context.Context, path string, args []string) (string, int, error) {
+	return r.runMax(ctx, path, args, 4096)
+}
+
+// runMax is run keeping the last max bytes of the output.
+func (r *Runtime) runMax(ctx context.Context, path string, args []string, max int) (string, int, error) {
 	dir, err := r.dir()
 	if err != nil {
 		return "", 0, err
 	}
-	out := &tail{max: 4096}
+	out := &tail{max: max}
 	p, err := proc.Start(proc.Options{Argv: append([]string{path}, args...), Dir: dir, Env: r.envFor(path), Output: out})
 	if err != nil {
 		return "", 0, err

@@ -887,3 +887,64 @@ Windows 上的行为一字未变（Windows 的查找逻辑原样保留，`gemini
 - 正在进行的对话换程序后，常驻进程（Claude Code、Gemini）要到下一次启动进程时才用新程序（释放、崩溃、换偏好重开）；新对话立即用新程序。
 - 对话历史里的旧错误不会补上路径（只有这次以后记录的才有）。
 - 假环境的路径是 Windows 风格，在 macOS 上跑 glctl 也一样（金样跨平台一致）。
+
+## 23. 版本兼容：支持多个 Claude Code 版本（2026-10-17）
+
+起因：macOS 上有用户遇到 `error: unknown option --permission-prompts`。命令行里的参数是用 2.1.296 验证的，而 `MinVersion` 只有 2.1.0，比某个参数还旧的 CLI 照样被启动，一启动就退出。按用户的要求，没有去查是哪个程序引起的，而是让后端适配不同的版本。
+
+### 23.1 能力探测（`agentrt`，通用）
+
+- `Info.HelpArgs`（Claude Code：`--help`）：`Check` 在 `--version` 之后跑一次帮助，`Info.ParseHelp`（默认 `agentrt.ParseHelpFlags`）把它变成 `Flags`（长参数的集合）。只读缩进不超过 8 个空格、以 `-` 开头的行（commander、yargs、clap 的选项行），说明文字里提到的参数不算。帮助输出最多读 256 KB（2.1.292 的有 22 KB，原来的 4 KB 不够）。
+- 缓存：按（路径、版本、文件大小、修改时间）。先在内存里，再写到工作目录的 `capabilities.json`（最多 8 条，同一路径只留最新的，原子写入），所以每个安装、每个版本只跑一次；升级后版本或文件变了就重新探测。探测失败（超时 10 秒、退出码不为 0、输出里没有选项）不缓存，下次 `Check` 再试。
+- 和 `--version` 在同一处（`checkOne`），发消息时不多花时间；本机 `claude --help` 约 0.2 秒。
+- `Info.Fit(version, flags)`：适配器按版本和参数决定怎么用这个 CLI，返回 `Fit{PerTurn, Reduced, Dropped}` 或错误（通常是"版本太旧"）。`Launch.Flags`（探测不到时为 nil）和 `Launch.Version` 一起传给 `Command`/`NewCodec`，适配器用同一个纯函数（`claudecode.decide`）决定命令行，`Check` 和启动进程的判断一致。`Fit.PerTurn` 让运行层直接用单轮模式。
+- 日志：每次真正探测之后，如果有省掉或替换的参数，按 Info 级别记一条（`older agent CLI: running it with fewer flags`，带 `dropped`、`reduced`、`perTurn`）；用缓存时不重复记。
+- 状态：`backend.Status.Reduced` 是因为版本旧而关掉或降级的功能（`backend.FeatureWebSearch`、`FeatureLauncherTools`、`FeatureStreaming`、`FeatureModel`）。
+- 兜底：如果探测说有、CLI 运行时却报 `error: unknown option '--x'`（commander 的原话），`ExitOutcome` 把它归为"版本太旧"，并附上 CLI 原文。
+- Codex、Gemini 也有同样的风险（`--ignore-user-config`、`--acp` 等），机制在运行层，它们只要设 `HelpArgs`/`Fit` 就能用；这次只接了 Claude Code。
+
+### 23.2 每个参数的处理
+
+版本来自 Claude Code 的 CHANGELOG（本机 `~/.claude/cache/changelog.md`，只读）。"早于 2.1.0"表示 CHANGELOG 里第一次出现时它已经存在，具体版本不知道；`MinVersion` 仍是 2.1.0，所以它们在接受的版本里总是有的。探测失败时只按表里有版本号的两个参数判断，其他按"测试过的全套"处理。
+
+| 参数 | 出现的版本 | 类别 | 没有时 |
+|------|-----------|------|--------|
+| `-p`/`--print`、`--output-format stream-json`、`--verbose` | 早于 2.1.0（stream-json 输出 0.2.66） | 必需 | 拒绝："版本太旧"，附检测到的版本和缺的参数 |
+| `--session-id`、`--resume` | 早于 2.1.0 | 必需 | 拒绝 |
+| `--setting-sources ""` | 早于 2.1.0（2.0.24 已有） | 隔离 | **拒绝**：没有别的办法挡住用户设置里的钩子、插件、`env` |
+| `--tools ""` | 早于 2.1.0（2.1.0 起交互模式也支持） | 隔离 | **拒绝**：`--disallowedTools` 的黑名单列不全（工具随版本增加），而 Read、Glob、Grep 这类只读工具在 `-p` 里不用授权就能读本机文件 |
+| `--strict-mcp-config` | 早于 2.1.0 | 隔离 | 有 `--safe-mode` 时：关掉启动器工具（不传 `--mcp-config`），用 `--safe-mode`，它连用户的 MCP 服务器一起关掉；两个都没有：拒绝 |
+| `--safe-mode` | 2.1.169 | 隔离 | 改用开着启动器工具时那一套（§16.1）：`--setting-sources ""`、`--strict-mcp-config`、`--disable-slash-commands`、`--tools ""` 加环境变量 `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` |
+| `--disable-slash-commands` | 2.0.60 | 隔离 | 省掉：技能要经 Skill 工具调用，而它不在 `--tools` 里；以 `/` 开头的消息本来就在前面加一个空格（§15.1） |
+| `--allowedTools` | 0.2.x | 隔离 | 没法预先批准：不给联网工具（`--tools ""`），也不挂启动器工具；功能标为降级 |
+| `--mcp-config` | 0.2.75 | 隔离 | 不挂启动器工具 |
+| `--permission-prompts none` | 2.1.259 | 隔离 | 帮助里 `--permission-mode` 有 `"dontAsk"` 时改用 `--permission-mode dontAsk`（只允许预先批准的）；否则省掉。模型能用的工具正好就是预先批准的那些（`--tools` 加 `--allowedTools`），没有别的工具会请求授权；`-p` 下没有授权工具（`--permission-prompt-tool`）时请求被拒绝。另外加了一层保险：CLI 如果还是发来 `can_use_tool` 控制请求，解码器回 `deny` |
+| `--include-partial-messages` | 1.0.109 | 可选 | 不流式：整段回答一次显示（解析器本来就会用完整的 assistant 消息） |
+| `--input-format stream-json` | 早于 2.1.0 | 可选 | 单轮模式（每轮一个进程，`--resume`），运行层已有 |
+| `--append-system-prompt` | 早于 2.1.0（1.0.51 已有） | 可选 | 新会话的第一条消息前面加 `<golauncher-instructions>…</golauncher-instructions>`（续接时不加，会话里已经有了） |
+| `--model` | 早于 2.1.0 | 可选 | 不传，用 CLI 的默认模型，功能标为降级 |
+
+**从不降低隔离**：没有安全替代的要么关掉对应功能（联网、启动器工具），要么拒绝。拒绝用原有的"版本太旧"（`ErrVersion`）。2.1.0 到 2.1.258 实际上只缺 `--permission-prompts`（2.1.169 以前还缺 `--safe-mode`），这两个都有等价的替代，所以这些版本**功能完整**，不会显示降级说明。
+
+### 23.3 用户看到的
+
+- **版本太旧**（低于 2.1.0，或缺必需、无替代的隔离参数）：对话里"Claude Code 版本太旧，请运行 `claude update` 更新"，下面附"Claude Code 2.0.77 was found; golauncher needs 2.1.0 or later."或"Claude Code 2.1.5 lacks --tools, which golauncher needs."。macOS 有 `error.version@darwin`，还写了 `brew upgrade --cask claude-code` 和 `npm install -g @anthropic-ai/claude-code@latest`。版本门槛的消息对 Codex、Gemini 同样附上版本。
+- **功能降级**：对话底部一行在模型后面加"· 旧版本 2.1.100，没有联网搜索、流式回答"（只列偏好里开着的功能；模型偏好是"默认"时不提模型）。插件把降级的联网和启动器工具从 `OpenOptions` 里去掉，所以系统提示里也不会说"可以搜索网页"。
+- **设置 › 插件 › AI › 后端**（R84，§22）：显示正在用的程序和版本。分支上原来另加了一个"检查"按钮，和 R84 的后端页重复，合并时去掉了；旧版本降级的功能只在对话底部说明。
+
+### 23.4 测试
+
+- `claudecode/testdata/help-2.1.292.txt`：本机真实的 `claude --help`；`help-2.1.150.txt`：从它删掉 `--safe-mode`、`--permission-prompts`、`--restricted` 等较新参数的合成版本。`TestParseHelp` 用这两个，并确认只在说明里出现的 `--append-system-prompt-file` 不算。
+- 假 CLI（`testdata/fakeclaude`）：`helpFile` 决定 `--help` 的输出，**它不认识的长参数一律按 commander 的原话 `error: unknown option '--x'` 拒绝（退出码 1）**；`helpFails`、`rejects`、`askPermission`；没有 `--include-partial-messages` 时不输出流式事件。默认帮助列出全套参数，所以原有测试也在检查"不传 CLI 不认识的参数"。
+- 纯函数：`TestDecide`（全套、探测失败按版本、各种缺参数的组合、拒绝；每种都检查不传 CLI 没有的参数、不出现绕过授权的参数、`--setting-sources ""`/`--tools` 总在、没有 `--safe-mode` 时有关自动记忆的环境变量、`--safe-mode` 不和 `--mcp-config` 同时出现）、`TestArgvFullSetUnchanged`（探测到全套、版本未知、2.1.296 的命令行和原来一样）、`TestArgvReducedTable`（金样 `argv.reduced.golden.json`：6 种参数集合 × 常驻/单轮 × 工具 × 联网）、`TestFoldSystemPrompt`、`TestUnknownOptionExit`。`argv.golden.json` 一字未变。
+- 经过运行层和假 CLI：`TestOlderVersions`（当前、2.1.150、探测失败的 2.1.100、不流式、没有 stream-json 输入、没有系统提示参数、没有 `--allowedTools`、没有 `--model`，每种都真的跑两轮）、`TestOlderVersionRefused`（不启动任何对话进程）、`TestUnknownOptionAtRun`、`TestPermissionRequestDenied`、`TestProbeCache`（多次 `Check` 只探测一次、新的后端实例读文件缓存、升级后重新探测、失败不缓存）。`agentrt` 的 `TestParseHelpFlags` 覆盖 commander、clap、yargs 的格式。
+- `claudecode` 的假 CLI 测试原来只在 Windows 上跑，现在 macOS 上也跑（全部通过）。
+- 插件：`TestOlderBackend`（选项和系统提示里去掉降级的功能、底部的说明、关掉的偏好不提）。
+
+### 23.5 没有验证的
+
+- 各参数确切的出现版本：CHANGELOG 只写了 `--permission-prompts`（2.1.259）、`--safe-mode`（2.1.169）、`--disable-slash-commands`（2.0.60）、`--include-partial-messages`（1.0.109）、stream-json 输出（0.2.66）的"Added"；`--setting-sources`、`--strict-mcp-config`、`--session-id`、`--input-format`、`--tools`（print 模式）只在之后的修复里出现过，只知道早于 2.1.0。`--permission-mode` 的 `dontAsk` 何时出现不知道，所以只在帮助里看到时才用。
+- 没有在真正的旧版本上跑过（本机只有 2.1.292，按要求没有装别的版本）；旧版本的帮助格式按 commander 推断。
+- `-p` 下没有 `--permission-prompts` 时"需要授权的工具被拒绝"来自文档和设计（工具都预先批准了），没有实测；`can_use_tool` 控制请求和 `deny` 回答的格式按 Agent SDK 的协议写的，只用假 CLI 测过。
+- `CLAUDE_CODE_DISABLE_AUTO_MEMORY` 从哪个版本开始有不知道（自动记忆是 2.1.59 加的）；更早的版本没有自动记忆，这个变量不影响它们。
+- 把系统提示放进第一条消息是否和 `--append-system-prompt` 一样有效（模型的遵守程度）没有实测。

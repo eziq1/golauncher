@@ -169,7 +169,7 @@ func (c *conversation) perTurnMode(cli *cliInfo) bool {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.r.o.PerTurn || cli.untested || c.perTurn
+	return c.r.o.PerTurn || cli.untested || cli.fit.PerTurn || c.perTurn
 }
 
 // run answers a turn, retrying where the CLI's failure allows it.
@@ -322,7 +322,7 @@ func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attemp
 	}
 	resume := c.takeResume()
 	l := c.launch(cli.path, dir, false, resume, mcpConfig)
-	l.Version = cli.version
+	l.Version, l.Flags = cli.version, cli.flags
 	l.Prompt = text
 	cmd, err := c.r.a.Command(l)
 	if err == nil {
@@ -516,7 +516,7 @@ func (c *conversation) ensureProcess(cli *cliInfo) (*process, Codec, error) {
 	}
 	resume := c.takeResume()
 	l := c.launch(cli.path, dir, true, resume, mcpConfig)
-	l.Version = cli.version
+	l.Version, l.Flags = cli.version, cli.flags
 	cmd, err := c.r.a.Command(l)
 	if err == nil {
 		err = writeFiles(dir, cmd.Files)

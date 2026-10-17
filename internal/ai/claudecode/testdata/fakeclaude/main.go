@@ -1,6 +1,11 @@
 // Command fakeclaude imitates the Claude Code CLI's stream-json protocol for
 // the tests of internal/ai/claudecode.
 //
+// --help prints the script's helpFile (default: every flag the backend
+// uses), and any long option it does not list is rejected with commander's
+// "error: unknown option '--x'", so that older versions can be imitated.
+// Without --include-partial-messages no stream events are written.
+//
 // Environment:
 //
 //	FAKECLAUDE_SCRIPT  JSON file with process-level behavior (script below)
@@ -43,6 +48,17 @@ type script struct {
 	// InUseAsResult reports a --session-id of a known session as a result
 	// line instead of on stderr.
 	InUseAsResult bool `json:"inUseAsResult"`
+	// HelpFile is printed by --help (default: defaultHelp); it also lists
+	// the options the fake accepts.
+	HelpFile string `json:"helpFile"`
+	// HelpFails makes --help exit 1 without output.
+	HelpFails bool `json:"helpFails"`
+	// Rejects are long options rejected although --help lists them (a
+	// probe that went wrong).
+	Rejects []string `json:"rejects"`
+	// AskPermission makes the "perm" turn send a can_use_tool control
+	// request and report the answer.
+	AskPermission bool `json:"askPermission"`
 }
 
 var (
@@ -50,6 +66,9 @@ var (
 	outMu   sync.Mutex
 	session string
 	model   = "claude-fake-1"
+	partial bool // --include-partial-messages
+	// responses are the control responses to the fake's own requests.
+	responses = make(chan map[string]any, 4)
 )
 
 func main() {
@@ -60,14 +79,20 @@ func main() {
 	}
 	args := os.Args[1:]
 	if slices.Contains(args, "--version") {
-		v := sc.Version
-		if v == "" {
-			v = "2.1.296 (Claude Code)"
+		fmt.Println(versionText())
+		return
+	}
+	if slices.Contains(args, "--help") {
+		logEntry(map[string]any{"help": true})
+		if sc.HelpFails {
+			os.Exit(1)
 		}
-		fmt.Println(v)
+		fmt.Print(helpText())
 		return
 	}
 	logEntry(map[string]any{"argv": args})
+	rejectUnknown(args)
+	partial = slices.Contains(args, "--include-partial-messages")
 	persistent := false
 	resume := false
 	for i, a := range args {
@@ -109,6 +134,14 @@ func main() {
 	}
 }
 
+// versionText is what --version prints.
+func versionText() string {
+	if sc.Version != "" {
+		return sc.Version
+	}
+	return "2.1.296 (Claude Code)"
+}
+
 // runPersistent answers stream-json user messages until stdin closes.
 func runPersistent(lost bool) {
 	if sc.CrashAtStart {
@@ -127,6 +160,8 @@ func runPersistent(lost bool) {
 			}
 			if m["type"] == "control_request" {
 				controls <- m
+			} else if m["type"] == "control_response" {
+				responses <- m
 			} else {
 				msgs <- m
 			}
@@ -155,6 +190,23 @@ func runPersistent(lost bool) {
 	}
 }
 
+// askPermission sends a can_use_tool control request, as a CLI without
+// --permission-prompts none might, and returns the behavior answered.
+func askPermission() string {
+	emit(map[string]any{"type": "control_request", "request_id": "perm-1",
+		"request": map[string]any{"subtype": "can_use_tool", "tool_name": "Bash", "input": map[string]any{"command": "ls"}}})
+	select {
+	case m := <-responses:
+		resp, _ := m["response"].(map[string]any)
+		inner, _ := resp["response"].(map[string]any)
+		b, _ := inner["behavior"].(string)
+		logEntry(map[string]any{"permission": b, "requestId": resp["request_id"]})
+		return b
+	case <-time.After(5 * time.Second):
+		return "no answer"
+	}
+}
+
 // lostSession reports a --resume of an unknown session and exits.
 func lostSession() {
 	emit(map[string]any{"type": "result", "subtype": "error_during_execution", "is_error": true,
@@ -167,7 +219,7 @@ func lostSession() {
 func turn(text string, controls <-chan map[string]any) bool {
 	remember(session)
 	emit(map[string]any{"type": "system", "subtype": "init", "session_id": session, "model": model, "tools": []string{},
-		"mcp_servers": []string{}, "claude_code_version": "2.1.296", "apiKeySource": "none"})
+		"mcp_servers": []string{}, "claude_code_version": strings.Fields(versionText())[0], "apiKeySource": "none"})
 	emit(map[string]any{"type": "system", "subtype": "status", "status": "requesting", "session_id": session})
 	switch text {
 	case "fail":
@@ -179,6 +231,9 @@ func turn(text string, controls <-chan map[string]any) bool {
 		return errorResult("Claude AI usage limit reached|1700000000", "rate_limit")
 	}
 	emit(map[string]any{"type": "rate_limit_event", "rate_limit_info": map[string]any{"status": "allowed"}})
+	if text == "perm" && sc.AskPermission {
+		text = "perm: " + askPermission()
+	}
 	if q, ok := strings.CutPrefix(text, "launcher"); ok {
 		launcherSearch(strings.TrimSpace(q))
 	}
@@ -410,6 +465,9 @@ func controlResponse(c map[string]any) {
 }
 
 func stream(ev map[string]any) {
+	if !partial {
+		return
+	}
 	emit(map[string]any{"type": "stream_event", "event": ev, "session_id": session})
 }
 

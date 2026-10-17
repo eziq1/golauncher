@@ -29,6 +29,13 @@ type outLine struct {
 	RateLimitInfo  *struct {
 		Status string `json:"status"`
 	} `json:"rate_limit_info"`
+
+	// A control request of the CLI's (control_request).
+	RequestID string `json:"request_id"`
+	Request   *struct {
+		Subtype  string `json:"subtype"`
+		ToolName string `json:"tool_name"`
+	} `json:"request"`
 }
 
 // streamEvent is the API streaming event inside a stream_event line.
@@ -123,7 +130,8 @@ const syntheticModel = "<synthetic>"
 
 // parser turns the output lines of one turn into events.
 type parser struct {
-	emit func(backend.Event)
+	emit  func(backend.Event)
+	reply func([]byte) error // writes to the CLI's input (nil: cannot)
 
 	sawJSON     bool // a JSON line arrived
 	sawInit     bool // the turn's init line arrived
@@ -173,10 +181,30 @@ func (s *parser) handle(raw []byte) (res *outLine, garbage bool) {
 		s.assistant(&l)
 	case "user":
 		s.user(&l)
+	case "control_request":
+		s.controlRequest(&l)
 	case "result":
 		return &l, false
 	}
 	return nil, false
+}
+
+// controlRequest answers a control request of the CLI's. The only one
+// expected is a permission request (can_use_tool), which a CLI without
+// --permission-prompts might send; every tool the model may use is
+// pre-approved, so it is denied, as --permission-prompts none would.
+func (s *parser) controlRequest(l *outLine) {
+	if l.Request == nil || l.RequestID == "" || s.reply == nil {
+		return
+	}
+	resp := map[string]any{"subtype": "error", "request_id": l.RequestID, "error": "not supported by golauncher"}
+	if l.Request.Subtype == "can_use_tool" {
+		resp = map[string]any{"subtype": "success", "request_id": l.RequestID,
+			"response": map[string]any{"behavior": "deny", "message": "golauncher allows only the tools it pre-approved"}}
+	}
+	if b, err := jsonLine(map[string]any{"type": "control_response", "response": resp}); err == nil {
+		_ = s.reply(b)
+	}
 }
 
 func (s *parser) streamEvent(e *streamEvent) {

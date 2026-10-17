@@ -7,7 +7,10 @@
 //
 //   - finding the CLI (configured path, PATH, usual install locations) and
 //     the version gate (too old: refused; another major version: works, in
-//     the more careful per-turn mode);
+//     the more careful per-turn mode), and the capability probe: the
+//     CLI's flags from its help, once per binary, from which the adapter
+//     decides how to run an older version (Info.HelpArgs, Info.Fit,
+//     docs/ai.md §22);
 //   - process supervision: every process runs in a Job Object without a
 //     console window; a conversation's process starts with its first
 //     message; it keeps running between turns (persistent mode) or runs once
@@ -134,6 +137,18 @@ type Info struct {
 	// non-zero exit code means that the CLI is not signed in
 	// (ErrNotLoggedIn, with the command's output as the message).
 	LoginArgs []string
+	// HelpArgs, when set, make Check probe the CLI's flags once per binary
+	// (path, version, size and modification time; cached in memory and in
+	// the working directory): they print its help, which ParseHelp turns
+	// into Flags (nil: ParseHelpFlags). A probe that fails or finds nothing
+	// leaves Launch.Flags nil (docs/ai.md §22).
+	HelpArgs  []string
+	ParseHelp func(out string) Flags
+	// Fit, when set, decides from the version and the probed flags (nil when
+	// unknown) how the CLI is run: per turn only, features turned off. An
+	// error (usually ErrVersion: something it cannot do without is missing)
+	// makes Check refuse the CLI. Command must apply the same decision.
+	Fit func(version string, flags Flags) (Fit, error)
 }
 
 // Launch is what a process is started for.
@@ -143,6 +158,10 @@ type Launch struct {
 	// Version is the CLI's version as Check found it ("" when unknown, e.g.
 	// for Runtime.Command), for flags that depend on it.
 	Version string
+	// Flags are the CLI's flags as Check probed them (Info.HelpArgs); nil
+	// when unknown (no probe, it failed, or Runtime.Command): the adapter
+	// then goes by Version, or assumes the flags it was tested with.
+	Flags Flags
 	// ChatID is the chat's ID (backend.OpenOptions.SessionID).
 	ChatID string
 	// Persistent: the process answers several turns (else one).

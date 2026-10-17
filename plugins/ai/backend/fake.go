@@ -32,6 +32,8 @@ type Fake struct {
 	// EventError.
 	CheckErr error
 	SendErr  error
+	// Status is what a successful Check reports (nil: version 2.1.0).
+	Status *Status
 
 	mu    sync.Mutex
 	opens []OpenOptions
@@ -48,6 +50,9 @@ func (f *Fake) Name() string { return "Claude Code" }
 func (f *Fake) Check(context.Context) (Status, error) {
 	if f.CheckErr != nil {
 		return Status{}, f.CheckErr
+	}
+	if f.Status != nil {
+		return *f.Status, nil
 	}
 	return Status{Version: "2.1.0"}, nil
 }

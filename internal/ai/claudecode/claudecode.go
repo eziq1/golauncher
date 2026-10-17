@@ -15,7 +15,10 @@
 //
 // When the CLI's version is outside the tested range, or the persistent
 // process misbehaves, a conversation falls back to one process per turn
-// (`claude -p --resume <id>`).
+// (`claude -p --resume <id>`). An older CLI that lacks some of the flags
+// (found with `claude --help`) runs with older equivalents or without the
+// features that need them, never with less isolation (compat.go,
+// docs/ai.md §22).
 package claudecode
 
 import (
@@ -24,6 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/eziq1/golauncher/internal/ai/agentrt"
@@ -94,51 +98,80 @@ func (adapter) Info() agentrt.Info {
 		MinVersion:   MinVersion,
 		TestedMajor:  TestedMajor,
 		EnvDrop:      envDrop,
+		HelpArgs:     []string{"--help"},
+		ParseHelp:    parseHelp,
+		Fit:          fit,
 	}
 }
 
 // noAutoMemory turns Claude Code's auto memory off; --safe-mode does that
-// too, but it cannot be used with golauncher's MCP server.
+// too, but it cannot be used with golauncher's MCP server (nor with a CLI
+// older than --safe-mode).
 const noAutoMemory = "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1"
 
 // Command implements agentrt.Adapter. Every flag keeps the CLI away from the
 // user's own setup and from this computer: no settings or hooks, no MCP
 // servers but golauncher's (l.MCPConfig, when set), no slash commands, no
 // local tools, no permission prompts (toolFlags pre-approves the tools the
-// model may use).
+// model may use). A CLI that lacks some of these flags (l.Flags, l.Version)
+// is run as decide says: with an older equivalent, without the feature that
+// needs the flag, or not at all (compat.go, docs/ai.md §22).
 func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
+	p := decide(support{version: l.Version, flags: l.Flags})
+	if p.refused != nil {
+		return agentrt.Command{}, p.refused
+	}
 	a := []string{l.Path, "-p"}
-	if l.Persistent {
+	if l.Persistent && p.persistent {
 		a = append(a, "--input-format", "stream-json")
 	}
-	a = append(a, "--output-format", "stream-json", "--include-partial-messages", "--verbose")
+	a = append(a, "--output-format", "stream-json")
+	if p.partial {
+		a = append(a, "--include-partial-messages")
+	}
+	a = append(a, "--verbose")
 	if l.Resume {
 		a = append(a, "--resume", l.SessionID)
 	} else {
 		a = append(a, "--session-id", l.SessionID)
 	}
 	a = append(a, "--setting-sources", "")
-	if l.MCPConfig == "" {
+	mcpConfig := l.MCPConfig
+	if !p.launcher {
+		mcpConfig = ""
+	}
+	safe := mcpConfig == "" && p.safeMode
+	if safe {
 		// --safe-mode also drops the servers of --mcp-config (verified with
 		// 2.1.296), so with golauncher's tools isolation comes from the other
 		// flags and from the environment (no auto memory); see docs/ai.md §16.
 		a = append(a, "--safe-mode")
 	}
-	a = append(a, "--strict-mcp-config", "--disable-slash-commands")
-	a = append(a, toolFlags(l.WebSearch, l.MCPConfig)...)
-	a = append(a, "--permission-prompts", "none")
-	if sp := l.SystemPrompt; sp != "" {
+	if p.strictMCP {
+		a = append(a, "--strict-mcp-config")
+	}
+	if p.slash {
+		a = append(a, "--disable-slash-commands")
+	}
+	a = append(a, toolFlags(l.WebSearch && p.web, mcpConfig)...)
+	switch {
+	case p.prompts:
+		a = append(a, "--permission-prompts", "none")
+	case p.dontAsk:
+		a = append(a, "--permission-mode", "dontAsk")
+	}
+	if sp := l.SystemPrompt; sp != "" && p.appendSP {
 		if proc.IsBatch(l.Path) {
 			// cmd.exe ends the command line at a line break.
 			sp = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(sp)
 		}
 		a = append(a, "--append-system-prompt", sp)
 	}
-	if l.Model != "" {
+	if l.Model != "" && p.model {
 		a = append(a, "--model", l.Model)
 	}
 	cmd := agentrt.Command{Argv: a}
-	if l.Tools != nil {
+	if l.Tools != nil || !safe {
 		cmd.Env = []string{noAutoMemory}
 	}
 	return cmd, nil
@@ -148,13 +181,25 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 // from an --mcp-config file.
 func (adapter) MCPConfig(s agentrt.MCPServer) ([]byte, error) { return toolConfig(s) }
 
-// NewCodec implements agentrt.Adapter.
-func (adapter) NewCodec(agentrt.Launch) agentrt.Codec { return codec{} }
+// NewCodec implements agentrt.Adapter. A CLI without --append-system-prompt
+// gets the system prompt with the first message of a new session instead.
+func (adapter) NewCodec(l agentrt.Launch) agentrt.Codec {
+	c := &codec{}
+	if l.SystemPrompt != "" && !l.Resume && !decide(support{version: l.Version, flags: l.Flags}).appendSP {
+		c.fold = l.SystemPrompt
+	}
+	return c
+}
 
-// ExitOutcome implements agentrt.Adapter.
+// ExitOutcome implements agentrt.Adapter. A flag the CLI does not know
+// ("error: unknown option '--x'", which the probe should have prevented) is
+// reported as a version too old for golauncher.
 func (adapter) ExitOutcome(text string) agentrt.Outcome {
 	if sessionInUse(text) {
 		return agentrt.Outcome{Kind: agentrt.SessionInUse, Err: &backend.Error{Kind: classify("", text, false), Message: text}}
+	}
+	if unknownOption(text) != "" {
+		return agentrt.Outcome{Kind: agentrt.Failed, Err: &backend.Error{Kind: backend.ErrVersion, Message: text}}
 	}
 	return agentrt.Outcome{Kind: agentrt.Failed, Err: &backend.Error{Kind: classify("", text, false), Message: text}}
 }
@@ -162,27 +207,50 @@ func (adapter) ExitOutcome(text string) agentrt.Outcome {
 // interruptSeq numbers interrupt requests.
 var interruptSeq atomic.Int64
 
-// codec is Claude Code's stream-json protocol; it keeps no state between
-// turns.
-type codec struct{}
+// codec is Claude Code's stream-json protocol for one process. Its only
+// state is the system prompt still to be sent with the first message (a CLI
+// without --append-system-prompt).
+type codec struct {
+	mu   sync.Mutex
+	fold string
+}
+
+// first returns text with the system prompt still to be sent, if any.
+func (c *codec) first(text string) string {
+	c.mu.Lock()
+	sp := c.fold
+	c.fold = ""
+	c.mu.Unlock()
+	if sp == "" {
+		return text
+	}
+	return foldSystemPrompt(sp, text)
+}
+
+// foldSystemPrompt is a first message that carries the system prompt.
+func foldSystemPrompt(sp, text string) string {
+	return "<golauncher-instructions>\n" + sp + "\n</golauncher-instructions>\n\n" + text
+}
 
 // Message implements agentrt.Codec.
-func (codec) Message(text string) ([]byte, error) { return jsonLine(userLine(text)) }
+func (c *codec) Message(text string) ([]byte, error) { return jsonLine(userLine(c.first(text))) }
 
 // Prompt implements agentrt.Codec: a per-turn process reads the question
 // from stdin.
-func (codec) Prompt(text string) []byte { return []byte(promptText(text)) }
+func (c *codec) Prompt(text string) []byte { return []byte(promptText(c.first(text))) }
 
 // Interrupt implements agentrt.Codec: the control request that stops the
 // answer.
-func (codec) Interrupt() []byte {
+func (*codec) Interrupt() []byte {
 	b, _ := jsonLine(interruptLine("golauncher-interrupt-" + strconv.FormatInt(interruptSeq.Add(1), 10)))
 	return b
 }
 
 // NewDecoder implements agentrt.Codec.
-func (codec) NewDecoder(io agentrt.TurnIO) agentrt.Decoder {
-	return &decoder{p: newParser(io.Emit)}
+func (*codec) NewDecoder(io agentrt.TurnIO) agentrt.Decoder {
+	p := newParser(io.Emit)
+	p.reply = io.Reply
+	return &decoder{p: p}
 }
 
 // jsonLine is v as one line of input.

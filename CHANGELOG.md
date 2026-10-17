@@ -22,6 +22,22 @@ Before 1.0.0, minor versions may contain breaking changes.
   choice, and the chat says so. Errors that may come from the wrong
   installation (too old, client no longer supported) name the program that
   ran. glctl ai backends [--real] prints the same as JSON.
+- **AI chat works with older Claude Code versions** (docs/ai.md §23): the
+  backend reads `claude --help` once per installed version (cached) and runs
+  the CLI with the flags it has. Without `--permission-prompts`, `--safe-mode`
+  and other newer flags it uses an older equivalent with the same isolation;
+  a feature that has none (web search, launcher plugins, streaming, model
+  choice) is turned off, never the isolation. The chat's footer names what an
+  older version runs without; *Settings › Plugins › AI › Backends* shows the
+  version in use.
+
+### Fixed
+
+- The AI chat failed with `error: unknown option --permission-prompts` on
+  Claude Code versions older than 2.1.259. A version that lacks a flag
+  golauncher cannot do without is now reported as too old, with the version
+  found and how to update it (`claude update`; on macOS also Homebrew and
+  npm).
 
 ## [0.7.0] - 2026-10-16
 
