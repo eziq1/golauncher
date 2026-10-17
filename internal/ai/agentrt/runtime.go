@@ -420,6 +420,15 @@ func (r *Runtime) Env() []string {
 	return proc.MergeEnv(env, r.o.Env)
 }
 
+// envFor is Env with the variables the CLI at path needs (Info.PathEnv).
+func (r *Runtime) envFor(path string) []string {
+	env := r.Env()
+	if f := r.info.PathEnv; f != nil {
+		env = proc.MergeEnv(env, f(path))
+	}
+	return env
+}
+
 // run runs the CLI with args (the version or login check) and returns its
 // output and exit code.
 func (r *Runtime) run(ctx context.Context, path string, args []string) (string, int, error) {
@@ -428,7 +437,7 @@ func (r *Runtime) run(ctx context.Context, path string, args []string) (string, 
 		return "", 0, err
 	}
 	out := &tail{max: 4096}
-	p, err := proc.Start(proc.Options{Argv: append([]string{path}, args...), Dir: dir, Env: r.Env(), Output: out})
+	p, err := proc.Start(proc.Options{Argv: append([]string{path}, args...), Dir: dir, Env: r.envFor(path), Output: out})
 	if err != nil {
 		return "", 0, err
 	}

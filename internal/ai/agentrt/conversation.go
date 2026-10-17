@@ -636,6 +636,9 @@ func (c *conversation) setPerTurn() {
 // env is the CLI's environment for a process started with cmd.
 func (c *conversation) env(cmd Command) []string {
 	env := c.r.Env()
+	if len(cmd.Argv) > 0 {
+		env = c.r.envFor(cmd.Argv[0])
+	}
 	if len(cmd.Env) > 0 {
 		env = proc.MergeEnv(env, cmd.Env)
 	}

@@ -54,9 +54,6 @@ type fake struct {
 // newFake returns a backend running the fake CLI.
 func newFake(t *testing.T, edit ...func(*Options)) *fake {
 	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
 	dir := t.TempDir()
 	f := &fake{t: t, log: filepath.Join(dir, "log.jsonl"), state: filepath.Join(dir, "state")}
 	os.MkdirAll(f.state, 0o755)
@@ -520,19 +517,27 @@ func copyFake(t *testing.T, path, version string) {
 }
 
 // TestCheckCandidates: of the CLIs found, the one with the highest version
-// is used; a too old one is skipped.
+// is used; a too old one is skipped. The installations are this system's
+// (codex.exe on Windows, codex elsewhere).
 func TestCheckCandidates(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
 	root := t.TempDir()
 	pathDir := filepath.Join(root, "path")
 	local := filepath.Join(root, "local")
-	copyFake(t, filepath.Join(pathDir, "codex.exe"), "codex-cli 0.46.0")
-	copyFake(t, filepath.Join(local, "OpenAI", "Codex", "bin", "codex.exe"), "codex-cli 0.130.0-alpha.5")
-	newest := filepath.Join(local, "OpenAI", "Codex", "bin", "0123abcd", "codex.exe")
+	exe, env := "codex", func(e findEnv) findEnv { e.OS = runtime.GOOS; return e }
+	var older, newest string
+	if runtime.GOOS == "windows" {
+		exe = "codex.exe"
+		older = filepath.Join(local, "OpenAI", "Codex", "bin", exe)
+		newest = filepath.Join(local, "OpenAI", "Codex", "bin", "0123abcd", exe)
+	} else {
+		older = filepath.Join(root, "brew", exe)
+		newest = filepath.Join(root, "Codex.app", "Contents", "Resources", exe)
+	}
+	copyFake(t, filepath.Join(pathDir, exe), "codex-cli 0.46.0")
+	copyFake(t, older, "codex-cli 0.130.0-alpha.5")
 	copyFake(t, newest, "codex-cli 0.162.0-alpha.17.2")
-	setCandidateEnv(t, findEnv{Path: []string{pathDir}, LocalAppData: local, Arch: "amd64"})
+	setCandidateEnv(t, env(findEnv{Path: []string{pathDir}, LocalAppData: local, Arch: "amd64",
+		Dirs: []string{filepath.Dir(older)}, Apps: []string{newest}}))
 	log := filepath.Join(root, "log.jsonl")
 	b := New(Options{Dir: filepath.Join(root, "work"), Env: []string{"FAKECODEX_LOG=" + log, "FAKECODEX_STATE=" + root}})
 	defer b.Close()
@@ -548,7 +553,7 @@ func TestCheckCandidates(t *testing.T) {
 	wantDone(t, send(t, c, "hi"), "echo: hi")
 
 	// Only a too old one.
-	setCandidateEnv(t, findEnv{Path: []string{pathDir}, Arch: "amd64"})
+	setCandidateEnv(t, env(findEnv{Path: []string{pathDir}, Arch: "amd64"}))
 	b2 := New(Options{Dir: filepath.Join(root, "work2")})
 	defer b2.Close()
 	if _, err := b2.Check(context.Background()); backend.KindOf(err) != backend.ErrVersion {
@@ -558,8 +563,12 @@ func TestCheckCandidates(t *testing.T) {
 	// Only the npm launcher.
 	shimDir := filepath.Join(root, "npm")
 	os.MkdirAll(shimDir, 0o755)
-	os.WriteFile(filepath.Join(shimDir, "codex.cmd"), []byte("@echo off\r\n"), 0o644)
-	setCandidateEnv(t, findEnv{Path: []string{shimDir}, Arch: "amd64"})
+	if runtime.GOOS == "windows" {
+		os.WriteFile(filepath.Join(shimDir, "codex.cmd"), []byte("@echo off\r\n"), 0o644)
+	} else {
+		os.WriteFile(filepath.Join(shimDir, "codex"), []byte("#!/usr/bin/env node\n"), 0o755)
+	}
+	setCandidateEnv(t, env(findEnv{Path: []string{shimDir}, Arch: "amd64"}))
 	b3 := New(Options{Dir: filepath.Join(root, "work3")})
 	defer b3.Close()
 	if _, err := b3.Check(context.Background()); backend.KindOf(err) != backend.ErrNotInstalled || !strings.Contains(err.Error(), "Node.js") {
@@ -567,7 +576,7 @@ func TestCheckCandidates(t *testing.T) {
 	}
 
 	// Nothing.
-	setCandidateEnv(t, findEnv{Path: []string{filepath.Join(root, "empty")}, Arch: "amd64"})
+	setCandidateEnv(t, env(findEnv{Path: []string{filepath.Join(root, "empty")}, Arch: "amd64"}))
 	b4 := New(Options{Dir: filepath.Join(root, "work4")})
 	defer b4.Close()
 	if _, err := b4.Check(context.Background()); backend.KindOf(err) != backend.ErrNotInstalled {

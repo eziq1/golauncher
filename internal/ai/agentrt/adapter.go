@@ -117,6 +117,10 @@ type Info struct {
 	// is reported when there is no candidate (as ErrNotInstalled unless it
 	// is a *backend.Error).
 	Candidates func() (paths []string, err error)
+	// PathEnv, when set, returns variables the CLI at path needs, merged into
+	// the environment of each of its processes (the checks too), e.g. a PATH
+	// on which a script finds its interpreter.
+	PathEnv func(path string) []string
 	// LoginArgs, when set, are run by Check after the version check: a
 	// non-zero exit code means that the CLI is not signed in
 	// (ErrNotLoggedIn, with the command's output as the message).

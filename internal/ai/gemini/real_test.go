@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -207,6 +208,9 @@ func (c *pipeConn) Read(ctx context.Context) ([]byte, error) {
 // been started.
 func TestRealIsolation(t *testing.T) {
 	realOnly(t)
+	if runtime.GOOS != "windows" {
+		t.Skip("the canary commands are cmd.exe's")
+	}
 	b := New(Options{})
 	st, err := b.Check(context.Background())
 	if err != nil {

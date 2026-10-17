@@ -237,7 +237,7 @@ func TestFiles(t *testing.T) {
 	if b, err := os.ReadFile(path); err != nil || string(b) != `{"version":"1.2.3"}` {
 		t.Fatalf("file %q, %v", b, err)
 	}
-	if err := writeFiles(dir, map[string][]byte{`..\x.json`: nil}); err == nil {
+	if err := writeFiles(dir, map[string][]byte{filepath.Join("..", "x.json"): nil}); err == nil {
 		t.Fatal("a path outside the directory was accepted")
 	}
 }

@@ -6,17 +6,32 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
-// The system settings paths of Gemini CLI on Windows (settings.js
-// getSystemSettingsPath, getSystemDefaultsPath), and the variables that move
-// them.
+// The variables that move Gemini CLI's system settings and system defaults
+// files.
 const (
-	defaultSystemSettings = `C:\ProgramData\gemini-cli\settings.json`
-	envSystemSettings     = "GEMINI_CLI_SYSTEM_SETTINGS_PATH"
-	envSystemDefaults     = "GEMINI_CLI_SYSTEM_DEFAULTS_PATH"
+	envSystemSettings = "GEMINI_CLI_SYSTEM_SETTINGS_PATH"
+	envSystemDefaults = "GEMINI_CLI_SYSTEM_DEFAULTS_PATH"
 )
+
+// defaultSystemSettings is where Gemini CLI reads its system settings on
+// this system; its system defaults are system-defaults.json beside it.
+var defaultSystemSettings = systemSettingsPath(runtime.GOOS)
+
+// systemSettingsPath is Gemini CLI's system settings path on goos
+// (settings.ts getSystemSettingsPath; verified with the bundle of 0.64).
+func systemSettingsPath(goos string) string {
+	switch goos {
+	case "windows":
+		return `C:\ProgramData\gemini-cli\settings.json`
+	case "darwin":
+		return "/Library/Application Support/GeminiCli/settings.json"
+	}
+	return "/etc/gemini-cli/settings.json"
+}
 
 // localTools are Gemini CLI's built-in tools that touch this computer (or
 // keep state on it), and its sub-agents; webTools its web tools (0.34

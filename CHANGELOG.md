@@ -45,6 +45,11 @@ Before 1.0.0, minor versions may contain breaking changes.
     the Trash, dark mode, volume, display off, and 45 System Settings panes.
   - Passwords in the keychain; the system language from the macOS
     preferences; the login shell's PATH when started from Finder.
+  - **AI chat** with Codex and Gemini CLI too: Codex runs as the native
+    `codex` (on PATH, from Homebrew, or the binary inside an npm install of
+    `@openai/codex`; still never through Node.js), Gemini CLI as the
+    `gemini` that npm or Homebrew installs (an administrator's settings in
+    `/Library/Application Support/GeminiCli` are kept under golauncher's).
   - **Settings › Permissions** shows the status of Accessibility,
     Automation › Finder and (optional) Full Disk Access, with buttons that
     open System Settings.

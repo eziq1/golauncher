@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -222,9 +221,6 @@ func (d *testDecoder) Progress() Progress { return d.pr }
 // newTest returns a runtime of a on the fake CLI, and the fake's log.
 func newTest(t *testing.T, a Adapter, dir string) (*Runtime, string) {
 	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)

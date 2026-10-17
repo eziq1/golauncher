@@ -2,6 +2,7 @@ package ai
 
 import (
 	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"net/url"
 	"strings"
@@ -501,5 +502,31 @@ func TestChatIdleRelease(t *testing.T) {
 			t.Fatal("the chat was not released again after the next answer")
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestDarwinTexts: a text that names a Windows file, folder or key has a
+// macOS variant (key@darwin) that does not.
+func TestDarwinTexts(t *testing.T) {
+	for _, name := range []string{"en.json", "zh-CN.json"} {
+		b, err := locales.ReadFile("locales/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var texts map[string]any // strings, and plural forms
+		if err := json.Unmarshal(b, &texts); err != nil {
+			t.Fatal(err)
+		}
+		windowsy := func(s string) bool {
+			return strings.Contains(s, ".exe") || strings.Contains(s, "%APPDATA%") || strings.Contains(s, "Ctrl+") || strings.Contains(s, ".cmd")
+		}
+		for k, v := range texts {
+			if s, ok := v.(string); !ok || strings.HasSuffix(k, "@darwin") || !windowsy(s) {
+				continue
+			}
+			if d, ok := texts[k+"@darwin"].(string); !ok || windowsy(d) {
+				t.Errorf("%s: %s has no macOS text", name, k)
+			}
+		}
 	}
 }

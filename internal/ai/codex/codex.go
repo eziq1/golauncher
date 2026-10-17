@@ -50,7 +50,10 @@
 // node with codex.js). Candidates finds codex.exe on PATH, the Codex desktop
 // app's copies under %LOCALAPPDATA%\OpenAI\Codex\bin, and the native binary
 // that an npm installation carries next to its launcher; the runtime uses the
-// one with the highest version.
+// one with the highest version. On macOS the binary is `codex`: on PATH, in
+// Homebrew's folders, in the Codex app, or inside an npm installation (the
+// `codex` on PATH is then a link to the launcher script; see
+// unixCandidates).
 package codex
 
 import (
@@ -148,8 +151,8 @@ var isolationConfig = []string{
 }
 
 // Options configure a Backend (see agentrt.Options). Options.Path, when set,
-// must be codex.exe; the npm launcher next to a native binary is replaced by
-// that binary.
+// must be the native CLI (codex.exe on Windows); the npm launcher of an
+// installation with a native binary is replaced by that binary.
 type Options = agentrt.Options
 
 // ToolServer is how the CLI starts golauncher's MCP server (stdio).

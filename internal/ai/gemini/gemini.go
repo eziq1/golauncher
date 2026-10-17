@@ -4,8 +4,11 @@
 // Google sign-in (~/.gemini) is used as it is; golauncher never asks Gemini
 // CLI to authenticate.
 //
-// Gemini CLI is a Node.js program; golauncher starts gemini.exe when one is on
-// PATH, else the npm shim gemini.cmd (never the PowerShell or sh launchers).
+// Gemini CLI is a Node.js program. On Windows golauncher starts gemini.exe
+// when one is on PATH, else the npm shim gemini.cmd (never the PowerShell or
+// sh launchers); on macOS the `gemini` on PATH or in Homebrew's or npm's
+// usual folders (a link to the package's script, which runs node), with the
+// folder of a node next to it on PATH.
 //
 // # Isolation
 //
@@ -30,6 +33,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -83,21 +87,38 @@ type host struct {
 	getenv   func(string) string
 	exists   func(path string) bool
 	readFile func(path string) ([]byte, error)
+	// executable reports whether path is a file that may be run (outside
+	// Windows); dirs are the folders searched after PATH there.
+	executable func(path string) bool
+	dirs       []string
 }
 
 func hostEnv() host {
-	return host{
+	h := host{
 		getenv: os.Getenv,
 		exists: func(p string) bool {
 			fi, err := os.Stat(p)
 			return err == nil && !fi.IsDir()
 		},
 		readFile: os.ReadFile,
+		executable: func(p string) bool {
+			fi, err := os.Stat(p)
+			return err == nil && !fi.IsDir() && fi.Mode()&0o111 != 0
+		},
 	}
+	if runtime.GOOS != "windows" {
+		home, _ := os.UserHomeDir()
+		h.dirs = agentrt.UnixBinDirs(home)
+	}
+	return h
 }
 
 // config is the ACP configuration of Gemini CLI.
 func config(h host) acp.Config {
+	var pathEnv func(string) []string
+	if runtime.GOOS != "windows" {
+		pathEnv = func(path string) []string { return nodePath(path, h) }
+	}
 	return acp.Config{
 		Info: agentrt.Info{
 			ID:          ID,
@@ -109,6 +130,7 @@ func config(h host) acp.Config {
 			EnvDrop:     envDrop,
 			WorkDir:     "gemini",
 			Candidates:  func() ([]string, error) { return candidates(h) },
+			PathEnv:     pathEnv,
 		},
 		Args:       func(l agentrt.Launch) (agentrt.Command, error) { return args(l, h) },
 		Tool:       tool,
@@ -117,8 +139,12 @@ func config(h host) acp.Config {
 }
 
 // candidates finds Gemini CLI: gemini.exe on PATH, then the npm shim
-// gemini.cmd on PATH, then %APPDATA%\npm\gemini.cmd.
+// gemini.cmd on PATH, then %APPDATA%\npm\gemini.cmd; elsewhere see
+// unixCandidates.
 func candidates(h host) ([]string, error) {
+	if runtime.GOOS != "windows" {
+		return unixCandidates(h), nil
+	}
 	var exes, cmds, others []string
 	for dir := range strings.SplitSeq(h.getenv("PATH"), string(os.PathListSeparator)) {
 		dir = strings.Trim(strings.TrimSpace(dir), `"`)
@@ -154,8 +180,44 @@ func candidates(h host) ([]string, error) {
 	return out, nil
 }
 
-// validModel is a model name golauncher passes on the command line (which
-// may go through cmd.exe for gemini.cmd).
+// unixCandidates finds Gemini CLI outside Windows: an executable gemini in
+// a directory of PATH, then of h.dirs (Homebrew's, npm's usual prefixes).
+// It is npm's link to the package's script (or Homebrew's wrapper), which
+// runs node: Gemini CLI is a Node.js program.
+func unixCandidates(h host) []string {
+	var out []string
+	for _, dir := range append(filepath.SplitList(h.getenv("PATH")), h.dirs...) {
+		if dir = strings.TrimSpace(dir); dir == "" {
+			continue
+		}
+		if p := filepath.Join(dir, "gemini"); h.executable(p) && !slices.Contains(out, p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// nodePath is Info.PathEnv outside Windows: when a node is next to the CLI
+// at path (nvm, a Node.js installed into its own folder) and that folder is
+// not on PATH, PATH with the folder first, so that the script's
+// "#!/usr/bin/env node" finds it; else nothing (PATH stays).
+func nodePath(path string, h host) []string {
+	if !filepath.IsAbs(path) {
+		return nil
+	}
+	dir := filepath.Dir(path)
+	cur := h.getenv("PATH")
+	if !h.executable(filepath.Join(dir, "node")) || slices.Contains(filepath.SplitList(cur), dir) {
+		return nil
+	}
+	if cur == "" {
+		return []string{"PATH=" + dir}
+	}
+	return []string{"PATH=" + dir + string(os.PathListSeparator) + cur}
+}
+
+// validModel is a model name golauncher passes on the command line (gemini.cmd
+// takes it through cmd.exe on Windows; one rule everywhere).
 var validModel = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 // The system settings file golauncher writes into the working directory

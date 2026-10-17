@@ -804,3 +804,26 @@ type Decoder interface {
   - 设置里添加"自定义 ACP Agent"（名称、命令、参数）：`acp.Custom` 已经有了，缺界面；自定义 Agent 没有 `--version` 时运行层还要一个"不检查版本"的选项；
   - Codex 和 Gemini 自己的会话文件不随删除对话清理（只清 golauncher 的映射）；
   - ACP 的 `clientInfo.version` 现在是 "dev"，接线时可以传 golauncher 的版本。
+
+### 21.8 macOS（2026-10-16，`macos-support` 分支）
+
+Windows 上的行为一字未变（Windows 的查找逻辑原样保留，`gemini/testdata/argv.golden.json` 不变）；以下只说 macOS（以及顺带的 Linux）。PATH 是登录 shell 的（GUI 启动时由 shell 补上，[macos-port.md](macos-port.md) §5.3），此外都会再找 `agentrt.UnixBinDirs`：`/opt/homebrew/bin`、`/usr/local/bin`、`~/.local/bin`、`~/.npm-global/bin`、`~/.nvm/versions/node/*/bin`（nvm 通常只在交互式 shell 里加载，登录 shell 的 PATH 里没有）。
+
+- **Codex**（`codex/candidates.go` 的 `unixCandidates`，`findEnv.OS` 区分平台，测试用编造的环境在任何系统上都能跑 Windows 和 macOS 两套）：仍然**只运行原生程序，不经过 Node**（R73）。按顺序：
+  1. PATH 和上面这些目录里的 `codex`，必须可执行、且不是脚本（开头不是 `#!`）——Homebrew 的 cask（`brew install --cask codex`，`/opt/homebrew/bin/codex` 链到 Caskroom 里的原生程序）、GitHub Releases 的二进制都在这里；按链接解析后的真实路径去重；
+  2. Codex 应用可能自带的 CLI：`/Applications/Codex.app/Contents/Resources/codex`、`…/Resources/bin/codex`（以及 `~/Applications` 下的）。**没有验证**：本机没有 Codex 应用，不知道 macOS 版是否带 CLI、放在哪；
+  3. npm 安装：上面目录里的 `codex` 是脚本时（npm 把 `<prefix>/bin/codex` 链到 `<prefix>/lib/node_modules/@openai/codex/bin/codex.js`），从链接找到包，或按 npm 的 prefix 布局推出包，再在启动脚本自己查找的位置找原生程序（三元组 `aarch64-apple-darwin`，Apple 芯片上再找 `x86_64-apple-darwin`，Intel 上只有后者）：
+     - 平台包（0.150 起）：包下嵌套的 `node_modules/@openai/codex-darwin-arm64|x64/vendor/<三元组>/bin/codex`，或提升到旁边的 `@openai/codex-darwin-…/vendor/<三元组>/bin/codex`；
+     - 包自己的 `vendor/<三元组>/bin/codex`（0.150 起启动脚本的退路），以及旧版的 `vendor/<三元组>/codex/codex`（0.130 及以前）。
+     这些布局对照了 npm 上 `@openai/codex` 0.98、0.130、0.150、0.162、0.163 的 `bin/codex.js`，以及 `@openai/codex@0.163.0-darwin-arm64` 包的文件列表（`vendor/aarch64-apple-darwin/bin/codex`）；本机 npm 装的 0.98 是 `vendor/x86_64-apple-darwin/codex/codex`，`Candidates` 找到了它。
+  - 只找到启动脚本时报"没有安装"，消息里说 golauncher 运行原生的 `codex`；设置里配置的路径是脚本或 `codex.js` 时，换成它那个安装里的原生程序（没有就换成原生程序应在的路径，运行层报"没有安装"）。
+  - 命令行和 Windows 完全一样（只有 `argv[0]` 不同），所以 Codex 没有 macOS 的金样。
+- **Gemini CLI**（`gemini.go` 的 `unixCandidates`）：接受 PATH 和上面目录里**任何可执行的 `gemini`**——npm 的链接（指向 `bundle/gemini.js`，`#!/usr/bin/env node`）或 Homebrew 的包装脚本；Gemini CLI 本来就是 Node 程序，用户已接受。没有"只找到别的启动脚本"的报错。
+  - 如果 `gemini` 旁边有 `node`（nvm、自带 Node 的安装）而这个目录不在 PATH 上，新的 `Info.PathEnv` 把它放到 PATH 最前面，版本检查和对话进程都用这个 PATH，`#!/usr/bin/env node` 才找得到 Node。
+  - 系统设置文件：macOS 上是 `/Library/Application Support/GeminiCli/settings.json`，`system-defaults.json` 在同一目录；Linux 是 `/etc/gemini-cli/`；环境变量 `GEMINI_CLI_SYSTEM_SETTINGS_PATH`、`GEMINI_CLI_SYSTEM_DEFAULTS_PATH` 照旧优先（对照了 npm 上 Gemini CLI 0.64 打包后的 `getSystemSettingsPath`）。
+  - 命令行相同；模型名的白名单在所有平台上都一样（只有 Windows 的 `gemini.cmd` 经过 cmd.exe，macOS 上没有 shell 参与）。金样 `gemini/testdata/argv.darwin.golden.json`（`/opt/homebrew/bin/gemini` × 32 种组合，设置文件内容与 Windows 的相同，`GEMINI_CLI_SYSTEM_DEFAULTS_PATH` 不同）。
+- **自定义 ACP Agent**（`acp.Custom`）：`filepath.IsAbs` 本来就按本机规则；macOS 上 `~/` 开头的路径展开成主目录。
+- **界面**：`error.notInstalled.codex`、`error.version.codex` 有 `@darwin` 变体（不提 `codex.exe`，改说 `brew install --cask codex`、`npm install -g @openai/codex`）；`chat.backendGone`、`error.chatUnavailable` 的 Ctrl+N 在 macOS 上写 ⌘N。`TestDarwinTexts` 检查 AI 插件里提到 `.exe`、`.cmd`、`%APPDATA%`、`Ctrl+` 的文案都有不含这些词的 macOS 变体。
+- **测试**：假 CLI 的进程测试（`agentrt`、`acp`、`codex`）原来只在 Windows 上跑，现在 macOS 上也跑（`proc` 的 Unix 实现，进程组）；`TestCheckCandidates` 在 macOS 上用 `codex` 的布局（Homebrew 目录、Codex.app）。只在 Windows 上跑的：Gemini 的 Windows 查找（反斜杠路径）、真实 CLI 的 `TestRealIsolation`（用 cmd.exe 当探针）。
+- **没有验证**：真实的 Codex、Gemini 对话（本机 npm 装的 Codex 是 0.98，低于 0.130 的门槛，而且运行时被系统直接杀掉；Node 本身也坏了）；Codex 应用的 CLI 位置；Homebrew 的 `gemini-cli` 包装脚本的样子（只要求可执行）。
+- **顺带发现（Windows，没有改）**：新版 npm 包（0.150 起）的原生程序在 `vendor/<三元组>/bin/codex.exe`，而 Windows 的查找只看 `vendor/<三元组>/codex/codex.exe`，所以 Windows 上用 npm 装的新版 Codex 找不到原生程序（Codex 应用装的不受影响）。按"Windows 行为不变"的要求这次没有改，需要单独决定。

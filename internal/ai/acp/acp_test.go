@@ -42,9 +42,6 @@ type fixture struct {
 
 func newFixture(t *testing.T, tools *agentrt.ToolServer, env ...string) *fixture {
 	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
@@ -455,19 +452,34 @@ func TestClassify(t *testing.T) {
 	}
 }
 
+// TestCustom: an agent the user names, by an absolute path of this system
+// (C:\… on Windows, /… or ~/… elsewhere) or by a name looked up on PATH.
 func TestCustom(t *testing.T) {
-	cfg := Custom("My Agent", `C:\agents\agent.exe`, []string{"--acp", "--quiet"})
+	path, given := `C:\agents\agent.exe`, `C:\agents\agent.exe`
+	if runtime.GOOS != "windows" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			t.Skip(err)
+		}
+		path, given = filepath.Join(home, "agents", "agent"), "~/agents/agent"
+	}
+	cfg := Custom("My Agent", given, []string{"--acp", "--quiet"})
 	a := NewAdapter(cfg)
 	info := a.Info()
-	if !info.NoPerTurn || !info.AssignsSessionID || info.WorkDir != "acp-My_Agent" || !slices.Equal(info.InstallPaths, []string{`C:\agents\agent.exe`}) ||
+	if !info.NoPerTurn || !info.AssignsSessionID || info.WorkDir != "acp-My_Agent" || !slices.Equal(info.InstallPaths, []string{path}) ||
 		info.ParseVersion("no version") != "0.0.0" || info.ParseVersion("agent 2.3.4") != "2.3.4" {
 		t.Errorf("info %+v", info)
 	}
-	cmd, err := a.Command(agentrt.Launch{Path: `C:\agents\agent.exe`})
-	if err != nil || !slices.Equal(cmd.Argv, []string{`C:\agents\agent.exe`, "--acp", "--quiet"}) {
+	cmd, err := a.Command(agentrt.Launch{Path: path})
+	if err != nil || !slices.Equal(cmd.Argv, []string{path, "--acp", "--quiet"}) {
 		t.Errorf("command %q %v", cmd.Argv, err)
 	}
 	if info := NewAdapter(Custom("x", "agent", nil)).Info(); !slices.Equal(info.Commands, []string{"agent"}) {
 		t.Errorf("info %+v", info)
+	}
+	if runtime.GOOS != "windows" {
+		if info := NewAdapter(Custom("x", "/usr/local/bin/agent", nil)).Info(); !slices.Equal(info.InstallPaths, []string{"/usr/local/bin/agent"}) {
+			t.Errorf("info %+v", info)
+		}
 	}
 }

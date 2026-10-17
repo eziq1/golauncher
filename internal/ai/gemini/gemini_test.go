@@ -2,12 +2,14 @@ package gemini
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -17,7 +19,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
-var update = flag.Bool("update", false, "rewrite testdata/argv.golden.json")
+var update = flag.Bool("update", false, "rewrite this system's testdata/argv*.golden.json")
 
 // fakeHost is a computer with the files in files and the variables in env.
 func fakeHost(env map[string]string, files map[string]string) host {
@@ -30,7 +32,22 @@ func fakeHost(env map[string]string, files map[string]string) host {
 			}
 			return nil, os.ErrNotExist
 		},
+		executable: func(p string) bool { _, ok := files[p]; return ok },
 	}
+}
+
+// goldenFile is the golden file of this system's command lines: Windows
+// (gemini.cmd, gemini.exe) and macOS (gemini) differ in the CLI and in the
+// system defaults path.
+func goldenFile(t *testing.T) (name string, paths []string) {
+	switch runtime.GOOS {
+	case "windows":
+		return "argv.golden.json", []string{`C:\npm\gemini.cmd`, `C:\bin\gemini.exe`}
+	case "darwin":
+		return "argv.darwin.golden.json", []string{"/opt/homebrew/bin/gemini"}
+	}
+	t.Skip("no golden file for " + runtime.GOOS)
+	return "", nil
 }
 
 // argvGolden is testdata/argv.golden.json.
@@ -49,16 +66,18 @@ type argvCase struct {
 
 // TestArgvTable pins the command line, environment and system settings of
 // every combination of new or resumed session, launcher tools, web search,
-// model and system prompt for gemini.cmd and gemini.exe (on a computer
-// without system settings). Run with -update only for an intended change.
+// model and system prompt for gemini.cmd and gemini.exe on Windows, gemini
+// on macOS (on a computer without system settings). Run with -update only
+// for an intended change.
 func TestArgvTable(t *testing.T) {
+	goldenName, paths := goldenFile(t)
 	dir := t.TempDir()
 	h := fakeHost(nil, nil)
 	ts := &ToolServer{Command: `C:\golauncher.exe`, Args: []string{"mcp"}, Env: map[string]string{"GOLAUNCHER_AGENT_TOKEN": "tok"}, SessionEnv: "GOLAUNCHER_AGENT_SESSION"}
 	b := agentrt.New(acp.NewAdapter(config(h)), Options{Dir: dir, Tools: ts})
 	const id = "12345678-1234-4234-8234-123456789abc"
 	g := argvGolden{Settings: map[string]jsontext.Value{}}
-	for _, path := range []string{`C:\npm\gemini.cmd`, `C:\bin\gemini.exe`} {
+	for _, path := range paths {
 		for _, resume := range []bool{false, true} {
 			for _, tools := range []bool{false, true} {
 				for _, web := range []bool{false, true} {
@@ -70,7 +89,7 @@ func TestArgvTable(t *testing.T) {
 								t.Fatal(err)
 							}
 							c := argvCase{
-								Name: fmt.Sprintf("%s resume=%v tools=%v web=%v model=%q prompt=%v", filepath.Ext(path), resume, tools, web, model, sp != ""),
+								Name: fmt.Sprintf("%s resume=%v tools=%v web=%v model=%q prompt=%v", cmp.Or(filepath.Ext(path), filepath.Base(path)), resume, tools, web, model, sp != ""),
 								Argv: cmd.Argv, Env: slices.Clone(cmd.Env),
 							}
 							for i := range c.Env {
@@ -92,7 +111,7 @@ func TestArgvTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	got = append(got, '\n')
-	golden := filepath.Join("testdata", "argv.golden.json")
+	golden := filepath.Join("testdata", goldenName)
 	if *update {
 		if err := os.MkdirAll("testdata", 0o755); err != nil {
 			t.Fatal(err)
@@ -148,17 +167,35 @@ func TestSettings(t *testing.T) {
 		s["telemetry"].(map[string]any)["enabled"] != false {
 		t.Errorf("merged %s", st.content)
 	}
-	if st.defaultsPath != `C:\ProgramData\gemini-cli\system-defaults.json` {
+	// This system's paths (Gemini CLI's settings.ts).
+	defaults, moved, movedDefaults, otherDefaults := `C:\ProgramData\gemini-cli\system-defaults.json`, `D:\policy\gemini.json`, `D:\policy\system-defaults.json`, `E:\d.json`
+	switch runtime.GOOS {
+	case "darwin":
+		defaults, moved, movedDefaults, otherDefaults = "/Library/Application Support/GeminiCli/system-defaults.json", "/etc/policy/gemini.json", "/etc/policy/system-defaults.json", "/tmp/d.json"
+	case "windows":
+	default:
+		defaults, moved, movedDefaults, otherDefaults = "/etc/gemini-cli/system-defaults.json", "/etc/policy/gemini.json", "/etc/policy/system-defaults.json", "/tmp/d.json"
+	}
+	if st.defaultsPath != defaults {
 		t.Errorf("defaults %q", st.defaultsPath)
 	}
 	// Moved by the environment; an unparsable file is ignored, like Gemini CLI does.
-	h = fakeHost(map[string]string{envSystemSettings: `D:\policy\gemini.json`}, map[string]string{`D:\policy\gemini.json`: "{nonsense"})
-	if st := systemSettings(false, h); st.defaultsPath != `D:\policy\system-defaults.json` || !bytes.Equal(st.content, systemSettings(false, fakeHost(nil, nil)).content) {
+	h = fakeHost(map[string]string{envSystemSettings: moved}, map[string]string{moved: "{nonsense"})
+	if st := systemSettings(false, h); st.defaultsPath != movedDefaults || !bytes.Equal(st.content, systemSettings(false, fakeHost(nil, nil)).content) {
 		t.Errorf("moved: %q %s", st.defaultsPath, st.content)
 	}
-	h = fakeHost(map[string]string{envSystemDefaults: `E:\d.json`}, nil)
-	if st := systemSettings(false, h); st.defaultsPath != `E:\d.json` {
+	h = fakeHost(map[string]string{envSystemDefaults: otherDefaults}, nil)
+	if st := systemSettings(false, h); st.defaultsPath != otherDefaults {
 		t.Errorf("defaults %q", st.defaultsPath)
+	}
+	for goos, want := range map[string]string{
+		"windows": `C:\ProgramData\gemini-cli\settings.json`,
+		"darwin":  "/Library/Application Support/GeminiCli/settings.json",
+		"linux":   "/etc/gemini-cli/settings.json",
+	} {
+		if got := systemSettingsPath(goos); got != want {
+			t.Errorf("systemSettingsPath(%s) = %q", goos, got)
+		}
 	}
 }
 
@@ -174,7 +211,12 @@ func TestModel(t *testing.T) {
 	}
 }
 
+// TestCandidates: the Windows lookup (gemini.exe, gemini.cmd, never the
+// other launchers).
 func TestCandidates(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows paths")
+	}
 	env := map[string]string{"PATH": `C:\a;"C:\b";;C:\c`, "APPDATA": `C:\Users\someone\AppData\Roaming`}
 	files := map[string]string{`C:\b\gemini.cmd`: "", `C:\c\gemini.exe`: "", `C:\Users\someone\AppData\Roaming\npm\gemini.cmd`: "", `C:\a\gemini.ps1`: ""}
 	got, err := candidates(fakeHost(env, files))
@@ -193,6 +235,48 @@ func TestCandidates(t *testing.T) {
 	b := agentrt.New(acp.NewAdapter(config(fakeHost(env, nil))), Options{Dir: t.TempDir()})
 	if _, err := b.Check(t.Context()); backend.KindOf(err) != backend.ErrNotInstalled {
 		t.Errorf("Check %v", err)
+	}
+}
+
+// TestCandidatesUnix: outside Windows, an executable gemini on PATH, then in
+// the usual folders (Homebrew, npm's prefixes); and a node next to it is put
+// on its PATH.
+func TestCandidatesUnix(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix paths")
+	}
+	env := map[string]string{"PATH": "/usr/bin: /Users/someone/bin::/opt/homebrew/bin"}
+	files := map[string]string{"/opt/homebrew/bin/gemini": "", "/Users/someone/bin/gemini": "", "/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini": ""}
+	h := fakeHost(env, files)
+	h.dirs = []string{"/opt/homebrew/bin", "/usr/local/bin", "/Users/someone/.nvm/versions/node/v22.1.0/bin"}
+	got, err := candidates(h)
+	if err != nil || !slices.Equal(got, []string{"/Users/someone/bin/gemini", "/opt/homebrew/bin/gemini", "/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini"}) {
+		t.Errorf("candidates %q %v", got, err)
+	}
+	// A gemini that may not be run, or none.
+	h = fakeHost(env, map[string]string{"/usr/bin/gemini": ""})
+	h.executable = func(string) bool { return false }
+	if got, err := candidates(h); len(got) != 0 || err != nil {
+		t.Errorf("candidates %q %v", got, err)
+	}
+	b := agentrt.New(acp.NewAdapter(config(fakeHost(env, nil))), Options{Dir: t.TempDir()})
+	if _, err := b.Check(t.Context()); backend.KindOf(err) != backend.ErrNotInstalled {
+		t.Errorf("Check %v", err)
+	}
+
+	// node next to gemini (nvm): its folder goes first on PATH, unless it is
+	// on PATH already.
+	nvm := "/Users/someone/.nvm/versions/node/v22.1.0/bin"
+	h = fakeHost(env, map[string]string{nvm + "/gemini": "", nvm + "/node": "", "/opt/homebrew/bin/gemini": "", "/opt/homebrew/bin/node": ""})
+	info := config(h).Info
+	if got := info.PathEnv(nvm + "/gemini"); !slices.Equal(got, []string{"PATH=" + nvm + ":" + env["PATH"]}) {
+		t.Errorf("PathEnv %q", got)
+	}
+	if got := info.PathEnv("/opt/homebrew/bin/gemini"); got != nil {
+		t.Errorf("PathEnv on PATH %q", got)
+	}
+	if got := info.PathEnv("/Users/someone/bin/gemini"); got != nil {
+		t.Errorf("PathEnv without node %q", got)
 	}
 }
 

@@ -49,7 +49,9 @@ package acp
 
 import (
 	"cmp"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/eziq1/golauncher/internal/ai/agentrt"
@@ -109,11 +111,13 @@ func NewAdapter(c Config) agentrt.Adapter {
 	return &adapter{c: c}
 }
 
-// Custom is the configuration of an ACP agent the user names: command (a
-// path, or a name looked up on PATH) started with args. Its version is read
+// Custom is the configuration of an ACP agent the user names: command (an
+// absolute path of this system, or a name looked up on PATH; outside
+// Windows "~/" is the home folder) started with args. Its version is read
 // with --version when it prints one (agents that print none are taken as
 // 0.0.0, untested).
 func Custom(name, command string, args []string) Config {
+	command = expandHome(command)
 	info := agentrt.Info{
 		ID: "acp", Name: name,
 		VersionArgs: []string{"--version"},
@@ -132,6 +136,20 @@ func Custom(name, command string, args []string) Config {
 	return Config{Info: info, Args: func(agentrt.Launch) (agentrt.Command, error) {
 		return agentrt.Command{Argv: append([]string(nil), args...)}, nil
 	}}
+}
+
+// expandHome replaces a leading "~/" of path with the home folder, outside
+// Windows (where "~" is not a shell convention).
+func expandHome(path string) string {
+	if runtime.GOOS == "windows" {
+		return path
+	}
+	if rest, ok := strings.CutPrefix(path, "~/"); ok {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, rest)
+		}
+	}
+	return path
 }
 
 // safeName keeps the letters, digits, '-' and '_' of a name.
