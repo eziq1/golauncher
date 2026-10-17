@@ -1102,3 +1102,7 @@ MyGo 0.5.1 提供 `Window.OnFileDrop`（Windows、macOS 都支持从资源管理
 **测试**：`internal/ui` 的 `TestAIPasteTwice`（9 个子测试，包括带网址、带“[图片]”、带空白的图片，带真正文字的图片照常粘贴文字，通过 Edit 菜单的“粘贴”命令连续两次——这一项在旧代码上失败）；`internal/core` 的 `TestPasteFiles` 增加带网址和占位文字的图片、Excel 单元格；`clip` 的 `TestDescribesImage`（26 种文字）、`TestProbeTypes`（macOS 类型，新增“要看文字”）、`TestCopyNotesOwnRestore`；真实剪贴板的 `TestPasteProbe`（Windows：11 种内容，每种探测和读取三次，结果一致，包括 HTML、DIB、恢复后的标记；macOS 版本同样的规则，需要在 Mac 上用 `GOLAUNCHER_CLIPBOARD_TESTS=1` 运行一次）。
 
 **没有验证的**：用户的具体来源没有确认（推断是浏览器或聊天软件）；macOS 的 `⌘V` 路径只在测试里用 Edit 菜单命令模拟过，需要在 Mac 上实际按一次 `⌘V`。
+
+### 24.9 修订：拖到主界面（R97，2026-10-17）
+
+主界面现在自己接收文件（[root-files.md](root-files.md)）：拖到主界面、在主界面 `Ctrl+V` 文件或图片、`Ctrl+O` 选择文件，都显示在“收到的文件”分组里。原来“拖到主界面直接打开新的 AI 对话”改为这个分组的第一个动作“问 AI：<文件名>”（`FileItems`，打开新对话，文件在草稿里）；输入文字后“问 AI：<文字>”带着文件直接发送；AI 关着时是“打开 AI，询问这些文件”，提示界面照旧保留附件。`ReceiveFiles` 在主界面不再被调用（`Instance` 为空时返回 `ErrFilesNotTaken`）。对话的 payload 多了 `files`：新对话第一次显示时把它们加进草稿（`prepareFiles`，和拖入一样检查和复制）。

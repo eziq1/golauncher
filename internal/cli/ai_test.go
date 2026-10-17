@@ -92,10 +92,11 @@ func TestAIBackends(t *testing.T) {
 	}
 }
 
-// TestSessionAIAttach drops files onto the root search (R91): with AI off a
-// new chat opens with its prompt to turn AI on, which keeps them; turned on,
-// they show as chips (a PDF as unsupported, which blocks sending until it is
-// removed), and the message goes out with the others.
+// TestSessionAIAttach drops files onto the root search (R91, R97): its
+// Files section starts with the AI's row; with AI off it opens the prompt to
+// turn AI on, which keeps them; turned on, they show as chips (a PDF as
+// unsupported, which blocks sending until it is removed), and the message
+// goes out with the others.
 func TestSessionAIAttach(t *testing.T) {
 	dir := t.TempDir()
 	notes := filepath.Join(dir, "notes.txt")
@@ -109,8 +110,12 @@ func TestSessionAIAttach(t *testing.T) {
 	s := filepath.Join(t.TempDir(), "s.json")
 	glctl(t, "session", "new", "-s", s)
 	out, _ := glctl(t, "session", "drop", "-s", s, notes, pdf, "--format", "text")
-	if !strings.Contains(out, "2 attachments are waiting") {
+	if !strings.Contains(out, "[Files]\n> Turn on AI to ask about these files") {
 		t.Fatalf("drop on the root with AI off:\n%s", out)
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter", "--format", "text")
+	if !strings.Contains(out, "2 attachments are waiting") {
+		t.Fatalf("the prompt to turn AI on:\n%s", out)
 	}
 	out, _ = glctl(t, "session", "key", "-s", s, "Enter", "--format", "text") // turns AI on
 	if !strings.Contains(out, "chips: notes.txt (") || !strings.Contains(out, "report.pdf (PDF files come in a later version) [error]") {

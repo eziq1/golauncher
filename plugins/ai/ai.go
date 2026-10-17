@@ -197,7 +197,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Description: "%plugin.description%",
 		Version:     "1.0.0",
 		Icon:        plugin.Icon{Name: "sparkles"},
-		Permissions: []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork, plugin.PermExec, plugin.PermSelection},
+		Permissions: []plugin.Permission{plugin.PermStorage, plugin.PermClipboard, plugin.PermNetwork, plugin.PermExec, plugin.PermSelection, plugin.PermFiles},
 		Commands: []plugin.Command{
 			{Name: viewChat, Title: "%command.chat.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "sparkles"},
 				Keywords: []string{"%command.chat.keywords%"}},
@@ -413,6 +413,9 @@ type chatPayload struct {
 	// turning it on goes back to the root search, where the selection
 	// actions then show.
 	ToRoot bool `json:"toRoot,omitzero"`
+	// Files are attached to the new chat's draft (files handed to the root
+	// search, R97); with Text the message goes out with them at once.
+	Files []string `json:"files,omitempty"`
 }
 
 // enablePayload is the payload of the "enable" callback.

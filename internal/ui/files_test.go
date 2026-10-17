@@ -140,8 +140,9 @@ func TestDropFilesUI(t *testing.T) {
 
 func TestPasteFilesUI(t *testing.T) {
 	ft := newFilesLauncher(t)
-	// The root search takes no files: Ctrl+V pastes text as usual.
-	ft.clip.Set(plugin.ClipboardContent{Files: []string{"x.txt"}})
+	// Text on the clipboard: Ctrl+V pastes it into the root search as usual
+	// (files there go to its Files section, root_files_test.go).
+	ft.clip.Set(plugin.ClipboardContent{Text: "from the field"})
 	ft.tt.SetClipboard("from the field")
 	ft.key(ui.Primary(), mui.KeyV)
 	if got := ft.fp.got(); len(got) != 0 {

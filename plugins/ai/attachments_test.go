@@ -178,22 +178,53 @@ func TestAttachmentsBlockSending(t *testing.T) {
 	}
 }
 
-// TestAttachmentsDropOnRoot: files dropped onto the root search open a new
-// chat with them; with AI off its prompt to turn AI on keeps them.
+// fileItems are the plugin's items for files handed to the root search.
+func fileItems(t *testing.T, p *Plugin, text string, paths ...string) []plugin.Item {
+	t.Helper()
+	var files []plugin.FileInfo
+	for _, path := range paths {
+		files = append(files, plugin.FileInfo{Path: path, Name: filepath.Base(path), Kind: plugin.FileText})
+	}
+	items, err := p.FileItems(t.Context(), plugin.FilesQuery{Files: files, Source: plugin.FilesDropped, Text: text})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return items
+}
+
+// pushOf is the view request of an item's first action (a Push).
+func pushOf(t *testing.T, it plugin.Item, instance string) plugin.ViewRequest {
+	t.Helper()
+	do := it.Actions[0].Do
+	if do.Kind != plugin.ActionPush || do.Target != viewChat {
+		t.Fatalf("action %+v", do)
+	}
+	return plugin.ViewRequest{ID: do.Target, Instance: instance, Payload: do.Payload}
+}
+
+// TestAttachmentsDropOnRoot: files handed to the root search are no longer
+// taken by ReceiveFiles (R97): "Ask AI" in the root's Files section opens a
+// new chat with them in the draft; with AI off its prompt to turn AI on
+// keeps them.
 func TestAttachmentsDropOnRoot(t *testing.T) {
 	fake := &backend.Fake{}
 	p, h := newTestPlugin(t, fake, false)
 	src := t.TempDir()
 	txt := writeFile(t, src, "todo.txt", []byte("milk\n"))
-	if _, err := p.ReceiveFiles(t.Context(), plugin.Files{Paths: []string{txt}, Source: plugin.FilesPasted}); err != plugin.ErrFilesNotTaken {
-		t.Fatalf("pasted on the root: %v", err)
+	for _, s := range []plugin.FilesSource{plugin.FilesPasted, plugin.FilesDropped} {
+		if _, err := p.ReceiveFiles(t.Context(), plugin.Files{Paths: []string{txt}, Source: s}); err != plugin.ErrFilesNotTaken {
+			t.Fatalf("%s on the root: %v", s, err)
+		}
 	}
-	r := receive(t, p, plugin.Files{Paths: []string{txt}, Source: plugin.FilesDropped, Query: "typed"})
-	if r.Push == nil || r.Push.ID != viewChat {
-		t.Fatalf("result = %+v", r)
+	items := fileItems(t, p, "")
+	if items != nil {
+		t.Fatalf("items without files: %+v", items)
 	}
-	req := *r.Push
-	req.Instance = "v1"
+	items = fileItems(t, p, "", txt)
+	if len(items) != 1 || items[0].ID != "files-enable" || items[0].Score != 1 {
+		t.Fatalf("items with AI off = %+v", items)
+	}
+	req := pushOf(t, items[0], "v1")
 	v, err := p.View(t.Context(), req)
 	if err != nil {
 		t.Fatal(err)
@@ -219,6 +250,51 @@ func TestAttachmentsDropOnRoot(t *testing.T) {
 	}
 	if list, _ := p.st.Sessions(); len(list) != 1 || list[0].Title != "todo.txt" {
 		t.Fatalf("sessions = %+v", list)
+	}
+}
+
+// TestFileItemsAsk (R97): with AI on, "Ask AI about <name>" is the clear
+// hit of the root's Files section and opens a chat with the files in its
+// draft; with text typed, "Ask AI: <text>" sends it with them at once.
+func TestFileItemsAsk(t *testing.T) {
+	fake := &backend.Fake{}
+	p, _ := newTestPlugin(t, fake, true)
+	src := t.TempDir()
+	notes := writeFile(t, src, "notes.md", []byte("# Notes\n"))
+	img := writeFile(t, src, "photo.png", pngBytes(t, 8, 8))
+
+	items := fileItems(t, p, "", notes)
+	if len(items) != 1 || items[0].ID != "files-ask" || items[0].Title != "Ask AI about notes.md" || items[0].Score != 1 || items[0].Subtitle == "" {
+		t.Fatalf("items = %+v", items)
+	}
+	if items := fileItems(t, p, "", notes, img); items[0].Title != "Ask AI about these 2 files" {
+		t.Fatalf("two files: %q", items[0].Title)
+	}
+	v, err := p.View(t.Context(), pushOf(t, items[0], "v1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v.Chips) != 1 || v.Chips[0].Title != "notes.md" || !v.Draft || len(fake.Sends()) != 0 {
+		t.Fatalf("chat: chips %+v draft %v sends %q", v.Chips, v.Draft, fake.Sends())
+	}
+	// Shown again: the files are not added twice.
+	if v, _ := p.View(t.Context(), pushOf(t, items[0], "v1")); len(v.Chips) != 1 {
+		t.Fatalf("again: %+v", v.Chips)
+	}
+
+	typed := fileItems(t, p, "what is in the picture", img)
+	if len(typed) != 2 || typed[0].ID != "files-instruction" || typed[0].Score != instructionScore || typed[1].Score != 0 ||
+		typed[0].Title != "Ask AI: what is in the picture" {
+		t.Fatalf("typed = %+v", typed)
+	}
+	if _, err := p.View(t.Context(), pushOf(t, typed[0], "v2")); err != nil {
+		t.Fatal(err)
+	}
+	if s := fake.Sends(); len(s) != 1 || s[0] != "what is in the picture" {
+		t.Fatalf("sends = %q", s)
+	}
+	if att := fake.Attached(); len(att) != 1 || len(att[0]) != 1 || att[0][0].Name != "photo.png" || att[0][0].Kind != backend.AttachImage {
+		t.Fatalf("attached = %+v", att)
 	}
 }
 

@@ -44,10 +44,16 @@ type ShowOptions struct {
 // Show; nothing is closed either way (Show or Reset does that).
 func (c *Controller) Hidden() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.keep = keepState{}
 	if f := c.top(); f.nav != nil && f.view != nil && f.view.KeepOnHide {
 		c.keep.kept, c.keep.hiddenAt = true, c.eng.Now()
+	}
+	kept := c.keep.kept
+	c.mu.Unlock()
+	if !kept {
+		// The files handed to the root search go with the show, unless the
+		// stack above them is kept (rootfiles.go).
+		c.clearFiles()
 	}
 }
 

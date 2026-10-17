@@ -122,7 +122,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Version:       "1.0.0",
 		Icon:          plugin.Icon{Name: "folder"},
 		DefaultLocale: "en",
-		Permissions:   []plugin.Permission{plugin.PermClipboard, plugin.PermExec},
+		Permissions:   []plugin.Permission{plugin.PermClipboard, plugin.PermExec, plugin.PermFiles},
 	}
 	if p.o.Mac {
 		m.Description = "%mac.plugin.description%"

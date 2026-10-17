@@ -387,12 +387,12 @@ Where files go:
   instance. Files dropped onto the window, files chosen with
   `ActionChooseFiles`, and **Ctrl+V** (⌘V) when the clipboard holds files
   or an image.
-- **The root search**: files dropped there go to the enabled plugins
-  implementing `FileReceiver`, in their order, with an empty `Instance`,
-  until one does not return **`plugin.ErrFilesNotTaken`** (the AI chat
-  opens a new chat with them). Return it for files you do not want.
-- **Any other view**, or nobody took them: a toast says they cannot be
-  used there.
+- **The root search**: the files show in its "Files" section with the
+  actions of the `FileActionsProvider`s (see *Files in the root search*
+  below); `FileReceiver` is not called there.
+- **Any other view**: a toast says they cannot be used there. Return
+  **`plugin.ErrFilesNotTaken`** for files your view does not want (the
+  same toast).
 
 **`ActionChooseFiles`** shows the system's open dialog (Payload:
 `plugin.ChooseFilesOptions{Title, Multiple}`) and hands the chosen files
@@ -416,7 +416,8 @@ with an absolute path (PNG, JPEG, GIF, WebP, BMP; at most 4 MB). Network
 addresses and `data:` URLs are not loaded.
 
 Privacy: the host reads the clipboard for files only when the user pastes
-(Ctrl+V, ⌘V, a Paste menu item) in a view that accepts files, and then only
+(Ctrl+V, ⌘V, a Paste menu item) in a view that accepts files or in the root
+search, and then only
 takes files or an image (text is pasted into the search field as usual).
 When an image comes with text, the image is taken only if the text just
 describes it — blank, the image's address (one URL, no line break), or
@@ -580,6 +581,57 @@ func (p *Plugin) SelectionItems(ctx context.Context, q plugin.SelectionQuery) ([
   `--selection-editable`, and `glctl session new … --selection …`). The
   built-in `builtin.selection`, `builtin.calc`, `builtin.quicklinks` and
   `builtin.ai` plugins are examples.
+
+### Files in the root search: `FileActionsProvider` and `PermFiles`
+
+The root search takes files too (R97, [root-files.md](root-files.md)):
+dropped onto the window, pasted with Ctrl+V (⌘V) when the clipboard holds
+files or an image, or chosen with Ctrl+O (⌘O) or *Choose Files…*. They
+show as chips above the footer, and the actions plugins offer for them form
+a **"Files"** section at the top of the root search. As with the selected
+text, only plugins that declare the `files` permission and implement
+`plugin.FileActionsProvider` see the paths:
+
+```go
+func (p *Plugin) Manifest() plugin.Manifest {
+    return plugin.Manifest{ID: "acme.images", /* … */
+        Permissions: []plugin.Permission{plugin.PermFiles}}
+}
+
+func (p *Plugin) FileItems(ctx context.Context, q plugin.FilesQuery) ([]plugin.Item, error) {
+    if len(q.Files) != 1 || q.Files[0].Kind != plugin.FileImage {
+        return nil, nil // nothing to offer
+    }
+    f := q.Files[0] // Path, Name, Size, Dir, Kind, MediaType, Pasted
+    return []plugin.Item{{ID: "shrink", Title: p.h.I18n().T("item.shrink"),
+        Actions: []plugin.Action{{ID: "shrink", Title: p.h.I18n().T("action.shrink"),
+            Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "shrink", Payload: plugin.MustPayload(f.Path)}}}}}, nil
+}
+```
+
+- `q.Files` describe the files without reading them: `Kind` (`FileImage`,
+  `FileText`, `FileDocument`, `FileArchive`, `FileAudio`, `FileVideo`,
+  `FileFolder`, `FileOther`) and `MediaType` come from the extension. Read a
+  file only when the user picks an action that needs its content.
+- `Pasted` marks an image pasted from the clipboard: the host wrote it to a
+  temporary PNG file (`Path`), deleted soon after the launcher hides. Use it
+  at once (or copy it); do not offer to reveal it or copy its path.
+- `q.Source` is how the files came; `q.Text` is what the user typed, and
+  `Score` works as for the selected text (the order while nothing is typed;
+  a match with that score once text is typed).
+- The host sets the section, marks the items `Transient` and `Sensitive`
+  (never recorded, never shown to AI), and drops the files when the launcher
+  hides (unless it keeps a view), when new files come, and when the user
+  presses Escape in the empty root search: put the paths an action needs into
+  the action.
+- `FileReceiver` is not called for files given to the root search any more;
+  it receives the files of views that set `View.AcceptFiles`.
+- Only built-in plugins are called for now (the external protocol has no
+  method for it). `builtin.ai` ("Ask AI about this file") and
+  `builtin.files` (open, open with, reveal, copy path or name, compress,
+  checksum, copy image) are examples. Test with
+  `glctl session drop -s s.json <path>...` in the root search, or
+  `session choose <path>...` followed by `session key Ctrl+O`.
 
 ### Background tasks
 

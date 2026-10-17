@@ -363,7 +363,8 @@
     "enabled": true,
     "permissions": [
       "clipboard",
-      "exec"
+      "exec",
+      "files"
     ],
     "origin": "builtin"
   },
@@ -809,7 +810,8 @@
       "clipboard",
       "network",
       "exec",
-      "selection"
+      "selection",
+      "files"
     ],
     "commands": [
       {

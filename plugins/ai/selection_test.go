@@ -3,6 +3,7 @@ package ai
 import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -307,7 +308,7 @@ func TestTabUnchanged(t *testing.T) {
 	if err := json.Unmarshal(a.Do.Payload, &pl); err != nil || !ok {
 		t.Fatal(err)
 	}
-	if pl != (chatPayload{Text: "hello"}) {
+	if !reflect.DeepEqual(pl, chatPayload{Text: "hello"}) {
 		t.Errorf("tab payload = %+v", pl)
 	}
 }

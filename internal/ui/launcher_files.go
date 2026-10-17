@@ -39,7 +39,11 @@ func (l *Launcher) DropFiles(paths []string) {
 // only in a view that accepts files. UI thread only.
 func (l *Launcher) pasteFiles() bool {
 	probe, ok := l.clip.(core.FilesClipboard)
-	if !ok || !l.ctrl.Snapshot().AcceptFiles || !probe.HasFilesOrImage() {
+	if !ok {
+		return false
+	}
+	// The root search takes files too (R97).
+	if s := l.ctrl.Snapshot(); !s.AcceptFiles && (s.Depth > 0 || s.Form != nil) || !probe.HasFilesOrImage() {
 		return false
 	}
 	l.work.Do(func(ctx context.Context) {

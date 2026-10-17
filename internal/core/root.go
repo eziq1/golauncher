@@ -28,7 +28,29 @@ const (
 
 // RootSearch returns the root search results for text.
 func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error) {
+	return e.rootSearch(ctx, text, nil)
+}
+
+// rootSearch is RootSearch with the files handed to the root search (nil
+// for none): the actions for them form the first section (rootfiles.go).
+func (e *Engine) rootSearch(ctx context.Context, text string, rf *rootFiles) ([]Section, error) {
 	cfg := e.cfg.Get()
+	files := e.fileEntries(ctx, cfg, rf, strings.TrimSpace(text))
+	var first []Section
+	if len(files) > 0 {
+		first = []Section{{Title: files[0].Group, Items: files}}
+	}
+	out, err := e.rootSections(ctx, cfg, text, rf != nil)
+	if err != nil {
+		return nil, err
+	}
+	return append(first, out...), nil
+}
+
+// rootSections are the sections of the root search for text below the
+// files' section. With files handed to it, a poor match lists no fallback
+// items: the files' actions take their place.
+func (e *Engine) rootSections(ctx context.Context, cfg config.Config, text string, files bool) ([]Section, error) {
 	raw := text
 	text = strings.TrimSpace(text)
 	cur, sel := e.pullContext()
@@ -45,7 +67,7 @@ func (e *Engine) RootSearch(ctx context.Context, text string) ([]Section, error)
 	candidates = append(candidates, e.selectionEntries(ctx, cfg, sel, text)...)
 	ranked, best := rank(cfg, text, candidates, freq)
 	out := group(ranked)
-	if best < FallbackThreshold {
+	if best < FallbackThreshold && !files {
 		if items := e.fallbackEntries(ctx, cfg, plugin.Query{Text: text, Context: cur}); len(items) > 0 {
 			out = append(out, Section{Title: items[0].Group, Items: items})
 		}
