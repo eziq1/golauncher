@@ -237,6 +237,7 @@ func (p *Plugin) metadata(ch *chat) []plugin.Metadata {
 	}
 	id, _ := p.backendOf(sess)
 	model := p.model(sess)
+	modelSet := model != ""
 	if ch.usage != nil && ch.usage.Model != "" {
 		model = ch.usage.Model
 	}
@@ -246,6 +247,11 @@ func (p *Plugin) metadata(ch *chat) []plugin.Metadata {
 	md := []plugin.Metadata{{Label: p.backendName(sess), Value: model}}
 	if c, ok := p.checks[id]; ok && c.status.Untested {
 		md[0].Value += " · " + l.T("meta.untested", "version", c.status.Version)
+	}
+	if c, ok := p.checks[id]; ok {
+		if f := p.reducedFeatures(c.status, modelSet); f != "" {
+			md[0].Value += " · " + l.T("meta.reduced", "version", c.status.Version, "features", f)
+		}
 	}
 	if u := ch.usage; u != nil && (u.InputTokens > 0 || u.OutputTokens > 0) {
 		md = append(md, plugin.Metadata{Label: l.T("meta.usage"),

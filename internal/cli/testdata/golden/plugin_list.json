@@ -845,6 +845,16 @@
         ]
       },
       {
+        "name": "checkBackend",
+        "type": "button",
+        "title": "Check",
+        "description": "Shows which version of the chosen backend is installed on this computer, and what an older version cannot do.",
+        "action": {
+          "kind": "Callback",
+          "target": "checkBackend"
+        }
+      },
+      {
         "name": "model",
         "type": "select",
         "title": "Model",

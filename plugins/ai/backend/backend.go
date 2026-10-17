@@ -35,6 +35,33 @@ type Status struct {
 	// verified with; it still works, more carefully (one process per turn
 	// for Claude Code).
 	Untested bool
+	// Reduced are the features turned off or degraded because the CLI is
+	// older than what golauncher was built for (Feature* codes); the plugin
+	// says so and offers the update. Isolation is never reduced: what the
+	// CLI cannot do safely is turned off instead.
+	Reduced []string
+}
+
+// The features a Status can report as reduced.
+const (
+	// FeatureWebSearch: the model cannot search or fetch web pages.
+	FeatureWebSearch = "web-search"
+	// FeatureLauncherTools: the model cannot use the launcher's plugins.
+	FeatureLauncherTools = "launcher-tools"
+	// FeatureStreaming: answers arrive whole instead of as they are written.
+	FeatureStreaming = "streaming"
+	// FeatureModel: the model preference is ignored (the CLI's default).
+	FeatureModel = "model"
+)
+
+// Reduces reports whether s reports feature as reduced.
+func (s Status) Reduces(feature string) bool {
+	for _, f := range s.Reduced {
+		if f == feature {
+			return true
+		}
+	}
+	return false
 }
 
 // OpenOptions describe the session of a conversation.

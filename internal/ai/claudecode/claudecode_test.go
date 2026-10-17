@@ -49,18 +49,17 @@ func TestMain(m *testing.M) {
 
 // fake is a test setup around the fake CLI.
 type fake struct {
-	t     *testing.T
-	b     *Backend
-	log   string
-	state string
+	t      *testing.T
+	b      *Backend
+	o      Options
+	script string // the script file
+	log    string
+	state  string
 }
 
 // newFake returns a backend running the fake CLI with script s.
 func newFake(t *testing.T, s map[string]any, edit ...func(*Options)) *fake {
 	t.Helper()
-	if runtime.GOOS != "windows" {
-		t.Skip("Windows only")
-	}
 	dir := t.TempDir()
 	f := &fake{t: t, log: filepath.Join(dir, "log.jsonl"), state: filepath.Join(dir, "state")}
 	os.MkdirAll(f.state, 0o755)
@@ -76,7 +75,7 @@ func newFake(t *testing.T, s map[string]any, edit ...func(*Options)) *fake {
 	for _, e := range edit {
 		e(&o)
 	}
-	f.b = New(o)
+	f.b, f.o, f.script = New(o), o, scriptFile
 	t.Cleanup(func() { f.b.Close() })
 	return f
 }
@@ -102,6 +101,9 @@ type logEntry struct {
 	MCPTools []string `json:"mcpTools"`
 	MCPMeta  *mcpMeta `json:"mcpMeta"`
 	MCPError string   `json:"mcpError"`
+	// Help: a --help run; Permission: the answer to a permission request.
+	Help       bool   `json:"help"`
+	Permission string `json:"permission"`
 }
 
 // mcpMeta is what testdata/fakemcp echoes in a tool result's _meta.

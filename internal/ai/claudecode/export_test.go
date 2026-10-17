@@ -28,3 +28,10 @@ func commandFor(b *Backend, oo backend.OpenOptions, path string, persistent, res
 	}
 	return cmd.Argv, cmd.Env
 }
+
+// commandWith is commandFor for a CLI of version with the probed flags (nil:
+// unknown).
+func commandWith(b *Backend, oo backend.OpenOptions, path, version string, flags agentrt.Flags, persistent, resume bool) (argv, extraEnv []string, err error) {
+	cmd, err := b.CommandFor(oo, path, version, flags, persistent, resume)
+	return cmd.Argv, cmd.Env, err
+}

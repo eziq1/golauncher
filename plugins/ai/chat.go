@@ -328,13 +328,13 @@ func errorText(err error) string {
 // the backend first and opening the conversation with the current
 // preferences.
 func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversation, error) {
-	opts := p.openOptions(ch)
 	p.mu.Lock()
 	id, be := p.backendOf(ch.sess)
 	conv, old, oldID := ch.conv, ch.convOpts, ch.convBackend
 	c, ok := p.checks[id]
 	fresh := ok && time.Since(c.at) < checkTTL
 	p.mu.Unlock()
+	opts := p.openOptions(ch, c.status)
 	// Resume changes after the first answer; the conversation knows that.
 	old.Resume = opts.Resume
 	if conv != nil && old == opts && oldID == id {
@@ -348,6 +348,10 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 		p.mu.Lock()
 		p.checks[id] = checked{at: time.Now(), status: st}
 		p.mu.Unlock()
+		opts = p.openOptions(ch, st)
+		if conv != nil && old == opts && oldID == id {
+			return conv, nil
+		}
 	}
 	if conv != nil {
 		_ = conv.Close() // the preferences changed
@@ -362,11 +366,13 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 	return conv, nil
 }
 
-// openOptions are the options of the chat's conversation.
-func (p *Plugin) openOptions(ch *chat) backend.OpenOptions {
+// openOptions are the options of the chat's conversation, on a backend
+// whose last check reported st: what an older CLI cannot do is left out,
+// so that the system prompt does not offer it either.
+func (p *Plugin) openOptions(ch *chat, st backend.Status) backend.OpenOptions {
 	prefs := p.h.Preferences()
-	web := prefs.Bool(prefWebSearch)
-	tools := p.enabled() && prefs.Bool(prefTools)
+	web := prefs.Bool(prefWebSearch) && !st.Reduces(backend.FeatureWebSearch)
+	tools := p.enabled() && prefs.Bool(prefTools) && !st.Reduces(backend.FeatureLauncherTools)
 	p.mu.Lock()
 	resume := ch.sess.Started
 	id := ch.sess.ID

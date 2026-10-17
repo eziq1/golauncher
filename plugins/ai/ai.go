@@ -165,6 +165,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		{Name: prefEnabled, Type: plugin.PrefBool, Title: "%pref.enabled.title%", Description: "%pref.enabled.description%",
 			Default: plugin.MustPayload(false)},
 		p.be.preference(),
+		checkPreference(),
 		{Name: prefModel, Type: plugin.PrefSelect, Title: "%pref.model.title%", Description: "%pref.model.description%",
 			Default: plugin.MustPayload(""), Options: []plugin.Option{
 				{Value: "", Title: "%pref.model.default%"}, {Value: "sonnet", Title: "%pref.model.sonnet%"},
@@ -452,8 +453,10 @@ func (p *Plugin) askAction(text string) plugin.Action {
 }
 
 // HandleAction implements plugin.ActionHandler.
-func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Result, error) {
+func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	switch a.Target {
+	case prefCheck:
+		return p.checkBackend(ctx), nil
 	case "enable":
 		var ep enablePayload
 		_ = json.Unmarshal(a.Payload, &ep)
