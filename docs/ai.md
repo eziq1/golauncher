@@ -651,3 +651,156 @@ type Decoder interface {
 - **会话映射**的文件不会随删除对话而清理（插件删除对话时没有通知后端）；换后端时，新后端看不到旧后端的上下文（Claude Code 的会话 ID 就是对话 ID，换回来还能接上）。
 - 日志文字变成通用的（例如"agent turn ended"，带 `backend=claudecode`），内容规则不变；内部错误仍以 `claudecode:` 开头。
 - 运行层的"预览命令行"`Runtime.Command` 是为测试导出的，不启动任何进程。
+
+## 21. 实现记录（第二期：Codex 和 Gemini CLI，2026-10-16，R72）
+
+§19 的第二、三期一起做：Gemini CLI 走 **ACP 通用适配器**，Codex 走**原生适配器**；第一期遗留的授权桥接、会话映射清理按 R72 的默认决定处理。设置 › 插件 › AI ›"后端"多了"Codex (ChatGPT)"和"Gemini CLI"。
+
+**不依赖 Node.js**：golauncher 自己不引入 Node（不用 Zed 的 `claude-code-acp`、`codex-acp`）。Claude Code 和 Codex 都是原生程序（Codex 一律运行原生的 `codex.exe`，即使它是通过 npm 装的，也不经过 Node 的启动脚本）；**只有 Gemini CLI 本身是 Node.js 程序**，用户装 Gemini CLI 时已经装了 Node，golauncher 直接运行它的 `gemini.cmd`（或 `gemini.exe`），不经过 PowerShell 脚本。
+
+### 21.1 结构
+
+| 部分 | 位置 | 说明 |
+|------|------|------|
+| ACP 通用适配器 | `internal/ai/acp` | `acp.go`（`Config`、`NewAdapter`、`Custom`、错误分类）、`codec.go`（JSON-RPC、握手、`session/prompt`、`session/cancel`）、`decode.go`（`session/update` 和授权请求的解码）；只要"命令 + 参数"，以后可以从设置里加自定义 Agent |
+| Gemini CLI | `internal/ai/gemini` | `gemini.go`（查找、命令行、要去掉的环境变量）、`settings.go`（golauncher 自己的系统设置文件）、`tools.go`（从参数推断 golauncher 工具名） |
+| Codex | `internal/ai/codex` | `codex.go`（命令行、版本解析）、`candidates.go`（只找原生 `codex.exe`）、`stream.go`（`--json` 事件解码、错误分类） |
+| 运行层新增 | `internal/ai/agentrt` | `Info.Candidates`（多个安装时用版本最高的）、`Info.LoginArgs`（检查登录）、`Launch.Version`/`ChatID`、`Command.Files`（启动前写进工作目录的文件，预览不写）、`permissions.go`（授权桥接）、`ResumeLoser` 和 `EventNotice`（接不上旧会话时告诉用户）、`Runtime.Forget`、Handshake 返回的 `*backend.Error` 保留种类 |
+| 后端契约新增 | `plugins/ai/backend` | `EventNotice`（`NoticeNewSession`）；`PermissionRequest.Kind`、`Done`、`Destructive()`、`Option()`；`PermissionAsker`/`PermissionAsk`/`PermissionDecision`；`Forgetter` |
+| 插件 | `plugins/ai` | `backends.go`（每个对话的后端、每个后端自己的模型偏好、`forget`）、`chatbackend.go`（授权询问、按后端的文字、记录、页脚）、`history.go`（删除和清空时清理映射，列表显示后端） |
+| 工具层 | `internal/agent` | `ConfirmChatPermission`（同一个确认框，记进活动记录）；桥的 hello 多了 `agent`（`GOLAUNCHER_AGENT_NAME`），确认框写"Gemini CLI（AI 对话）" |
+| 接线 | `internal/app`、`internal/builtin/aibackends.go` | 常驻进程建好工具层后，把 `PermissionAsker` 交给 AI 插件；注册表加 Codex、Gemini |
+
+### 21.2 授权桥接（共用层）
+
+- **运行层**（`agentrt/permissions.go`）：适配器的解码器发出 `EventPermission` 时，运行层把 `Respond` 包一层：只算第一次；**60 秒**（`PermissionTimeout`）没回答就拒绝；用户**停止回答**时先拒绝所有待回答的请求，再发中断（ACP 要求先回答再结束）；这一轮结束时还没回答的也拒绝。回答后关闭 `Done`，确认框随之关掉。
+- **插件**：收到请求就调用宿主的 `PermissionAsker`，显示在和 MCP 工具相同的确认框里：
+  - 标题"<后端名>（AI 对话）想要："，内容是 Agent 自己的描述（如"Fetching content from: …"），另起一行写工具名；
+  - 选项映射：允许 → `allow_once`；"本次会话内都允许"只在 Agent 提供 `allow_always` **而且**不是破坏性（ACP 的 kind 不是 `edit`/`delete`/`move`/`execute`）时出现；拒绝 → `reject_once`（没有就回 `cancelled`）；
+  - 没有宿主（测试、glctl）时一律拒绝。
+- **工具层**：`ConfirmChatPermission` 走 `core.ConfirmExternal`（60 秒超时、排队、`InPlace` 显示在对话上方），并在活动记录里记一条：工具、Agent 的描述、结果（允许或拒绝）、`permission request: allow|deny`。
+- Claude Code 和 Codex 不会发授权请求：它们能用的工具都预先批准了，改动东西的操作由 golauncher 自己的工具层确认（§5）。
+
+### 21.3 每个对话固定后端、清理映射
+
+- `Session.BackendID`（新字段）记下对话开始时的后端；旧记录没有这个字段，按 Claude Code 处理。新对话在发出第一条消息时取当时的偏好。
+- 换了"后端"偏好只影响新对话；已有对话继续用原来的后端（和 R71 不同：那时会把对话搬到新后端）。
+- 对话的后端在这个版本里没有时：打开对话就在末尾说明"这个对话是用 X 开始的，这个版本里没有它"，发消息时也这样报错。偏好里的后端没有时，仍是 R71 的说明。
+- "AI 对话历史"的副标题是"时间 · 后端名"。
+- 删除、清空对话，以及按保留期清理时，插件调用后端的 `Forget`：运行层从 `sessions.json` 里删掉"对话 ID → CLI 会话 ID"。CLI 自己的会话文件不动（它们属于 CLI，按 CLI 自己的规则清理）。
+- CLI 接不上旧会话时（ACP 不支持 `session/load`、加载失败；Codex 找不到会话），运行层新开会话，并在这一轮开头发 `EventNotice`，对话里显示"X 无法接上之前的对话，这次回答从新的对话开始"。Claude Code 的行为不变（它的会话 ID 就是对话 ID）。
+- 每个有自己模型的后端多一个"模型"偏好（`model.codex`、`model.gemini`），默认是 CLI 的默认模型；原来的"模型"偏好只用于 Claude Code。
+
+### 21.4 Gemini CLI（ACP）
+
+- **查找**：PATH 上的 `gemini.exe`，再是 PATH 上的 `gemini.cmd`，最后 `%APPDATA%\npm\gemini.cmd`。只找到 `gemini.ps1` 或没有扩展名的脚本时报"没有安装"并说明原因。**Gemini CLI 本身是 Node.js 程序**，`gemini.cmd` 会调用 Node；golauncher 不经过 PowerShell。版本门槛 0.34.0（`--acp` 取代了 `--experimental-acp`）。
+- **命令行**：`gemini --acp --approval-mode default -e none --allowed-mcp-server-names golauncher [-m <模型>]`。模型名只接受 `[A-Za-z0-9._-]`（`.cmd` 的命令行经过 cmd.exe）。
+- **隔离**（设置的优先级：系统设置 > 工作区 > 用户）：环境变量 `GEMINI_CLI_SYSTEM_SETTINGS_PATH` 指向工作目录里 golauncher 写的系统设置文件（`Command.Files`，按内容命名，联网和不联网的对话互不覆盖）。已有的管理员系统设置文件会先读进来，再把 golauncher 的设置合并在上面；`system-defaults.json` 仍指向原来的。内容：
+  - `tools.core` 为空（联网时只有 `google_web_search`、`web_fetch`）：**不注册任何本地工具**（读写文件、Shell、记忆、子 Agent……），`tools.exclude` 再列一遍；`tools.discoveryCommand`、`callCommand` 为空；
+  - `mcp.allowed` 只有 `golauncher`（命令行也传 `--allowed-mcp-server-names`）：用户 `settings.json` 和工作区里的 MCP 服务器都不启动；golauncher 的工具因此也被预先允许（不重复确认，确认在工具层）；
+  - `-e none`：不加载扩展；`hooksConfig`、`skills`、`ide`、检查点、子 Agent、实验功能都关掉；
+  - `context.fileName` 设成一个永远不存在的文件名：不加载 `~/.gemini/GEMINI.md` 和项目里的记忆文件；
+  - 审批模式固定 `default`，`security.disableYoloMode`；不自动更新。
+  - 登录不受影响：仍用 `~/.gemini` 里的 Google 登录（不改 HOME）。
+  - 去掉父进程是 Gemini CLI 时的环境变量（`GEMINI_CLI`、IDE 连接、`GEMINI_SYSTEM_MD` 等），保留用户自己的 API Key、`GEMINI_MODEL` 等选择。
+- **ACP 流程**：
+  1. `initialize`：`protocolVersion: 1`，`clientCapabilities` 里 `fs.readTextFile`、`fs.writeTextFile`、`terminal` 都是 false（不给 Agent 读写文件、开终端的通道），`clientInfo` 是 golauncher；
+  2. 续接且对方声明 `loadSession` → `session/load`（`cwd` 是固定的工作目录，`mcpServers` 是 golauncher 的服务器）；加载失败或对方不支持 → `session/new`，并在对话里提示"接不上之前的对话"。Gemini 在 `session/load` 的响应前后都会回放历史（`session/update`），握手读到 300 毫秒没有输出为止（最多 5 秒）再结束，回放的内容不会混进新的回答；
+  3. 新会话 → `session/new`，返回的会话 ID 记进 `sessions.json`；
+  4. 每条消息是一个 `session/prompt` 请求，它的响应（`stopReason`）就是这一轮的结束；新会话的第一条消息把系统提示作为单独的第一个文本块（ACP 没有系统提示字段）；
+  5. 停止：先拒绝待回答的授权请求，再发 `session/cancel` 通知。
+- **事件映射**（例子是编的）：
+
+  | Agent 发来 | golauncher |
+  |---|---|
+  | `agent_message_chunk {"type":"text","text":"你好"}` | 文本 |
+  | `agent_thought_chunk`、`user_message_chunk`、`plan`、`available_commands_update`、模式变化 | 忽略 |
+  | `tool_call {"toolCallId":"t1","title":"{\"query\":\"Visual Studio Code\"}","kind":"other"}` | 工具步骤 `mcp__golauncher__search`，参数就是标题里的 JSON |
+  | `tool_call {"title":"Searching the web for: \"天气\"","kind":"search"}` | `WebSearch` |
+  | `kind: "fetch"`（"Fetching content from: …"） | `WebFetch` |
+  | `tool_call_update`（`completed`/`failed`） | 工具结果（文本内容拼起来，失败标为出错） |
+  | `session/request_permission` | 工具步骤 + `EventPermission`（§21.2） |
+  | `fs/*`、`terminal/*` 等其他请求 | JSON-RPC 错误 -32601 |
+  | 响应 `end_turn`/`max_tokens`/`max_turn_requests` | 完成；`cancelled` → 已停止；`refusal` → 失败 |
+  | 错误里有 "Session not found" | 会话丢失 → 新开 |
+
+  Gemini 0.34 的 `tool_call` 只给标题（MCP 工具的标题就是参数的 JSON），不给工具名。因为它只能用 golauncher 这一个 MCP 服务器，`gemini/tools.go` 按参数推断工具名（有 `command` → `run_command`，有 `action`/`values` → `run_action`，有 `query` → `search`，没有参数 → `list_plugins`，只有 `handle` 时看结果）；失败时 Gemini 的错误文字里有工具名。
+- **授权**：Gemini 对 `web_fetch` 会请求授权（kind `fetch`，选项是"Always Allow…"`allow_always`、"Allow"`allow_once`、"Reject"`reject_once`），网页搜索不问；golauncher 的工具不问（`mcp.allowed`）。
+- **防斜杠命令**：Gemini 会把以 `/` 或 `$` 开头的消息当成它自己的命令（`/memory add`、`/init`、`/extensions install` 会改文件或装东西），所以这样的消息前面加一个零宽空格。
+- **错误**：429、"quota"、"rate limit"、"resource exhausted" → 额度用完；-32000、"Authentication required"、"API key not valid" → 没登录；"no longer supported" 一类 → 原样显示（重新登录也没用）。
+- **还会影响 Gemini 的用户配置**：`~/.gemini/policies` 里的策略文件、遥测和隐私设置、默认模型名。会话存在 `~/.gemini/tmp/<工作目录的哈希>/chats`，按 Gemini 自己的保留期（默认 30 天）过期，过期后续接会提示新开。Gemini 0.34 不报用量，页脚只显示模型。
+
+### 21.5 Codex
+
+- **只运行原生 `codex.exe`**（`Info.Candidates`，按顺序，去重，只返回 `.exe`）：
+  1. PATH 上的 `codex.exe`（GitHub Releases、winget 等独立安装）；
+  2. Codex 应用装的 `%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe` 和 `bin\*\codex.exe`；
+  3. npm 安装：在有 `codex.cmd`/`codex.ps1`/`codex` 启动脚本的 PATH 目录和 `%APPDATA%\npm` 下，找包里自带的原生程序 `node_modules\@openai\codex\vendor\<三元组>\codex\codex.exe`（arm64 先找 `aarch64-pc-windows-msvc`，再找 `x86_64-pc-windows-msvc`），以及新版 npm 包可能的 `@openai\codex-win32-x64|arm64\vendor\…` 布局（这两种布局本机没有，未验证）。
+  - 只找到 Node 的启动脚本、找不到原生程序时报"没有安装"，说明 golauncher 需要原生的 `codex.exe`，**不会去运行 Node**。设置里配置的路径如果是启动脚本，也换成旁边的原生程序。
+  - 找到多个时，运行层对每个跑 `--version`，用版本最高的（版本号如 `codex-cli 0.162.0-alpha.17.2` 取 `0.162.0`）。版本门槛 0.130.0（有 `--ignore-user-config` 的最早验证版本）。之后 `codex login status` 退出码不为 0 → "没有登录"。
+- **命令行**（每轮一个进程，问题从 stdin 读）：
+
+  ```
+  codex.exe exec --json --color never --skip-git-repo-check --ignore-user-config --ignore-rules --sandbox read-only
+    -c approval_policy="never" -c skills.include_instructions=false -c include_permissions_instructions=false
+    -c include_apps_instructions=false -c include_collaboration_mode_instructions=false -c project_doc_max_bytes=0
+    -c check_for_update_on_startup=false
+    -c features.<名字>=false（shell_tool、unified_exec、apps、plugins、hooks、multi_agent、memories、browser_use、
+       computer_use、image_generation、view_image、tool_suggest、shell_snapshot……每个一条）
+    [-c features.code_mode_host=false]（没有启动器工具时）
+    -c web_search="live"|"disabled"  [-m <模型>]  [-c developer_instructions=<系统提示>]
+    [-c mcp_servers.golauncher.command=… .args=[…] .env.<名字>=…（排序）
+     -c mcp_servers.golauncher.default_tools_approval_mode="approve"]
+    [resume <会话 ID>] -
+  ```
+
+  - `--ignore-user-config`：不读 `$CODEX_HOME/config.toml`（用户的 MCP 服务器、`notify` 程序、钩子、插件、模型……），**登录仍用 `CODEX_HOME` 里的 `auth.json`**。用一个编造的 `CODEX_HOME` 实测过：配置里的 MCP 服务器不加 `--ignore-user-config` 会启动，加了就不启动；golauncher 自己的 `-c mcp_servers.golauncher.*` 照样启动。`-c mcp_servers={}` **不能**清掉用户的服务器（会合并）。
+  - 功能开关用 `-c features.X=false` 而不是 `--disable X`：`--disable` 遇到这个版本不认识的名字会直接报错，`-c` 会忽略，同一份列表在 0.130 和 0.162 上都能用。**关掉 `shell_tool`，Codex 没有运行命令的工具**；沙箱仍是只读。
+  - 0.162 的模型都是"code mode"：所有工具（包括 MCP）都通过 `codex-code-mode-host.exe` 里运行的 JavaScript 调用。有启动器工具时必须保留它，否则模型调不到工具；调用仍以 `mcp_tool_call` 事件出现。这个 JS 沙箱本身没法验证；关掉 Shell 后它能碰到的只有 golauncher 的工具和网页搜索。
+  - `default_tools_approval_mode="approve"` 只预先批准 golauncher 的工具（改动东西的操作由工具层确认，§5），其他一概不批准；`approval_policy="never"` 下 Codex 不会发授权请求。
+  - 去掉父进程是 Codex 时的环境变量（`CODEX_SANDBOX`、`CODEX_THREAD_ID` 等），保留 `CODEX_HOME`。
+- **事件映射**（例子是编的）：
+
+  | Codex `--json` | golauncher |
+  |---|---|
+  | `{"type":"thread.started","thread_id":"…"}` | 会话 ID（记进 `sessions.json`，下一轮 `resume <id>`） |
+  | `item.*` 的 `agent_message {"text":"…"}` | 文本（只发新增的部分；多条消息之间空一行） |
+  | `item.started` 的 `mcp_tool_call {"server":"golauncher","tool":"search","arguments":{"query":"Visual Studio Code"}}` | 工具步骤 `mcp__golauncher__search` |
+  | `item.completed` 的 `mcp_tool_call {"result":{"content":[{"type":"text","text":"{…}"}]}}` | 工具结果（失败或有 `error` 时标为出错） |
+  | `web_search {"query":"…"}` | `WebSearch` |
+  | `command_execution`、`file_change`（不应该出现） | 显示成"Shell"、"FileChange"步骤 |
+  | `reasoning`、`todo_list` | 忽略 |
+  | `error` 事件里有 "Reconnecting… n/5"、"; retrying" | 忽略（临时的） |
+  | `turn.completed {"usage":{"input_tokens":…,"output_tokens":…}}` | 完成，用量（缓存的输入已包含在 `input_tokens` 里，推理的输出已包含在 `output_tokens` 里） |
+  | `turn.failed {"error":{"message":"…"}}` | 失败（分类见下） |
+
+- **错误**：401 / "Not logged in" / "authentication" → 没登录；"usage limit"、"rate limit"、"quota"、独立的 429 → 额度用完；"requires a newer version of Codex" → 版本太旧；"model is not supported when using Codex with a ChatGPT account" → 原样显示；续接时 stderr 上的 "no rollout found for thread id" → 会话丢失：运行层新开会话并提示（为此运行层在进程退出时也处理 `LostSession`）。
+- **还会影响 Codex 的用户配置**：`$CODEX_HOME/AGENTS.md` 总会作为用户说明发给模型（没有配置项能关）；会话写在 `$CODEX_HOME/sessions`，golauncher 的对话会出现在用户的 Codex 历史里；环境上下文里有工作目录、日期和时区。
+- **`codex app-server`**（以后的常驻模式，没有实现）：JSON-RPC（`thread/start`、`thread/resume`、turn、中断、流式增量），有真正的授权请求（可以接 `EventPermission`），桌面应用和 VS Code 用的就是它；但标着实验性，帮助里没有 `--ignore-user-config`，隔离只能靠配置覆盖，还要避开共享的守护进程（`app-server daemon`）。适合作为以后的单独适配器，需要重新做隔离验证。
+
+### 21.6 测试和验证
+
+- **假 CLI**：
+  - Codex：`codex/testdata/fakecodex`（测试里编译成 `codex.exe`），按问题输出编造的 JSONL：普通回答、多条消息、MCP 工具调用和失败、网页搜索、没登录、额度、临时重试后成功、续接时会话丢失、崩溃、慢回答（停止）、非协议的行；记录每次的命令行。测试覆盖多轮和续接（换一个后端实例后映射仍在）、`Forget`、事件映射、错误、停止、崩溃、登录检查、版本太旧、多个安装选最高版本、只有 Node 启动脚本时的报错（`candidates_test.go` 用假的目录布局，含 arm64 顺序）。
+  - ACP：测试程序自己当假的 ACP Agent（`ACP_FAKE=1`）：`initialize`、`session/new`、`session/load`（响应前后都回放历史，不能混进回答）、不支持 `loadSession` 和加载失败时提示新开、多轮、流式片段、工具调用（JSON 标题和网页搜索）、授权允许 / 拒绝 / 超时 / 等待时停止（先回答拒绝，再收到 `session/cancel`）、流式时停止、不支持的 `fs` 请求回 -32601、`session/new` 鉴权失败 → 没登录、429 → 额度、中途崩溃后下一轮重启并加载会话、非协议的行、`Forget`；检查 Agent 收到的 JSON（协议版本、没有能力、带环境变量的 `mcpServers`、`cwd`）。
+  - 运行层（`agentrt/bridge_test.go`）：授权超时和停止时自动拒绝、`Done`、接不上会话的提示、`Forget`、多个安装选最高版本、登录检查、`Command.Files`（预览不写文件）。
+  - 插件（`backends_test.go`）：每个对话固定后端、换偏好只影响新对话、历史里的后端名、旧记录按 Claude Code、后端不存在时的说明、每个后端自己的模型偏好、删除 / 清空 / 过期清理时 `Forget`、提示、授权询问（允许、本次会话、拒绝、破坏性不给"本次会话"、没有宿主时拒绝、被运行层回答后关掉确认框）。工具层：`ConfirmChatPermission` 的确认和活动记录、"Gemini CLI（AI 对话）"的名字。
+- **命令行金样**：`codex/testdata/argv.golden.json`（续接 × 工具关/开/没有工具服务器 × 联网 × 模型 × 系统提示，48 种）、`gemini/testdata/argv.golden.json`（`gemini.cmd`、`gemini.exe` 两种 × 同样的组合，64 种，含环境变量和设置文件内容），钉住每个隔离参数。Claude Code 的 `argv.golden.json` 一字未变。
+- **真实 CLI**（`GOLAUNCHER_AI_TESTS=1`，只用很短的问题和只读的搜索，工具服务器是 `glctl mcp` 的假环境）：
+  - **Codex 0.162**（Codex 应用装的）：`TestRealCLI` 通过（第二轮用 `resume` 续接，记得第一轮的内容，没有新开提示）；`TestRealCLITools` 通过（`mcp__golauncher__search`，参数含 "Visual Studio Code"，结果含 `"handle"`）。npm 装的 0.46 太旧：服务器拒绝它能用的所有模型，所以门槛定在 0.130；0.130 能启动，但它的默认模型也被这个账号拒绝，选最高版本时会用 0.162。
+  - **Gemini CLI 0.34**：`gemini --version` 正常，但这个 Google 账号在 `session/new` 被服务器拒绝（"这个客户端不再支持个人版 Gemini Code Assist，请迁移到 Antigravity"），所以**真实的对话和工具调用没法验证**。用测试自己设置里的假 API Key 跑了只到 `session/new` 的隔离测试 `TestRealIsolation`：golauncher 的工具服务器启动了，工作区里的 MCP 服务器和工具发现命令没有启动（对照：不加隔离时会启动）。还观察到：`initialize` 约 7 秒（Node 启动），`session/load` 的历史回放在响应前后 1 毫秒内到达。
+
+### 21.7 和方案不同的地方、遗留问题
+
+- **Codex 不用 Zed 的 `codex-acp`**（需要 Node），走原生 `codex exec --json`；**Gemini 是唯一需要 Node 的后端**（Gemini CLI 自己就是 Node 程序）。
+- **Codex 的版本门槛**比 R69 调研时本机的 0.46 高：0.46 没有 `--ignore-user-config`，而且这个账号已经用不了它。实际用的是 Codex 应用自带、会自动更新的 `codex.exe`。
+- **Codex 的模型偏好只有"默认"**：能用的模型随账号和 CLI 版本变化，不写死；Gemini 列了 2.5 Pro / Flash / Flash-Lite。
+- **授权桥接放在运行层**（超时、停止、轮次结束都由运行层拒绝），插件只负责问用户——和 §20.7 的建议一致。
+- **R71 的"换后端会搬对话"改成每个对话固定后端**（R72 的决定 5）。
+- **Gemini 的工具名靠推断**（0.34 的 ACP 不给工具名），以后 Gemini 在 `tool_call` 里带上 `rawInput`/工具名时可以去掉。
+- **还没做**：
+  - 真实环境下验证 Gemini 的对话、工具、授权（需要一个还能用 Gemini CLI 的账号，或者新版 Gemini CLI）；
+  - Codex 的 `app-server` 常驻模式（见 §21.5）；
+  - 设置里添加"自定义 ACP Agent"（名称、命令、参数）：`acp.Custom` 已经有了，缺界面；自定义 Agent 没有 `--version` 时运行层还要一个"不检查版本"的选项；
+  - Codex 和 Gemini 自己的会话文件不随删除对话清理（只清 golauncher 的映射）；
+  - ACP 的 `clientInfo.version` 现在是 "dev"，接线时可以传 golauncher 的版本。

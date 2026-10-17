@@ -146,9 +146,9 @@
 - **不做**：Developer ID 签名、公证（`notarytool`、`stapler`）、DMG。用户第一次打开要过 Gatekeeper（右键 →“打开”，或 macOS 15 起在“隐私与安全性”里点“仍要打开”，或 `xattr -dr com.apple.quarantine golauncher.app`），每次更新后要重新授予辅助功能权限（self-install.md §9.4）。Release 说明里应该写上这两点。
 - **本地打包**：`scripts/macos/build.sh --arch arm64 --app --zip`（Intel 用 `amd64`；`--arch universal` 打一个通用包，更新程序也认）；只要 `.app` 用 `--app`；用自己的证书签名用 `--sign <名称>`。
 
-## 13. v0.7.0：第一个 macOS 版本（R77）
+## 13. v0.7.0：第一个 macOS 版本（R79）
 
-- **内容**：macOS 支持（R74，[macos-port.md §10](macos-port.md)）、插件的 `platforms` 字段（R76）、Homebrew 插件，以及 `[Unreleased]` 里原有的条目。
+- **内容**：macOS 支持（R76，[macos-port.md §10](macos-port.md)）、插件的 `platforms` 字段（R78）、Homebrew 插件，以及 `[Unreleased]` 里原有的条目。
 - **脚本归类**：`scripts/windows/`（`build.ps1`、`winres.ps1`）、`scripts/macos/`（`build.sh`、`macbundle`、`genmenubaricon`）、`scripts/release/changelog.ps1`、`scripts/data/gencities`，索引见 [scripts/README.md](../scripts/README.md)。`build.ps1`、`winres.ps1`、`changelog.ps1`、`build.sh` 里求仓库根目录的地方随之多上一级。
 - **macOS 产物改为两个**：`golauncher_<版本>_darwin_arm64.zip` 和 `golauncher_<版本>_darwin_amd64.zip`（§12 原来是一个通用包）。`macos` job 对两个架构各打一次 `.app` 并做冒烟测试（`glctl` 只在运行器本机的架构上运行）。更新程序（`SelectAssetsFor`）改为先找本机架构的包，没有再找 `darwin_universal`，所以以后改回通用包也能更新。
 - **步骤**：同 §3。`macos-support` 分支先推送并等 CI（Windows 上的测试此前只在本机交叉编译过、没跑过）通过，再快进合并到 `main`，打 `v0.7.0` tag。

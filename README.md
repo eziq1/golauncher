@@ -102,7 +102,14 @@
     through golauncher's own tools, every step shows in the chat, and
     anything that changes something asks you first in the launcher
     (*Allow*, *Allow for this session*, *Deny*; destructive actions always
-    ask). Web search is an option.
+    ask). Web search is an option. Instead of Claude Code you can choose
+    **Codex** (your ChatGPT account; golauncher runs the native `codex.exe`,
+    e.g. the one the Codex app installs) or **Gemini CLI** (your Google
+    account; Gemini CLI itself needs Node.js) in *Settings › Plugins › AI ›
+    Backend*. Each runs isolated from your own setup of that CLI (no other
+    MCP servers, hooks, extensions or memory files, no file or shell tools),
+    each chat stays on the backend it started with, and when Gemini asks for
+    permission to use a tool you answer in the same dialog.
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
     `golauncher.exe mcp` is an MCP server for your plugins. The settings

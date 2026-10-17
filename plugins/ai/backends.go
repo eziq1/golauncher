@@ -9,26 +9,36 @@ import (
 )
 
 // DefaultBackendID is the ID of the Claude Code backend, the default of the
-// "Backend" preference (claudecode.ID in internal/ai/claudecode).
+// "Backend" preference (claudecode.ID in internal/ai/claudecode). Chats
+// recorded before chats remembered their backend (R72) were Claude Code's.
 const DefaultBackendID = "claude-code"
 
 // BackendOption is a backend the "Backend" preference can choose (R71).
 type BackendOption struct {
-	// ID is stored in the preferences, e.g. "claude-code".
+	// ID is stored in the preferences and with each chat, e.g. "claude-code".
 	ID string
 	// Backend answers; its Name is the option's title.
 	Backend backend.Backend
+	// Models, when set, are the choices of the backend's own "Model"
+	// preference (prefModel + "." + ID; the empty value, the CLI's default,
+	// comes first by itself). Without it the backend uses the "Model"
+	// preference (Claude's models).
+	Models []plugin.Option
 }
 
-// chooser is the backend chosen in the "Backend" preference. Its methods
-// follow the preference: a chat opened with one backend reopens its
-// conversation when the choice changes (Plugin.conversation).
+// chooser holds the backends. New chats use the one chosen in the "Backend"
+// preference; a chat keeps the backend it was started with (Session.BackendID,
+// R72).
 type chooser struct {
 	p    *Plugin
 	opts []BackendOption
 }
 
-var _ backend.Backend = (*chooser)(nil)
+// modelPrefText are the titles of the backends' own model preferences.
+var modelPrefText = map[string][2]string{
+	"codex":  {"%pref.model.codex.title%", "%pref.model.codex.description%"},
+	"gemini": {"%pref.model.gemini.title%", "%pref.model.gemini.description%"},
+}
 
 // preference is the "Backend" preference, with one option per backend.
 func (c *chooser) preference() plugin.Preference {
@@ -40,7 +50,34 @@ func (c *chooser) preference() plugin.Preference {
 		Default: plugin.MustPayload(c.opts[0].ID), Options: options}
 }
 
-// id is the ID of the chosen backend.
+// modelPreferences are the model preferences of the backends with their own
+// models.
+func (c *chooser) modelPreferences() []plugin.Preference {
+	var out []plugin.Preference
+	for _, o := range c.opts {
+		if o.Models == nil {
+			continue
+		}
+		text, ok := modelPrefText[o.ID]
+		if !ok {
+			text = [2]string{"%pref.model.title%", "%pref.model.description%"}
+		}
+		options := append([]plugin.Option{{Value: "", Title: "%pref.model.default%"}}, o.Models...)
+		out = append(out, plugin.Preference{Name: modelPref(o), Type: plugin.PrefSelect, Title: text[0], Description: text[1],
+			Default: plugin.MustPayload(""), Options: options})
+	}
+	return out
+}
+
+// modelPref is the name of the preference that chooses o's model.
+func modelPref(o BackendOption) string {
+	if o.Models == nil {
+		return prefModel
+	}
+	return prefModel + "." + o.ID
+}
+
+// id is the ID of the backend chosen in the preferences.
 func (c *chooser) id() string {
 	if c.p.h != nil {
 		if id := c.p.h.Preferences().String(prefBackend); id != "" {
@@ -50,34 +87,52 @@ func (c *chooser) id() string {
 	return c.opts[0].ID
 }
 
+// option returns the backend with id.
+func (c *chooser) option(id string) (BackendOption, bool) {
+	for _, o := range c.opts {
+		if o.ID == id {
+			return o, true
+		}
+	}
+	return BackendOption{}, false
+}
+
 // current returns the chosen backend's ID and the backend; one that only
 // reports an error when no backend has that ID.
 func (c *chooser) current() (string, backend.Backend) {
 	id := c.id()
-	for _, o := range c.opts {
-		if o.ID == id {
-			return id, o.Backend
-		}
+	if o, ok := c.option(id); ok {
+		return id, o.Backend
 	}
-	return id, unavailable(id)
+	return id, unavailable{id: id}
 }
 
-// Name implements backend.Backend.
+// of returns the backend of a chat: the one it was started with (Claude
+// Code for older records); one that explains in the chat when this version
+// does not have it.
+func (c *chooser) of(sess Session) (string, backend.Backend) {
+	id := sess.BackendID
+	if id == "" {
+		id = DefaultBackendID
+	}
+	if o, ok := c.option(id); ok {
+		return id, o.Backend
+	}
+	return id, unavailable{id: id, chat: true}
+}
+
+// Name is the name of the chosen backend.
 func (c *chooser) Name() string {
 	_, b := c.current()
 	return b.Name()
 }
 
-// Check implements backend.Backend.
-func (c *chooser) Check(ctx context.Context) (backend.Status, error) {
-	_, b := c.current()
-	return b.Check(ctx)
-}
-
-// Open implements backend.Backend.
-func (c *chooser) Open(ctx context.Context, o backend.OpenOptions) (backend.Conversation, error) {
-	_, b := c.current()
-	return b.Open(ctx, o)
+// forget drops what the chat's backend keeps about a deleted chat.
+func (c *chooser) forget(sess Session) {
+	_, b := c.of(sess)
+	if f, ok := b.(backend.Forgetter); ok {
+		f.Forget(sess.ID)
+	}
 }
 
 // Close closes every backend that can be closed.
@@ -92,13 +147,19 @@ func (c *chooser) Close() error {
 }
 
 // unavailable is the backend of an ID that no backend has (a configuration
-// written by another version): it explains that in the chat.
-type unavailable string
+// or a chat of another version): it explains that in the chat.
+type unavailable struct {
+	id   string
+	chat bool // a chat's own backend (else the one chosen in the preferences)
+}
 
-func (u unavailable) Name() string { return string(u) }
+func (u unavailable) Name() string { return u.id }
 
 func (u unavailable) err() error {
-	return &backend.Error{Kind: backend.ErrUnavailable, Message: string(u)}
+	if u.chat {
+		return errChatUnavailable{u.id}
+	}
+	return &backend.Error{Kind: backend.ErrUnavailable, Message: u.id}
 }
 
 func (u unavailable) Check(context.Context) (backend.Status, error) { return backend.Status{}, u.err() }
@@ -106,3 +167,12 @@ func (u unavailable) Check(context.Context) (backend.Status, error) { return bac
 func (u unavailable) Open(context.Context, backend.OpenOptions) (backend.Conversation, error) {
 	return nil, u.err()
 }
+
+// errChatUnavailable: the backend a chat was started with does not exist in
+// this version; recorded as "unavailable-chat:<id>".
+type errChatUnavailable struct{ id string }
+
+func (e errChatUnavailable) Error() string { return "ai: backend " + e.id + " is not available" }
+
+// recordedChatUnavailable is the recorded kind of errChatUnavailable.
+const recordedChatUnavailable = "unavailable-chat"

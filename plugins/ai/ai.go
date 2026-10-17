@@ -96,16 +96,30 @@ type Plugin struct {
 	h  plugin.Host
 	st *store
 
-	mu        sync.Mutex
-	chats     map[string]*chat  // live chats by session ID
-	views     map[string]string // open chat view instance -> session ID
-	idle      *time.Timer       // releases the processes after the window hid
-	unsubs    []func()
-	checked   time.Time // when the backend was last found usable
-	checkedID string    // which backend
-	status    backend.Status
-	closed    bool
-	turns     sync.WaitGroup // answers being written
+	mu     sync.Mutex
+	chats  map[string]*chat  // live chats by session ID
+	views  map[string]string // open chat view instance -> session ID
+	idle   *time.Timer       // releases the processes after the window hid
+	unsubs []func()
+	checks map[string]checked // by backend ID: when it was last found usable
+	asker  backend.PermissionAsker
+	closed bool
+	turns  sync.WaitGroup // answers being written
+}
+
+// checked is a successful backend check.
+type checked struct {
+	at     time.Time
+	status backend.Status
+}
+
+// SetPermissionAsker sets how the chat asks the user about an agent's
+// permission requests (backend.EventPermission): the host's confirmation
+// dialog (docs/ai.md §21). Without it they are rejected.
+func (p *Plugin) SetPermissionAsker(a backend.PermissionAsker) {
+	p.mu.Lock()
+	p.asker = a
+	p.mu.Unlock()
 }
 
 var (
@@ -140,13 +154,39 @@ func NewWithOptions(o Options) *Plugin {
 	if len(opts) == 0 {
 		opts = []BackendOption{{ID: DefaultBackendID, Backend: o.Backend}}
 	}
-	p := &Plugin{o: o, chats: map[string]*chat{}, views: map[string]string{}}
+	p := &Plugin{o: o, chats: map[string]*chat{}, views: map[string]string{}, checks: map[string]checked{}}
 	p.be = &chooser{p: p, opts: opts}
 	return p
 }
 
 // Manifest implements plugin.Plugin.
 func (p *Plugin) Manifest() plugin.Manifest {
+	prefs := []plugin.Preference{
+		{Name: prefEnabled, Type: plugin.PrefBool, Title: "%pref.enabled.title%", Description: "%pref.enabled.description%",
+			Default: plugin.MustPayload(false)},
+		p.be.preference(),
+		{Name: prefModel, Type: plugin.PrefSelect, Title: "%pref.model.title%", Description: "%pref.model.description%",
+			Default: plugin.MustPayload(""), Options: []plugin.Option{
+				{Value: "", Title: "%pref.model.default%"}, {Value: "sonnet", Title: "%pref.model.sonnet%"},
+				{Value: "opus", Title: "%pref.model.opus%"}, {Value: "haiku", Title: "%pref.model.haiku%"},
+			}},
+	}
+	prefs = append(prefs, p.be.modelPreferences()...)
+	prefs = append(prefs,
+		plugin.Preference{Name: prefWebSearch, Type: plugin.PrefBool, Title: "%pref.webSearch.title%", Description: "%pref.webSearch.description%",
+			Default: plugin.MustPayload(true)}, // on by default (R56); an explicit false stays false
+		plugin.Preference{Name: prefTools, Type: plugin.PrefBool, Title: "%pref.tools.title%", Description: "%pref.tools.description%",
+			Default: plugin.MustPayload(true)},
+		plugin.Preference{Name: prefRetention, Type: plugin.PrefSelect, Title: "%pref.retention.title%", Description: "%pref.retention.description%",
+			Default: plugin.MustPayload(strconv.Itoa(defaultRetentionDays)), Options: []plugin.Option{
+				{Value: "7", Title: "%pref.retention.7%"}, {Value: "30", Title: "%pref.retention.30%"},
+				{Value: "90", Title: "%pref.retention.90%"}, {Value: "365", Title: "%pref.retention.365%"},
+			}},
+		plugin.Preference{Name: prefFallback, Type: plugin.PrefBool, Title: "%pref.askFallback.title%", Description: "%pref.askFallback.description%",
+			Default: plugin.MustPayload(true)},
+		plugin.Preference{Name: prefTranslateTo, Type: plugin.PrefSelect, Title: "%pref.translateTo.title%", Description: "%pref.translateTo.description%",
+			Default: plugin.MustPayload(""), Options: translateOptions()},
+	)
 	return plugin.Manifest{
 		ID:          ID,
 		Name:        "%plugin.name%",
@@ -160,29 +200,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			{Name: viewHistory, Title: "%command.history.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "history"},
 				Keywords: []string{"%command.history.keywords%"}},
 		},
-		Preferences: []plugin.Preference{
-			{Name: prefEnabled, Type: plugin.PrefBool, Title: "%pref.enabled.title%", Description: "%pref.enabled.description%",
-				Default: plugin.MustPayload(false)},
-			p.be.preference(),
-			{Name: prefModel, Type: plugin.PrefSelect, Title: "%pref.model.title%", Description: "%pref.model.description%",
-				Default: plugin.MustPayload(""), Options: []plugin.Option{
-					{Value: "", Title: "%pref.model.default%"}, {Value: "sonnet", Title: "%pref.model.sonnet%"},
-					{Value: "opus", Title: "%pref.model.opus%"}, {Value: "haiku", Title: "%pref.model.haiku%"},
-				}},
-			{Name: prefWebSearch, Type: plugin.PrefBool, Title: "%pref.webSearch.title%", Description: "%pref.webSearch.description%",
-				Default: plugin.MustPayload(true)}, // on by default (R56); an explicit false stays false
-			{Name: prefTools, Type: plugin.PrefBool, Title: "%pref.tools.title%", Description: "%pref.tools.description%",
-				Default: plugin.MustPayload(true)},
-			{Name: prefRetention, Type: plugin.PrefSelect, Title: "%pref.retention.title%", Description: "%pref.retention.description%",
-				Default: plugin.MustPayload(strconv.Itoa(defaultRetentionDays)), Options: []plugin.Option{
-					{Value: "7", Title: "%pref.retention.7%"}, {Value: "30", Title: "%pref.retention.30%"},
-					{Value: "90", Title: "%pref.retention.90%"}, {Value: "365", Title: "%pref.retention.365%"},
-				}},
-			{Name: prefFallback, Type: plugin.PrefBool, Title: "%pref.askFallback.title%", Description: "%pref.askFallback.description%",
-				Default: plugin.MustPayload(true)},
-			{Name: prefTranslateTo, Type: plugin.PrefSelect, Title: "%pref.translateTo.title%", Description: "%pref.translateTo.description%",
-				Default: plugin.MustPayload(""), Options: translateOptions()},
-		},
+		Preferences: prefs,
 	}
 }
 
@@ -249,16 +267,19 @@ func (p *Plugin) retention() time.Duration {
 // prune deletes the chats older than the retention period, except open ones.
 func (p *Plugin) prune() {
 	now := p.h.Now()
-	n, err := p.st.Prune(now.Add(-p.retention()), func(id string) bool {
+	removed, err := p.st.Prune(now.Add(-p.retention()), func(id string) bool {
 		p.mu.Lock()
 		defer p.mu.Unlock()
 		_, live := p.chats[id]
 		return live
 	})
+	for _, s := range removed {
+		p.be.forget(s) // the CLI's session ID of the chat (R72)
+	}
 	if err != nil {
 		p.h.Logger().Warn("prune chats", "err", err)
-	} else if n > 0 {
-		p.h.Logger().Info("pruned chats", "count", n)
+	} else if len(removed) > 0 {
+		p.h.Logger().Info("pruned chats", "count", len(removed))
 	}
 }
 

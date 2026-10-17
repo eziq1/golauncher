@@ -90,11 +90,15 @@ const (
 	// Event.Result, Event.IsError).
 	EventToolResult EventKind = "tool-result"
 	// EventPermission asks the user to allow a tool call (Event.Permission):
-	// the agent waits until Permission.Respond is called. Reserved for ACP
-	// agents (session/request_permission, docs/ai.md §20); Claude Code never
-	// sends it (its tools are pre-approved and golauncher's own tool layer
+	// the agent waits until Permission.Respond is called. ACP agents send it
+	// (session/request_permission, docs/ai.md §21); Claude Code and Codex
+	// never do (their tools are pre-approved and golauncher's own tool layer
 	// asks). A consumer that cannot ask must respond with "" (reject).
 	EventPermission EventKind = "permission"
+	// EventNotice tells the user something about the conversation itself;
+	// Event.Text is one of the Notice codes (e.g. NoticeNewSession), which the
+	// consumer words.
+	EventNotice EventKind = "notice"
 	// EventDone ends a turn (Event.Usage, Event.Cancelled).
 	EventDone EventKind = "done"
 	// EventError ends a turn that failed (Event.Err, usually a *Error).
@@ -125,16 +129,86 @@ type Event struct {
 	Permission *PermissionRequest
 }
 
+// NoticeNewSession (EventNotice): the backend could not continue the
+// conversation it had (the agent cannot load sessions, or no longer has
+// this one), so this answer starts a new one without the earlier messages.
+const NoticeNewSession = "new-session"
+
 // PermissionRequest is an agent asking to run a tool call (EventPermission).
 type PermissionRequest struct {
 	// ToolID identifies the call (as in EventTool); Tool and Input describe
 	// it, Title is the agent's own description of it.
 	ToolID, Tool, Input, Title string
+	// Kind is the agent's kind of the tool (ACP's tool kinds: "read", "edit",
+	// "delete", "move", "search", "execute", "think", "fetch", "other"; ""
+	// when unknown).
+	Kind string
 	// Options are the answers the agent offers (allow once, always, reject…).
 	Options []PermissionOption
 	// Respond answers with the ID of one of Options; "" rejects (also when the
 	// turn was stopped). Only the first call counts.
 	Respond func(optionID string)
+	// Done, when set, is closed once the request was answered by anyone
+	// (the user, the timeout, a stop): a dialog still asking can close.
+	Done <-chan struct{}
+}
+
+// Destructive reports whether the request's kind changes or removes things
+// or runs programs, so that it is never allowed for the rest of a session.
+func (r *PermissionRequest) Destructive() bool {
+	switch r.Kind {
+	case "edit", "delete", "move", "execute":
+		return true
+	}
+	return false
+}
+
+// Option returns the ID of the first option of kind ("" when none).
+func (r *PermissionRequest) Option(kind string) string {
+	for _, o := range r.Options {
+		if o.Kind == kind {
+			return o.ID
+		}
+	}
+	return ""
+}
+
+// PermissionAsk is a permission request (EventPermission) as the user is
+// asked about it, in the launcher's confirmation dialog (docs/ai.md §5).
+type PermissionAsk struct {
+	// Client names who asks, e.g. "Gemini CLI (AI Chat)".
+	Client string
+	// Action is what the agent wants to do (its own description), Tool the
+	// tool's name, Message an extra line ("" for none).
+	Action, Tool, Message string
+	// Destructive asks with the danger style; AllowSession offers "Allow for
+	// this session" (only when the agent offers "always" and the request is
+	// not destructive).
+	Destructive, AllowSession bool
+}
+
+// PermissionDecision is the user's answer to a PermissionAsk.
+type PermissionDecision int
+
+const (
+	// PermissionDeny: declined, or no answer in time.
+	PermissionDeny PermissionDecision = iota
+	// PermissionAllow: this once.
+	PermissionAllow
+	// PermissionAllowSession: this and the same again in the session.
+	PermissionAllowSession
+)
+
+// PermissionAsker asks the user about a permission request and waits for
+// the answer (deny when ctx ends). The host provides it; it also records the
+// request in the AI activity log.
+type PermissionAsker func(ctx context.Context, a PermissionAsk) PermissionDecision
+
+// Forgetter is implemented by backends that keep something about a
+// session (e.g. the CLI's own session ID): Forget drops it when the chat is
+// deleted.
+type Forgetter interface {
+	Forget(sessionID string)
 }
 
 // PermissionOption is an answer to a PermissionRequest.

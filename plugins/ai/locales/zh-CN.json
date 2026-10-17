@@ -142,5 +142,26 @@
   "selection.reply": "回复建议",
   "selection.reply.keywords": "回复, 回答, 回复建议, reply",
   "action.replaceSelection": "替换选中的文字",
-  "off.selection": "打开后会回到搜索界面，你可以在那里选择让 AI 对选中的文字做什么。选择之前不会发送任何内容。"
+  "off.selection": "打开后会回到搜索界面，你可以在那里选择让 AI 对选中的文字做什么。选择之前不会发送任何内容。",
+
+  "pref.model.codex.title": "模型（Codex）",
+  "pref.model.codex.description": "Codex 用哪个模型回答。默认：你的 Codex CLI 版本的默认模型（不使用你自己的 Codex 设置）。",
+  "pref.model.gemini.title": "模型（Gemini CLI）",
+  "pref.model.gemini.description": "后端是 Gemini CLI 时，用哪个 Gemini 模型回答。",
+  "history.subtitle": "{{.time}} · {{.backend}}",
+  "chat.assistant.codex": "Codex",
+  "chat.assistant.gemini": "Gemini",
+  "chat.backendGone": "这个对话是用 {{.backend}} 开始的，这个版本的 golauncher 里没有它。要继续，请新建对话（Ctrl+N）。",
+  "notice.newSession": "{{.backend}} 无法接上之前的对话，这次回答从新的对话开始：它不知道上面的消息。",
+  "permission.client": "{{.backend}}（AI 对话）",
+  "permission.tool": "工具：{{.tool}}",
+  "error.chatUnavailable": "这个对话是用 {{.backend}} 开始的，这个版本的 golauncher 里没有它。请新建对话（Ctrl+N）。",
+  "error.notInstalled.codex": "没有安装 Codex。golauncher 运行原生的 codex.exe：请安装或更新 Codex 应用，或把 https://github.com/openai/codex/releases 里的 codex.exe 放到 PATH 上，在终端运行 `codex login` 登录，然后再试。",
+  "error.notLoggedIn.codex": "Codex 还没有登录。请在终端运行 `codex login`，用你的 ChatGPT 账号登录，然后再试。",
+  "error.version.codex": "这个版本的 Codex 太旧，golauncher 用不了。请更新（Codex 应用会自己更新；或安装最新的 codex.exe），然后再试。",
+  "error.quota.codex": "已达到 ChatGPT 的用量上限。Codex 的提示：",
+  "error.notInstalled.gemini": "没有安装 Gemini CLI。请先安装（需要 Node.js，见 https://github.com/google-gemini/gemini-cli），在终端运行 `gemini` 登录，然后再试。",
+  "error.notLoggedIn.gemini": "Gemini CLI 还没有登录。请在终端运行 `gemini`，用你的 Google 账号登录，然后再试。",
+  "error.version.gemini": "Gemini CLI 版本太旧。请更新（`npm install -g @google/gemini-cli`），然后再试。",
+  "error.quota.gemini": "已达到 Gemini 的用量上限。Gemini CLI 的提示："
 }
