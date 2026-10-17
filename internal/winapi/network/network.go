@@ -77,6 +77,9 @@ type WiFiConnection struct {
 	Signal int
 	// RxKbps and TxKbps are the link rates in kbit/s.
 	RxKbps, TxKbps uint32
+	// SSIDHidden reports that the system did not tell the network's name:
+	// macOS gives it only to apps allowed to use Location Services.
+	SSIDHidden bool
 }
 
 // WiFiProfile is a saved Wi-Fi network.

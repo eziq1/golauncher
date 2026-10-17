@@ -1,6 +1,8 @@
 package network
 
 import (
+	"net/netip"
+
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -32,18 +34,52 @@ func (p *Plugin) runTracert(host string) plugin.Result {
 	if prob != nil {
 		return failure(prob.msg(l), "")
 	}
+	argv := []string{"tracert", h}
+	if p.b.Mac() {
+		argv = []string{"/usr/sbin/traceroute", h}
+		if a, err := netip.ParseAddr(h); err == nil && a.Is6() && !a.Is4In6() {
+			argv[0] = "/usr/sbin/traceroute6"
+		}
+	}
 	id := p.h.RunProcess(plugin.TaskSpec{Title: l.T("task.tracert", "host", h), Icon: plugin.Icon{Name: "network"}},
-		plugin.ProcessSpec{Argv: []string{"tracert", h}})
+		plugin.ProcessSpec{Argv: argv})
 	return plugin.Result{Do: &plugin.ActionDo{Kind: plugin.ActionShowTask, Target: id}}
 }
 
+// macFlushDNS is what flushes the DNS cache of macOS, as root.
+const macFlushDNS = "/usr/bin/dscacheutil -flushcache; /usr/bin/killall -HUP mDNSResponder"
+
 // runFlushDNS empties the DNS cache with ipconfig /flushdns. It needs
 // administrator rights (R68), so unless golauncher has them the task asks
-// for them with a UAC prompt.
+// for them with a UAC prompt. On macOS osascript runs macFlushDNS after
+// macOS asked for an administrator's password.
 func (p *Plugin) runFlushDNS() plugin.Result {
-	title := p.h.I18n().T("task.flushDNS")
-	return p.runAdmin(plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "globe"}, Queue: taskQueue, Notify: plugin.NotifyAlways},
-		plugin.ProcessSpec{Argv: []string{"ipconfig", "/flushdns"}})
+	l := p.h.I18n()
+	title := l.T("task.flushDNS")
+	spec := plugin.TaskSpec{Title: title, Icon: plugin.Icon{Name: "globe"}, Queue: taskQueue, Notify: plugin.NotifyAlways}
+	if p.b.Mac() {
+		cmd := plugin.ProcessSpec{Argv: adminScriptArgv(macFlushDNS, l.T("flushDNS.prompt")), CommandLine: macFlushDNS}
+		if p.b.Elevated() {
+			cmd = plugin.ProcessSpec{Argv: []string{"/bin/sh", "-c", macFlushDNS}, CommandLine: macFlushDNS}
+		}
+		p.h.RunProcess(spec, cmd)
+		if p.b.Elevated() {
+			return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.running", "task", title)}}
+		}
+		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.runningAdmin", "task", title),
+			Message: l.T("toast.runningAdminHint")}}
+	}
+	return p.runAdmin(spec, plugin.ProcessSpec{Argv: []string{"ipconfig", "/flushdns"}})
+}
+
+// adminScriptArgv is the osascript command line that runs the shell
+// command cmd as root once macOS asked for an administrator's password,
+// with prompt. Both are passed as arguments, never pasted into the script.
+func adminScriptArgv(cmd, prompt string) []string {
+	const script = `on run argv
+do shell script (item 1 of argv) with prompt (item 2 of argv) with administrator privileges
+end run`
+	return []string{"/usr/bin/osascript", "-e", script, cmd, prompt}
 }
 
 // runRenewIP releases and renews the DHCP leases of all adapters. The

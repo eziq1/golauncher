@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -51,6 +52,10 @@ type Backend interface {
 	// does not, the DNS flush and the IP renewal ask for elevation
 	// (ProcessSpec.Elevate).
 	Elevated() bool
+	// Mac reports a macOS system: traceroute instead of tracert, the DNS
+	// cache flushed through macOS's administrator prompt, no IP renewal,
+	// saved Wi-Fi passwords in the System keychain.
+	Mac() bool
 }
 
 // Record is a DNS record.
@@ -86,6 +91,9 @@ var _ Backend = (*System)(nil)
 
 // Elevated implements Backend.
 func (s *System) Elevated() bool { return process.IsElevated() }
+
+// Mac implements Backend.
+func (s *System) Mac() bool { return runtime.GOOS == "darwin" }
 
 func (s *System) Adapters(context.Context) ([]winnet.Adapter, error) { return winnet.Adapters() }
 

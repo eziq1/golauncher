@@ -228,7 +228,7 @@ func (p *Plugin) adapterItem(ai adapterInfo, root bool) plugin.Item {
 	var sub []string
 	if ai.wifi != nil {
 		it.Icon.Name = "wifi"
-		sub = append(sub, ai.wifi.SSID)
+		sub = append(sub, p.ssid(ai.wifi))
 		it.Accessory = l.T("adapter.signal", "signal", ai.wifi.Signal)
 	}
 	if v6 := firstIPv6(a, main); v6.IsValid() {
@@ -292,7 +292,11 @@ func (p *Plugin) adapterMetadata(ai adapterInfo) []plugin.Metadata {
 	add(l.T("meta.dns"), joinAddrs(a.DNS))
 	add(l.T("meta.dnsSuffix"), a.DNSSuffix)
 	if w := ai.wifi; w != nil {
-		add(l.T("meta.ssid"), w.SSID)
+		if w.SSID == "" && w.SSIDHidden {
+			add(l.T("meta.ssid"), l.T("wifi.ssidHiddenHint"))
+		} else {
+			add(l.T("meta.ssid"), w.SSID)
+		}
 		add(l.T("meta.signal"), l.T("adapter.signal", "signal", w.Signal))
 		if w.RxKbps > 0 || w.TxKbps > 0 {
 			add(l.T("meta.wifiRate"), l.T("adapter.rates", "rx", p.speed(uint64(w.RxKbps)*1000), "tx", p.speed(uint64(w.TxKbps)*1000)))
@@ -303,6 +307,15 @@ func (p *Plugin) adapterMetadata(ai adapterInfo) []plugin.Metadata {
 	}
 	add(l.T("meta.description"), a.Description)
 	return md
+}
+
+// ssid is the name of the network w is connected to, or a note that macOS
+// keeps it from apps without Location Services.
+func (p *Plugin) ssid(w *winnet.WiFiConnection) string {
+	if w.SSID == "" && w.SSIDHidden {
+		return p.h.I18n().T("wifi.ssidHidden")
+	}
+	return w.SSID
 }
 
 // speed formats a link speed: "1 Gbit/s", "866.7 Mbit/s".

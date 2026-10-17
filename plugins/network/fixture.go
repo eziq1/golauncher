@@ -39,6 +39,7 @@ type Fixture struct {
 		Signal        int    `json:"signal"`
 		RxKbps        uint32 `json:"rxKbps"`
 		TxKbps        uint32 `json:"txKbps"`
+		SSIDHidden    bool   `json:"ssidHidden,omitzero"`
 	} `json:"wifi"`
 	Profiles []struct {
 		InterfaceGUID string `json:"interfaceGuid"`
@@ -64,6 +65,8 @@ type Fixture struct {
 	Processes []fixProcess   `json:"processes"`
 	// Elevated pretends golauncher runs as administrator.
 	Elevated bool `json:"elevated,omitzero"`
+	// Mac pretends to be macOS (Backend.Mac).
+	Mac bool `json:"mac,omitzero"`
 }
 
 type fixSocket struct {
@@ -110,6 +113,9 @@ func LoadFixture(path string) *FixtureBackend {
 // Elevated implements Backend.
 func (b *FixtureBackend) Elevated() bool { return b.F.Elevated }
 
+// Mac implements Backend.
+func (b *FixtureBackend) Mac() bool { return b.F.Mac }
+
 // Killed returns the PIDs passed to Kill.
 func (b *FixtureBackend) Killed() []uint32 {
 	b.mu.Lock()
@@ -139,7 +145,7 @@ func (b *FixtureBackend) WiFiConnections(context.Context) ([]winnet.WiFiConnecti
 	var out []winnet.WiFiConnection
 	for _, w := range b.F.WiFi {
 		out = append(out, winnet.WiFiConnection{InterfaceGUID: w.InterfaceGUID, Profile: w.Profile, SSID: w.SSID,
-			Signal: w.Signal, RxKbps: w.RxKbps, TxKbps: w.TxKbps})
+			Signal: w.Signal, RxKbps: w.RxKbps, TxKbps: w.TxKbps, SSIDHidden: w.SSIDHidden})
 	}
 	return out, nil
 }

@@ -156,5 +156,28 @@
   "fg.quit": "Quit {{.name}}",
   "fg.quitSubtitle": "The app in front",
   "fg.forceQuit": "Force Quit {{.name}} (Not Responding)",
-  "fg.forceQuitSubtitle": "The app in front is not responding"
+  "fg.forceQuitSubtitle": "The app in front is not responding",
+
+  "elevate.prompt": "golauncher needs administrator rights to end “{{.name}}”.",
+
+  "command.processes.keywords@darwin": "process, processes, activity monitor, task manager, cpu, memory, quit, force quit, kill",
+  "pref.cpuMode.description@darwin": "Share of one processor, as in Activity Monitor (up to 100% per processor), or share of all processors.",
+  "pref.showWindows.title@darwin": "Show macOS processes",
+  "section.windows@darwin": "macOS processes ({{.count}})",
+  "action.switch@darwin": "Switch to App",
+  "action.endTask@darwin": "Quit",
+  "action.forceEnd@darwin": "Force Quit",
+  "action.reveal@darwin": "Show in Finder",
+  "action.taskManager@darwin": "Open Activity Monitor",
+  "toast.closing@darwin": "Asking {{.name}} to quit…",
+  "toast.stillRunningHint@darwin": "It may be asking whether to save. Press ⌘⇧X to force it to quit.",
+  "toast.needsAdminHint@darwin": "Press ⌘⇧A to end it as an administrator.",
+  "toast.protectedAdmin@darwin": "{{.name}} is protected by macOS and cannot be ended, even as an administrator",
+  "note.critical@darwin": "A critical system process: ending it would sign you out or restart macOS.",
+  "note.kernel@darwin": "The macOS kernel.",
+  "meta.memory@darwin": "Memory",
+  "meta.workingSet@darwin": "Real memory",
+  "meta.peak@darwin": "Peak memory",
+  "meta.commandLineDenied@darwin": "Cannot be read (a process of another user)",
+  "meta.cpuNoteValue@darwin": "Share of all processors. Activity Monitor shows the share of one processor; choose that under CPU use in the preferences."
 }

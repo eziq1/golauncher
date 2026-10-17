@@ -200,5 +200,19 @@
   "task.renewIP": "续订 IP 地址",
   "toast.running": "{{.task}}：正在后台运行",
   "toast.runningAdmin": "{{.task}}：需要管理员权限",
-  "toast.runningAdminHint": "请在 Windows 的管理员权限提示（UAC）中确认。"
+  "toast.runningAdminHint": "请在 Windows 的管理员权限提示（UAC）中确认。",
+
+  "wifi.ssidHidden": "macOS 隐藏了 Wi-Fi 名称",
+  "flushDNS.prompt": "golauncher 需要管理员权限来刷新 DNS 缓存。",
+
+  "command.flushDNS.keywords@darwin": "刷新 DNS 缓存, 刷新, 缓存, sxdnshc, sx, hc, flush dns, dscacheutil, dns cache",
+  "action.reveal@darwin": "在访达中显示",
+  "kill.needsAdmin@darwin": "它属于其他用户或 macOS。可以在“进程”里用“以管理员身份结束”。",
+  "wifi.noneSubtitle@darwin": "这台 Mac 没有 Wi-Fi 接口",
+  "wifi.noKey@darwin": "系统钥匙串里没有 {{.name}} 的密码（可能是开放网络、使用公司账户登录，或者只保存在 iCloud 钥匙串中）",
+  "wifi.needsAdmin@darwin": "macOS 没有允许读取密码",
+  "wifi.needsAdminMessage@darwin": "macOS 要先输入管理员的用户名和密码，才会显示已保存的 Wi-Fi 密码。",
+  "tracert.itemSubtitle@darwin": "在后台运行 traceroute；输出显示在后台任务中",
+  "toast.runningAdminHint@darwin": "macOS 询问时请输入管理员密码。",
+  "wifi.ssidHiddenHint": "macOS 隐藏了名称：在“系统设置 › 隐私与安全性 › 定位服务”中允许 golauncher 后才能看到"
 }

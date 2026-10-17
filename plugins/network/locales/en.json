@@ -200,5 +200,19 @@
   "task.renewIP": "Renew IP Address",
   "toast.running": "{{.task}}: running in the background",
   "toast.runningAdmin": "{{.task}}: requires administrator rights",
-  "toast.runningAdminHint": "Confirm the Windows administrator prompt (UAC)."
+  "toast.runningAdminHint": "Confirm the Windows administrator prompt (UAC).",
+
+  "wifi.ssidHidden": "Wi-Fi name hidden by macOS",
+  "flushDNS.prompt": "golauncher needs administrator rights to flush the DNS cache.",
+
+  "command.flushDNS.keywords@darwin": "flush dns, dscacheutil, mdnsresponder, dns cache",
+  "action.reveal@darwin": "Show in Finder",
+  "kill.needsAdmin@darwin": "It belongs to another user or to macOS. End it in Processes with “End as Administrator”.",
+  "wifi.noneSubtitle@darwin": "This Mac has no Wi-Fi interface",
+  "wifi.noKey@darwin": "{{.name}} has no password in the System keychain (it may be an open network, use a company sign-in or be saved only in iCloud Keychain)",
+  "wifi.needsAdmin@darwin": "macOS didn’t allow reading the password",
+  "wifi.needsAdminMessage@darwin": "macOS asks for an administrator’s name and password before it shows a saved Wi-Fi password.",
+  "tracert.itemSubtitle@darwin": "Runs traceroute in the background; the output appears in Background Tasks",
+  "toast.runningAdminHint@darwin": "Enter an administrator’s password when macOS asks.",
+  "wifi.ssidHiddenHint": "Hidden by macOS: allow golauncher in System Settings › Privacy & Security › Location Services to see it"
 }

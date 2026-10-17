@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -169,6 +170,11 @@ func (p *Plugin) iconOf(x *proc) plugin.Icon {
 	if path == "" {
 		return plugin.Icon{Name: "app"}
 	}
+	if p.b.Mac() && !strings.Contains(path, ".app/") {
+		// Outside an app bundle macOS draws the same generic icon for
+		// every program: not worth drawing hundreds of times.
+		return plugin.Icon{Name: "app"}
+	}
 	p.mu.Lock()
 	png, known := p.icons[path]
 	if !known && !p.closed {
@@ -316,8 +322,11 @@ func (p *Plugin) actions(m *model, r *row, x *proc, where itemContext) []plugin.
 	return acts
 }
 
+// activityMonitor is macOS's Task Manager.
+const activityMonitor = "/System/Applications/Utilities/Activity Monitor.app"
+
 // listActions are the actions on the whole list: sorting, grouping, Task
-// Manager, refresh.
+// Manager (Activity Monitor), refresh.
 func (p *Plugin) listActions() []plugin.Action {
 	l := p.h.I18n()
 	var acts []plugin.Action
@@ -333,10 +342,15 @@ func (p *Plugin) listActions() []plugin.Action {
 		gt = l.T("action.groupOn")
 	}
 	acts = append(acts, callback("toggle-group", gt, cbGroup, target{}, ""))
-	acts = append(acts,
-		plugin.Action{ID: "task-manager", Title: l.T("action.taskManager"), Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: "taskmgr.exe"}},
-		plugin.Action{ID: "resource-monitor", Title: l.T("action.resourceMonitor"), Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: "resmon.exe"}},
-	)
+	if p.b.Mac() {
+		acts = append(acts, plugin.Action{ID: "task-manager", Title: l.T("action.taskManager"),
+			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: activityMonitor}})
+	} else {
+		acts = append(acts,
+			plugin.Action{ID: "task-manager", Title: l.T("action.taskManager"), Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: "taskmgr.exe"}},
+			plugin.Action{ID: "resource-monitor", Title: l.T("action.resourceMonitor"), Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: "resmon.exe"}},
+		)
+	}
 	refresh := callback("refresh", l.T("action.refresh"), cbRefresh, target{}, "Ctrl+R")
 	refresh.ReadOnly = true
 	acts = append(acts, refresh)
@@ -391,9 +405,18 @@ func (p *Plugin) detail(m *model, r *row, x *proc) *plugin.Detail {
 	}
 	add(l.T("meta.cpu"), p.percent(cpu))
 	add(l.T("meta.memory"), formatBytes(mem))
+	mac := p.b.Mac()
+	// macOS has no commit size or handle count, and gives the peak memory
+	// only of the user's own processes.
+	bytesOf := func(n uint64) string {
+		if mac && n == 0 {
+			return ""
+		}
+		return formatBytes(n)
+	}
 	add(l.T("meta.workingSet"), formatBytes(x.WorkingSet))
-	add(l.T("meta.commit"), formatBytes(x.Commit))
-	add(l.T("meta.peak"), formatBytes(x.PeakWorkingSet))
+	add(l.T("meta.commit"), bytesOf(x.Commit))
+	add(l.T("meta.peak"), bytesOf(x.PeakWorkingSet))
 	add(l.T("meta.io"), formatRate(io))
 	add(l.T("meta.pid"), strconv.FormatUint(uint64(x.PID), 10))
 	if x.Parent != 0 {
@@ -435,13 +458,18 @@ func (p *Plugin) detail(m *model, r *row, x *proc) *plugin.Detail {
 		started := fromFiletime(x.Created).In(now.Location())
 		add(l.T("meta.started"), l.T("meta.startedValue", "time", started.Format("2006-01-02 15:04"), "ago", l.RelativeTime(started, now)))
 	}
-	add(l.T("meta.handles"), l.Number(float64(x.Handles)))
-	add(l.T("meta.threads"), l.Number(float64(x.Threads)))
+	if !mac {
+		add(l.T("meta.handles"), l.Number(float64(x.Handles)))
+	}
+	if !mac || x.Threads > 0 {
+		add(l.T("meta.threads"), l.Number(float64(x.Threads)))
+	}
 	wins := x.windows
 	if r != nil {
 		wins = r.windows()
 	}
-	if len(wins) > 0 {
+	// macOS gives no window titles.
+	if len(wins) > 0 && (!mac || slices.ContainsFunc(wins, func(w process.Window) bool { return w.Title != "" })) {
 		var titles []string
 		for i, w := range wins {
 			if i == 5 {

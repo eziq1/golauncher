@@ -133,7 +133,8 @@ func (p *Plugin) report(t target, rep process.KillReport) plugin.Result {
 func (p *Plugin) endElevated(t target) plugin.Result {
 	l := p.h.I18n()
 	run := func() plugin.Toast {
-		err := p.b.Elevate(p.bg, process.HelperRequest{ID: t.ID, Tree: t.Tree})
+		ctx := process.WithPrompt(p.bg, l.T("elevate.prompt", "name", t.Name))
+		err := p.b.Elevate(ctx, process.HelperRequest{ID: t.ID, Tree: t.Tree})
 		p.mu.Lock()
 		delete(p.needsAdmin, t.ID)
 		p.mu.Unlock()
@@ -303,6 +304,9 @@ func (p *Plugin) buildForeground(c *plugin.Context) *fgCache {
 	name := strings.ToLower(c.App.Name)
 	if name == "" || name == "explorer.exe" || c.Kind == plugin.ContextDesktop {
 		return f // the taskbar and desktop: Restart Windows Explorer instead
+	}
+	if p.b.Mac() && name == "finder" {
+		return f // the desktop of macOS, which starts it again at once
 	}
 	pid := uint32(c.App.PID)
 	if pid == 0 { // an injected context (glctl --context-app) names the app only

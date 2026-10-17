@@ -124,10 +124,11 @@ func (p *Plugin) buildModel(st *sampleState, group bool) *model {
 	}
 	self := p.b.Self()
 	sysRoot := p.b.SystemRoot()
+	mac := p.b.Mac()
 	var procs []process.Proc
 	for _, sp := range snap.Procs {
-		if sp.PID == 0 {
-			continue // System Idle Process
+		if sp.PID == 0 && !mac {
+			continue // System Idle Process (on macOS, kernel_task: shown)
 		}
 		procs = append(procs, sp)
 		pr := &proc{Proc: sp, info: st.info[sp.ID], usage: usage[sp.ID], windows: wins[sp.PID], shell: shells[sp.PID], ports: st.ports[sp.PID]}
@@ -249,11 +250,29 @@ func (p *Plugin) sectionOf(m *model, r *row) int {
 	if root.class == process.ClassKernel || root.class == process.ClassCritical || root.Session == 0 {
 		return secWindows
 	}
-	// Programs of Windows itself, or of system accounts.
+	// Programs of Windows (or macOS) itself, or of system accounts.
 	if inDir(root.info.Path, p.b.SystemRoot()) || root.info.SystemAccount || root.info.Denied && root.info.Path == "" {
 		return secWindows
 	}
+	if p.b.Mac() && macSystemPath(root.info.Path) {
+		return secWindows
+	}
 	return secBackground
+}
+
+// macSystemPath reports whether path is a program of macOS itself: under
+// /System, /usr (but /usr/local, where Homebrew and others install), /bin,
+// /sbin or /Library/Apple.
+func macSystemPath(path string) bool {
+	if strings.HasPrefix(path, "/usr/local/") {
+		return false
+	}
+	for _, d := range []string{"/System/", "/usr/", "/bin/", "/sbin/", "/Library/Apple/"} {
+		if strings.HasPrefix(path, d) {
+			return true
+		}
+	}
+	return false
 }
 
 // inDir reports whether path is under dir.

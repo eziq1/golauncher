@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -35,9 +36,10 @@ type Backend interface {
 	// Wait returns the ids that exited, once all did or ctx is done.
 	Wait(ctx context.Context, ids []process.ID) []process.ID
 	SwitchTo(hwnd uintptr) error
-	// Elevate ends r with administrator rights through a UAC prompt
-	// (golauncher's hidden kill helper); process.ErrCancelled when the user
-	// declined.
+	// Elevate ends r with administrator rights through a UAC prompt (on
+	// macOS, the system's administrator password prompt, whose text ctx
+	// carries: process.WithPrompt) running golauncher's hidden kill helper;
+	// process.ErrCancelled when the user declined.
 	Elevate(ctx context.Context, r process.HelperRequest) error
 	StartExplorer() error
 	// Elevated reports whether golauncher itself runs elevated.
@@ -47,15 +49,48 @@ type Backend interface {
 	SystemRoot() string
 	// Icon draws the icon of an executable as a size×size PNG.
 	Icon(path string, size int) ([]byte, error)
+	// Mac reports a macOS system: no window titles or hung windows, no
+	// Windows Explorer, Activity Monitor instead of Task Manager, and the
+	// processes of macOS itself in the system section.
+	Mac() bool
 }
 
 // System is the backend of the real system.
 type System struct {
 	mu      sync.Mutex
 	sampler process.Sampler
+
+	portsMu sync.Mutex
+	ports   []winnet.Socket
+	portsAt time.Time
 }
 
 var _ Backend = (*System)(nil)
+
+// macPortsTTL is how long the ports are kept on macOS, where reading them
+// runs netstat twice (Windows reads its tables directly, every sample).
+const macPortsTTL = 5 * time.Second
+
+// realSystem marks the backends that read the real system (System and
+// DryRun).
+func (s *System) realSystem() {}
+
+func (s *System) Ports() ([]winnet.Socket, error) {
+	if runtime.GOOS != "darwin" {
+		return winnet.Sockets()
+	}
+	s.portsMu.Lock()
+	defer s.portsMu.Unlock()
+	if s.ports != nil && time.Since(s.portsAt) < macPortsTTL {
+		return s.ports, nil
+	}
+	socks, err := winnet.Sockets()
+	if err != nil {
+		return nil, err
+	}
+	s.ports, s.portsAt = socks, time.Now()
+	return socks, nil
+}
 
 func (s *System) Snapshot() (*process.Snapshot, error) {
 	s.mu.Lock()
@@ -66,7 +101,6 @@ func (s *System) Snapshot() (*process.Snapshot, error) {
 func (s *System) Windows() ([]process.Window, error)          { return process.Windows() }
 func (s *System) Info(id process.ID) process.Info             { return process.ReadInfo(id) }
 func (s *System) CommandLine(id process.ID) (string, error)   { return process.CommandLine(id) }
-func (s *System) Ports() ([]winnet.Socket, error)             { return winnet.Sockets() }
 func (s *System) Identify(pid uint32) (process.ID, error)     { return process.Identify(pid) }
 func (s *System) Kill(id process.ID) error                    { return process.Kill(id) }
 func (s *System) KillTree(root process.ID) process.KillReport { return process.KillTree(root) }
@@ -76,6 +110,7 @@ func (s *System) StartExplorer() error                        { return process.S
 func (s *System) Elevated() bool                              { return process.IsElevated() }
 func (s *System) Self() uint32                                { return uint32(os.Getpid()) }
 func (s *System) SystemRoot() string                          { return os.Getenv("SystemRoot") }
+func (s *System) Mac() bool                                   { return runtime.GOOS == "darwin" }
 
 func (s *System) Wait(ctx context.Context, ids []process.ID) []process.ID {
 	return process.Wait(ctx, ids)
@@ -176,6 +211,8 @@ type Fixture struct {
 	Self       uint32 `json:"self"`
 	SystemRoot string `json:"systemRoot"`
 	Elevated   bool   `json:"elevated"`
+	// Mac pretends to be macOS (Backend.Mac).
+	Mac bool `json:"mac,omitzero"`
 	// Time is when the first sample was taken; the second is a second later.
 	Time time.Time `json:"time"`
 	// SysIdle and SysBusy are the system's counters at the two samples.
@@ -455,5 +492,6 @@ func (b *FixtureBackend) StartExplorer() error {
 func (b *FixtureBackend) Elevated() bool     { return b.F.Elevated }
 func (b *FixtureBackend) Self() uint32       { return b.F.Self }
 func (b *FixtureBackend) SystemRoot() string { return b.F.SystemRoot }
+func (b *FixtureBackend) Mac() bool          { return b.F.Mac }
 
 func (b *FixtureBackend) Icon(string, int) ([]byte, error) { return nil, errors.ErrUnsupported }

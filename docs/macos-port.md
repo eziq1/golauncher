@@ -399,3 +399,31 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
 - 系统语言（本机返回 `zh-Hans-CN`、`en-CN`，解析为 zh-CN）、登录 shell PATH（从访达启动后脚本能否找到 Homebrew 的 python3/node）、`golauncher mcp` 在启动器未运行时能否把它拉起来。
 
+### 10.5 进程管理与网络工具（2026-10-16，`macos-processes-network` 分支）
+
+10.3 里"进程管理器、网络工具仍是桩"一条由此作废。两个插件的 Backend 多了 `Mac()`（fixture 用 `"mac": true`），按它隐藏不适用的功能；措辞差异放在插件目录的 `@darwin` 变体里（中英文都有）。Windows 行为不变：Windows 专用的代码路径没有改，`Rates` 新增的 `NoCPU` 在 Windows 上恒为 false。
+
+| 模块 | 实现 | 测试 |
+|------|------|------|
+| 进程快照 | `winapi/process` 的 darwin 后端：`sysctl kern.proc.all`（PID、父进程、uid、启动时间 → `ID.Created`，仍是 FILETIME）；自己的进程用 libproc（purego）的 `proc_pid_rusage` 取 CPU 时间（mach 时间单位换算）、`phys_footprint`（活动监视器的"内存"）、实际内存、磁盘 I/O、峰值，`proc_pidinfo` 取线程数；其他用户的进程 macOS 拒绝这些调用，改由 `ps -axo pid=,rss=,time=`（setuid root）每 3 秒在后台读一次，两次读数之间按上一段的速率平滑外推（`cpuSmoother`，计数器不回退），没读到之前标 `NoCPU`，CPU 显示"—"而不是跳变。系统 CPU 用 `host_statistics`，内存按活动监视器的"已用内存"（App 内存 + 联动 + 压缩）。稳定状态一次快照约 12 ms（约 750 个进程），第一次约 30 ms | 解析（ps、CPU 时间、`KERN_PROCARGS2`）、平滑、bundle、关键进程、提权脚本有夹具测试；真机测试只结束自己启动的 `sleep`（错误启动时间不结束、进程树、Wait） |
+| 进程信息 | 路径 `proc_pidpath`；用户名用 `getpwuid_r`（无 cgo 时 `os/user` 读不到目录服务里的用户）；显示名取 `NSRunningApplication.localizedName`（本地化，"访达"），否则所在 bundle 的名字；`Package` 是最外层 `.app` 的 bundle ID，所以 Chrome/Electron 的 helper 和 XPC 服务归到应用下面；命令行 `KERN_PROCARGS2`（只能读自己的进程，别人的显示"其他用户的进程"）。插件初始化时在后台预热 NSWorkspace 和各 bundle 的 Info.plist（约 0.2 s），首次 `ps ` 不被拖慢；图标只画 `.app` 里的程序 | — |
+| 分组和分节 | 常规应用（在程序坞里的，`activationPolicy == regular`）当作"有窗口"：进"应用"一节，Enter 切换到应用；`kernel_task`、launchd、系统账户（uid < 500）和 `/System`、`/usr`（`/usr/local` 除外）、`/bin`、`/sbin` 下的程序进"macOS 进程"一节 | 插件用虚构的 Mac fixture 测分节、动作、详情 |
+| 结束 | "退出"（有窗口时）= `NSRunningApplication terminate`，和程序坞里的退出一样，应用可以先问是否保存；"强制退出"和没有窗口的进程 = `SIGKILL`，之前核对启动时间；launchd、WindowServer、loginwindow、kernel_task、golauncher 自己不能结束；其他用户的进程返回"需要管理员权限"，之后出现"以管理员身份结束"：`osascript … with administrator privileges` 以 root 运行 golauncher 隐藏的 `kill` 助手（参数和 Windows 相同，严格解析），提示文字来自插件目录，命令和提示作为参数传入脚本、不拼进脚本；取消返回"已取消" | 不弹密码框（测试里 `RunElevated` 直接拒绝）；只核对命令行 |
+| 隐藏的功能 | macOS 没有便宜的"未响应"检测（只有私有 API）和窗口标题（需要屏幕录制权限），所以"结束未响应的应用"命令、"重启资源管理器"命令、句柄数、提交大小、完整性级别都不显示；"打开任务管理器"换成"打开活动监视器"，没有资源监视器；CPU 偏好在 Mac 上默认"占一个处理器"（和活动监视器一致）；访达不出现"退出访达" | `TestMacManifest` 等 |
+| 网卡 | `net.Interfaces` 加 SystemConfiguration（purego）的本地化名称和类型（"Wi-Fi"、"雷雳网桥"）；网关解析 `netstat -rn`；DNS 解析 `scutil --dns` 的按接口（scoped）部分；只列出硬件接口和有非链路本地地址的接口（不列一堆只有 fe80:: 的 utun）；MAC 用冒号小写 | `netstat`、`scutil` 夹具 |
+| Wi-Fi | CoreWLAN（purego）：信号（RSSI 换成 Windows 式百分比）、速率、接口；macOS 14 起没有定位服务权限时 SSID 为空：再试 `ipconfig getsummary`（15 上也被隐藏），仍拿不到就设 `SSIDHidden`，界面显示"macOS 隐藏了 Wi-Fi 名称"，详情里说明去"定位服务"里允许 golauncher（要 `.app` 打包后才能出现在列表里，申请权限的代码不在本分支）；已保存网络 `networksetup -listpreferredwirelessnetworks`；复制密码 `security find-generic-password -D "AirPort network password" -a <SSID> -w`，macOS 会弹管理员用户名和密码框，取消或拒绝提示"macOS 没有允许读取密码"，钥匙串里没有（开放网络、只在 iCloud 钥匙串里）提示没有密码 | 输出、错误映射有夹具；真机只读测试要 `GOLAUNCHER_NETWORK_TESTS=1`，日志不输出网络名 |
+| Ping | 非特权的 ICMP 数据报套接字（`SOCK_DGRAM` + `IPPROTO_ICMP`/`ICMPV6`，不需要 root），自己组包和校验和，去掉 macOS 附带的 IPv4 头取 TTL，按标识和序号过滤，识别目的不可达、超时（引用的原始请求核对）；ctx 取消即停 | 组包、解析有夹具；真机只 ping `127.0.0.1` 和 `::1` |
+| 端口占用 | `netstat -anv -p tcp/udp`：不需要 root 就带所有用户的 PID（`lsof` 只列自己的进程）；PID 列按表头从行尾数（UDP 行没有状态列），兼容旧版的 `process:pid`；`tcp46` 记为 `[::]`。进程插件里每 5 秒读一次 | 夹具 + 本进程开端口后查到自己 |
+| 后台任务 | 路由追踪用 `/usr/sbin/traceroute`（IPv6 地址用 `traceroute6`）；刷新 DNS 缓存：`osascript` 以管理员权限运行 `dscacheutil -flushcache; killall -HUP mDNSResponder`（已是 root 时直接运行）；续租 IP 在 Mac 上不提供（`ipconfig set <设备> DHCP` 会覆盖手动配置） | 只核对命令行，不执行 |
+
+还没做 / 待定：
+- "未响应"检测（`CGSEventIsAppUnresponsive` 等私有 API）、窗口标题（屏幕录制权限）、按窗口切换。
+- 首次 `ps ` 在约 750 个进程的机器上约 0.15 s（`buildModel` 里 `ParentOf` 是 O(n²)，Windows 同样），可能错过宿主的 150 ms，下一秒的刷新会补上。
+- 定位服务权限的申请（`CLLocationManager requestWhenInUseAuthorization`，需要 `.app` 和 `NSLocationUsageDescription`）属于打包部分。
+- `glctl` 每次查询都是冷启动，`ps ` 根搜索常常赶不上 150 ms；`glctl run builtin.processes/processes --real` 可以看到结果。
+
+真机手动验证：
+- `ps `、`kill <名字>`、进程视图：应用一节是否是程序坞里的应用，名字是否本地化，Chrome/VS Code 是否合成一行，CPU 是否和活动监视器接近（偏好默认"占一个处理器"），root 进程的 CPU 和内存在 1–3 秒后出现。
+- "退出"一个有未保存文档的 TextEdit：应弹保存框，超时后提示强制退出；"强制退出"一个自己启动的 `sleep 600`；结束一个 root 进程（例如自己用 `sudo sleep 600` 起的）→ 先提示需要管理员权限，再按 ⌘⇧A：弹 macOS 的管理员密码框，提示文字是"golauncher 需要管理员权限来结束……"；取消后提示"已取消"。
+- `ip`：Wi-Fi 一行显示"macOS 隐藏了 Wi-Fi 名称"（未授权定位服务时）、信号、IPv4/IPv6、网关、DNS；`wifi`：列出已保存网络，"复制密码"弹管理员授权框；`ping 1.1.1.1`、`ping ::1`；`port 22`/`port 5000`（root 和其他用户的监听者也要能看到 PID）；"刷新 DNS 缓存"弹密码框后任务成功；`tracert example.com` 在后台任务里有输出。
+
