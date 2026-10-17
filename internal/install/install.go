@@ -152,6 +152,18 @@ type Installer struct {
 	RemoveLoginItem func() error
 	// Now returns the time (default time.Now).
 	Now func() time.Time
+	// Bundle is set on macOS: the program is the app bundle golauncher.app
+	// that Self is in, an install location is the folder holding the
+	// bundle, and the bundle is copied and replaced as a whole.
+	Bundle bool
+}
+
+// ExeIn returns the program of an installation in dir.
+func (in *Installer) ExeIn(dir string) string {
+	if in.Bundle {
+		return BundleExe(BundleIn(dir))
+	}
+	return filepath.Join(dir, ExeName)
 }
 
 // Kind is what Detect decides.
@@ -196,10 +208,10 @@ func (in *Installer) Detect() (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	if !ok || e.Dir == "" || !isFile(filepath.Join(e.Dir, ExeName)) {
+	if !ok || e.Dir == "" || !isFile(in.ExeIn(e.Dir)) {
 		return State{Kind: KindFresh}, nil
 	}
-	st := State{Installed: true, Dir: e.Dir, Exe: filepath.Join(e.Dir, ExeName), Version: e.Version}
+	st := State{Installed: true, Dir: e.Dir, Exe: in.ExeIn(e.Dir), Version: e.Version}
 	if st.Version == "" {
 		st.Version, _ = in.Sys.FileVersion(st.Exe)
 	}

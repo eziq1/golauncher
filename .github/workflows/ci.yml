@@ -101,6 +101,11 @@ jobs:
       - name: glctl i18n check
         run: ./bin/glctl i18n check
 
+      - name: App bundle
+        run: |
+          scripts/build-macos.sh --app --version 0.0.0-ci --out-dir "$RUNNER_TEMP/dist"
+          codesign -dv "$RUNNER_TEMP/dist/golauncher.app"
+
       - name: Cross-compile for Windows
         env:
           GOOS: windows

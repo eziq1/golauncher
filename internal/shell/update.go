@@ -68,6 +68,7 @@ func (s *Shell) newUpdates(o Options) *update.Service {
 		InstallDir:  o.installDir,
 		Disabled:    disabled,
 		PublicKey:   update.PublicKey,
+		Bundle:      winstall.Bundled,
 		Settings:    s.updateSettings,
 		FileVersion: winstall.New().FileVersion,
 		Busy:        s.updateBusy,
@@ -122,7 +123,7 @@ func (s *Shell) updateBusy(now time.Time, user bool) string {
 // restartIntoUpdate starts the update helper and quits; the helper installs
 // the update once this process has ended.
 func (s *Shell) restartIntoUpdate(planFile string) error {
-	if err := winstall.StartDetached(update.HelperPath(planFile), []string{update.FlagApply, planFile}); err != nil {
+	if err := winstall.StartDetached(update.HelperPathFor(planFile, winstall.Bundled), []string{update.FlagApply, planFile}); err != nil {
 		return err
 	}
 	s.log.Info("update: quitting for the update helper")
@@ -239,7 +240,7 @@ func runUpdateHelper(planFile string) error {
 			in, err := newInstaller(self, version)
 			if err != nil {
 				log.Error("update helper: installer", "err", err)
-				return &install.Installer{Sys: winstall.New(), Self: self, Version: version}
+				return &install.Installer{Sys: winstall.New(), Self: self, Version: version, Bundle: winstall.Bundled}
 			}
 			return in
 		},

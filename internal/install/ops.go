@@ -63,6 +63,9 @@ func (in *Installer) Install(o Options, progress func(Step)) (exe string, err er
 	}
 
 	report(StepCopying)
+	if in.Bundle {
+		return in.installBundle(o, dir, report)
+	}
 	t := &txn{}
 	defer func() {
 		if err != nil {
@@ -111,6 +114,58 @@ func (in *Installer) Install(o Options, progress func(Step)) (exe string, err er
 		return "", err
 	}
 	t.commit()
+	return exe, nil
+}
+
+// installBundle is Install on macOS: it puts a copy of the app bundle Self
+// is in into dir, replacing the installed bundle there as a whole (its
+// code signature covers all of it), and undoes that when a later step
+// fails.
+func (in *Installer) installBundle(o Options, dir string, report func(Step)) (exe string, err error) {
+	src, ok := BundleOf(in.Self)
+	if !ok {
+		return "", fmt.Errorf("install: %s is not in an app bundle", in.Self)
+	}
+	created := false
+	if !exists(dir) {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return "", err
+		}
+		created = true
+	}
+	dst := BundleIn(dir)
+	undo, commit := func() error { return nil }, func() error { return nil }
+	if !SamePath(src, dst) {
+		if undo, commit, err = ReplaceBundle(src, dst); err != nil {
+			if created {
+				_ = os.Remove(dir)
+			}
+			return "", err
+		}
+	}
+	defer func() {
+		if err != nil {
+			if uerr := undo(); uerr != nil {
+				err = errors.Join(err, fmt.Errorf("install: undoing the changes: %w", uerr))
+			}
+			if created {
+				_ = os.Remove(dir) // only if empty
+			}
+		}
+	}()
+	exe = BundleExe(dst)
+
+	report(StepShortcuts) // none on macOS: the bundle is the app
+	report(StepRegistering)
+	if !o.Upgrade {
+		if err = in.setLaunchAtLogin(o.LaunchAtLogin); err != nil {
+			return "", err
+		}
+	}
+	if err = in.Sys.WriteEntry(in.entry(dir, exe, TreeSize(dst))); err != nil {
+		return "", err
+	}
+	_ = commit() // an old bundle left over goes in Cleanup
 	return exe, nil
 }
 
@@ -173,7 +228,7 @@ func (in *Installer) Uninstall(o UninstallOptions) error {
 		return ErrNotInstalled
 	}
 	dir := filepath.Clean(e.Dir)
-	exe := filepath.Join(dir, ExeName)
+	exe := in.ExeIn(dir)
 	if err := in.Sys.StopInstances(in.Self, StopTimeout); err != nil {
 		return err
 	}
@@ -197,6 +252,18 @@ func (in *Installer) Uninstall(o UninstallOptions) error {
 		for _, d := range in.Paths.DataDirs {
 			errs = append(errs, os.RemoveAll(d))
 		}
+	}
+	if in.Bundle {
+		// The bundle, not the folder holding it (/Applications).
+		app := BundleIn(dir)
+		var files []string
+		for _, p := range []string{app, filepath.Join(dir, bundleOld), filepath.Join(dir, bundleNew)} {
+			if exists(p) {
+				files = append(files, p)
+			}
+		}
+		errs = append(errs, in.Sys.ScheduleRemoval(app, files))
+		return errors.Join(errs...)
 	}
 	var files []string
 	for _, name := range []string{ExeName, CtlName} {
@@ -224,6 +291,12 @@ func (in *Installer) Installed() (dir string, ok bool, err error) {
 func Cleanup(dir string) {
 	for _, name := range []string{ExeName, CtlName} {
 		_ = os.Remove(filepath.Join(dir, name+".old"))
+	}
+	// The bundles an interrupted macOS upgrade left beside golauncher.app.
+	for _, name := range []string{bundleOld, bundleNew} {
+		if p := filepath.Join(dir, name); exists(BundleIn(dir)) && exists(p) {
+			_ = os.RemoveAll(p)
+		}
 	}
 }
 

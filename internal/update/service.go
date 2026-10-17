@@ -119,6 +119,9 @@ type Options struct {
 	Log    *slog.Logger
 	// PID is this process (default os.Getpid()).
 	PID int
+	// Bundle is set on macOS: the macOS archive is downloaded and the
+	// whole golauncher.app replaced.
+	Bundle bool
 }
 
 // Service checks for, downloads and installs updates in the background.
@@ -393,6 +396,7 @@ func (s *Service) download(ctx context.Context, user bool) {
 		Arch:      s.o.Arch,
 		Dir:       dir,
 		PublicKey: s.o.PublicKey,
+		Bundle:    s.o.Bundle,
 		Progress: func(done, total int64) {
 			p := -1.0
 			if total > 0 {
@@ -403,7 +407,7 @@ func (s *Service) download(ctx context.Context, user bool) {
 	})
 	if err == nil && s.o.FileVersion != nil {
 		if got, ferr := s.o.FileVersion(res.Staged.Exe()); ferr != nil || got != version {
-			err = fmt.Errorf("update: the downloaded golauncher.exe is version %q, not %s (%v)", got, version, ferr)
+			err = fmt.Errorf("update: the downloaded %s is version %q, not %s (%v)", filepath.Base(res.Staged.Exe()), got, version, ferr)
 		}
 	}
 	if err != nil {
@@ -487,7 +491,7 @@ func (s *Service) startHelper(staged Staged) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	helper := filepath.Join(dir, HelperName)
+	helper := filepath.Join(dir, helperName(staged.Bundle))
 	if err := copyFile(s.o.Self, helper); err != nil {
 		return err
 	}
@@ -513,7 +517,20 @@ func (s *Service) startHelper(staged Staged) error {
 
 // HelperPath returns the helper executable that goes with a plan file
 // (Options.Restart starts it with FlagApply and the plan).
-func HelperPath(planFile string) string { return filepath.Join(filepath.Dir(planFile), HelperName) }
+func HelperPath(planFile string) string { return HelperPathFor(planFile, false) }
+
+// HelperPathFor is HelperPath, with bundle on macOS.
+func HelperPathFor(planFile string, bundle bool) string {
+	return filepath.Join(filepath.Dir(planFile), helperName(bundle))
+}
+
+// helperName is HelperName, or on macOS BundleHelperName.
+func helperName(bundle bool) string {
+	if bundle {
+		return BundleHelperName
+	}
+	return HelperName
+}
 
 func addAttempt(m map[string]int, v string) map[string]int {
 	if m == nil {

@@ -1,0 +1,23 @@
+{
+  "source": "fake",
+  "current": "0.4.0",
+  "updatable": true,
+  "latest": "1.0.0",
+  "tag": "v1.0.0",
+  "newer": true,
+  "page": "https://github.com/eziq1/golauncher/releases/tag/v1.0.0",
+  "publishedAt": "2026-10-01T00:00:00Z",
+  "archive": "golauncher_1.0.0_darwin_universal.zip",
+  "size": 2078,
+  "checksums": true,
+  "signature": false,
+  "sha256": "17b0f02aa0faf3fde51f75541228e10980740b48280862aca61333832e7ffc8a",
+  "verified": true,
+  "signed": false,
+  "files": [
+    "golauncher.app/Contents/Info.plist",
+    "golauncher.app/Contents/MacOS/golauncher",
+    "golauncher.app/Contents/MacOS/glctl",
+    "golauncher.app/Contents/Resources/golauncher.icns"
+  ]
+}

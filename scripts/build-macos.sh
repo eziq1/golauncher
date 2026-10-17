@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# Builds golauncher and glctl for macOS into dist/, optionally zipped as in a
-# release. The macOS counterpart of scripts/build.ps1.
+# Builds golauncher and glctl for macOS into dist/, optionally as the app
+# bundle golauncher.app and zipped as in a release. The macOS counterpart
+# of scripts/build.ps1.
 #
 # The version comes from "git describe --tags --always --dirty" (without the
 # leading "v"), unless --version is given. It is linked into both binaries
-# (-X main.version).
+# (-X main.version) and written into the bundle's Info.plist.
 #
 # --update-public-key (default: $GOLAUNCHER_UPDATE_PUBLIC_KEY) builds in the
 # base64 ed25519 public key that release checksums must be signed with
@@ -16,15 +17,26 @@
 # --debug builds without optimizations and inlining, keeps symbols and
 # MyGo's developer tools, and appends "-debug" to the version; for Delve.
 #
-# --zip also writes dist/golauncher_<version>_darwin_<arch>.zip with
-# golauncher, glctl, LICENSE, README.md, README.zh-CN.md (if present) and
-# CHANGELOG.md, the layout of the Windows release archives. No .app bundle,
-# signing or notarization yet (docs/macos-port.md).
+# --app also assembles dist/golauncher.app (docs/self-install.md §9):
+# Contents/MacOS/golauncher and glctl, Info.plist (bundle identifier
+# io.github.eziq1.golauncher, no Dock icon, macOS 13 or later, the purpose
+# strings of the permission prompts, in English and Chinese),
+# golauncher.icns made from assets/icon-*.png with iconutil, and a code
+# signature: ad hoc by default, or with --sign IDENTITY (default:
+# $GOLAUNCHER_CODESIGN_IDENTITY), e.g. a self-signed certificate of your
+# own, which keeps privacy permissions across rebuilds. No Developer ID
+# signing or notarization.
+#
+# --zip also writes dist/golauncher_<version>_darwin_<arch>.zip. With --app
+# it holds golauncher.app (the release archive that auto-update installs),
+# else the bare golauncher and glctl; LICENSE, README.md, README.zh-CN.md
+# and CHANGELOG.md go beside them.
 #
 # Examples:
 #   scripts/build-macos.sh
+#   scripts/build-macos.sh --app
 #   scripts/build-macos.sh --debug
-#   scripts/build-macos.sh --arch universal --zip
+#   scripts/build-macos.sh --arch universal --app --zip
 #   scripts/build-macos.sh --version 0.1.0 --arch arm64 --zip
 
 set -euo pipefail
@@ -34,14 +46,17 @@ arch=""
 version=""
 out_dir=""
 zip=0
+app=0
 debug=0
 update_public_key="${GOLAUNCHER_UPDATE_PUBLIC_KEY:-}"
+sign_identity="${GOLAUNCHER_CODESIGN_IDENTITY:--}"
+bundle_id="io.github.eziq1.golauncher"
 
 usage() {
-    sed -n '3,28p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '3,40p' "$0" | sed 's/^# \{0,1\}//'
     echo
     echo "Options: --arch amd64|arm64|universal  --version V  --out-dir DIR"
-    echo "         --zip  --debug  --update-public-key KEY  -h|--help"
+    echo "         --app  --sign IDENTITY  --zip  --debug  --update-public-key KEY  -h|--help"
 }
 
 die() { echo "build-macos: $*" >&2; exit 1; }
@@ -52,6 +67,8 @@ while [ $# -gt 0 ]; do
         --version) [ $# -ge 2 ] || die "$1 needs a value"; version="$2"; shift 2 ;;
         --out-dir) [ $# -ge 2 ] || die "$1 needs a value"; out_dir="$2"; shift 2 ;;
         --update-public-key) [ $# -ge 2 ] || die "$1 needs a value"; update_public_key="$2"; shift 2 ;;
+        --sign) [ $# -ge 2 ] || die "$1 needs a value"; sign_identity="$2"; shift 2 ;;
+        --app) app=1; shift ;;
         --zip) zip=1; shift ;;
         --debug) debug=1; shift ;;
         -h|--help) usage; exit 0 ;;
@@ -65,6 +82,7 @@ case "$arch" in
     amd64|arm64|universal) ;;
     *) die "unsupported architecture $arch (want amd64, arm64 or universal)" ;;
 esac
+[ -n "$sign_identity" ] || sign_identity="-"
 
 if [ -z "$version" ]; then
     described="$(git -C "$root" describe --tags --always --dirty 2>/dev/null || true)"
@@ -101,6 +119,9 @@ mkdir -p "$out_dir"
 out_dir="$(cd "$out_dir" && pwd)"
 cd "$root"
 
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
 # build_one <goarch> <output dir>
 build_one() {
     mkdir -p "$2"
@@ -112,8 +133,6 @@ build_one() {
 }
 
 if [ "$arch" = "universal" ]; then
-    tmp="$(mktemp -d)"
-    trap 'rm -rf "$tmp"' EXIT
     build_one amd64 "$tmp/amd64"
     build_one arm64 "$tmp/arm64"
     for bin in golauncher glctl; do
@@ -123,19 +142,63 @@ else
     build_one "$arch" "$out_dir"
 fi
 
+# make_icns <output .icns>: the app icon from assets/icon-<size>.png. The
+# 1024-pixel image (512 points at 2x) is scaled up from 512 with sips.
+make_icns() {
+    local set="$tmp/golauncher.iconset" a="$root/assets"
+    mkdir -p "$set"
+    cp "$a/icon-16.png" "$set/icon_16x16.png"
+    cp "$a/icon-32.png" "$set/icon_16x16@2x.png"
+    cp "$a/icon-32.png" "$set/icon_32x32.png"
+    cp "$a/icon-64.png" "$set/icon_32x32@2x.png"
+    cp "$a/icon-128.png" "$set/icon_128x128.png"
+    cp "$a/icon-256.png" "$set/icon_128x128@2x.png"
+    cp "$a/icon-256.png" "$set/icon_256x256.png"
+    cp "$a/icon-512.png" "$set/icon_256x256@2x.png"
+    cp "$a/icon-512.png" "$set/icon_512x512.png"
+    sips -z 1024 1024 "$a/icon-512.png" --out "$set/icon_512x512@2x.png" >/dev/null
+    iconutil -c icns -o "$1" "$set"
+}
+
+if [ "$app" -eq 1 ]; then
+    bundle="$out_dir/golauncher.app"
+    rm -rf "$bundle"
+    mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+    cp "$out_dir/golauncher" "$out_dir/glctl" "$bundle/Contents/MacOS/"
+    # Info.plist, PkgInfo and the localized purpose strings (internal/install).
+    GOOS= GOARCH= go run ./scripts/macbundle -version "$version" -app "$bundle"
+    make_icns "$bundle/Contents/Resources/golauncher.icns"
+    # Nested code first, then the bundle, which seals everything in it. The
+    # identifiers stay the same from build to build; an ad hoc signature
+    # still changes with every build (docs/self-install.md §9.4).
+    codesign --force --sign "$sign_identity" --timestamp=none \
+        --identifier "$bundle_id.glctl" "$bundle/Contents/MacOS/glctl"
+    codesign --force --sign "$sign_identity" --timestamp=none \
+        --identifier "$bundle_id" "$bundle"
+    codesign --verify --strict --deep "$bundle"
+    plutil -lint -s "$bundle/Contents/Info.plist"
+    echo "wrote $bundle (signed: $([ "$sign_identity" = "-" ] && echo "ad hoc" || echo "$sign_identity"))"
+fi
+
 if [ "$zip" -eq 1 ]; then
     name="golauncher_${version}_darwin_$arch"
-    stage="$out_dir/$name"
+    stage="$tmp/$name"
     rm -rf "$stage"
     mkdir -p "$stage"
-    cp "$out_dir/golauncher" "$out_dir/glctl" "$stage/"
+    if [ "$app" -eq 1 ]; then
+        # ditto copies the bundle as it is, signature included.
+        ditto "$out_dir/golauncher.app" "$stage/golauncher.app"
+    else
+        cp "$out_dir/golauncher" "$out_dir/glctl" "$stage/"
+    fi
     for f in LICENSE README.md README.zh-CN.md CHANGELOG.md; do
         [ ! -f "$root/$f" ] || cp "$root/$f" "$stage/"
     done
     zip_path="$out_dir/$name.zip"
     rm -f "$zip_path"
-    # ditto keeps the executable bits and is what Finder's Compress uses.
-    (cd "$stage" && ditto -c -k --sequesterRsrc . "$zip_path")
-    rm -rf "$stage"
+    # ditto keeps the executable bits and is what Finder's Compress uses;
+    # no resource forks, extended attributes or ACLs (nothing to quarantine
+    # or sequester: the signature is in the files).
+    (cd "$stage" && ditto -c -k --norsrc --noextattr --noacl . "$zip_path")
     echo "wrote $zip_path"
 fi

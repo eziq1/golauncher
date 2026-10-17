@@ -22,6 +22,9 @@ const (
 	// HelperName is the update helper's file name: not golauncher.exe, so
 	// that stopping golauncher does not stop it.
 	HelperName = "golauncher-update.exe"
+	// BundleHelperName is the helper on macOS, a copy of the executable
+	// of golauncher.app; its process name is not golauncher either.
+	BundleHelperName = "golauncher-update"
 )
 
 // maxAttempts is how often installing a version may fail before it is no

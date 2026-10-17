@@ -50,6 +50,47 @@ func SystemProxy(proxy, bypass string) func(*http.Request) (*url.URL, error) {
 	}
 }
 
+// ParseScutilProxy turns the output of macOS's "scutil --proxy" (the proxy
+// set in System Settings › Network) into SystemProxy's arguments: the
+// enabled HTTP and HTTPS proxies as "http=host:port;https=host:port" and
+// the exceptions, with "<local>" for "Exclude simple hostnames". Automatic
+// configuration (PAC) is not read.
+func ParseScutilProxy(out string) (proxy, bypass string) {
+	vals := map[string]string{}
+	var exceptions []string
+	inList := false
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		key, val, ok := strings.Cut(line, " : ")
+		switch {
+		case line == "}":
+			inList = false
+		case ok && key == "ExceptionsList":
+			inList = true
+		case ok && inList:
+			exceptions = append(exceptions, strings.TrimSpace(val))
+		case ok:
+			vals[key] = strings.TrimSpace(val)
+		}
+	}
+	var parts []string
+	for _, p := range []struct{ scheme, prefix string }{{"http", "HTTP"}, {"https", "HTTPS"}} {
+		host := vals[p.prefix+"Proxy"]
+		if vals[p.prefix+"Enable"] != "1" || host == "" {
+			continue
+		}
+		addr := host
+		if port := vals[p.prefix+"Port"]; port != "" {
+			addr += ":" + port
+		}
+		parts = append(parts, p.scheme+"="+addr)
+	}
+	if vals["ExcludeSimpleHostnames"] == "1" {
+		exceptions = append(exceptions, "<local>")
+	}
+	return strings.Join(parts, ";"), strings.Join(exceptions, ";")
+}
+
 // bypassed reports whether host matches an exception.
 func bypassed(host string, patterns []string) bool {
 	for _, p := range patterns {
