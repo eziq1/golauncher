@@ -153,6 +153,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 - Internal: `internal/core/controller.go`, `internal/ui/settings.go` and
   `internal/ui/launcher.go` are split by responsibility into files of the
   same packages (code review 4); the code was moved unchanged.
+- Dependencies (R100): MyGo v0.5.1 → v0.5.5 and `golang.org/x/image`
+  v0.46.0 → v0.47.0; no indirect version moved. MyGo brings double clicks
+  counted by the system's double-click settings, Escape typed ahead into a
+  just-opened view going to that view, the Windows clipboard waiting while
+  another program holds it, and renderer fixes. No code change was needed;
+  a UI test now checks the footer toast's 2.5 s lifetime on the Tester's
+  clock (see `docs/deps-2026-10.md`).
 
 ## [0.8.0] - 2026-10-17
 
