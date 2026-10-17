@@ -36,5 +36,27 @@
   "toast.defaultSet": "{{.name}} is now the default distribution",
   "toast.terminated": "{{.name}} was stopped",
   "toast.shutdown": "WSL was shut down",
-  "toast.failed": "{{.command}} failed"
+  "toast.failed": "{{.command}} failed",
+
+  "mac.plugin.name": "Terminal",
+  "mac.plugin.description": "Your terminal apps in the root search (Terminal, iTerm2, Ghostty, WezTerm, Alacritty, kitty, Warp): open a new window or tab, in the current folder, or run a command in it. Choose the default terminal, which the Files actions also open.",
+  "mac.unavailable.notInstalled": "No terminal app was found",
+  "mac.app.subtitle": "Terminal app",
+  "mac.pref.terminal.title": "Default terminal",
+  "mac.pref.terminal.description": "The terminal that runs commands and that “Open in Terminal” in the Files actions opens.",
+  "mac.pref.terminal.auto": "Automatic ({{.app}})",
+  "mac.action.setDefault": "Set as Default Terminal",
+  "mac.item.run.title": "Run in Terminal",
+  "mac.item.run.subtitle": "Run a shell command in {{.app}}",
+  "mac.arg.command": "Command",
+  "mac.action.run": "Run in New Window",
+  "mac.action.runTab": "Run in New Tab",
+  "mac.action.runHere": "Run in {{.folder}}",
+  "mac.keywords.app": "terminal, shell, console, iterm, iterm2, ghostty, wezterm, alacritty, kitty, warp, zsh, bash, 终端, 命令行",
+  "mac.keywords.run": "run, command, shell, terminal, execute, 运行, 命令, 终端",
+  "mac.toast.defaultSet": "{{.app}} is now the default terminal",
+  "mac.toast.noCommand": "Type a command to run",
+  "mac.toast.failed": "Could not open {{.app}}",
+  "mac.toast.needAutomation": "Allow golauncher to control {{.app}} in System Settings › Privacy & Security › Automation, then try again.",
+  "mac.toast.needAccessibility": "A new Terminal tab is opened by pressing ⌘T: allow golauncher in System Settings › Privacy & Security › Accessibility, then try again."
 }

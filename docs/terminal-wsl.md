@@ -103,3 +103,25 @@
   - 发行版的应用包和 WSL 生成器各写了一个同名配置（见 4.2 的去重）。
 - 第三方程序写入的配置带 `.ico` 图标，路径能正确解析。
 - 注册表里的发行版和 `wsl --list --verbose` 的运行状态（英文表头、UTF-16LE）都解析正确。
+
+## 5. macOS
+
+macOS 上（`Options.Mac`，真实的 `terminal.New()` 在 darwin 上打开；glctl 的假环境在任何平台上都保持 Windows 版）不读 Windows Terminal 和 WSL，改为列出已安装的终端应用。终端目录、命令行构造和 Launch Services 查询在 `internal/winapi/macterm`，`builtin.files` 也用它。
+
+- **检测**：按 bundle id 问 Launch Services（`NSWorkspace URLForApplicationWithBundleIdentifier:`），每次呼出时重新检测，有变化就 `Invalidate`。
+
+| 终端 | bundle id | 新窗口 | 新标签页 | 运行命令 |
+|------|-----------|--------|----------|----------|
+| Terminal | `com.apple.Terminal` | 不带命令时 `open -a Terminal <dir>`（不需要自动化权限）；否则 AppleScript `do script` | AppleScript：System Events 按 ⌘T，再 `do script … in front window`（另需辅助功能权限） | `do script "cd '<dir>' && <cmd>"` |
+| iTerm2 | `com.googlecode.iterm2` | AppleScript `create window with default profile` | `create tab with default profile` | `write text` |
+| Ghostty | `com.mitchellh.ghostty` | `open -na Ghostty.app --args --working-directory=<dir>` | 不支持 | `-e $SHELL -l -c '<cmd>; exec $SHELL -l'` |
+| WezTerm | `com.github.wez.wezterm` | `wezterm start --cwd <dir>`（不等待） | `wezterm cli spawn --cwd <dir>`，WezTerm 没在运行时退回 `start` | `-- $SHELL -l -c …` |
+| Alacritty | `org.alacritty` | `open -na Alacritty.app --args --working-directory <dir>` | 不支持 | `-e $SHELL -l -c …` |
+| kitty | `net.kovidgoyal.kitty` | `open -na kitty.app --args --directory <dir>` | 不支持（要开远程控制） | 程序参数 `$SHELL -l -c …` |
+| Warp | `dev.warp.Warp-Stable` | `open -b … warp://action/new_window?path=<dir>` | `warp://action/new_tab?path=…` | 不支持 |
+
+- **引号**：目录用 POSIX 单引号（`'` 写成 `'\''`）；整行再作为 AppleScript 字符串（转义 `\`、`"`、换行）；每行脚本是 `osascript` 的一个 `-e` 参数，不经过 shell。AppleScript 用 `application id "<bundle id>"` 指定应用；应用没在运行时先启动它，等它启动时自带的窗口并直接用那个窗口，避免一次开出两个。
+- **条目**：每个终端一条（"在新窗口中打开"、"在新标签页中打开" ⌘↵、有环境感知的文件夹时"在 <folder> 中打开"、"设为默认终端"），外加"在终端中运行"（必填参数 `command`，在默认终端里运行；默认终端是 Warp 时由第一个能运行命令的终端执行）。WSL 条目和命令在 macOS 上不出现。
+- **默认终端**：设置项 `defaultTerminal`（`DynamicOptions`："自动（iTerm2）"加上已安装的终端）。自动的顺序：iTerm2、Ghostty、WezTerm、kitty、Alacritty、Warp，最后是系统自带的终端。插件在启动和 `EventConfigChanged` 时把选择写进 `macterm.SetPreferred`，`builtin.files` 的"在终端中打开"读它；"设为默认终端"通过 `Result.Preferences` 写回设置。
+- **执行**：动作是回调，插件在 `Host.Go` 里启动终端，启动器立即隐藏；失败时 toast。`osascript` 的 -1743（没有自动化权限）和 1002/-1719（没有辅助功能权限）换成指向"系统设置 › 隐私与安全性"对应页面的提示。
+- **测试**：`macterm` 的单元测试覆盖所有终端的命令行、引号（用 `/bin/sh` 回读验证）、AppleScript 字符串、权限错误识别；`plugins/terminal/mac_test.go` 用假的 Launch Services 和假的启动函数，只核对命令行，从不打开终端。`GOLAUNCHER_TERMINAL_TESTS=1` 时 `TestCompileScripts` 用 `osacompile` 编译本机已安装终端的脚本（不发送 Apple Event），`TestRealMac` 列出本机的条目。

@@ -5,7 +5,8 @@
 // offers to open a terminal or VS Code there, create a folder or a text
 // file, copy the path, and, for selected files, to copy their paths, open
 // them in VS Code, compress them to a ZIP file, hash a file or run a
-// program as administrator.
+// program as administrator. On macOS the terminals, editors, Finder and
+// Quick Look of the Mac take the place of the Windows programs (mac.go).
 package files
 
 import (
@@ -18,10 +19,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
 
+	"github.com/eziq1/golauncher/internal/winapi/macterm"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -48,11 +51,29 @@ type Options struct {
 	// its Code.exe when found). It returns "" when the program is missing.
 	// The default looks at PATH and the app execution aliases.
 	Which func(name string) string
+
+	// Mac offers the Mac's apps instead of the Windows programs (mac.go).
+	// New sets it on macOS; glctl's fake environment stays a Windows
+	// machine on every platform.
+	Mac bool
+	// AppPath finds an app by bundle identifier, "" when it is not
+	// installed (default: Launch Services).
+	AppPath func(bundleID string) string
+	// PreferredTerminal returns the ID of the default terminal chosen in
+	// builtin.terminal ("" for the automatic choice; default
+	// macterm.Preferred).
+	PreferredTerminal func() string
+	// Launch starts an app (default macterm.Run). Tests pass a fake:
+	// nothing must be opened for real.
+	Launch func(macterm.Launch) error
+	// Shell is the login shell (default $SHELL).
+	Shell string
 }
 
 // Plugin is the files plugin.
 type Plugin struct {
 	which func(string) string
+	o     Options
 	h     plugin.Host
 	wg    sync.WaitGroup // background work (Host.Go)
 
@@ -68,7 +89,7 @@ var (
 )
 
 // New returns the plugin for this computer.
-func New() *Plugin { return NewWithOptions(Options{}) }
+func New() *Plugin { return NewWithOptions(Options{Mac: runtime.GOOS == "darwin"}) }
 
 // NewWithOptions returns the plugin configured by o.
 func NewWithOptions(o Options) *Plugin {
@@ -76,12 +97,24 @@ func NewWithOptions(o Options) *Plugin {
 	if which == nil {
 		which = systemWhich
 	}
-	return &Plugin{which: which, found: map[string]string{}}
+	if o.AppPath == nil {
+		o.AppPath = macterm.AppPath
+	}
+	if o.PreferredTerminal == nil {
+		o.PreferredTerminal = macterm.Preferred
+	}
+	if o.Launch == nil {
+		o.Launch = macterm.Run
+	}
+	if o.Shell == "" {
+		o.Shell = os.Getenv("SHELL")
+	}
+	return &Plugin{which: which, o: o, found: map[string]string{}}
 }
 
 // Manifest implements plugin.Plugin.
 func (p *Plugin) Manifest() plugin.Manifest {
-	return plugin.Manifest{
+	m := plugin.Manifest{
 		ID:            ID,
 		Name:          "%plugin.name%",
 		Description:   "%plugin.description%",
@@ -90,6 +123,10 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		DefaultLocale: "en",
 		Permissions:   []plugin.Permission{plugin.PermClipboard, plugin.PermExec},
 	}
+	if p.o.Mac {
+		m.Description = "%mac.plugin.description%"
+	}
+	return m
 }
 
 // Locales implements plugin.LocaleProvider.
@@ -181,11 +218,19 @@ func (p *Plugin) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Ite
 	l := p.h.I18n()
 	var items []plugin.Item
 	if len(c.Selected) > 0 {
-		items = append(items, p.selectionItems(l, c)...)
+		if p.o.Mac {
+			items = append(items, p.macSelectionItems(l, c)...)
+		} else {
+			items = append(items, p.selectionItems(l, c)...)
+		}
 	}
 	if c.Folder != "" {
 		if st, err := os.Stat(c.Folder); err == nil && st.IsDir() {
-			items = append(items, p.folderItems(l, c.Folder)...)
+			if p.o.Mac {
+				items = append(items, p.macFolderItems(l, c.Folder)...)
+			} else {
+				items = append(items, p.folderItems(l, c.Folder)...)
+			}
 		}
 	}
 	return items, nil
@@ -214,6 +259,9 @@ func openAction(id, title, target string, opts plugin.OpenOptions) plugin.Action
 type payload struct {
 	Dir   string   `json:"dir,omitempty"`
 	Paths []string `json:"paths,omitempty"`
+	// App is the terminal or editor to open (macOS).
+	App string `json:"app,omitempty"`
+	Tab bool   `json:"tab,omitzero"`
 }
 
 func callback(id, title, target string, pl payload) plugin.Action {
@@ -223,8 +271,7 @@ func callback(id, title, target string, pl payload) plugin.Action {
 // folderItems are the actions for the current folder dir.
 func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 	var items []plugin.Item
-	copyPath := plugin.Action{ID: "copy-path", Title: l.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
-		Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: dir}}
+	copyPath := copyPathAction(l, dir)
 
 	// A terminal: Windows Terminal when installed, else PowerShell.
 	term := p.terminal(l, dir, false)
@@ -247,25 +294,7 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(dir), Dir: dir}), copyPath},
 		})
 	}
-	items = append(items,
-		plugin.Item{
-			ID: "new-folder", Title: l.T("item.newFolder.title"), Subtitle: dir, Icon: plugin.Icon{Name: "folder-plus"},
-			Keywords:  keywords(l.T("keywords.newFolder")),
-			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.folderName")}},
-			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFolder, payload{Dir: dir})},
-		},
-		plugin.Item{
-			ID: "new-file", Title: l.T("item.newFile.title"), Subtitle: dir, Icon: plugin.Icon{Name: "file-plus"},
-			Keywords:  keywords(l.T("keywords.newFile")),
-			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.fileName")}},
-			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFile, payload{Dir: dir})},
-		},
-		plugin.Item{
-			ID: "copy-path", Title: l.T("item.copyPath.title"), Subtitle: dir, Icon: plugin.Icon{Name: "clipboard"},
-			Keywords: keywords(l.T("keywords.copyPath")),
-			Actions:  []plugin.Action{{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: dir}}},
-		},
-	)
+	items = append(items, createItems(l, dir)...)
 	if admin := p.terminal(l, dir, true); admin.target != "" {
 		items = append(items, plugin.Item{
 			ID: "terminal-admin", Title: admin.title, Subtitle: dir, Icon: plugin.Icon{Name: "shield"},
@@ -275,6 +304,36 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 		})
 	}
 	return items
+}
+
+// copyPathAction copies the folder path dir.
+func copyPathAction(l plugin.Localizer, dir string) plugin.Action {
+	return plugin.Action{ID: "copy-path", Title: l.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
+		Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: dir}}
+}
+
+// createItems are New Folder, New Text File and Copy Folder Path for dir,
+// the same on every platform.
+func createItems(l plugin.Localizer, dir string) []plugin.Item {
+	return []plugin.Item{
+		{
+			ID: "new-folder", Title: l.T("item.newFolder.title"), Subtitle: dir, Icon: plugin.Icon{Name: "folder-plus"},
+			Keywords:  keywords(l.T("keywords.newFolder")),
+			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.folderName")}},
+			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFolder, payload{Dir: dir})},
+		},
+		{
+			ID: "new-file", Title: l.T("item.newFile.title"), Subtitle: dir, Icon: plugin.Icon{Name: "file-plus"},
+			Keywords:  keywords(l.T("keywords.newFile")),
+			Arguments: []plugin.Argument{{Name: argName, Type: plugin.ArgText, Placeholder: l.T("default.fileName")}},
+			Actions:   []plugin.Action{callback("create", l.T("action.create"), cbNewFile, payload{Dir: dir})},
+		},
+		{
+			ID: "copy-path", Title: l.T("item.copyPath.title"), Subtitle: dir, Icon: plugin.Icon{Name: "clipboard"},
+			Keywords: keywords(l.T("keywords.copyPath")),
+			Actions:  []plugin.Action{{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: dir}}},
+		},
+	}
 }
 
 // terminalLaunch is how to open a terminal in a folder.
@@ -315,21 +374,9 @@ func (p *Plugin) terminal(l plugin.Localizer, dir string, admin bool) terminalLa
 // selectionItems are the actions for the selected files and folders.
 func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.Item {
 	sel := c.Selected
-	n := len(sel)
-	subtitle := l.N("subtitle.selected", n, "name", filepath.Base(sel[0]))
-	dir := c.Folder
-	if dir == "" {
-		dir = filepath.Dir(sel[0])
-	}
-	items := []plugin.Item{{
-		ID: "copy-selected", Title: l.N("item.copySelected.title", n), Subtitle: subtitle, Icon: plugin.Icon{Name: "clipboard"},
-		Keywords: keywords(l.T("keywords.copyPath")),
-		Actions: []plugin.Action{
-			{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: strings.Join(sel, "\r\n")}},
-			{ID: "copy-files", Title: l.T("action.copyFiles"), Shortcut: "Ctrl+Alt+C",
-				Do: plugin.ActionDo{Kind: plugin.ActionCopyFiles, Payload: plugin.MustPayload(sel)}},
-		},
-	}}
+	subtitle := l.N("subtitle.selected", len(sel), "name", filepath.Base(sel[0]))
+	dir := selectionDir(c)
+	items := []plugin.Item{copySelectedItem(l, sel, subtitle, "\r\n")}
 	if code := p.program("code"); code != "" {
 		items = append(items, plugin.Item{
 			ID: "vscode-selected", Title: l.T("item.vscodeSelected.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "code"},
@@ -337,18 +384,9 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(sel...), Dir: dir})},
 		})
 	}
-	items = append(items, plugin.Item{
-		ID: "zip", Title: l.T("item.zip.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "archive"},
-		Keywords: keywords(l.T("keywords.zip")),
-		Actions:  []plugin.Action{callback("compress", l.T("action.compress"), cbZip, payload{Dir: dir, Paths: sel})},
-	})
-	if n == 1 {
+	items = append(items, p.fileItems(l, c, subtitle)...)
+	if len(sel) == 1 {
 		if st, err := os.Stat(sel[0]); err == nil && st.Mode().IsRegular() {
-			items = append(items, plugin.Item{
-				ID: "sha256", Title: l.T("item.sha256.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "hash"},
-				Keywords: keywords(l.T("keywords.sha256")),
-				Actions:  []plugin.Action{callback("hash", l.T("action.copy"), cbSHA256, payload{Paths: sel})},
-			})
 			if runnable(sel[0]) {
 				items = append(items, plugin.Item{
 					ID: "run-admin", Title: l.T("item.runAdmin.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "shield"},
@@ -357,6 +395,50 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 						plugin.OpenOptions{Dir: filepath.Dir(sel[0]), Verb: "runas"})},
 				})
 			}
+		}
+	}
+	return items
+}
+
+// selectionDir is the folder of the selection: that of the context, else
+// that of the first selected item.
+func selectionDir(c plugin.Context) string {
+	if c.Folder != "" {
+		return c.Folder
+	}
+	return filepath.Dir(c.Selected[0])
+}
+
+// copySelectedItem copies the paths of sel, one per line (sep ends lines),
+// or the files themselves.
+func copySelectedItem(l plugin.Localizer, sel []string, subtitle, sep string) plugin.Item {
+	return plugin.Item{
+		ID: "copy-selected", Title: l.N("item.copySelected.title", len(sel)), Subtitle: subtitle, Icon: plugin.Icon{Name: "clipboard"},
+		Keywords: keywords(l.T("keywords.copyPath")),
+		Actions: []plugin.Action{
+			{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: strings.Join(sel, sep)}},
+			{ID: "copy-files", Title: l.T("action.copyFiles"), Shortcut: "Ctrl+Alt+C",
+				Do: plugin.ActionDo{Kind: plugin.ActionCopyFiles, Payload: plugin.MustPayload(sel)}},
+		},
+	}
+}
+
+// fileItems are Compress to ZIP and, for one file, its checksum: the same
+// on every platform.
+func (p *Plugin) fileItems(l plugin.Localizer, c plugin.Context, subtitle string) []plugin.Item {
+	sel := c.Selected
+	items := []plugin.Item{{
+		ID: "zip", Title: l.T("item.zip.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "archive"},
+		Keywords: keywords(l.T("keywords.zip")),
+		Actions:  []plugin.Action{callback("compress", l.T("action.compress"), cbZip, payload{Dir: selectionDir(c), Paths: sel})},
+	}}
+	if len(sel) == 1 {
+		if st, err := os.Stat(sel[0]); err == nil && st.Mode().IsRegular() {
+			items = append(items, plugin.Item{
+				ID: "sha256", Title: l.T("item.sha256.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "hash"},
+				Keywords: keywords(l.T("keywords.sha256")),
+				Actions:  []plugin.Action{callback("hash", l.T("action.copy"), cbSHA256, payload{Paths: sel})},
+			})
 		}
 	}
 	return items
@@ -381,6 +463,11 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		return plugin.Result{}, fmt.Errorf("files: %w", err)
 	}
 	l := p.h.I18n()
+	if p.o.Mac {
+		if r, ok := p.handleMac(l, a.Target, pl); ok {
+			return r, nil
+		}
+	}
 	switch a.Target {
 	case cbNewFolder, cbNewFile:
 		name := argument(a, argName)
