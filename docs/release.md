@@ -152,4 +152,10 @@
 - **脚本归类**：`scripts/windows/`（`build.ps1`、`winres.ps1`）、`scripts/macos/`（`build.sh`、`macbundle`、`genmenubaricon`）、`scripts/release/changelog.ps1`、`scripts/data/gencities`，索引见 [scripts/README.md](../scripts/README.md)。`build.ps1`、`winres.ps1`、`changelog.ps1`、`build.sh` 里求仓库根目录的地方随之多上一级。
 - **macOS 产物改为两个**：`golauncher_<版本>_darwin_arm64.zip` 和 `golauncher_<版本>_darwin_amd64.zip`（§12 原来是一个通用包）。`macos` job 对两个架构各打一次 `.app` 并做冒烟测试（`glctl` 只在运行器本机的架构上运行）。更新程序（`SelectAssetsFor`）改为先找本机架构的包，没有再找 `darwin_universal`，所以以后改回通用包也能更新。
 - **步骤**：同 §3。`macos-support` 分支先推送并等 CI（Windows 上的测试此前只在本机交叉编译过、没跑过）通过，再快进合并到 `main`，打 `v0.7.0` tag。
+- **发布前修的 CI 问题**：
+  - Apple 芯片（arm64）上 Go 会把 `x*y+z` 融合成一条指令，排名和分数的最后一位与 amd64 生成的 golden 不同；评分公式加显式 `float64(...)` 转换。计算器 `log10(10000)` 在 arm64 上多出一个 ulp，"难读"阈值留了余量。
+  - Windows 上跑到了只对 macOS 有意义的测试（可执行位、符号链接、Mac 路径）：更新程序改为看 zip 里记录的可执行位，WezTerm 路径用 `path.Join`，其余在 Windows 上跳过。
+  - 合并 main 带来的 Codex、Gemini、ACP 后端只支持 Windows：移植到 macOS（[ai.md §21.8](ai.md)）；顺带修了 Windows 上找不到 npm 0.150 及以后的 Codex（`vendor/<triple>/bin/codex.exe`）。
+  - CI 的 Windows job 新增"Release scripts"一步，提前跑 `scripts/windows/build.ps1` 和 `scripts/release/changelog.ps1`。
+- **结果**：2026-10-17 在 `b07ecda` 上打了 `v0.7.0`。第一次运行时 Windows job 的 `TestPythonHello` 偶发失败（启动示例 Python 插件时报"插件崩溃"；同一代码前两轮 CI 都通过，代码没有改动），只重跑失败的 job 后通过。Release 为正式版，`/releases/latest` 指向它。产物：`windows_amd64`（21.4MB）、`windows_arm64`（19.7MB）、`darwin_amd64`（21.9MB）、`darwin_arm64`（20.1MB）四个 zip 和 `checksums.txt`。下载 `darwin_amd64` 在 Intel Mac 上验证过：SHA-256 一致、签名有效、架构 x86_64、版本 0.7.0。<https://github.com/eziq1/golauncher/releases/tag/v0.7.0>
 
