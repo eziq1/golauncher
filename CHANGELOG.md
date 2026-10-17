@@ -38,6 +38,9 @@ Before 1.0.0, minor versions may contain breaking changes.
   Scoop plugins and the whole-second refresh of the World Clock and Timers
   share small helpers in `pkg/plugin/bg`; the Files plugin quotes command
   lines with `internal/winapi/cmdline` (code review 5). No visible change.
+- Internal: `internal/core/controller.go`, `internal/ui/settings.go` and
+  `internal/ui/launcher.go` are split by responsibility into files of the
+  same packages (code review 4); the code was moved unchanged.
 
 ## [0.8.0] - 2026-10-17
 

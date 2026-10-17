@@ -194,3 +194,38 @@ Engine 遇到 `Init` 错误或 panic 后直接跳过该插件；`Engine.Close` �
 - homebrew 与 winget 的 `loadInstalledCache`/`saveInstalledCache`、`installedState` 的失败合并（约 40 行）：`Installed` 类型不同，需要泛型；
 - homebrew、winget、scoop 的 `maxResults`、`rootQuery`、`failure`、`truncate` 等小函数（每个几行）；
 - scripts、terminal、apps 各自的 `spawn`（与 `bg.Group` 相似，但和各自的关闭状态、运行表绑在一起）。
+
+## 11. 修复记录：拆分大文件（4）
+
+三个大文件在原 package 内按职责拆开，只移动代码：标识符、签名、函数体和注释都没改，每个声明连同它前面的注释整体搬到新文件。各文件只删掉了不再用到的 import，新文件开头加了一行说明职责的注释（放在 `package` 之后，不算包文档）。
+
+`internal/core`（原 `controller.go` 1,238 行）：
+
+| 文件 | 行数 | 职责 |
+|---|---:|---|
+| `controller.go` | 330 | `Controller` 及其状态类型、构造、`Wait`、导航栈、`Reset`/`SetText`、搜索与 `setView` |
+| `controller_refresh.go` | 130 | 刷新调度：合并 `Host.Invalidate`（`invalidateDelay`/`renderInterval`）、插件启停和上下文变化后的刷新 |
+| `controller_push.go` | 83 | 推送视图：`Host.Render` 按 `renderInterval` 合并到打开的视图实例 |
+| `controller_rows.go` | 142 | 当前层的行：本地过滤、选中项保持、`Select`/`Hover`、动作面板的动作过滤 |
+| `controller_keys.go` | 208 | 键盘与导航：`Key`、`back`、`panelKey`、`KeyTasks` |
+| `controller_actions.go` | 203 | 执行动作和命令（`Activate`/`RunAction`/`OpenCommand`/`run`/`execFrom`）、后台任务、Toast、`CopyContextPath` |
+| `controller_snapshot.go` | 201 | `Snapshot` 及各子快照类型、快照构建 |
+
+`internal/ui`（原 `settings.go` 1,121 行、`launcher.go` 1,023 行）：
+
+| 文件 | 行数 | 职责 |
+|---|---:|---|
+| `settings.go` | 375 | 设置窗口骨架：`Settings`、`SettingsHost`、页面切换、通知、配置更新、通用控件（`setting`/`toggle`/`button`）、快捷键录制 |
+| `settings_general.go` | 155 | 通用页（含选中文本设置、`ClipboardHistoryHost`）和关于页 |
+| `settings_plugins.go` | 212 | 插件列表页、单个插件页、进程状态、命令行 |
+| `settings_prefs.go` | 244 | 插件偏好控件：取值、动态选项、按钮偏好 |
+| `settings_password.go` | 74 | 密码偏好：保存/清除系统凭据 |
+| `settings_advanced.go` | 124 | 高级页：数据目录、配置文件、日志级别，以及设置导入/导出（`ExportFileName`） |
+| `launcher.go` | 272 | 包文档、`Launcher`、`Host`、构造、`View`、主题与 Toast |
+| `launcher_input.go` | 162 | 输入：按键、文本、点击转给 `core.Controller` |
+| `launcher_searchbar.go` | 103 | 搜索栏 |
+| `launcher_results.go` | 234 | 结果列表、行、附属信息、详情 |
+| `launcher_footer.go` | 185 | 底栏：上下文/选中文本标签、后台任务指示、动作提示 |
+| `launcher_panel.go` | 125 | 动作面板和确认对话框 |
+
+核对方法：用一次性的 Go 程序（未提交）解析拆分前（`HEAD`）和拆分后的 `internal/core`、`internal/ui` 全部非测试文件，按"种类 + 接收者 + 名字"列出每个顶层声明，比较声明连同文档注释的原文：core 247 个、ui 219 个，前后一一对应、原文完全相同；所有注释也逐条相同，只多了新文件的职责注释。`gofmt`、`go vet ./...`（含 `GOOS=darwin`）、`go test ./...`、`go test -race ./internal/core ./internal/ui` 通过，`go test ./internal/cli` 的 golden 没有改动。
