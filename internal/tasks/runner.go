@@ -51,26 +51,14 @@ var (
 )
 
 // ProcessRunner runs programs for real: without a window, in a Job Object
-// (internal/winapi/proc), or as administrator through a UAC prompt.
+// (internal/winapi/proc; a process group on Unix), or on Windows as
+// administrator through a UAC prompt (runner_windows.go: it is an Elevator
+// only there).
 type ProcessRunner struct{}
-
-var _ Elevator = ProcessRunner{}
 
 // Start implements Runner.
 func (ProcessRunner) Start(cmd plugin.ProcessSpec, env []string, out io.Writer) (Process, error) {
 	return proc.Start(proc.Options{Argv: cmd.Argv, Dir: cmd.Dir, Env: env, Output: out})
-}
-
-// Elevated implements Elevator.
-func (ProcessRunner) Elevated() bool { return proc.IsElevated() }
-
-// StartElevated implements Elevator with proc.StartElevated.
-func (ProcessRunner) StartElevated(cmd plugin.ProcessSpec) (Process, error) {
-	p, err := proc.StartElevated(cmd.Argv, cmd.Dir)
-	if err != nil {
-		return nil, err
-	}
-	return p, nil
 }
 
 // CommandLine is how cmd is shown to the user: its CommandLine, or Argv

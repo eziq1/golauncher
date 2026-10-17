@@ -349,6 +349,7 @@ func (s *Shell) ready(action string) {
 	}
 	s.syncLoginItem(s.env.Config.Get())
 	s.registerHotkeys()
+	s.prepareOnboarding()
 	switch {
 	case action == actionSettings:
 		s.showSettings(ui.PageGeneral)
@@ -476,6 +477,8 @@ func (s *Shell) present(sel *winselection.Pending, then func(), forSelection boo
 		s.launcher.Shown()
 		if noPermission {
 			s.permissionHint(sel.Err()) // after Shown's reset, which clears toasts
+		} else {
+			s.onboardingHint()
 		}
 		if read != nil {
 			// After Shown's reset, which clears toasts.
@@ -564,6 +567,8 @@ func (s *Shell) showSettings(page string) {
 				s.hideLauncher()
 			}
 		})
+		// Back from System Settings: the permissions may have changed.
+		s.settingsWin.OnFocus(s.settings.RefreshPermissions)
 	}
 	if !s.settingsWin.IsVisible() || page != ui.PageGeneral {
 		s.settings.ShowPage(page)

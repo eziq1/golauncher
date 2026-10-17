@@ -22,6 +22,9 @@ type Effect struct {
 // clipboard reflects them.
 type Recorder struct {
 	Clipboard plugin.Clipboard
+	// PasteErr is returned by Paste after the content was copied, to
+	// simulate a paste that fails (core.ErrNotPasted).
+	PasteErr error
 
 	mu      sync.Mutex
 	effects []Effect
@@ -86,7 +89,9 @@ func (r *Recorder) Paste(text string, content plugin.PasteContent) error {
 	}
 	r.add(e)
 	if r.Clipboard != nil && text != "" {
-		return r.Clipboard.WriteText(text)
+		if err := r.Clipboard.WriteText(text); err != nil {
+			return err
+		}
 	}
-	return nil
+	return r.PasteErr
 }
