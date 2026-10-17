@@ -18,6 +18,7 @@
 | 版本检测 | `livecheck`：`url :url` + `strategy :github_latest`（GitHub 的 Latest release，不看预发布） |
 | 预发布版本 | 不发布，生成器拒绝带后缀的版本号，`-download` 时也拒绝 GitHub 上标为 pre-release 的 Release |
 | 签名 | 应用只有 ad hoc 签名，没有 Developer ID 签名和公证（[release.md](release.md) 的 macOS 任务、`scripts/macos/build.sh`）。cask 不加任何绕过 Gatekeeper 的设置（§4） |
+| tap 仓库 | ✅ 已创建 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap)（2026-10-17，含 v0.8.0 的 cask） |
 | 自动推送到 tap | 已实现但默认关闭：只有仓库 Secret `HOMEBREW_TAP_TOKEN` 存在时发布流程才推送（§5.3） |
 
 ## 2. cask
@@ -146,7 +147,11 @@ golauncher.app 只有 ad hoc 签名，没有 Developer ID 签名，也没有经�
 
 ## 5. 发布到 tap
 
-### 5.1 第一次：创建 tap 仓库（手动，由你来做）
+### 5.1 第一次：创建 tap 仓库（✅ 2026-10-17 已完成）
+
+**已创建**：公开仓库 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap)，内容是 `Casks/golauncher.rb`（v0.8.0，SHA-256 已和 v0.8.0 重建后 Release 的 `checksums.txt` 核对一致，LF 换行）和一个写着安装命令的 README，第一个提交是 `golauncher 0.8.0`（作者 eziq1 + noreply 邮箱）。还没在 Mac 上实际跑过 `brew install`（下面第 3 步）。
+
+当时的步骤（以后要重建时参考）：
 
 1. 在 GitHub 上新建**公开**仓库 `eziq1/homebrew-tap`（名字必须以 `homebrew-` 开头）。不需要任何别的设置。
 2. 在本地：
