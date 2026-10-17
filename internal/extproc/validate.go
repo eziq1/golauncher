@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -71,6 +72,14 @@ func Validate(dir string) (r Report) {
 	case protocol.Version:
 	default:
 		errorf("protocol %d is not supported (this host speaks protocol %d)", m.Protocol, protocol.Version)
+	}
+	for _, p := range m.Platforms {
+		if !slices.Contains(plugin.Platforms, p) {
+			errorf("platforms: unknown platform %q (valid: %s)", p, strings.Join(plugin.Platforms, ", "))
+		}
+	}
+	if m.CheckPlatforms() == nil && !m.SupportsPlatform(runtime.GOOS) {
+		warnf("platforms %q leave out this system (%s): the plugin is not loaded here", m.Platforms, runtime.GOOS)
 	}
 	if m.Run.Command == "" {
 		errorf("run.command is missing")

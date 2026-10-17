@@ -600,6 +600,37 @@ return fmt.Errorf("%s: %w", l.T("unavailable.notInstalled"), plugin.ErrUnavailab
 The plugin is then left disabled, and Settings shows the reason instead of an
 error.
 
+### Platform-specific plugins
+
+A plugin whose functionality exists on one operating system only (a
+Windows package manager, say) declares it in `Manifest.Platforms`, as
+`GOOS` names (`plugin.PlatformWindows`, `plugin.PlatformDarwin`,
+`plugin.PlatformLinux`):
+
+```go
+return plugin.Manifest{
+	ID:        "builtin.scoop",
+	Platforms: []string{plugin.PlatformWindows},
+	// …
+}
+```
+
+External plugins write `"platforms": ["windows"]` in `plugin.json`. Empty
+(the default) means every platform. Elsewhere the plugin is not loaded at
+all: a built-in is not registered, an external plugin's process never
+starts, and neither shows up in the plugin list or Settings. Unknown names
+are a manifest error, which `glctl plugin validate` reports.
+
+Use `Platforms` only when the whole plugin makes no sense elsewhere. A
+plugin that works on several systems through per-OS backends (terminal,
+processes, files, …) leaves it empty, and a missing dependency on a
+supported system is still `ErrUnavailable` (above).
+
+The host checks the platform of its environment: the real launcher uses
+the system's, while glctl's fake environment counts as Windows on every
+system (so its results are the same everywhere); `builtin.FakeOn` picks
+plugins for another platform in tests.
+
 ## Host services
 
 `Host` is the plugin's only gateway to the system:
@@ -747,6 +778,9 @@ plugin, which golauncher restarts (and turns off if it keeps crashing).
   `host/clipboard.*` (error `-32001`). `network` and `exec` cannot be
   enforced; external plugins run with the user's rights, and Settings says
   so.
+- `platforms` (optional) restricts the plugin to some operating systems,
+  as `GOOS` names: `"windows"`, `"darwin"`, `"linux"`. See
+  [Platform-specific plugins](#platform-specific-plugins).
 
 ### Installing and developing
 

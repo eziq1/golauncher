@@ -45,6 +45,13 @@ A plugin is a directory with a `plugin.json` manifest:
   directory and these extra environment variables: `GOLAUNCHER=1`,
   `GOLAUNCHER_PLUGIN_ID`, `GOLAUNCHER_PROTOCOL`, `PYTHONUNBUFFERED=1`,
   `PYTHONIOENCODING=utf-8`.
+- `platforms` (optional) lists the operating systems the plugin runs on, as
+  Go `GOOS` names: `"windows"`, `"darwin"`, `"linux"`, e.g.
+  `"platforms": ["windows"]`. Absent or empty means every platform. On any
+  other platform the host skips the plugin entirely: its process is never
+  started and it is not in the plugin list or Settings. Any other name is a
+  manifest error (the plugin is not loaded; `glctl plugin validate` reports
+  it).
 - Strings written as `%key%` are translated by the host from
   `locales/<lang>.json` (`en.json` is required when you use keys). A catalog
   maps keys to strings or to plural forms
