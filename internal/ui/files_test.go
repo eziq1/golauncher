@@ -170,8 +170,11 @@ func TestPasteFilesUI(t *testing.T) {
 	ft.clip.Set(plugin.ClipboardContent{Text: "plain words"})
 	ft.tt.SetClipboard("plain words")
 	ft.key(ui.Primary(), mui.KeyV)
-	if s := ft.Controller.Snapshot(); s.Text != "plain words" || len(ft.fp.got()) != 1 {
-		t.Fatalf("text: %q, received %d", s.Text, len(ft.fp.got()))
+	if n := len(ft.fp.got()); n != 1 {
+		t.Fatalf("plain text was taken as files: received %d", n)
+	}
+	if s := ft.Controller.Snapshot(); runtime.GOOS != "darwin" && s.Text != "plain words" { // see above
+		t.Fatalf("text: %q", s.Text)
 	}
 }
 
