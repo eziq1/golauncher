@@ -8,6 +8,8 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-17
+
 ### Added
 
 - **AI backends in the settings** (R84, docs/ai.md §22): *Settings › Plugins
@@ -30,6 +32,14 @@ Before 1.0.0, minor versions may contain breaking changes.
   choice) is turned off, never the isolation. The chat's footer names what an
   older version runs without; *Settings › Plugins › AI › Backends* shows the
   version in use.
+
+### Changed
+
+- golauncher describes itself as a launcher for Windows and macOS: the
+  About text, and on a Mac the installer window (no Start menu, tray or
+  `C:\` wording). The AI chat is told which system it runs on, and the
+  instructions golauncher's MCP server gives AI apps name both systems and
+  Homebrew.
 
 ### Fixed
 
@@ -664,7 +674,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/eziq1/golauncher/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/eziq1/golauncher/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/eziq1/golauncher/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eziq1/golauncher/compare/v0.4.0...v0.5.0
