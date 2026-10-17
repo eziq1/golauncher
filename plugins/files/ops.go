@@ -13,43 +13,6 @@ import (
 	"strings"
 )
 
-// quoteArg quotes s as one argument of a Windows command line, the way
-// CommandLineToArgvW reads it back: in quotes when it has spaces, tabs or
-// quotes, with backslashes before a quote (and at the end) doubled.
-func quoteArg(s string) string {
-	if s != "" && !strings.ContainsAny(s, " \t\"") {
-		return s
-	}
-	var b strings.Builder
-	b.WriteByte('"')
-	slashes := 0
-	for i := range len(s) {
-		c := s[i]
-		switch c {
-		case '\\':
-			slashes++
-		case '"':
-			b.WriteString(strings.Repeat(`\`, slashes+1))
-			slashes = 0
-		default:
-			slashes = 0
-		}
-		b.WriteByte(c)
-	}
-	b.WriteString(strings.Repeat(`\`, slashes))
-	b.WriteByte('"')
-	return b.String()
-}
-
-// quoteArgs quotes each argument and joins them with spaces.
-func quoteArgs(args ...string) string {
-	q := make([]string, len(args))
-	for i, a := range args {
-		q[i] = quoteArg(a)
-	}
-	return strings.Join(q, " ")
-}
-
 // reservedNames are device names Windows does not allow as file names.
 var reservedNames = map[string]bool{"CON": true, "PRN": true, "AUX": true, "NUL": true}
 

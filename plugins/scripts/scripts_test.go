@@ -42,6 +42,7 @@ func newEnv(t *testing.T, sys System, files map[string]string) *env {
 	e.p = NewWithOptions(Options{
 		Directories: []string{e.dir},
 		System:      sys,
+		Sync:        true,
 		Open: func(target string, _ plugin.OpenOptions) error {
 			e.mu.Lock()
 			e.opened = append(e.opened, target)
@@ -435,7 +436,7 @@ func TestExpandAndDefaultDirectory(t *testing.T) {
 		}
 		return ""
 	}
-	p := NewWithOptions(Options{Directories: []string{DefaultDirectory}, System: sys})
+	p := NewWithOptions(Options{Directories: []string{DefaultDirectory}, System: sys, Sync: true})
 	h, err := hostfake.New(p, t.TempDir())
 	if err != nil {
 		t.Fatal(err)

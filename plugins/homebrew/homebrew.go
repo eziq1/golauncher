@@ -25,6 +25,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // ID is the plugin ID.
@@ -120,27 +121,22 @@ type Plugin struct {
 	ctx    context.Context // cancelled by Close
 	cancel context.CancelFunc
 	unsubs []func()
-	wg     sync.WaitGroup
+	work   bg.Group // background work; closed by Close
 
-	indexMu sync.Mutex // serializes index refreshes
+	indexMu    sync.Mutex   // serializes index refreshes
+	indexing   bg.Refresher // background index refreshes
+	indexReady bg.Ready     // the first index refresh ended
+	listing    bg.Refresher // background listings of the installed packages
+	listReady  bg.Ready     // the installed packages are known
 
-	mu         sync.Mutex
-	closed     bool
-	exe        string
-	cache      string // Homebrew's cache directory, once known
-	index      *Index
-	indexErr   error
-	indexReady chan struct{} // closed when the first index refresh ended
-	indexDone  bool
-	indexing   bool
-	indexAgain bool
-	inst       *installedState
-	listReady  chan struct{} // closed when installed packages are known
-	listDone   bool
-	listing    bool
-	listAgain  bool
-	listTried  time.Time
-	shows      map[string]*Details // by key
+	mu        sync.Mutex
+	exe       string
+	cache     string // Homebrew's cache directory, once known
+	index     *Index
+	indexErr  error
+	inst      *installedState
+	listTried time.Time
+	shows     map[string]*Details // by key
 }
 
 var (
@@ -159,7 +155,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Getenv == nil {
 		o.Getenv = os.Getenv
 	}
-	return &Plugin{opts: o, indexReady: make(chan struct{}), listReady: make(chan struct{}), shows: map[string]*Details{}}
+	return &Plugin{opts: o, shows: map[string]*Details{}}
 }
 
 // Manifest implements plugin.Plugin.
@@ -223,8 +219,7 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	}
 	if st, err := loadInstalledCache(h.CacheDir()); err == nil {
 		p.inst = st
-		p.listDone = true
-		close(p.listReady)
+		p.listReady.Done()
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		h.Logger().Warn("homebrew: ignoring the cache of installed packages", "err", err)
 	}
@@ -262,36 +257,17 @@ func (p *Plugin) windowShown() {
 // waits for background work. Operations are tasks of the host, which stops
 // them when golauncher quits.
 func (p *Plugin) Close() error {
-	p.mu.Lock()
-	if p.closed || p.h == nil {
-		p.closed = true
-		p.mu.Unlock()
+	if !p.work.Close() || p.h == nil {
 		return nil
 	}
-	p.closed = true
-	p.mu.Unlock()
 	for _, u := range p.unsubs {
 		u()
 	}
 	if p.cancel != nil {
 		p.cancel()
 	}
-	p.wg.Wait()
+	p.work.Wait()
 	return nil
-}
-
-// spawnLocked runs fn in the background through Host.Go unless the plugin
-// is closed; p.mu is held. It reports whether fn was started.
-func (p *Plugin) spawnLocked(fn func()) bool {
-	if p.closed {
-		return false
-	}
-	p.wg.Add(1)
-	p.h.Go(func() {
-		defer p.wg.Done()
-		fn()
-	})
-	return true
 }
 
 // brew returns the path of brew, or "" when Homebrew is not installed.
@@ -365,19 +341,14 @@ func (p *Plugin) Index() *Index {
 
 // waitIndex returns the index, waiting at most indexWait for the first.
 func (p *Plugin) waitIndex(ctx context.Context) (*Index, error) {
+	done := p.indexReady.IsDone()
 	p.mu.Lock()
-	ix, err, done := p.index, p.indexErr, p.indexDone
+	ix, err := p.index, p.indexErr
 	p.mu.Unlock()
 	if ix != nil || done {
 		return ix, err
 	}
-	timer := time.NewTimer(indexWait)
-	defer timer.Stop()
-	select {
-	case <-p.indexReady:
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	p.indexReady.Wait(ctx, indexWait)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.index, p.indexErr
@@ -386,25 +357,7 @@ func (p *Plugin) waitIndex(ctx context.Context) (*Index, error) {
 // scheduleIndex refreshes the index in the background; calls during a
 // refresh cause one more.
 func (p *Plugin) scheduleIndex() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.indexing {
-		p.indexAgain = true
-		return
-	}
-	p.indexing = p.spawnLocked(func() {
-		for {
-			p.refreshIndex(true)
-			p.mu.Lock()
-			if !p.indexAgain || p.closed {
-				p.indexing, p.indexAgain = false, false
-				p.mu.Unlock()
-				return
-			}
-			p.indexAgain = false
-			p.mu.Unlock()
-		}
-	})
+	p.indexing.Request(&p.work, p.h, func() { p.refreshIndex(true) })
 }
 
 // refreshIndex reads the index again if its files changed. With notify, a
@@ -437,17 +390,13 @@ func (p *Plugin) refreshIndex(notify bool) {
 		ix = old // keep the last good index
 	}
 	p.mu.Lock()
-	first := !p.indexDone
-	p.indexDone = true
 	if ix != old {
 		p.index = ix
 	}
 	errChanged := (p.indexErr == nil) != (err == nil)
 	p.indexErr = err
 	p.mu.Unlock()
-	if first {
-		close(p.indexReady)
-	}
+	p.indexReady.Done()
 	if notify && (changed || errChanged) {
 		p.h.Invalidate("")
 	}
@@ -484,38 +433,14 @@ func (p *Plugin) waitInstalled(ctx context.Context) *installedState {
 	if st := p.Installed(); st != nil {
 		return st
 	}
-	timer := time.NewTimer(listWait)
-	defer timer.Stop()
-	select {
-	case <-p.listReady:
-	case <-ctx.Done():
-	case <-timer.C:
-	}
+	p.listReady.Wait(ctx, listWait)
 	return p.Installed()
 }
 
 // scheduleInstalled lists the installed packages in the background; calls
 // while it runs cause one more run afterwards.
 func (p *Plugin) scheduleInstalled() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.listing {
-		p.listAgain = true
-		return
-	}
-	p.listing = p.spawnLocked(func() {
-		for {
-			p.refreshInstalled(true)
-			p.mu.Lock()
-			if !p.listAgain || p.closed {
-				p.listing, p.listAgain = false, false
-				p.mu.Unlock()
-				return
-			}
-			p.listAgain = false
-			p.mu.Unlock()
-		}
-	})
+	p.listing.Request(&p.work, p.h, func() { p.refreshInstalled(true) })
 }
 
 // listArgs are the arguments of the command that lists the installed
@@ -536,12 +461,10 @@ func (p *Plugin) refreshInstalled(notify bool) {
 	}
 	now := p.h.Now()
 	p.mu.Lock()
-	if p.closed {
+	if p.work.Closed() {
 		p.mu.Unlock()
 		return
 	}
-	first := !p.listDone
-	p.listDone = true
 	p.listTried = now
 	switch {
 	case err == nil:
@@ -555,9 +478,7 @@ func (p *Plugin) refreshInstalled(notify bool) {
 	}
 	st := p.inst
 	p.mu.Unlock()
-	if first {
-		close(p.listReady)
-	}
+	p.listReady.Done()
 	if err != nil {
 		log.Warn("homebrew: listing installed packages", "err", err)
 	} else {

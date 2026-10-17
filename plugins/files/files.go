@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/eziq1/golauncher/internal/winapi/cmdline"
 	"github.com/eziq1/golauncher/internal/winapi/macterm"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -291,7 +292,7 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 		items = append(items, plugin.Item{
 			ID: "vscode", Title: l.T("item.vscode.title"), Subtitle: dir, Icon: plugin.Icon{Name: "code"},
 			Keywords: keywords(l.T("keywords.vscode")),
-			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(dir), Dir: dir}), copyPath},
+			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: cmdline.Join(dir), Dir: dir}), copyPath},
 		})
 	}
 	items = append(items, createItems(l, dir)...)
@@ -354,7 +355,7 @@ func (p *Plugin) terminal(l plugin.Localizer, dir string, admin bool) terminalLa
 		verb, title = "runas", l.T("item.terminalAdmin.title")
 	}
 	if wt := p.program("wt"); wt != "" {
-		return terminalLaunch{title: title, target: wt, opts: plugin.OpenOptions{Args: "-d " + quoteArg(dir), Dir: dir, Verb: verb}}
+		return terminalLaunch{title: title, target: wt, opts: plugin.OpenOptions{Args: "-d " + cmdline.Quote(dir), Dir: dir, Verb: verb}}
 	}
 	ps := p.program("pwsh")
 	if ps == "" {
@@ -366,7 +367,7 @@ func (p *Plugin) terminal(l plugin.Localizer, dir string, admin bool) terminalLa
 	if admin {
 		cd := "Set-Location -LiteralPath '" + strings.ReplaceAll(dir, "'", "''") + "'"
 		return terminalLaunch{title: l.T("item.powershellAdmin.title"), target: ps,
-			opts: plugin.OpenOptions{Args: "-NoExit -Command " + quoteArg(cd), Dir: dir, Verb: verb}}
+			opts: plugin.OpenOptions{Args: "-NoExit -Command " + cmdline.Quote(cd), Dir: dir, Verb: verb}}
 	}
 	return terminalLaunch{title: l.T("item.powershell.title"), target: ps, opts: plugin.OpenOptions{Dir: dir}}
 }
@@ -381,7 +382,7 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 		items = append(items, plugin.Item{
 			ID: "vscode-selected", Title: l.T("item.vscodeSelected.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "code"},
 			Keywords: keywords(l.T("keywords.vscode")),
-			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: quoteArgs(sel...), Dir: dir})},
+			Actions:  []plugin.Action{openAction("open", l.T("action.open"), code, plugin.OpenOptions{Args: cmdline.Join(sel...), Dir: dir})},
 		})
 	}
 	items = append(items, p.fileItems(l, c, subtitle)...)

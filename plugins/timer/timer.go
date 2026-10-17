@@ -26,6 +26,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // ID is the plugin's manifest ID.
@@ -102,13 +103,14 @@ type Plugin struct {
 	done  chan struct{} // closed by Close
 	wake  chan struct{} // the scheduler looks again
 
+	loops bg.SecondLoops // the refresh loops
+
 	// For tests.
-	running atomic.Int32 // refresh loops
-	checks  atomic.Int64 // scheduler checks for due timers
-	idle    atomic.Bool  // the scheduler waits
-	wakes   atomic.Int64 // wake-ups asked for
-	seen    atomic.Int64 // wake-ups the scheduler had seen when it last checked
-	fired   atomic.Int64 // notifications sent
+	checks atomic.Int64 // scheduler checks for due timers
+	idle   atomic.Bool  // the scheduler waits
+	wakes  atomic.Int64 // wake-ups asked for
+	seen   atomic.Int64 // wake-ups the scheduler had seen when it last checked
+	fired  atomic.Int64 // notifications sent
 
 	mu sync.Mutex // the timers
 	st state
@@ -145,7 +147,9 @@ func NewWithOptions(o Options) *Plugin {
 	if o.MaxWait <= 0 {
 		o.MaxWait = 5 * time.Second
 	}
-	return &Plugin{opts: o, done: make(chan struct{}), wake: make(chan struct{}, 1), views: map[string]*viewLoop{}}
+	p := &Plugin{opts: o, done: make(chan struct{}), wake: make(chan struct{}, 1), views: map[string]*viewLoop{}}
+	p.loops.After, p.loops.WG = o.After, &p.wg
+	return p
 }
 
 // Manifest implements plugin.Plugin.
@@ -194,6 +198,7 @@ func (p *Plugin) Locales() fs.FS {
 // scheduler.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.h = h
+	p.loops.Host = h
 	p.mu.Lock()
 	p.load()
 	p.mu.Unlock()

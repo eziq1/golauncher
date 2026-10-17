@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -59,6 +60,9 @@ type Options struct {
 	// Open opens a file or folder in its default app (used by the "new" and
 	// "open-folder" commands); nil means shell.Open.
 	Open func(target string, opts plugin.OpenOptions) error
+	// Sync scans the directories in Init instead of in the background, so
+	// the first search already sees every script (glctl's fake environment).
+	Sync bool
 }
 
 // Plugin is the Script Commands plugin.
@@ -81,6 +85,12 @@ type Plugin struct {
 	runSeq  int
 	// lastTask is the background task of each fullOutput script's last run.
 	lastTask map[string]string
+
+	// readDir reads a scripts directory (os.ReadDir; tests slow it down).
+	readDir func(string) ([]os.DirEntry, error)
+	// loaded is set once the first scan is done; missed when a root search
+	// came in before that (it saw only part of the scripts).
+	loaded, missed atomic.Bool
 }
 
 var (
@@ -104,7 +114,7 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Open == nil {
 		o.Open = shell.Open
 	}
-	return &Plugin{opts: o, runs: map[string]*run{}, lastTask: map[string]string{}}
+	return &Plugin{opts: o, runs: map[string]*run{}, lastTask: map[string]string{}, readDir: os.ReadDir}
 }
 
 // Manifest implements plugin.Plugin.
@@ -144,18 +154,18 @@ func (p *Plugin) Locales() fs.FS {
 	return sub
 }
 
-// Init implements plugin.Plugin. It scans the script directories, creating
-// the default one if needed.
+// Init implements plugin.Plugin. It starts the first scan of the script
+// directories (creating the default one if needed) in the background: a slow
+// or disconnected network directory must not hold up the launcher's start
+// (with Options.Sync the scan runs here).
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.h = h
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	if dirs := p.directories(); len(dirs) > 0 && slices.Contains(p.opts.Directories, DefaultDirectory) &&
-		dirs[0] == p.expand(DefaultDirectory) {
-		if err := os.MkdirAll(dirs[0], 0o755); err != nil {
-			h.Logger().Warn("scripts: creating the scripts directory", "dir", dirs[0], "err", err)
-		}
+	if p.opts.Sync {
+		p.initialScan()
+	} else {
+		p.spawn(p.initialScan)
 	}
-	p.rescan(false)
 	rescan := func() { p.spawn(func() { p.rescan(true) }) }
 	p.unsubs = append(p.unsubs,
 		h.Events().Subscribe(plugin.EventWindowShown, rescan),
@@ -259,11 +269,11 @@ func candidate(name string) bool {
 
 // signature summarizes the script files of dirs: names, sizes and
 // modification times. It changes when a script is added, removed or edited.
-func signature(dirs []string) uint64 {
+func (p *Plugin) signature(dirs []string) uint64 {
 	hash := fnv.New64a()
 	for _, d := range dirs {
 		fmt.Fprintf(hash, "%s\x00", d)
-		entries, err := os.ReadDir(d)
+		entries, err := p.readDir(d)
 		if err != nil {
 			fmt.Fprintf(hash, "!%v\x00", errors.Is(err, fs.ErrNotExist))
 			continue
@@ -282,13 +292,29 @@ func signature(dirs []string) uint64 {
 	return hash.Sum64()
 }
 
+// initialScan creates the default directory if needed and scans the
+// scripts for the first time. A root search made meanwhile is asked for again.
+func (p *Plugin) initialScan() {
+	if dirs := p.directories(); len(dirs) > 0 && slices.Contains(p.opts.Directories, DefaultDirectory) &&
+		dirs[0] == p.expand(DefaultDirectory) {
+		if err := os.MkdirAll(dirs[0], 0o755); err != nil {
+			p.h.Logger().Warn("scripts: creating the scripts directory", "dir", dirs[0], "err", err)
+		}
+	}
+	p.rescan(false)
+	p.loaded.Store(true)
+	if p.missed.Swap(false) {
+		p.h.Invalidate("")
+	}
+}
+
 // rescan re-reads the scripts when the directories changed. With notify, a
 // change is reported to the host with Invalidate.
 func (p *Plugin) rescan(notify bool) {
 	p.scanMu.Lock()
 	defer p.scanMu.Unlock()
 	dirs := p.directories()
-	stamp := signature(dirs)
+	stamp := p.signature(dirs)
 	p.mu.Lock()
 	same := stamp == p.stamp && p.scripts != nil
 	p.mu.Unlock()
@@ -308,7 +334,7 @@ func (p *Plugin) rescan(notify bool) {
 func (p *Plugin) scan(dirs []string) []Script {
 	scripts := []Script{}
 	for _, d := range dirs {
-		entries, err := os.ReadDir(d)
+		entries, err := p.readDir(d)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				p.h.Logger().Warn("scripts: reading a directory", "dir", d, "err", err)
@@ -355,6 +381,9 @@ func (p *Plugin) Scripts() []Script {
 func (p *Plugin) RootItems(_ context.Context, q plugin.Query) ([]plugin.Item, error) {
 	if strings.TrimSpace(q.Text) == "" {
 		return nil, nil
+	}
+	if !p.loaded.Load() {
+		p.missed.Store(true) // the first scan is still running
 	}
 	p.mu.Lock()
 	scripts := p.scripts

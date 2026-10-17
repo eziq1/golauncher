@@ -131,3 +131,30 @@ Engine 遇到 `Init` 错误或 panic 后直接跳过该插件；`Engine.Close` �
 - **4、5**：属实（`plugins/files/ops.go` 的 `quoteArg`/`quoteArgs` 与 `cmdline.Quote`/`Join` 重复等）。
 
 修复时先为每个问题写复现测试，再改代码。顺序：生命周期 → 配置通知 → 初始化失败清理 → 脚本后台扫描 → 去重 → 拆大文件。
+
+## 9. 修复记录：3.2 与 5（R88 第二批）
+
+### 9.1 脚本插件启动扫描（3.2）
+
+- 复现测试 `plugins/scripts/startup_test.go`：注入一个阻塞的目录读取（`readDir`），修复前 `Init` 卡住超过 2 秒（测试失败），修复后立即返回。
+- 修复：`Init` 只建立状态，首次扫描（含创建默认目录）通过 `Host.Go` 在后台进行。扫描完成前的根搜索返回已知结果并记下 `missed`，扫描完成后若有这样的搜索就调用 `Invalidate("")`，与时钟插件的 `loaded`/`missed` 做法相同；没有搜索则不通知。
+- glctl 假环境和原有测试用新增的 `Options.Sync`，在 `Init` 里同步扫描，结果确定，golden 不变。
+- 未改：`Close` 仍等待后台扫描结束，挂起的网络目录仍可能拖住退出。关闭阶段的时间预算属于插件生命周期约定（第一批），这里没有处理。
+
+### 9.2 重复代码（5）
+
+- **参数转义**：删除 `plugins/files/ops.go` 的 `quoteArg`/`quoteArgs`，改用 `internal/winapi/cmdline.Quote`/`Join`。插件导入规则本来就允许 `internal/winapi/`，lint 不用改。`TestQuoteArg` 改测 `cmdline`，保留原用例，并补充空参数、末尾反斜杠、引号、制表符、`Join` 等情况。
+- **后台刷新与关闭**：新增 `pkg/plugin/bg`（插件导入规则允许 `pkg/`），只放不带插件状态的小组件：
+  - `Group`：经 `Host.Go` 启动后台任务，`Close` 后不再启动，`Wait` 等待结束；
+  - `Refresher`：同一时间只跑一次刷新，运行中再次请求只会在结束后补跑一次，`Group` 关闭后停止补跑；
+  - `Ready`：首个结果就绪的标记，可带时限等待（等待者）。
+  homebrew、winget、scoop（与 winget 完全相同的部分）的 `Close`/`spawnLocked`、`scheduleIndex`/`scheduleInstalled`/`scheduleRefresh`、`waitIndex`/`waitInstalled` 改用这些组件。命令规划、输出解析、过期判断（`staleAfter`）和刷新后的 `Invalidate` 条件仍由各插件自己负责，没有做通用包管理器框架。
+- **整秒刷新循环**：`bg.SecondLoops`（在下一个整秒之后 `TickSlack` 触发，`Host`、`After`、`WaitGroup` 可注入）和 `bg.UntilNextSecond` 替代 clock 与 timer 各自的 `loop`/`untilNextSecond`。两个插件的 `Options.After` 注入点不变，视图、根搜索漏拉计数等状态仍由各自维护。
+- 组件有单独的测试（`pkg/plugin/bg/bg_test.go`，含 `-race`）。各插件测试通过（只把读取内部计数的几处改成 `loops.Running()`、`listing.Running()`），`go test ./internal/cli` 的 golden 没有改动。
+
+仍有重复但这次没动的（结构相同，但牵涉插件自身的状态或类型，提取收益不大）：
+
+- clock 与 timer 的 `rootLoop`/`rootTick`/`viewPulled`/`ViewClosed`/`stopAll`（约 35 行）：漏拉计数和视图表，依赖各自的锁和视图类型；
+- homebrew 与 winget 的 `loadInstalledCache`/`saveInstalledCache`、`installedState` 的失败合并（约 40 行）：`Installed` 类型不同，需要泛型；
+- homebrew、winget、scoop 的 `maxResults`、`rootQuery`、`failure`、`truncate` 等小函数（每个几行）；
+- scripts、terminal、apps 各自的 `spawn`（与 `bg.Group` 相似，但和各自的关闭状态、运行表绑在一起）。

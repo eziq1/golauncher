@@ -169,10 +169,7 @@ func (p *Plugin) start(req opRequest) (plugin.Result, error) {
 	if err != nil {
 		return failure(t.T("toast.cannotRun"), err.Error()), nil
 	}
-	p.mu.Lock()
-	closed := p.closed
-	p.mu.Unlock()
-	if closed {
+	if p.work.Closed() {
 		return failure(t.T("toast.cannotRun"), t.T("error.closed")), nil
 	}
 	line := CommandLine(args)
@@ -191,12 +188,11 @@ func (p *Plugin) start(req opRequest) (plugin.Result, error) {
 // may have changed (and the index, after a source update).
 func (p *Plugin) opDone(kind string) {
 	p.mu.Lock()
-	closed := p.closed
 	if kind == opSourceUpdate {
 		clear(p.shows)
 	}
 	p.mu.Unlock()
-	if closed {
+	if p.work.Closed() {
 		return
 	}
 	if p.opts.Sync {

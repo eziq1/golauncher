@@ -2,7 +2,8 @@ package timer
 
 import (
 	"sync"
-	"time"
+
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // Live updates of what is shown (docs/timers.md §1, as in the world clock):
@@ -17,7 +18,7 @@ const (
 	maxMisses = 2
 	// tickSlack is waited past each whole second so that a timer firing a
 	// little early does not show the previous second again.
-	tickSlack = 10 * time.Millisecond
+	tickSlack = bg.TickSlack
 )
 
 type rootLoop struct {
@@ -139,30 +140,5 @@ func (p *Plugin) stopAll() {
 // loop runs tick on Host.Go just after every whole second until stop is
 // closed or tick returns false. p.lm must be held.
 func (p *Plugin) loop(stop <-chan struct{}, tick func() bool) {
-	p.wg.Add(1)
-	p.running.Add(1)
-	p.h.Go(func() {
-		defer p.wg.Done()
-		defer p.running.Add(-1)
-		for {
-			select {
-			case <-stop:
-				return
-			case <-p.opts.After(p.untilNextSecond()):
-			}
-			select {
-			case <-stop:
-				return
-			default:
-			}
-			if !tick() {
-				return
-			}
-		}
-	})
-}
-
-func (p *Plugin) untilNextSecond() time.Duration {
-	now := p.h.Now()
-	return now.Truncate(time.Second).Add(time.Second).Sub(now) + tickSlack
+	p.loops.Start(stop, tick)
 }

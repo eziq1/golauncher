@@ -26,6 +26,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 // ID is the plugin's manifest ID.
@@ -92,10 +93,10 @@ type Plugin struct {
 	// search came in before that (the host may have dropped it).
 	loaded, missed atomic.Bool
 
-	h       plugin.Host
-	unsub   func()
-	wg      sync.WaitGroup
-	running atomic.Int32 // refresh loops running, for tests
+	h     plugin.Host
+	unsub func()
+	wg    sync.WaitGroup
+	loops bg.SecondLoops // the refresh loops
 
 	mu     sync.Mutex
 	closed bool
@@ -130,7 +131,9 @@ func NewWithOptions(o Options) *Plugin {
 	if o.IdleAfter == nil {
 		o.IdleAfter = time.After
 	}
-	return &Plugin{opts: o, cache: sharedCache, index: sharedCache.get, views: map[string]*viewLoop{}, open: map[string]bool{}}
+	p := &Plugin{opts: o, cache: sharedCache, index: sharedCache.get, views: map[string]*viewLoop{}, open: map[string]bool{}}
+	p.loops.After, p.loops.WG = o.After, &p.wg
+	return p
 }
 
 // Manifest implements plugin.Plugin.
@@ -177,6 +180,7 @@ func (p *Plugin) Locales() fs.FS {
 // first use (load.go).
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.h = h
+	p.loops.Host = h
 	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.windowHidden)
 	shown := h.Events().Subscribe(plugin.EventWindowShown, p.windowShown)
 	p.unsub = func() { hidden(); shown() }
