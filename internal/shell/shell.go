@@ -115,6 +115,7 @@ type Shell struct {
 	// Main thread only.
 	panel       *mygo.Window
 	settingsWin *mygo.Window
+	hints       hints // the permission hints of this run (permission.go)
 	tray        *mygo.Tray
 	hotkey      string // the registered launcher hotkey, "" if none
 	hotkeySig   string // what the registered hotkeys were made from
@@ -289,6 +290,7 @@ func (s *Shell) ready(action string) {
 		Content:       mui.View(s.launcher.View),
 	})
 	hideCaptionColor(s.panel.NativeHandle()) // ready runs on the main thread
+	s.watchPermissions()
 	s.panel.OnClose(func(e *mygo.CloseEvent) {
 		if s.quitting {
 			return
@@ -448,6 +450,12 @@ func (s *Shell) present(sel *winselection.Pending, then func(), forSelection boo
 	if forSelection {
 		read = make(chan bool, 1)
 	}
+	// Nothing can be read without a permission (macOS): say so instead of
+	// "no selected text".
+	noPermission := sel.Err() != nil
+	if noPermission {
+		read = nil
+	}
 	if sel != nil {
 		if err := sel.CopyErr(); errors.Is(err, clip.ErrNotRestored) {
 			s.log.Warn("selection: clipboard not restored", "err", err)
@@ -466,6 +474,9 @@ func (s *Shell) present(sel *winselection.Pending, then func(), forSelection boo
 	s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
 	mygo.RunOnMain(func() {
 		s.launcher.Shown()
+		if noPermission {
+			s.permissionHint(sel.Err()) // after Shown's reset, which clears toasts
+		}
 		if read != nil {
 			// After Shown's reset, which clears toasts.
 			s.work.Do(func(context.Context) {

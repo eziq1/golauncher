@@ -12,6 +12,7 @@ package clip
 
 import (
 	"bytes"
+	"errors"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -206,8 +207,32 @@ func TestForegroundWindow(t *testing.T) {
 	}
 }
 
-func TestCopySelectionUnsupported(t *testing.T) {
-	if _, err := CopySelection(1, CopyOptions{}); err == nil {
-		t.Error("CopySelection succeeded")
+// TestCopySelectionNotFrontmost: launchd (pid 1) is never frontmost, so
+// nothing is posted.
+func TestCopySelectionNotFrontmost(t *testing.T) {
+	_, err := CopySelection(1, CopyOptions{})
+	if !errors.Is(err, ErrNotTrusted) && !errors.Is(err, ErrNotForeground) {
+		t.Errorf("CopySelection = %v", err)
+	}
+}
+
+// TestCopySelectionFrontmost posts ⌘C to the frontmost app (the terminal
+// running the test, or whatever is in front) and checks that the
+// pasteboard is put back. It posts a real keystroke and needs the
+// Accessibility permission: set GOLAUNCHER_COPY_TESTS=1.
+func TestCopySelectionFrontmost(t *testing.T) {
+	if os.Getenv("GOLAUNCHER_COPY_TESTS") != "1" {
+		t.Skip("posts ⌘C to the frontmost app; set GOLAUNCHER_COPY_TESTS=1")
+	}
+	if !Trusted() {
+		t.Skip("no Accessibility permission")
+	}
+	before, _ := Read()
+	res, err := CopySelection(ForegroundWindow(), CopyOptions{})
+	t.Logf("copied %d chars, restored %v, err %v (save %v wait %v restore %v)",
+		len(res.Text), res.Restored, err, res.Save, res.Wait, res.Restore)
+	after, _ := Read()
+	if before.Text != after.Text || len(before.Files) != len(after.Files) {
+		t.Errorf("pasteboard not restored: %q -> %q", before.Text, after.Text)
 	}
 }

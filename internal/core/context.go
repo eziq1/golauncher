@@ -3,6 +3,7 @@ package core
 import (
 	"cmp"
 	"context"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -19,8 +20,15 @@ import (
 // result for this show only (never on disk) and refreshes the root search
 // when it arrives after the root was first pulled.
 
-// contextBudget bounds a context detection.
-var contextBudget = 300 * time.Millisecond
+// contextBudget bounds a context detection. On macOS Finder is asked with
+// AppleScript (an osascript process and an Apple Event), which takes longer
+// than Windows' COM calls; the result arrives in the background either way.
+var contextBudget = func() time.Duration {
+	if runtime.GOOS == "darwin" {
+		return time.Second
+	}
+	return 300 * time.Millisecond
+}()
 
 // contextBonus lifts context items a little in the ranked root search.
 const contextBonus = 0.1

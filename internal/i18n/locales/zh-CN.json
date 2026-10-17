@@ -359,6 +359,10 @@
   "ui.selection.chip": { "other": "已选中 {{.Count}} 字" },
   "toast.noSelection": "没有读取到选中的文字",
   "toast.clipboardNotRestored": "剪贴板未能还原",
+  "toast.permission.accessibility": "golauncher 需要辅助功能权限",
+  "toast.permission.accessibility.message": "要读取选中的文本，请在 系统设置 › 隐私与安全性 › 辅助功能 中允许 golauncher（或运行它的终端），然后重新打开启动器。",
+  "toast.permission.automation": "golauncher 无法控制访达",
+  "toast.permission.automation.message": "要针对访达中的文件夹操作，请在 系统设置 › 隐私与安全性 › 自动化 中允许 golauncher（或运行它的终端）控制访达。",
 
   "tasks.plugin.name": "后台任务",
   "tasks.plugin.description": "显示 golauncher 及其插件的后台任务和输出，可以停止或重新运行。",

@@ -359,6 +359,10 @@
   "ui.selection.chip": { "one": "{{.Count}} character selected", "other": "{{.Count}} characters selected" },
   "toast.noSelection": "No selected text was read",
   "toast.clipboardNotRestored": "The clipboard could not be restored",
+  "toast.permission.accessibility": "golauncher needs Accessibility permission",
+  "toast.permission.accessibility.message": "To read the selected text, allow golauncher (or the terminal it runs in) in System Settings › Privacy & Security › Accessibility, then open the launcher again.",
+  "toast.permission.automation": "golauncher may not control Finder",
+  "toast.permission.automation.message": "To act on Finder's folder, allow golauncher (or the terminal it runs in) to control Finder in System Settings › Privacy & Security › Automation.",
 
   "tasks.plugin.name": "Background Tasks",
   "tasks.plugin.description": "Shows the background tasks of golauncher and its plugins with their output, and lets you stop or rerun them.",

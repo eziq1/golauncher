@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -48,11 +49,16 @@ type Options struct {
 	// its Code.exe when found). It returns "" when the program is missing.
 	// The default looks at PATH and the app execution aliases.
 	Which func(name string) string
+	// Mac offers macOS's programs (Terminal) instead of Windows' (Windows
+	// Terminal, PowerShell, Command Prompt, running as administrator). New
+	// sets it on macOS; the fake environment keeps Windows' everywhere.
+	Mac bool
 }
 
 // Plugin is the files plugin.
 type Plugin struct {
 	which func(string) string
+	mac   bool // Options.Mac
 	h     plugin.Host
 	wg    sync.WaitGroup // background work (Host.Go)
 
@@ -68,7 +74,7 @@ var (
 )
 
 // New returns the plugin for this computer.
-func New() *Plugin { return NewWithOptions(Options{}) }
+func New() *Plugin { return NewWithOptions(Options{Mac: runtime.GOOS == "darwin"}) }
 
 // NewWithOptions returns the plugin configured by o.
 func NewWithOptions(o Options) *Plugin {
@@ -76,7 +82,7 @@ func NewWithOptions(o Options) *Plugin {
 	if which == nil {
 		which = systemWhich
 	}
-	return &Plugin{which: which, found: map[string]string{}}
+	return &Plugin{which: which, mac: o.Mac, found: map[string]string{}}
 }
 
 // Manifest implements plugin.Plugin.
@@ -235,11 +241,13 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 			Actions:  []plugin.Action{openAction("open", l.T("action.open"), term.target, term.opts), copyPath},
 		})
 	}
-	items = append(items, plugin.Item{
-		ID: "cmd", Title: l.T("item.cmd.title"), Subtitle: dir, Icon: plugin.Icon{Name: "terminal"},
-		Keywords: keywords(l.T("keywords.cmd")),
-		Actions:  []plugin.Action{openAction("open", l.T("action.open"), "cmd.exe", plugin.OpenOptions{Dir: dir}), copyPath},
-	})
+	if !p.mac {
+		items = append(items, plugin.Item{
+			ID: "cmd", Title: l.T("item.cmd.title"), Subtitle: dir, Icon: plugin.Icon{Name: "terminal"},
+			Keywords: keywords(l.T("keywords.cmd")),
+			Actions:  []plugin.Action{openAction("open", l.T("action.open"), "cmd.exe", plugin.OpenOptions{Dir: dir}), copyPath},
+		})
+	}
 	if code := p.program("code"); code != "" {
 		items = append(items, plugin.Item{
 			ID: "vscode", Title: l.T("item.vscode.title"), Subtitle: dir, Icon: plugin.Icon{Name: "code"},
@@ -289,6 +297,14 @@ type terminalLaunch struct {
 // dir. An elevated process does not keep the working directory, so as
 // administrator PowerShell changes to dir itself.
 func (p *Plugin) terminal(l plugin.Localizer, dir string, admin bool) terminalLaunch {
+	if p.mac {
+		// Terminal opens a window in the folder it is given; there is no
+		// administrator terminal.
+		if admin {
+			return terminalLaunch{}
+		}
+		return terminalLaunch{title: l.T("item.terminal.title"), target: macTerminal, opts: plugin.OpenOptions{Args: quoteArg(dir)}}
+	}
 	verb := ""
 	title := l.T("item.terminal.title")
 	if admin {
@@ -325,7 +341,7 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 		ID: "copy-selected", Title: l.N("item.copySelected.title", n), Subtitle: subtitle, Icon: plugin.Icon{Name: "clipboard"},
 		Keywords: keywords(l.T("keywords.copyPath")),
 		Actions: []plugin.Action{
-			{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: strings.Join(sel, "\r\n")}},
+			{ID: "copy", Title: l.T("action.copy"), Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: strings.Join(sel, p.newline())}},
 			{ID: "copy-files", Title: l.T("action.copyFiles"), Shortcut: "Ctrl+Alt+C",
 				Do: plugin.ActionDo{Kind: plugin.ActionCopyFiles, Payload: plugin.MustPayload(sel)}},
 		},
@@ -349,7 +365,7 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 				Keywords: keywords(l.T("keywords.sha256")),
 				Actions:  []plugin.Action{callback("hash", l.T("action.copy"), cbSHA256, payload{Paths: sel})},
 			})
-			if runnable(sel[0]) {
+			if runnable(sel[0]) && !p.mac {
 				items = append(items, plugin.Item{
 					ID: "run-admin", Title: l.T("item.runAdmin.title"), Subtitle: subtitle, Icon: plugin.Icon{Name: "shield"},
 					Keywords: keywords(l.T("keywords.admin")),
@@ -361,6 +377,9 @@ func (p *Plugin) selectionItems(l plugin.Localizer, c plugin.Context) []plugin.I
 	}
 	return items
 }
+
+// macTerminal is macOS's Terminal.
+const macTerminal = "/System/Applications/Utilities/Terminal.app"
 
 // runnable reports whether path is a program that can run as administrator.
 func runnable(path string) bool {
@@ -477,4 +496,12 @@ func argument(a plugin.ActionDo, name string) string {
 		return ""
 	}
 	return strings.TrimSpace(s)
+}
+
+// newline separates the copied paths of several files.
+func (p *Plugin) newline() string {
+	if p.mac {
+		return "\n"
+	}
+	return "\r\n"
 }

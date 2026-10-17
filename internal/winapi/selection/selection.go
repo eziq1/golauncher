@@ -107,7 +107,8 @@ type probe struct {
 	Password bool
 	// TextPattern: the focused element supports the TextPattern.
 	TextPattern bool
-	// Class is the window class of the top-level window.
+	// Class is the window class of the top-level window (on macOS, the
+	// app's bundle identifier).
 	Class string
 }
 
@@ -122,8 +123,10 @@ var neverCopyApps = []string{
 	"EXCEL.EXE",
 }
 
-// neverCopyClasses are console window classes, never sent a Ctrl+C.
-var neverCopyClasses = []string{"ConsoleWindowClass", "CASCADIA_HOSTING_WINDOW_CLASS", "PseudoConsoleWindow"}
+// neverCopyClasses are console window classes, never sent a Ctrl+C, and on
+// macOS (where the class is the app's bundle identifier) Excel, for the
+// reason above.
+var neverCopyClasses = []string{"ConsoleWindowClass", "CASCADIA_HOSTING_WINDOW_CLASS", "PseudoConsoleWindow", "com.microsoft.Excel"}
 
 // lineCopyApps copy the whole current line on Ctrl+C when nothing is
 // selected, so the clipboard method would take that line for the selection.
@@ -132,6 +135,24 @@ var lineCopyApps = []string{
 	"Code.exe", "Code - Insiders.exe", "Cursor.exe", "idea64.exe", "pycharm64.exe",
 	"goland64.exe", "webstorm64.exe", "rider64.exe", "clion64.exe", "devenv.exe",
 	"sublime_text.exe", "notepad++.exe",
+}
+
+// lineCopyBundles are the macOS editors of lineCopyApps, by bundle
+// identifier (VS Code's executable is "Electron"); an entry ending in "."
+// is a prefix.
+var lineCopyBundles = []string{
+	"com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.todesktop.230313mzl4w4u92", // Cursor
+	"com.sublimetext.3", "com.sublimetext.4", "com.jetbrains.", "com.google.android.studio",
+}
+
+// lineCopyBundle reports whether bundle is one of lineCopyBundles.
+func lineCopyBundle(bundle string) bool {
+	return bundle != "" && slices.ContainsFunc(lineCopyBundles, func(b string) bool {
+		if strings.HasSuffix(b, ".") {
+			return strings.HasPrefix(bundle, b)
+		}
+		return bundle == b
+	})
 }
 
 // baseName returns the file name of an executable name or path, for
@@ -182,7 +203,7 @@ func decide(p probe, o Options) (method, string) {
 		return methodNone, "never-copy"
 	case p.Elevated:
 		return methodNone, "elevated"
-	case listed(p.App, lineCopyApps):
+	case listed(p.App, lineCopyApps) || lineCopyBundle(p.Class):
 		return methodNone, "line-copy-editor"
 	}
 	return methodCopy, "fallback"
@@ -275,6 +296,9 @@ var (
 	focusProbe = func() (focusInfo, error) { return focusInfo{}, errors.ErrUnsupported }
 	// copySelection runs the clipboard method.
 	copySelection = clip.CopySelection
+	// permission reports why other apps cannot be read at all (macOS: the
+	// Accessibility permission is missing), or nil.
+	permission = func() error { return nil }
 	// ownPID is this process.
 	ownPID = os.Getpid()
 	// uia is the UI Automation thread.
@@ -292,6 +316,8 @@ type Pending struct {
 	method method
 	app    plugin.AppInfo
 	elem   element // methodUIA only
+
+	err error // permission() of Begin
 
 	mu      sync.Mutex
 	copied  bool  // Copy ran
@@ -325,6 +351,10 @@ func Begin(hwnd uintptr, o Options) *Pending {
 	pr := probe{App: p.app.Name, Own: w.PID == ownPID, Elevated: w.Elevated, Class: w.Class}
 	if m, reason := decide(pr, o); pr.Own || listed(pr.App, o.ExcludeApps) {
 		p.log.Debug("selection skipped", "reason", reason, "method", m, "app", pr.App)
+		return p
+	}
+	if p.err = permission(); p.err != nil {
+		p.log.Debug("selection skipped", "reason", "no-permission", "app", pr.App)
 		return p
 	}
 	fi, ok := probeFocus(FocusBudget)
@@ -430,6 +460,16 @@ func (p *Pending) Copy() {
 	p.ok = true
 	p.log.Debug("selection captured", "source", methodCopy, "app", p.app.Name, "chars", utf8.RuneCountInString(text),
 		"truncated", p.sel.Truncated, "restored", r.Restored, "save", r.Save, "wait", r.Wait, "restore", r.Restore, "took", took)
+}
+
+// Err reports why Begin could not read other apps at all (on macOS,
+// ax.ErrNotTrusted: the Accessibility permission is missing), so that the
+// user can be told; nil otherwise. It may be called on a nil *Pending.
+func (p *Pending) Err() error {
+	if p == nil {
+		return nil
+	}
+	return p.err
 }
 
 // CopyErr returns the error of Copy, as returned by clip.CopySelection: nil

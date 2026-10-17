@@ -23,6 +23,11 @@ var ErrBusy = errors.New("clip: clipboard is busy")
 // (or no longer) the foreground window.
 var ErrNotForeground = errors.New("clip: target window did not become the foreground window")
 
+// ErrNotTrusted is returned on macOS by PasteTo and CopySelection when
+// golauncher is not allowed to send keystrokes (System Settings › Privacy
+// & Security › Accessibility).
+var ErrNotTrusted = errors.New("clip: golauncher needs Accessibility permission to send keystrokes (System Settings › Privacy & Security › Accessibility)")
+
 // ReadOptions selects what ReadWith fetches.
 type ReadOptions struct {
 	// Images requests an image when the clipboard holds neither text nor

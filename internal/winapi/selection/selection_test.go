@@ -193,16 +193,18 @@ type fakeEnv struct {
 	copies   atomic.Int32
 	copyRes  clip.CopyResult
 	copyErr  error
+	permErr  error // permission()
 }
 
 func (f *fakeEnv) install(t *testing.T) {
 	t.Helper()
-	oldW, oldP, oldF, oldC, oldOwn, oldUIA := windowFacts, processFacts, focusProbe, copySelection, ownPID, uia
+	oldW, oldP, oldF, oldC, oldOwn, oldUIA, oldPerm := windowFacts, processFacts, focusProbe, copySelection, ownPID, uia, permission
 	w := &worker{idle: 50 * time.Millisecond}
 	t.Cleanup(func() {
 		<-w.do(func() {}) // abandoned probes finish before the globals change back
-		windowFacts, processFacts, focusProbe, copySelection, ownPID, uia = oldW, oldP, oldF, oldC, oldOwn, oldUIA
+		windowFacts, processFacts, focusProbe, copySelection, ownPID, uia, permission = oldW, oldP, oldF, oldC, oldOwn, oldUIA, oldPerm
 	})
+	permission = func() error { return f.permErr }
 	ownPID = testPID
 	uia = w
 	windowFacts = func(uintptr) windowInfo { return f.window }
@@ -557,4 +559,49 @@ func waitFor(t *testing.T, cond func() bool) {
 		}
 	}
 	t.Fatal("condition not met in time")
+}
+
+// Without permission to read other apps (macOS Accessibility) nothing is
+// probed or copied, and Err says why.
+func TestNoPermission(t *testing.T) {
+	f := newEnv("chat.exe")
+	f.permErr = errors.New("no Accessibility")
+	f.install(t)
+	p := Begin(1, Options{Clipboard: true})
+	if p.NeedsCopy() || !errors.Is(p.Err(), f.permErr) {
+		t.Fatalf("method %s, err %v", p.Method(), p.Err())
+	}
+	if _, ok := p.Read(t.Context()); ok {
+		t.Error("read without permission")
+	}
+	if (*Pending)(nil).Err() != nil {
+		t.Error("nil Pending has an error")
+	}
+	// An excluded or own app is skipped before permissions matter.
+	f.apps[targetPID] = "KeePass.exe"
+	if p := Begin(1, Options{ExcludeApps: []string{"KeePass.exe"}}); p.Err() != nil {
+		t.Errorf("excluded app: %v", p.Err())
+	}
+}
+
+// On macOS the window class is the bundle identifier: VS Code (whose
+// executable is "Electron") copies a line, Excel is never copied from.
+func TestMacBundles(t *testing.T) {
+	o := Options{Clipboard: true}
+	for _, tt := range []struct {
+		bundle string
+		want   method
+		reason string
+	}{
+		{"com.microsoft.VSCode", methodNone, "line-copy-editor"},
+		{"com.jetbrains.goland", methodNone, "line-copy-editor"},
+		{"com.jetbrainsx", methodCopy, "fallback"},
+		{"com.microsoft.Excel", methodNone, "never-copy"},
+		{"com.apple.Safari", methodCopy, "fallback"},
+	} {
+		m, reason := decide(probe{App: "Electron", Element: true, Class: tt.bundle}, o)
+		if m != tt.want || reason != tt.reason {
+			t.Errorf("%s: %v %s", tt.bundle, m, reason)
+		}
+	}
 }

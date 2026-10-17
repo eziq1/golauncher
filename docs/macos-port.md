@@ -370,6 +370,10 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 | 文件搜索 | `winapi/everything` 的 darwin 后端用 `mdfind -0 [-onlyin]`：把 Everything 风格的查询（多词、引号、`!`、`|`、`*?`、`ext:`、`file:`/`folder:`、路径词）转成 Spotlight 查询，结果再按完整查询在 Go 里过滤；取消即结束 `mdfind`；系统目录、缓存、app bundle 内部排在后面。插件在 macOS 上显示 "File Search (Spotlight)"、"在访达中显示"，无结果时提示 `mdutil -s /` | 查询构造、过滤、排序、输出解析有单元测试；只读的真机 `mdfind` 测试 |
 | 脚本命令 | Unix 规则：shebang 的绝对路径存在就直接用，`#!/usr/bin/env prog` 在 PATH 和 Homebrew 等目录里找；按扩展名默认 bash/zsh/python3/node/ruby/swift/osascript/pwsh，额外扫描 `.zsh .rb .swift .applescript`；默认目录 `~/Library/Application Support/golauncher/scripts` | `TestInterpreterUnix` |
 | 平台文案 | `i18n` 支持平台变体 key `id@darwin`（用户语言的通用译文优先于未翻译的变体；`glctl i18n check` 认得变体）；先改了 8 条核心文案（钥匙串、跟随 macOS 深浅色、关于等）。只有真实的 shell 打开变体，glctl 的假环境在任何平台上都保持 Windows 文案 | `TestPlatformVariants` |
+| 环境感知 | `winapi/context` 的 darwin 实现：`Detect` 拿到按热键时记下的前台应用 pid（`clip.ForegroundWindow` 在面板显示之前取，面板不激活本应用，所以访达始终在前）。访达用 `osascript` 读前窗的 `target` 和 `selection`（POSIX 路径），没有窗口或桌面有焦点时取桌面，Kind 沿用 `ContextExplorer`/`ContextDesktop`，`files`、`everything` 等插件不用改；"最近使用"、AirDrop、无选中的搜索结果等没有文件夹的窗口只报应用；脚本 0.9 秒超时（darwin 上 `contextBudget` 相应放宽到 1 秒，结果本来就在后台到达）；-1743/-10004 映射为 `ErrNotAuthorized`。有辅助功能权限时还读焦点窗口的 `AXTitle`/`AXDocument`：访达拿不到自动化权限时仍能从 `AXDocument` 得到文件夹，终端、预览、文本编辑等报 `ContextPathInTitle`（文件夹 + `Extra["file"]`） | 输出解析、错误码、`Detect` 各分支用假实现测试；真机测试需 `GOLAUNCHER_FINDER_TESTS=1` |
+| 选中文本 | `winapi/selection` 的 darwin 后端，对应 UI Automation：`Begin` 先查辅助功能权限（没有就什么都不读，`Pending.Err()` 返回 `ax.ErrNotTrusted`），再在 50ms 内取系统焦点元素，读 `AXRole`/`AXSubrole`（`AXSecureTextField` 视为密码框，从不读）和是否有 `AXSelectedText`；`Read` 在后台读 `AXSelectedText`、`AXValue` 可写即"可编辑"。Electron/Chromium 首次没有焦点元素时，给应用设一次 `AXManualAccessibility` 再试。"读不到时改用复制"开着时，`clip.CopySelection` 的 darwin 版：保存粘贴板所有条目的所有类型（超过 16MB 或 50ms 则不发按键）→ 只带 ⌘ 标志发 ⌘C → 等 `changeCount` 变化并稳定 → 读文本（带 Concealed 等标记的内容不算选区）→ 若期间无人再写则恢复原内容，期间的变化对剪贴板历史隐藏。应用列表在 macOS 上用 bundle ID（`windowInfo.Class`）：VS Code（可执行文件叫 Electron）、Cursor、Sublime、JetBrains 视为"无选区时复制整行"的编辑器，Excel 从不复制 | 复制流程在 `pbAPI` 假实现上测试（所有平台）；`decide` 的 bundle 规则、`axKind`、无权限分支有单元测试；真机测试需 `GOLAUNCHER_AX_TESTS=1`（只读）和 `GOLAUNCHER_COPY_TESTS=1`（会发一次 ⌘C） |
+| 当前文件夹的动作 | `files` 插件在 Mac 上（`Options.Mac`，只有真实环境打开）用"在终端中打开"（`open -a Terminal <文件夹>`）代替 Windows Terminal/PowerShell/命令提示符，不提供"以管理员身份运行"，复制多个路径用 `\n` 分隔；VS Code 项在 PATH 上有 `code` 时出现 | `TestMacItems` |
+| 权限提示 | `internal/darwin/ax`（AXUIElement 的 purego 封装）。读选区遇到没有辅助功能权限、读访达遇到 -1743 时，启动器显示一次提示（每次运行每种一次），辅助功能还会调用 `AXIsProcessTrustedWithOptions(prompt)` 让系统弹出"打开系统设置"的对话框 | `TestPermissionHints` |
 | 时钟 | 顺带修了一个 Windows 上的 bug：Go 自带的 zoneinfo 在年末给出不是真实切换的边界，"下次切换"曾显示"1 月 1 日 → UTC+11"（偏移没变），现在跳过这种边界；golden 随之更新 | `TestNextChangeSlimZoneinfo` |
 | CI | Windows job 加 `GOOS=darwin` 的 build/vet；新增 `macos-latest` job：vet、test、构建、`glctl i18n check`、Windows 交叉编译 | — |
 
@@ -381,9 +385,9 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 
 ### 10.3 还没做
 
-- **环境感知**（Finder 当前文件夹/选中项、AX 窗口标题）：`winapi/context` 在 macOS 上仍恒为 false；选中文本（`winapi/selection`）、进程管理器（`winapi/process`）、网络工具（`winapi/network`）仍是 `ErrUnsupported` 桩。
-- **终端插件**的 macOS 版（Terminal/iTerm2/Warp）、`files` 插件的 macOS 打开方式（目前仍是 `wt.exe`、`Code.exe` 等）、**Homebrew 插件**；`scoop`、`winget`、`terminal`、`processes` 在 macOS 上照常注册，只是不可用（§5.2 建议的 `builtin_darwin.go` 分平台列表没做）。
-- **权限引导页**（辅助功能、自动化的状态与跳转）：只有 `clip.Trusted()` 可用于检测辅助功能权限，界面没做；没有权限时粘贴只会失败并报错，还没有退化成"已复制，请按 ⌘V"。
+- 进程管理器（`winapi/process`）、网络工具（`winapi/network`）仍是 `ErrUnsupported` 桩。环境感知只认访达和带 `AXDocument` 的窗口：桌面有焦点但访达还开着窗口时，没有辅助功能权限就当作前窗；其他文件管理器（ForkLift、Path Finder）、打开/存储对话框不识别。浏览器网页里的选区多数没有 `AXSelectedText`，要靠"读不到时改用复制"（默认关闭，和 Windows 一样）。
+- **终端插件**的 macOS 版（Terminal/iTerm2/Warp；`files` 插件目前只会开 Terminal.app）、**Homebrew 插件**；`scoop`、`winget`、`terminal`、`processes` 在 macOS 上照常注册，只是不可用（§5.2 建议的 `builtin_darwin.go` 分平台列表没做）。
+- **权限引导页**（辅助功能、自动化的状态与跳转）：目前只有启动器里的一次性提示；没有权限时粘贴只会失败并报错，还没有退化成"已复制，请按 ⌘V"。设置页"读不到时改用复制"等文案仍写 Ctrl+C、UI Automation（没有 `@darwin` 变体）；默认排除的应用列表仍是 Windows 的 `.exe` 名（密码框靠 `AXSecureTextField` 识别）。
 - 再次双击 `.app` 时的 `applicationShouldHandleReopen` → `--show`、菜单栏单色模板图标、Vibrancy 材质挑选。
 - 插件和设置页里其余约 45 条 Windows 措辞（资源管理器、回收站、以管理员身份运行、Win+V……）还没加 `@darwin` 变体；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。
 - 自安装、自动更新：macOS 上一律跳过（显示为 portable）；`.app` 打包、签名、公证、DMG、release 流水线（第三期）都没做。
@@ -397,5 +401,25 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 系统命令：锁屏（`SACLockScreenImmediate` 在 13–15 上是否可用，退回方案是否锁屏）；注销/重启/关机、清空废纸篓、切换深浅色首次触发的**自动化**授权弹窗；废纸篓计数在有/无**完全磁盘访问**时；音量、静音、关闭显示器；45 个系统设置面板抽查（尤其 `Privacy_*`）。
 - 钥匙串：Set/Get/Delete；签名身份变化后是否弹授权（本次在无界面的会话里写入被拒绝：`-25308 User interaction is not allowed`，属环境原因）。
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
+- 环境感知与选中文本：见下面 §10.5 的步骤。
 - 系统语言（本机返回 `zh-Hans-CN`、`en-CN`，解析为 zh-CN）、登录 shell PATH（从访达启动后脚本能否找到 Homebrew 的 python3/node）、`golauncher mcp` 在启动器未运行时能否把它拉起来。
+
+### 10.5 环境感知与选中文本的真机测试
+
+权限按"负责的进程"记录：从终端运行 `go run ./cmd/golauncher` 或 `dist/` 里的二进制时，是**终端应用**（Terminal、iTerm2、Ghostty……）需要权限，弹窗里显示的也是终端的名字；打包成 `.app` 后才是 golauncher 自己。授权后退出并重新启动 golauncher。
+
+1. 系统设置 › 隐私与安全性 › **辅助功能**：打开该终端（或 golauncher.app）的开关。读选中文本、发 ⌘C/⌘V、读窗口标题和文档都要它。
+2. 访达里打开一个文件夹（例如"下载"），选中一两个文件，按呼出键：第一次 macOS 会问"“终端”想要控制“访达”"，点"好"（如果超时没来得及点，关掉启动器再呼出一次）。之后在 系统设置 › 隐私与安全性 › **自动化** 里，该终端下面应有"访达"并已打开。预期：根列表顶部出现当前文件夹的分组（在终端中打开、新建文件夹、新建文本文件、复制文件夹路径、用聚焦在此文件夹中搜索；PATH 上有 `code` 时还有 VS Code），选中文件时还有复制路径、压缩为 ZIP 等条目；"在终端中打开"应在 Terminal 里打开该文件夹。
+3. 关掉所有访达窗口，点一下桌面，再呼出：预期是"桌面"的分组。打开"最近使用"或"隔空投送"窗口再呼出：预期没有文件夹分组，也没有报错。
+4. 在 自动化 里关掉"访达"再呼出：预期出现一次"golauncher 无法控制访达"的提示（有辅助功能权限时文件夹仍能从窗口的文档属性得到，只是没有选中项）。
+5. 在文本编辑、备忘录、Safari 地址栏或终端里选中一段文字，按呼出键：预期根列表顶部出现"选中的文字"预览行（应用名和字数）。在密码框里选中：预期什么都不读。
+6. 在辅助功能里关掉开关、重启 golauncher，再选中文字呼出：预期出现一次"golauncher 需要辅助功能权限"的提示，同时系统弹出去设置的对话框。
+7. 浏览器网页正文、Electron 应用（Slack、Obsidian、VS Code 的编辑器以外）读不到时：在 设置 › 通用 › 选中的文字 里打开"读不到时改用复制"，再选中文字呼出：预期能读到，而且原来的剪贴板内容不变（可先复制一段别的文字，呼出后在别处 ⌘V 验证）。VS Code 里不选中任何东西时不应复制整行。
+8. 打开日志（`~/Library/Caches/golauncher/logs/golauncher.log`，日志级别设为 debug）可以看到 `context detected kind=… took=…`、`selection begin method=… reason=…`，以及没有权限时的 `permission missing`。
+
+从 `dist/` 二进制和从 `.app` 运行的差别：
+
+- 二进制没有 bundle ID，TCC 把权限记在终端名下；在访达里双击二进制也是由"终端"打开它，同样记在终端名下。用 `open -a` 或 launchd 直接启动、没有终端时，记录按可执行文件路径和签名，而 Apple Silicon 上 Go 链接器给的是 ad-hoc 签名，**每次重新构建签名都变**，之前的授权会失效（列表里留下旧条目，要删掉再加）。
+- `.app` 若开启 Hardened Runtime 签名，必须带 `com.apple.security.automation.apple-events` entitlement，Info.plist 里要有 `NSAppleEventsUsageDescription`，否则读访达会直接失败（-1743 或不弹窗）；ad-hoc 签名的开发版不受此限制。
+- 系统设置里的辅助功能开关打开后，个别 macOS 版本要重启进程才会生效（`AXIsProcessTrusted` 仍返回 false 时重启 golauncher 或终端）。
 
