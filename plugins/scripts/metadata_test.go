@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -13,11 +14,19 @@ import (
 
 func parse(t *testing.T, name, src string) (Script, bool) {
 	t.Helper()
-	s, ok, err := ParseScript(filepath.Join(`C:\scripts\tools`, name), strings.NewReader(src))
+	s, ok, err := ParseScript(filepath.Join(testDir(`C:\scripts\tools`, "/scripts/tools"), name), strings.NewReader(src))
 	if err != nil {
 		t.Fatalf("%s: %v", name, err)
 	}
 	return s, ok
+}
+
+// testDir returns the Windows path win on Windows, else the Unix path unix.
+func testDir(win, unix string) string {
+	if runtime.GOOS == "windows" {
+		return win
+	}
+	return unix
 }
 
 func TestParseCommentStyles(t *testing.T) {
@@ -141,7 +150,8 @@ func TestParseEdgeCases(t *testing.T) {
 }
 
 func TestIcon(t *testing.T) {
-	dir := `C:\s`
+	dir := testDir(`C:\s`, "/s")
+	abs := testDir(`D:\icons\x.SVG`, "/icons/x.SVG")
 	tests := []struct {
 		icon string
 		want plugin.Icon
@@ -150,7 +160,7 @@ func TestIcon(t *testing.T) {
 		{"", plugin.Icon{Name: "command"}},
 		{"https://example.com/a.png", plugin.Icon{Name: "command"}},
 		{"images/logo.png", plugin.Icon{Path: filepath.Join(dir, "images", "logo.png")}},
-		{`D:\icons\x.SVG`, plugin.Icon{Path: `D:\icons\x.SVG`}},
+		{abs, plugin.Icon{Path: abs}},
 		{"logo.jpg", plugin.Icon{Name: "command"}},
 	}
 	for _, tt := range tests {
@@ -200,7 +210,12 @@ func fakeSystem(programs map[string]string, files ...string) System {
 	}
 }
 
+// TestInterpreter checks the Windows rules (fakeSystem is not Unix); the
+// expected paths are joined the Windows way, so it runs on Windows only.
 func TestInterpreter(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows paths; see TestInterpreterUnix")
+	}
 	gitBash := `C:\Program Files\Git\bin\bash.exe`
 	all := map[string]string{
 		"pwsh": `C:\pwsh.exe`, "powershell": `C:\powershell.exe`, "python": `C:\python.exe`,
@@ -271,5 +286,46 @@ func TestOutputLastLine(t *testing.T) {
 	o.Write([]byte("\n  \n"))
 	if got := o.LastLine(); got != "partial" {
 		t.Errorf("LastLine after blank lines = %q", got)
+	}
+}
+
+func TestInterpreterUnix(t *testing.T) {
+	on := func(programs map[string]string, files ...string) System {
+		sys := fakeSystem(programs, files...)
+		sys.Unix = true
+		sys.Getenv = func(name string) string { return map[string]string{"HOME": "/Users/a"}[name] }
+		return sys
+	}
+	path := map[string]string{"bash": "/bin/bash", "python3": "/usr/bin/python3", "osascript": "/usr/bin/osascript", "zsh": "/bin/zsh"}
+	tests := []struct {
+		name    string
+		file    string
+		shebang []string
+		sys     System
+		program string
+		args    []string
+		missing string
+	}{
+		{name: "sh", file: "a.sh", sys: on(path), program: "/bin/bash"},
+		{name: "python", file: "a.py", sys: on(path), program: "/usr/bin/python3"},
+		{name: "applescript", file: "a.applescript", sys: on(path), program: "/usr/bin/osascript"},
+		{name: "node from Homebrew, not on PATH", file: "a.js", sys: on(path, "/opt/homebrew/bin/node"), program: "/opt/homebrew/bin/node"},
+		{name: "user's bin", file: "a.rb", sys: on(path, "/Users/a/.local/bin/ruby"), program: "/Users/a/.local/bin/ruby"},
+		{name: "no node", file: "a.js", sys: on(path), missing: "node"},
+		{name: "batch", file: "a.bat", sys: on(path), missing: ".bat"},
+		{name: "shebang path", file: "a.py", shebang: []string{"/bin/zsh", "-l"}, sys: on(path, "/bin/zsh"), program: "/bin/zsh", args: []string{"-l"}},
+		{name: "shebang path missing", file: "a.sh", shebang: []string{"/usr/local/bin/python3"}, sys: on(path), program: "/usr/bin/python3"},
+		{name: "shebang env", file: "a.sh", shebang: []string{"/usr/bin/env", "-S", "osascript", "-l", "JavaScript"}, sys: on(path),
+			program: "/usr/bin/osascript", args: []string{"-l", "JavaScript"}},
+		{name: "shebang pwsh", file: "a.sh", shebang: []string{"/usr/bin/env", "pwsh"}, sys: on(map[string]string{"pwsh": "/usr/local/bin/pwsh"}),
+			program: "/usr/local/bin/pwsh", args: []string{"-NoProfile", "-NonInteractive", "-File"}},
+		{name: "shebang missing", file: "a.sh", shebang: []string{"/usr/bin/env", "perl"}, sys: on(path), missing: "perl"},
+	}
+	for _, tt := range tests {
+		s := Script{Path: "/s/" + tt.file, Shebang: tt.shebang}
+		it := tt.sys.interpreter(&s)
+		if it.Program != tt.program || it.Missing != tt.missing || it.Batch || !slices.Equal(it.Args, tt.args) {
+			t.Errorf("%s: got %+v", tt.name, it)
+		}
 	}
 }

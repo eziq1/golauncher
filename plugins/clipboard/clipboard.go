@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -43,6 +44,7 @@ type Plugin struct {
 	unsub func()
 
 	recordMu sync.Mutex // serializes recording
+	mac      bool       // Options.Mac
 }
 
 var (
@@ -52,8 +54,18 @@ var (
 	_ plugin.LocaleProvider = (*Plugin)(nil)
 )
 
-// New returns the clipboard plugin.
-func New() *Plugin { return &Plugin{} }
+// Options configures the plugin.
+type Options struct {
+	// Mac selects the defaults of macOS (the ignored apps); New sets it on
+	// macOS. The fake environment keeps Windows' on every platform.
+	Mac bool
+}
+
+// New returns the clipboard plugin for this system.
+func New() *Plugin { return NewWithOptions(Options{Mac: runtime.GOOS == "darwin"}) }
+
+// NewWithOptions returns the clipboard plugin configured by o.
+func NewWithOptions(o Options) *Plugin { return &Plugin{mac: o.Mac} }
 
 // Manifest implements plugin.Plugin.
 func (p *Plugin) Manifest() plugin.Manifest {
@@ -97,7 +109,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				Description: "%pref.recordImages.description%", Default: plugin.MustPayload(true)},
 			{Name: "ignoreApps", Type: plugin.PrefStringList, Title: "%pref.ignoreApps.title%",
 				Description: "%pref.ignoreApps.description%",
-				Default:     plugin.MustPayload([]string{"KeePassXC.exe", "1Password.exe", "Bitwarden.exe", "KeePass.exe"})},
+				Default:     plugin.MustPayload(p.defaultIgnoreApps())},
 		},
 	}
 }

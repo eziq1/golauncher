@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -45,6 +46,10 @@ type Options struct {
 	Now func() time.Time
 	// Locale overrides the configured language when set.
 	Locale string
+	// Platform selects the platform variants of messages ("darwin": the
+	// "id@darwin" texts, see i18n.Manager.SetPlatform; "" for the generic
+	// ones, which the fake environment keeps).
+	Platform string
 	// System performs action side effects. Required.
 	System core.System
 	// Clipboard is the system clipboard. Required.
@@ -90,19 +95,29 @@ type Env struct {
 	engine    atomic.Pointer[core.Engine] // for the tasks' notifications
 }
 
-// DefaultConfigDir returns %APPDATA%\golauncher.
+// DefaultConfigDir returns %APPDATA%\golauncher (~/Library/Application
+// Support/golauncher on macOS).
 func DefaultConfigDir() (string, error) {
 	d, err := os.UserConfigDir()
 	return filepath.Join(d, "golauncher"), err
 }
 
-// DefaultDataDir returns %LOCALAPPDATA%\golauncher\data.
+// DefaultDataDir returns %LOCALAPPDATA%\golauncher\data. On macOS it is
+// ~/Library/Application Support/golauncher/data instead: ~/Library/Caches
+// may be purged by the system and is left out of backups, which the
+// clipboard history and the usage database must not be
+// (docs/macos-port.md §4.1).
 func DefaultDataDir() (string, error) {
+	if runtime.GOOS == "darwin" {
+		d, err := os.UserConfigDir()
+		return filepath.Join(d, "golauncher", "data"), err
+	}
 	d, err := os.UserCacheDir()
 	return filepath.Join(d, "golauncher", "data"), err
 }
 
-// DefaultCacheDir returns %LOCALAPPDATA%\golauncher.
+// DefaultCacheDir returns %LOCALAPPDATA%\golauncher (~/Library/Caches/golauncher
+// on macOS).
 func DefaultCacheDir() (string, error) {
 	d, err := os.UserCacheDir()
 	return filepath.Join(d, "golauncher"), err
@@ -194,6 +209,7 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 
 	cfg := env.Config.Get()
 	env.I18n = i18n.NewManager(i18n.Source, log)
+	env.I18n.SetPlatform(o.Platform)
 	if err := env.I18n.Register(i18n.CoreNamespace, i18n.CoreLocales()); err != nil {
 		db.Close()
 		return nil, err

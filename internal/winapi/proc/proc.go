@@ -3,6 +3,9 @@
 // whole process tree, with batch files quoted for cmd.exe, and with their
 // output decoded into clean lines (OEM code page, ANSI escapes, \r progress
 // bars). The background task manager and the Script Commands plugin use it.
+//
+// On Unix the program leads a process group of its own instead of a Job
+// Object, and Stop kills the group.
 package proc
 
 import (
@@ -130,8 +133,8 @@ func (p *Process) Stop() {
 }
 
 // MergeEnv returns base with the NAME=value entries of extra added; an
-// entry replaces a variable of the same name (case-insensitively, as on
-// Windows).
+// entry replaces a variable of the same name (case-insensitively on
+// Windows, case-sensitively elsewhere).
 func MergeEnv(base, extra []string) []string {
 	if len(extra) == 0 {
 		return base
@@ -139,12 +142,12 @@ func MergeEnv(base, extra []string) []string {
 	names := map[string]bool{}
 	for _, kv := range extra {
 		k, _, _ := strings.Cut(kv, "=")
-		names[strings.ToUpper(k)] = true
+		names[envKey(k)] = true
 	}
 	out := make([]string, 0, len(base)+len(extra))
 	for _, kv := range base {
 		k, _, _ := strings.Cut(kv, "=")
-		if k != "" && names[strings.ToUpper(k)] {
+		if k != "" && names[envKey(k)] {
 			continue
 		}
 		out = append(out, kv)
@@ -155,10 +158,11 @@ func MergeEnv(base, extra []string) []string {
 // Environ returns the launcher's environment with extra merged in.
 func Environ(extra ...string) []string { return MergeEnv(os.Environ(), extra) }
 
-// Getenv looks name up in env (NAME=value entries), case-insensitively.
+// Getenv looks name up in env (NAME=value entries), case-insensitively on
+// Windows.
 func Getenv(env []string, name string) string {
 	for _, kv := range env {
-		if k, v, ok := strings.Cut(kv, "="); ok && strings.EqualFold(k, name) {
+		if k, v, ok := strings.Cut(kv, "="); ok && envKey(k) == envKey(name) {
 			return v
 		}
 	}

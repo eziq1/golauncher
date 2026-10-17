@@ -1,6 +1,7 @@
-// Package clip reads and writes the Windows clipboard, watches it for
-// changes and pastes into other windows. It needs no GUI framework and may be
-// used from any goroutine. On other platforms every function returns
+// Package clip reads and writes the Windows clipboard and the macOS
+// pasteboard, watches it for changes and pastes into other windows (other
+// apps on macOS). It needs no GUI framework and may be used from any
+// goroutine. On other platforms every function returns
 // errors.ErrUnsupported.
 //
 // Parts of the Win32 clipboard handling (retrying OpenClipboard, the

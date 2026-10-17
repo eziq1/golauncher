@@ -1,6 +1,10 @@
 package clock
 
 import (
+	"archive/zip"
+	"io"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
 	"time"
@@ -216,5 +220,31 @@ func TestShowSecondsAndHour24(t *testing.T) {
 	e.setPref(prefHour24, false)
 	if got := e.root(t, "time beijing")[0].Title; got != "Beijing  6:00 PM" {
 		t.Errorf("title = %q", got)
+	}
+}
+
+// TestNextChangeSlimZoneinfo checks the next change with Go's own zone data,
+// which Windows uses: it bounds zones at year ends too, which are not changes.
+func TestNextChangeSlimZoneinfo(t *testing.T) {
+	zr, err := zip.OpenReader(filepath.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip"))
+	if err != nil {
+		t.Skip("no zoneinfo.zip:", err)
+	}
+	defer zr.Close()
+	r, err := zr.Open("Australia/Sydney")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syd, err := time.LoadLocationFromTZData("Australia/Sydney", data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := formatter{l: newEnv(t).h.I18n(), hour24: true}
+	if got := f.nextChange(time.Date(2026, 10, 14, 10, 0, 0, 0, syd)); got != "Sunday, April 4, 2027 03:00 → UTC+10" {
+		t.Errorf("next change in Sydney = %q", got)
 	}
 }

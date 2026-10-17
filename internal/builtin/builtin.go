@@ -109,7 +109,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		apps.NewWithSource(appsSrc, nil),
 		selection.New(),
 		fakeCalc(dir),
-		clipboard.New(),
+		clipboard.NewWithOptions(clipboard.Options{}),   // Windows' defaults on every platform
 		clock.NewWithOptions(clock.Options{Sync: true}), // deterministic loading
 		timer.New(),
 		files.NewWithOptions(files.Options{Which: fakeWhich}),

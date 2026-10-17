@@ -60,3 +60,51 @@ jobs:
 
       - name: glctl version
         run: ./bin/glctl.exe version
+
+      - name: Cross-compile for macOS
+        # Keeps Windows-only symbols (syscall.EscapeArg, ...) out of the
+        # shared code (docs/macos-port.md §6.2).
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+        run: |
+          go build ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet ./...
+
+  test-macos:
+    name: Test (macos)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -o bin/golauncher ./cmd/golauncher
+          go build -trimpath -o bin/glctl ./cmd/glctl
+
+      - name: glctl i18n check
+        run: ./bin/glctl i18n check
+
+      - name: Cross-compile for Windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go build ./...
+          go vet ./...

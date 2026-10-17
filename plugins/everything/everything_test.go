@@ -88,9 +88,18 @@ func sample() []everything.Result {
 
 func start(t *testing.T, b Backend) (*Plugin, *hostfake.Host) {
 	t.Helper()
+	return startWith(t, b, nil)
+}
+
+// startWith is start with set changing the plugin before Init.
+func startWith(t *testing.T, b Backend, set func(*Plugin)) (*Plugin, *hostfake.Host) {
+	t.Helper()
 	p := NewWithBackend(b)
 	p.home = `C:\Users\demo`
 	p.base = newRules(testEnv)
+	if set != nil {
+		set(p)
+	}
 	h, err := hostfake.New(p, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -599,6 +608,14 @@ func TestI18nKeys(t *testing.T) {
 		for _, m := range re.FindAllStringSubmatch(string(src), -1) {
 			used[m[1]] = true
 		}
+	}
+	// msg("k") uses k and, for Spotlight, its variant.
+	for _, m := range regexp.MustCompile(`msg\("([A-Za-z0-9_.\-]+)"\)`).FindAllStringSubmatch(string(src), -1) {
+		used[m[1]] = true
+		if !spotlightKeys[m[1]] {
+			t.Errorf("msg(%q) has no Spotlight variant", m[1])
+		}
+		used[m[1]+".spotlight"] = true
 	}
 	for k := range used {
 		if _, ok := catalog[k]; !ok {

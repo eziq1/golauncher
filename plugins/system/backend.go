@@ -2,6 +2,7 @@ package system
 
 import (
 	"errors"
+	"runtime"
 	"sync"
 
 	winsys "github.com/eziq1/golauncher/internal/winapi/system"
@@ -29,8 +30,21 @@ type System interface {
 	DisplayOff() error
 }
 
+// macSystem is implemented by a System that is a Mac: the plugin then
+// offers the macOS commands, System Settings panes and utilities instead of
+// the Windows ones.
+type macSystem interface{ MacOS() bool }
+
+// isMac reports whether sys is a Mac.
+func isMac(sys System) bool {
+	m, ok := sys.(macSystem)
+	return ok && m.MacOS()
+}
+
 // realSystem is this computer.
 type realSystem struct{}
+
+func (realSystem) MacOS() bool { return runtime.GOOS == "darwin" }
 
 func (realSystem) RecycleBin() (winsys.RecycleBin, error) { return winsys.QueryRecycleBin() }
 func (realSystem) DarkMode() (bool, error)                { return winsys.DarkMode() }
@@ -59,6 +73,8 @@ type Fake struct {
 	Hibernation bool
 	Build       int
 	Edition     string
+	// Mac makes it a Mac (MacOS); by default it is a Windows machine.
+	Mac bool
 	// Err, when set, is returned by every call that changes the machine.
 	Err error
 
@@ -75,7 +91,8 @@ func NewFake() *Fake {
 // DryRun returns a Fake that reads the state of this computer once and
 // records the changes instead of making them (glctl --real without --exec).
 func DryRun() *Fake {
-	f := &Fake{Hibernation: winsys.HibernateAvailable(), Build: winsys.OSBuild(), Edition: winsys.EditionID()}
+	f := &Fake{Hibernation: winsys.HibernateAvailable(), Build: winsys.OSBuild(), Edition: winsys.EditionID(),
+		Mac: runtime.GOOS == "darwin"}
 	f.Bin, _ = winsys.QueryRecycleBin()
 	f.Dark, _ = winsys.DarkMode()
 	return f
@@ -114,6 +131,7 @@ func (f *Fake) DarkMode() (bool, error) {
 	return f.Dark, nil
 }
 
+func (f *Fake) MacOS() bool              { return f.Mac }
 func (f *Fake) HibernateAvailable() bool { return f.Hibernation }
 func (f *Fake) OSBuild() int             { return f.Build }
 func (f *Fake) EditionID() string        { return f.Edition }

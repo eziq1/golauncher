@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"encoding/json/v2"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"unicode"
@@ -17,8 +19,21 @@ import (
 //go:embed settings.json
 var settingsJSON []byte
 
-// settingsPrefix starts the URI of every Windows Settings page.
-const settingsPrefix = "ms-settings:"
+// settingsMacJSON is the catalog of macOS System Settings panes, opened
+// with x-apple.systempreferences: URLs. The pane IDs are those of the
+// System Settings extensions of macOS 13 and later (checked on macOS 15);
+// the Privacy_* anchors are the older pane's, which still open the right
+// page.
+//
+//go:embed settings_macos.json
+var settingsMacJSON []byte
+
+// settingsPrefix starts the URI of every Windows Settings page, and
+// macSettingsPrefix that of every macOS System Settings pane.
+const (
+	settingsPrefix    = "ms-settings:"
+	macSettingsPrefix = "x-apple.systempreferences:"
+)
 
 // page is a Windows Settings page of the embedded catalog.
 type page struct {
@@ -31,13 +46,26 @@ type page struct {
 	Win string `json:"win,omitempty"`
 }
 
-// loadCatalog parses the embedded settings catalog.
-func loadCatalog() ([]page, error) {
+// loadCatalog parses the embedded settings catalog of Windows, or of macOS
+// when mac is set.
+func loadCatalog(mac bool) ([]page, error) {
+	data, name := settingsJSON, "settings.json"
+	if mac {
+		data, name = settingsMacJSON, "settings_macos.json"
+	}
 	var pages []page
-	if err := json.Unmarshal(settingsJSON, &pages); err != nil {
-		return nil, fmt.Errorf("system: settings.json: %w", err)
+	if err := json.Unmarshal(data, &pages); err != nil {
+		return nil, fmt.Errorf("system: %s: %w", name, err)
 	}
 	return pages, nil
+}
+
+// pageID is the part of a settings URI that names the page.
+func pageID(uri string) string {
+	if id, ok := strings.CutPrefix(uri, macSettingsPrefix); ok {
+		return id
+	}
+	return strings.TrimPrefix(uri, settingsPrefix)
 }
 
 // availableOn reports whether the page exists on Windows build build (0 when
@@ -96,8 +124,37 @@ func tools(l plugin.Localizer) []tool {
 	}
 }
 
+// macTools returns the macOS utilities with their titles in the current
+// locale. Keychain Access moved to CoreServices in macOS 15.
+func macTools(l plugin.Localizer) []tool {
+	const utilities = "/System/Applications/Utilities/"
+	keychain := "/System/Library/CoreServices/Applications/Keychain Access.app"
+	if _, err := os.Stat(keychain); err != nil {
+		keychain = utilities + "Keychain Access.app"
+	}
+	app := func(id, title, keywords, path, icon string) tool {
+		return tool{id: id, title: title, keywords: keywords, target: path,
+			shown: strings.TrimSuffix(filepath.Base(path), ".app"), icon: icon}
+	}
+	return []tool{
+		app("activityMonitor", l.T("mac.tool.activityMonitor.title"), l.T("mac.tool.activityMonitor.keywords"), utilities+"Activity Monitor.app", "activity"),
+		app("diskUtility", l.T("mac.tool.diskUtility.title"), l.T("mac.tool.diskUtility.keywords"), utilities+"Disk Utility.app", "wrench"),
+		app("console", l.T("mac.tool.console.title"), l.T("mac.tool.console.keywords"), utilities+"Console.app", "wrench"),
+		app("keychain", l.T("mac.tool.keychain.title"), l.T("mac.tool.keychain.keywords"), keychain, "lock"),
+		app("systemInformation", l.T("mac.tool.systemInformation.title"), l.T("mac.tool.systemInformation.keywords"), utilities+"System Information.app", "info"),
+		app("terminal", l.T("mac.tool.terminal.title"), l.T("mac.tool.terminal.keywords"), utilities+"Terminal.app", "terminal"),
+		app("scriptEditor", l.T("mac.tool.scriptEditor.title"), l.T("mac.tool.scriptEditor.keywords"), utilities+"Script Editor.app", "wrench"),
+		app("systemSettings", l.T("mac.tool.systemSettings.title"), l.T("mac.tool.systemSettings.keywords"), "/System/Applications/System Settings.app", "settings"),
+	}
+}
+
 // categories returns the titles of the settings categories by key.
-func categories(l plugin.Localizer) map[string]string {
+func categories(l plugin.Localizer, mac bool) map[string]string {
+	if mac {
+		c := categories(l, false)
+		c["update"], c["tools"] = l.T("mac.cat.update"), l.T("mac.cat.tools")
+		return c
+	}
 	return map[string]string{
 		"system":          l.T("cat.system"),
 		"devices":         l.T("cat.devices"),

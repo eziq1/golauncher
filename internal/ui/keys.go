@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	mui "github.com/egoist/mygo/ui"
+
+	"github.com/eziq1/golauncher/internal/core"
 )
 
 // keyNames names the keys that shortcuts use, as written in manifests and
@@ -30,15 +32,29 @@ func init() {
 	}
 }
 
+// Primary is the modifier of the primary shortcuts, those written "Ctrl+…":
+// the Ctrl key, and ⌘ on macOS (core.MacKeys).
+func Primary() mui.Modifiers {
+	if core.MacKeys {
+		return mui.Super
+	}
+	return mui.Ctrl
+}
+
 // KeyString spells a key press as a shortcut, e.g. "Ctrl+Shift+C". It
-// returns "" for keys without a name.
+// returns "" for keys without a name. On macOS ⌘ is spelled "Ctrl" and the
+// Control key "Control" (core.MacKeys).
 func KeyString(mods mui.Modifiers, key mui.Key) string {
 	name, ok := keyNames[key]
 	if !ok {
 		return ""
 	}
+	primary, other, otherName := mui.Ctrl, mui.Super, "Win"
+	if core.MacKeys {
+		primary, other, otherName = mui.Super, mui.Ctrl, "Control"
+	}
 	var parts []string
-	if mods&mui.Ctrl != 0 {
+	if mods&primary != 0 {
 		parts = append(parts, "Ctrl")
 	}
 	if mods&mui.Alt != 0 {
@@ -47,48 +63,24 @@ func KeyString(mods mui.Modifiers, key mui.Key) string {
 	if mods&mui.Shift != 0 {
 		parts = append(parts, "Shift")
 	}
-	if mods&mui.Super != 0 {
-		parts = append(parts, "Win")
+	if mods&other != 0 {
+		parts = append(parts, otherName)
 	}
 	return strings.Join(append(parts, name), "+")
 }
 
 // NormalizeShortcut makes shortcut strings comparable, as the engine does:
 // "ctrl + shift+c" becomes "Ctrl+Shift+C".
-func NormalizeShortcut(s string) string {
-	var mods []string
-	key := ""
-	for p := range strings.SplitSeq(s, "+") {
-		p = strings.TrimSpace(p)
-		switch strings.ToLower(p) {
-		case "ctrl", "control", "cmdorctrl", "commandorcontrol":
-			mods = append(mods, "Ctrl")
-		case "alt", "option":
-			mods = append(mods, "Alt")
-		case "shift":
-			mods = append(mods, "Shift")
-		case "win", "super", "meta", "cmd", "command":
-			mods = append(mods, "Win")
-		case "esc":
-			key = "Escape"
-		case "return":
-			key = "Enter"
-		default:
-			if len(p) == 1 {
-				p = strings.ToUpper(p)
-			} else if p != "" {
-				p = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
-			}
-			key = p
-		}
-	}
-	order := map[string]int{"Ctrl": 0, "Alt": 1, "Shift": 2, "Win": 3}
-	slices.SortFunc(mods, func(a, b string) int { return order[a] - order[b] })
-	mods = slices.Compact(mods)
-	return strings.Join(append(mods, key), "+")
+func NormalizeShortcut(s string) string { return core.NormalizeShortcut(s) }
+
+// macModifiers are the symbols of the modifiers on macOS, in Apple's order
+// (⌃⌥⇧⌘).
+var macModifiers = []struct{ name, symbol string }{
+	{"Control", "⌃"}, {"Alt", "⌥"}, {"Shift", "⇧"}, {"Ctrl", "⌘"},
 }
 
-// keyCaps splits a shortcut into the key caps shown for it.
+// keyCaps splits a shortcut into the key caps shown for it. On macOS the
+// modifiers are shown as symbols, in Apple's order.
 func keyCaps(shortcut string) []string {
 	if shortcut == "" {
 		return nil
@@ -107,6 +99,16 @@ func keyCaps(shortcut string) []string {
 		case "Right":
 			caps[i] = "→"
 		}
+	}
+	if core.MacKeys {
+		key := caps[len(caps)-1]
+		var out []string
+		for _, m := range macModifiers {
+			if slices.Contains(caps[:len(caps)-1], m.name) {
+				out = append(out, m.symbol)
+			}
+		}
+		caps = append(out, key)
 	}
 	return caps
 }

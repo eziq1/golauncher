@@ -1,5 +1,6 @@
 // Package apps is the builtin.apps plugin: it lists the applications of the
-// Windows Start menu in the root search and launches them.
+// Windows Start menu (on macOS, the .app bundles of the applications
+// folders) in the root search and launches them.
 package apps
 
 import (
@@ -16,6 +17,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -438,21 +440,44 @@ func keywords(a shell.App) []string {
 		}
 	}
 	if a.Path != "" {
-		add(strings.TrimSuffix(filepath.Base(a.Path), filepath.Ext(a.Path)))
+		base := baseName(a.Path)
+		add(strings.TrimSuffix(base, filepath.Ext(base)))
 	}
 	for _, k := range a.Keywords {
 		add(k)
 	}
 	if a.Path != "" {
-		for _, k := range knownNames()[strings.ToLower(filepath.Base(a.Path))] {
+		for _, k := range knownNames()[strings.ToLower(baseName(a.Path))] {
 			add(k)
 		}
 	}
 	return out
 }
 
+// baseName is filepath.Base, except that outside Windows a backslash
+// separates too: the paths of a Windows app list (the fixtures of glctl's
+// fake environment) mean the same on every platform.
+func baseName(p string) string {
+	if runtime.GOOS == "windows" {
+		return filepath.Base(p)
+	}
+	if i := strings.LastIndexAny(p, `/\`); i >= 0 {
+		p = p[i+1:]
+	}
+	return p
+}
+
+// isBundle reports whether a is a macOS .app bundle, which opens by its
+// path and cannot run as administrator.
+func isBundle(a shell.App) bool {
+	return !a.Packaged && a.LinkPath == "" && strings.HasSuffix(a.Path, ".app")
+}
+
 // actions returns the actions of a; the first is the primary one.
 func (p *Plugin) actions(t plugin.Localizer, a shell.App) []plugin.Action {
+	if isBundle(a) {
+		return p.bundleActions(t, a)
+	}
 	// Launch as the Start menu does: through the shortcut, which carries the
 	// working directory, arguments and AppUserModelID, else through the
 	// Applications folder item; the target executable is the last resort.
@@ -503,6 +528,28 @@ func (p *Plugin) actions(t plugin.Localizer, a shell.App) []plugin.Action {
 		},
 	)
 	return acts
+}
+
+// bundleActions are the actions of a macOS app: open (start it or bring it
+// to the front), show in Finder, copy its path and hide.
+func (p *Plugin) bundleActions(t plugin.Localizer, a shell.App) []plugin.Action {
+	return []plugin.Action{
+		{ID: "open", Title: t.T("action.open"), Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: a.Path}},
+		{
+			ID: "reveal", Title: t.T("action.revealFinder"), Shortcut: "Ctrl+Shift+F",
+			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: a.Path,
+				Payload: plugin.MustPayload(plugin.OpenOptions{Reveal: true})},
+		},
+		{
+			ID: "copy-path", Title: t.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
+			Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: a.Path},
+		},
+		{
+			ID: "hide", Title: t.T("action.hide"),
+			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: callbackHide,
+				Payload: plugin.MustPayload(hidePayload{ID: a.ID})},
+		},
+	}
 }
 
 // hidePayload is the Payload of the "hide" callback.

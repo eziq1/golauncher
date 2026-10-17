@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -47,8 +48,12 @@ func TestFindAndLoad(t *testing.T) {
 }
 
 func TestEnvDirs(t *testing.T) {
-	t.Setenv(EnvPluginPath, ` C:\a ;;C:\b;`)
-	if got := EnvDirs(); !slices.Equal(got, []string{`C:\a`, `C:\b`}) {
+	list, want := ` C:\a ;;C:\b;`, []string{`C:\a`, `C:\b`}
+	if runtime.GOOS != "windows" {
+		list, want = ` /a ::/b c:`, []string{"/a", "/b c"}
+	}
+	t.Setenv(EnvPluginPath, list)
+	if got := EnvDirs(); !slices.Equal(got, want) {
 		t.Fatalf("EnvDirs = %q", got)
 	}
 }

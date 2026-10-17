@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -106,6 +107,9 @@ func writeFile(t *testing.T, path, data string) {
 // TestSettingsLocations finds settings.json in each of the three places,
 // in order of precedence.
 func TestSettingsLocations(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows Terminal is Windows-only (Windows paths)")
+	}
 	la := t.TempDir()
 	locs := settingsLocations(la)
 	if len(locs) != 3 {
@@ -138,6 +142,9 @@ func TestSettingsLocations(t *testing.T) {
 // TestLayering checks profiles.defaults, fragment updates, hidden
 // fragments and icons.
 func TestLayering(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows Terminal is Windows-only (%VAR%\\ icon paths)")
+	}
 	la := t.TempDir()
 	settings := settingsLocations(la)[2]
 	fragDir := filepath.Join(la, "Microsoft", "Windows Terminal", "Fragments", "Tool")

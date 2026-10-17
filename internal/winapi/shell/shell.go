@@ -1,5 +1,7 @@
 // Package shell lists the installed applications of the Windows Start menu,
 // draws their icons and opens files, URLs and apps through the Windows shell.
+// On macOS it lists the .app bundles of the applications folders, draws
+// Finder's icons and opens through Launch Services (shell_darwin.go).
 //
 // Every function may be called from any goroutine; none needs a GUI message
 // loop. On other platforms the functions return errors.ErrUnsupported.

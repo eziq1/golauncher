@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,8 +26,15 @@ const (
 	modeInline     = "inline"
 )
 
-// extensions are the script types that are scanned.
-var extensions = []string{".ps1", ".py", ".js", ".bat", ".cmd", ".sh"}
+// extensions are the script types that are scanned: on Unix also those of
+// Raycast's Script Commands that only run there (unixExtensions).
+var extensions = func() []string {
+	ext := []string{".ps1", ".py", ".js", ".bat", ".cmd", ".sh"}
+	if runtime.GOOS != "windows" {
+		ext = append(ext, ".zsh", ".rb", ".swift", ".applescript")
+	}
+	return ext
+}()
 
 // Script is a parsed script command.
 type Script struct {

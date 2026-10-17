@@ -13,7 +13,7 @@
   "pref.recordImages.title": "Record images",
   "pref.recordImages.description": "Save copied images in the history.",
   "pref.ignoreApps.title": "Ignored applications",
-  "pref.ignoreApps.description": "Executable names whose copies are never recorded, e.g. KeePassXC.exe.",
+  "pref.ignoreApps.description": "Executable names whose copies are never recorded, e.g. KeePassXC.exe on Windows or KeePassXC on macOS.",
   "view.title": "Clipboard History",
   "view.placeholder": "Search clipboard history…",
   "view.empty": "Nothing copied yet",

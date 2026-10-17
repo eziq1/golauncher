@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -34,7 +35,17 @@ const (
 )
 
 // DefaultDirectory is the default scripts directory; %VAR% is expanded.
-const DefaultDirectory = `%APPDATA%\golauncher\scripts`
+// On macOS it is in ~/Library/Application Support, elsewhere on Unix in
+// ~/.config.
+var DefaultDirectory = func() string {
+	switch runtime.GOOS {
+	case "windows":
+		return `%APPDATA%\golauncher\scripts`
+	case "darwin":
+		return "%HOME%/Library/Application Support/golauncher/scripts"
+	}
+	return "%HOME%/.config/golauncher/scripts"
+}()
 
 //go:embed locales/*.json
 var locales embed.FS

@@ -485,3 +485,30 @@ func TestKnownNames(t *testing.T) {
 		}
 	}
 }
+
+// TestBundleActions covers the apps of macOS: an .app bundle opens by its
+// path, has no "Run as Administrator" and is shown in Finder.
+func TestBundleActions(t *testing.T) {
+	p, h := start(t, FixtureSource(fixture), nil)
+	wx := shell.App{Name: "微信", ID: "com.tencent.xinWeChat", Path: "/Applications/WeChat.app", Keywords: []string{"Weixin"}}
+	acts := p.actions(h.I18n(), wx)
+	var ids []string
+	for _, a := range acts {
+		ids = append(ids, a.ID)
+	}
+	if !slices.Equal(ids, []string{"open", "reveal", "copy-path", "hide"}) {
+		t.Fatalf("actions = %v", ids)
+	}
+	if a := acts[0]; a.Do.Kind != plugin.ActionOpen || a.Do.Target != wx.Path || len(a.Do.Payload) != 0 {
+		t.Errorf("open = %+v", a)
+	}
+	if a := acts[1]; a.Title != "Show in Finder" || a.Do.Target != wx.Path || !openOptions(t, a).Reveal {
+		t.Errorf("reveal = %+v", a)
+	}
+	if a := acts[2]; a.Do.Kind != plugin.ActionCopyText || a.Do.Target != wx.Path {
+		t.Errorf("copy-path = %+v", a)
+	}
+	if got := keywords(wx); !slices.Equal(got, []string{"WeChat", "Weixin"}) {
+		t.Errorf("keywords = %q", got)
+	}
+}

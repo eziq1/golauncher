@@ -150,7 +150,7 @@ func (l *Launcher) formView(c *mui.Context, s core.Snapshot) {
 	for _, k := range []struct {
 		mods mui.Modifiers
 		key  mui.Key
-	}{{0, mui.KeyTab}, {mui.Shift, mui.KeyTab}, {mui.Ctrl, mui.KeyEnter}, {0, mui.KeyEscape}} {
+	}{{0, mui.KeyTab}, {mui.Shift, mui.KeyTab}, {Primary(), mui.KeyEnter}, {0, mui.KeyEscape}} {
 		if form.Shortcut(k.mods, k.key) {
 			l.Key(KeyString(k.mods, k.key))
 		}

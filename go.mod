@@ -3,6 +3,7 @@ module github.com/eziq1/golauncher
 go 1.27.2
 
 require (
+	github.com/ebitengine/purego v0.11.1
 	github.com/egoist/mygo v0.5.1
 	github.com/mozillazg/go-pinyin v0.21.0
 	golang.org/x/sys v0.49.0
@@ -12,7 +13,6 @@ require (
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect

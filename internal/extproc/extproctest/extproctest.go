@@ -2,12 +2,14 @@
 package extproctest
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 // RepoRoot returns the repository root (from this source file's location).
@@ -32,6 +34,9 @@ func BuildExample(dst, name string) (string, error) {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("building %s: %v\n%s", name, err, b)
 	}
+	if runtime.GOOS == "darwin" {
+		warmUp(filepath.Join(out, name+".exe"))
+	}
 	if err := copyFile(filepath.Join(src, "plugin.json"), filepath.Join(out, "plugin.json")); err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
@@ -42,6 +47,15 @@ func BuildExample(dst, name string) (string, error) {
 		}
 	}
 	return out, nil
+}
+
+// warmUp runs a freshly built program once, with no input, so that it ends
+// at once. macOS checks a new executable the first time it runs, which can
+// take seconds on a busy machine: longer than a plugin may take to start.
+func warmUp(exe string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_ = exec.CommandContext(ctx, exe).Run() // stdin is empty: plugins exit
 }
 
 func copyFile(from, to string) error {

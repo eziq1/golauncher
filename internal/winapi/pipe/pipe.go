@@ -5,6 +5,10 @@
 // on overlapped handles: a read and a write may be in flight at once, Close
 // cancels them, and deadlines apply to the reads and writes that start after
 // they are set.
+//
+// On Unix the same API is a Unix domain socket in a directory only the
+// user can enter (pipe_unix.go), as the MCP bridge on macOS needs
+// (docs/macos-port.md §4.2).
 package pipe
 
 import "errors"

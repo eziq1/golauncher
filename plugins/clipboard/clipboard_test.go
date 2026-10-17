@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -227,12 +228,17 @@ func TestRecordImage(t *testing.T) {
 func TestRecordFiles(t *testing.T) {
 	e := setup(t)
 	files := []string{`C:\work\report_v2.pdf`, `D:\图片\cat.png`}
+	want := "- C:\\\\work\\\\report\\_v2.pdf\n- D:\\\\图片\\\\cat.png\n"
+	if runtime.GOOS != "windows" {
+		files = []string{"/work/report_v2.pdf", "/Volumes/图片/cat.png"}
+		want = "- /work/report\\_v2.pdf\n- /Volumes/图片/cat.png\n"
+	}
 	e.copy(plugin.ClipboardContent{Files: files, Text: "ignored when files are present"})
 	it := items(e.view(""))[0]
 	if it.Title != "report_v2.pdf, cat.png" || it.Icon.Name != "file" {
 		t.Fatalf("item = %+v", it)
 	}
-	if want := "- C:\\\\work\\\\report\\_v2.pdf\n- D:\\\\图片\\\\cat.png\n"; it.Detail.Markdown != want {
+	if it.Detail.Markdown != want {
 		t.Fatalf("markdown = %q, want %q", it.Detail.Markdown, want)
 	}
 	if got := meta(it, "Files"); got != "2" {
@@ -299,14 +305,18 @@ func TestDedupe(t *testing.T) {
 func TestSkipped(t *testing.T) {
 	e := setup(t)
 	e.copy(plugin.ClipboardContent{Text: "secret", Exclude: true})
-	e.copy(plugin.ClipboardContent{Text: "password", SourceApp: "keepassxc.EXE"})
+	keepass, slack := "keepassxc.EXE", "Slack.exe"
+	if runtime.GOOS != "windows" {
+		keepass, slack = "keepassxc", "Slack"
+	}
+	e.copy(plugin.ClipboardContent{Text: "password", SourceApp: keepass})
 	e.copy(plugin.ClipboardContent{Text: "   \r\n\t"})
 	e.copy(plugin.ClipboardContent{})
 	e.pref("recordImages", false)
 	e.copy(plugin.ClipboardContent{Image: pngBytes(t, 1, 1)})
-	e.pref("ignoreApps", []string{"Slack.exe"})
-	e.copy(plugin.ClipboardContent{Text: "from slack", SourceApp: "slack.exe"})
-	e.copy(plugin.ClipboardContent{Text: "keepass is fine now", SourceApp: "KeePassXC.exe"})
+	e.pref("ignoreApps", []string{slack})
+	e.copy(plugin.ClipboardContent{Text: "from slack", SourceApp: strings.ToLower(slack)})
+	e.copy(plugin.ClipboardContent{Text: "keepass is fine now", SourceApp: strings.ToUpper(keepass)})
 	if got := e.titles(""); !slices.Equal(got, []string{"keepass is fine now"}) {
 		t.Fatalf("titles = %v", got)
 	}
@@ -363,7 +373,11 @@ func TestPruneMaxDays(t *testing.T) {
 func TestSearch(t *testing.T) {
 	e := setup(t)
 	e.copyText("The quick brown fox", "你好世界", "hello world", "100% sure", "a_b")
-	e.copy(plugin.ClipboardContent{Files: []string{`C:\docs\Annual Report.pdf`}})
+	report, docsQuery := `C:\docs\Annual Report.pdf`, `docs\`
+	if runtime.GOOS != "windows" {
+		report, docsQuery = "/docs/Annual Report.pdf", "docs/"
+	}
+	e.copy(plugin.ClipboardContent{Files: []string{report}})
 	e.copy(plugin.ClipboardContent{Image: pngBytes(t, 2, 1)})
 	for _, tc := range []struct {
 		q    string
@@ -379,7 +393,7 @@ func TestSearch(t *testing.T) {
 		{"wor hello", []string{"hello world"}},
 		{"o", []string{"Annual Report.pdf", "hello world", "The quick brown fox"}},
 		{"report", []string{"Annual Report.pdf"}},
-		{`docs\`, []string{"Annual Report.pdf"}},
+		{docsQuery, []string{"Annual Report.pdf"}},
 		{"%", []string{"100% sure"}},
 		{"_", []string{"a_b"}},
 		{`"quick"`, nil},
@@ -782,7 +796,7 @@ func TestManifest(t *testing.T) {
 	e := setup(t)
 	prefs := e.h.Preferences()
 	if prefs.Int("maxItems") != 1000 || prefs.Int("maxDays") != 90 || !prefs.Bool("recordImages") ||
-		!slices.Contains(prefs.Strings("ignoreApps"), "1Password.exe") {
+		!slices.Contains(prefs.Strings("ignoreApps"), New().defaultIgnoreApps()[1]) || !strings.HasPrefix(New().defaultIgnoreApps()[1], "1Password") {
 		t.Errorf("preference defaults wrong")
 	}
 	l := e.h.I18n()

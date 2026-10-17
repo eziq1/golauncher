@@ -53,6 +53,9 @@ func cmdQuote(s string) string {
 	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
 }
 
+// envKey is how environment variable names compare: case-insensitively.
+func envKey(name string) string { return strings.ToUpper(name) }
+
 // group is the started process and everything it starts, held in a job
 // object so that Stop ends the whole tree.
 type group struct {

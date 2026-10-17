@@ -30,7 +30,8 @@ import (
 const ManifestFile = "plugin.json"
 
 // EnvPluginPath names the environment variable with extra plugin
-// directories, separated by ";".
+// directories, separated by the list separator of the system (";" on
+// Windows, ":" on Unix, as in PATH).
 const EnvPluginPath = "GOLAUNCHER_PLUGIN_PATH"
 
 // Manifest is the content of plugin.json: a plugin.Manifest plus the
@@ -66,8 +67,9 @@ func ReadManifest(dir string) (Manifest, error) {
 	return m, nil
 }
 
-// UserDir returns %APPDATA%\golauncher\plugins, where users install
-// external plugins (one subdirectory each).
+// UserDir returns %APPDATA%\golauncher\plugins (~/Library/Application
+// Support/golauncher/plugins on macOS), where users install external
+// plugins (one subdirectory each).
 func UserDir() (string, error) {
 	d, err := os.UserConfigDir()
 	if err != nil {
@@ -79,7 +81,7 @@ func UserDir() (string, error) {
 // EnvDirs returns the directories listed in GOLAUNCHER_PLUGIN_PATH.
 func EnvDirs() []string {
 	var out []string
-	for d := range strings.SplitSeq(os.Getenv(EnvPluginPath), ";") {
+	for _, d := range filepath.SplitList(os.Getenv(EnvPluginPath)) {
 		if d = strings.TrimSpace(d); d != "" {
 			out = append(out, d)
 		}

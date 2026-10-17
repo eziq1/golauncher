@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -188,6 +189,7 @@ func Run(o Options) error {
 	defer logf.Close()
 	log := slog.New(slog.NewTextHandler(logf, &slog.HandlerOptions{Level: level}))
 	slog.SetDefault(log)
+	fixPath(log) // before the plugins look up programs
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -207,6 +209,7 @@ func Run(o Options) error {
 		Clipboard: clipboard{},
 		Log:       log,
 		Version:   o.Version,
+		Platform:  messagePlatform(),
 	})
 	if err != nil {
 		log.Error("start failed", "err", err)
@@ -244,9 +247,23 @@ func Run(o Options) error {
 		s.ready(action)
 		s.startUpdates(healthMarker)
 	})
+	if runtime.GOOS == "darwin" {
+		// A menu bar app: no Dock icon and no menu bar of its own; the
+		// panel still takes the keyboard (docs/macos-port.md §3.1).
+		mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
+	}
 	err = mygo.App.Run()
 	log.Info("quit", "err", err)
 	return err
+}
+
+// messagePlatform is the platform whose message variants the shell shows:
+// "darwin" on macOS (i18n.Manager.SetPlatform).
+func messagePlatform() string {
+	if runtime.GOOS == "darwin" {
+		return "darwin"
+	}
+	return ""
 }
 
 // ControlEnv enables the E2E control channel (glctl attach) when set to 1.
@@ -576,12 +593,18 @@ func (s *Shell) syncLoginItem(c config.Config) {
 	}
 }
 
-// accelerator turns a shortcut of the configuration into MyGo's syntax.
+// accelerator turns a shortcut of the configuration into MyGo's syntax. On
+// macOS "Ctrl" is ⌘ (Cmd) and "Control" the Control key (core.MacKeys).
 func accelerator(hotkey string) string {
 	parts := strings.Split(ui.NormalizeShortcut(hotkey), "+")
 	for i, p := range parts {
-		if p == "Win" {
+		switch {
+		case p == "Win":
 			parts[i] = "Super"
+		case p == "Ctrl" && core.MacKeys:
+			parts[i] = "Cmd"
+		case p == "Control":
+			parts[i] = "Ctrl"
 		}
 	}
 	return strings.Join(parts, "+")

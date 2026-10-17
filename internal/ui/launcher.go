@@ -250,12 +250,12 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 	if l.confirmOpen {
 		// Only Enter (confirm), Escape (cancel) and, for an AI client's
 		// request, Ctrl+Enter (allow for the session) act on the dialog.
-		if mods == 0 && (key == mui.KeyEnter || key == mui.KeyEscape) || mods == mui.Ctrl && key == mui.KeyEnter {
+		if mods == 0 && (key == mui.KeyEnter || key == mui.KeyEscape) || mods == Primary() && key == mui.KeyEnter {
 			l.Key(KeyString(mods, key))
 		}
 		return true
 	}
-	if mods == mui.Ctrl && key == mui.KeyComma {
+	if mods == Primary() && key == mui.KeyComma {
 		l.host.OpenSettings()
 		return true
 	}
@@ -281,8 +281,12 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 	case mods == mui.Shift && key == mui.KeyTab:
 		l.Key(name)
 		return true
-	case mods == mui.Ctrl && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP || key == mui.KeyJ):
+	case mods == Primary() && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP || key == mui.KeyJ):
 		l.Key(name)
+		return true
+	case core.MacKeys && mods == mui.Ctrl && (key == mui.KeyN || key == mui.KeyP):
+		// ⌃N and ⌃P move the selection on macOS too, as in its text fields.
+		l.Key(KeyString(Primary(), key))
 		return true
 	}
 	return l.forwardShortcut(name)

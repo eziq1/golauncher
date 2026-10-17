@@ -1,12 +1,14 @@
 package shell
 
 import (
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
 )
 
 func TestSkipApp(t *testing.T) {
+	skipOutsideWindows(t)
 	tests := []struct {
 		app  App
 		skip bool
@@ -59,6 +61,7 @@ func TestClean(t *testing.T) {
 }
 
 func TestAddKeywords(t *testing.T) {
+	skipOutsideWindows(t)
 	versions := map[string][]string{
 		`C:\Apps\Contoso\ContosoChat.exe`: {"Contoso Chat", "康托聊天", "康托聊天", "Contoso® Chat™"},
 		`C:\Apps\Fabrikam\fab.exe`:        {"Fabrikam", "ファブリカム"},
@@ -111,5 +114,14 @@ func TestNonLatin(t *testing.T) {
 		if got := nonLatin(s); got != want {
 			t.Errorf("nonLatin(%q) = %v, want %v", s, got, want)
 		}
+	}
+}
+
+// skipOutsideWindows skips tests of the Start menu filters, which read
+// Windows paths (C:\…\unins000.exe) and run only on Windows.
+func skipOutsideWindows(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS != "windows" {
+		t.Skip("Start menu logic on Windows paths; used on Windows only")
 	}
 }

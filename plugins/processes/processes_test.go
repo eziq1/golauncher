@@ -1,6 +1,7 @@
 package processes
 
 import (
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -271,6 +272,9 @@ func TestBars(t *testing.T) {
 }
 
 func TestViewSections(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("the fixture is a Windows process tree (paths under SystemRoot)")
+	}
 	e := newEnv(t, true)
 	v := e.view(t, cmdProcesses, "", "", nil)
 	var titles []string

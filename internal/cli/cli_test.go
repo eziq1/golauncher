@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -38,9 +39,25 @@ var (
 	swatchRe = regexp.MustCompile(`"image": "[^"]*swatches[\\/]+([0-9a-f]{6}\.png)"`)
 )
 
+// windowsGoldens are the golden files that hold Windows paths of the
+// machine running the test (`<DIR>\notes.txt`, `..\..\testdata\…`) or
+// results of Windows-only fixtures that the code parses as paths of the
+// running system (clipboard files, Windows Terminal folders, Scoop, the
+// Windows process tree). Elsewhere the commands still run, but the output
+// is not compared (docs/macos-port.md §6.4).
+var windowsGoldens = map[string]bool{
+	"query_context": true, "query_scripts": true, "query_terminal_profile": true,
+	"run_clipboard_history": true, "zh_run_clipboard_history": true, "run_processes": true,
+	"run_scoop_installed": true, "run_scoop_search": true, "run_scoop_search_chinese": true,
+	"run_scoop_updates": true, "session_scoop_install": true,
+}
+
 // golden compares got with testdata/golden/name.json.
 func golden(t *testing.T, name, got string) {
 	t.Helper()
+	if windowsGoldens[name] && runtime.GOOS != "windows" {
+		t.Skipf("%s holds Windows paths; compared on Windows only", name)
+	}
 	got = elapsedRe.ReplaceAllString(got, `"elapsedMs": 0`)
 	got = swatchRe.ReplaceAllString(got, `"image": "<cache>/swatches/$1"`)
 	path := filepath.Join("testdata", "golden", name+".json")

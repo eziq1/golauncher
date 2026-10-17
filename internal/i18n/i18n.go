@@ -60,6 +60,7 @@ type catalog map[string]map[string]*entry
 type Manager struct {
 	mu         sync.RWMutex
 	locale     string
+	platform   string // SetPlatform
 	namespaces map[string]catalog
 	tmplCache  sync.Map // template text -> *template.Template
 	listeners  []func()
@@ -231,16 +232,41 @@ func (m *Manager) lookupIn(ns, id, loc string) (*entry, string, bool) {
 		if cat == nil {
 			continue
 		}
+		// The platform's variant first, but a translation of the generic
+		// text wins over an untranslated variant.
+		ids := []string{id}
+		if m.platform != "" {
+			ids = []string{id + PlatformSep + m.platform, id}
+		}
 		if !pseudo {
-			if msg, ok := cat[loc][id]; ok {
-				return msg, loc, false
+			for _, id := range ids {
+				if msg, ok := cat[loc][id]; ok {
+					return msg, loc, false
+				}
 			}
 		}
-		if msg, ok := cat[Source][id]; ok {
-			return msg, Source, pseudo
+		for _, id := range ids {
+			if msg, ok := cat[Source][id]; ok {
+				return msg, Source, pseudo
+			}
 		}
 	}
 	return nil, "", false
+}
+
+// PlatformSep separates a message id from the platform of a variant:
+// "settings.plugins.secretHint@darwin" is the text of
+// "settings.plugins.secretHint" on macOS (docs/macos-port.md §5.4).
+const PlatformSep = "@"
+
+// SetPlatform makes the messages of platform ("darwin"; "" for none) win
+// over their generic ids. The shell sets it for the system it runs on, before
+// any text is shown; the fake environment keeps the generic (Windows) texts
+// on every platform.
+func (m *Manager) SetPlatform(platform string) {
+	m.mu.Lock()
+	m.platform = platform
+	m.mu.Unlock()
 }
 
 // Keys returns the message ids of namespace ns in locale loc, sorted.

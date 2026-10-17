@@ -171,11 +171,23 @@ func (f formatter) detail(name, country, region, zone string, t time.Time) *plug
 // time transition) at the wall time it happens, e.g. "Sunday, November 1,
 // 2026 02:00 → UTC-5".
 func (f formatter) nextChange(t time.Time) string {
+	_, before := t.Zone()
 	_, end := t.ZoneBounds()
+	// Time zone data that extends its table with a rule (Go's embedded
+	// zoneinfo, used on Windows) also bounds zones at the end of a year,
+	// where the offset stays the same: those are skipped.
+	for range 3 {
+		if end.IsZero() {
+			break
+		}
+		if _, after := end.In(t.Location()).Zone(); after != before {
+			break
+		}
+		_, end = end.In(t.Location()).ZoneBounds()
+	}
 	if end.IsZero() {
 		return f.l.T("nextChange.none")
 	}
-	_, before := t.Zone()
 	at := end.In(time.FixedZone("", before))
 	return f.l.T("nextChange.value", "date", f.longDate(at), "time", f.clock(at, false), "offset", f.offset(end.In(t.Location())))
 }

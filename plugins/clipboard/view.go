@@ -140,9 +140,6 @@ func (p *Plugin) item(h plugin.Host, c clip) plugin.Item {
 	return it
 }
 
-// passwordManagers are the programs whose clips are always sensitive.
-var passwordManagers = []string{"KeePassXC.exe", "KeePass.exe", "1Password.exe", "Bitwarden.exe", "LastPass.exe", "Dashlane.exe", "Enpass.exe", "RoboForm.exe"}
-
 // sensitiveApp reports whether clips copied from app are sensitive: it is a
 // known password manager or on the ignore list.
 func sensitiveApp(h plugin.Host, app string) bool {

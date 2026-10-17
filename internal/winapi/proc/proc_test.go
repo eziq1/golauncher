@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -47,6 +48,9 @@ func TestLineWriter(t *testing.T) {
 }
 
 func TestMergeEnv(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("variable names are case-insensitive only on Windows (see TestEnvCase)")
+	}
 	got := MergeEnv([]string{"Path=C:\\a", "HOME=x", "=C:=C:\\"}, []string{"PATH=C:\\b", "NEW=1"})
 	if !slices.Equal(got, []string{"HOME=x", "=C:=C:\\", "PATH=C:\\b", "NEW=1"}) {
 		t.Errorf("MergeEnv = %q", got)

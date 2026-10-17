@@ -2,7 +2,9 @@
 // system commands (lock, sleep, hibernate, restart, shut down, sign out,
 // empty the Recycle Bin, toggle dark mode, volume, turn off the display,
 // show the desktop) and shortcuts to about 150 Windows Settings pages and
-// the classic administrative tools, all as root search items.
+// the classic administrative tools, all as root search items. On a Mac it
+// offers the macOS equivalents instead: no hibernation or Show Desktop,
+// the Trash, about 45 System Settings panes and the utilities.
 //
 // Every call that changes the machine goes through the System interface, so
 // tests and glctl use a Fake that only records them.
@@ -67,6 +69,7 @@ type Options struct {
 // Plugin is the System Commands & Settings plugin.
 type Plugin struct {
 	sys   System
+	mac   bool // sys is a Mac
 	sync  bool
 	delay time.Duration
 	pages []page
@@ -115,7 +118,7 @@ func NewWithOptions(o Options) *Plugin {
 	if sys == nil {
 		sys = realSystem{}
 	}
-	return &Plugin{sys: sys, sync: o.Sync, delay: defaultDelay}
+	return &Plugin{sys: sys, mac: isMac(sys), sync: o.Sync, delay: defaultDelay}
 }
 
 // Manifest implements plugin.Plugin.
@@ -123,7 +126,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 	return plugin.Manifest{
 		ID:            ID,
 		Name:          "%plugin.name%",
-		Description:   "%plugin.description%",
+		Description:   p.pick("%plugin.description%", "%mac.plugin.description%"),
 		Version:       "1.0.0",
 		Icon:          plugin.Icon{Name: "settings"},
 		DefaultLocale: "en",
@@ -143,7 +146,7 @@ func (p *Plugin) Locales() fs.FS {
 // whether hibernation is enabled, and reads the Recycle Bin and the theme
 // now and whenever the launcher is shown.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
-	pages, err := loadCatalog()
+	pages, err := loadCatalog(p.mac)
 	if err != nil {
 		return err
 	}
@@ -219,13 +222,13 @@ func (p *Plugin) RootItems(_ context.Context, _ plugin.Query) ([]plugin.Item, er
 		cmdDarkMode, cmdMute, cmdVolumeUp, cmdVolumeDown, cmdDisplayOff, cmdShowDesktop}
 	out := make([]plugin.Item, 0, len(order)+len(c.static))
 	for _, name := range order {
-		if name == cmdHibernate && !p.hiber {
+		if name == cmdHibernate && !p.hiber || name == cmdShowDesktop && p.mac {
 			continue
 		}
 		it := c.commands[name]
 		switch {
 		case name == cmdEmptyBin && st.binOK:
-			it.Subtitle = binSummary(l, st.bin)
+			it.Subtitle = p.binSummary(l, st.bin)
 		case name == cmdDarkMode && st.darkOK:
 			it.Subtitle = l.T("dark.isLight")
 			if st.dark {
@@ -249,16 +252,27 @@ type command struct {
 	do *plugin.ActionDo
 }
 
+// pick returns win, or its macOS wording mac on a Mac (the messages under
+// "mac.").
+func (p *Plugin) pick(win, mac string) string {
+	if p.mac {
+		return mac
+	}
+	return win
+}
+
 // commands returns the system commands in the current locale.
-func commands(l plugin.Localizer) []command {
+func (p *Plugin) commands(l plugin.Localizer) []command {
 	return []command{
-		{name: cmdLock, title: l.T("cmd.lock.title"), keywords: l.T("cmd.lock.keywords"), icon: "lock"},
+		{name: cmdLock, title: p.pick(l.T("cmd.lock.title"), l.T("mac.cmd.lock.title")), keywords: l.T("cmd.lock.keywords"), icon: "lock"},
 		{name: cmdSleep, title: l.T("cmd.sleep.title"), keywords: l.T("cmd.sleep.keywords"), icon: "moon"},
 		{name: cmdHibernate, title: l.T("cmd.hibernate.title"), keywords: l.T("cmd.hibernate.keywords"), icon: "snowflake"},
 		{name: cmdRestart, title: l.T("cmd.restart.title"), keywords: l.T("cmd.restart.keywords"), icon: "rotate-cw", destructive: true, ends: true},
 		{name: cmdShutDown, title: l.T("cmd.shutdown.title"), keywords: l.T("cmd.shutdown.keywords"), icon: "power", destructive: true, ends: true},
-		{name: cmdSignOut, title: l.T("cmd.signout.title"), keywords: l.T("cmd.signout.keywords"), icon: "log-out", destructive: true, ends: true},
-		{name: cmdEmptyBin, title: l.T("cmd.emptyBin.title"), keywords: l.T("cmd.emptyBin.keywords"), icon: "trash", destructive: true},
+		{name: cmdSignOut, title: p.pick(l.T("cmd.signout.title"), l.T("mac.cmd.signout.title")),
+			keywords: p.pick(l.T("cmd.signout.keywords"), l.T("mac.cmd.signout.keywords")), icon: "log-out", destructive: true, ends: true},
+		{name: cmdEmptyBin, title: p.pick(l.T("cmd.emptyBin.title"), l.T("mac.cmd.emptyBin.title")),
+			keywords: p.pick(l.T("cmd.emptyBin.keywords"), l.T("mac.cmd.emptyBin.keywords")), icon: "trash", destructive: true},
 		{name: cmdDarkMode, title: l.T("cmd.darkMode.title"), keywords: l.T("cmd.darkMode.keywords"), icon: "contrast"},
 		{name: cmdMute, title: l.T("cmd.mute.title"), keywords: l.T("cmd.mute.keywords"), icon: "volume-x"},
 		{name: cmdVolumeUp, title: l.T("cmd.volumeUp.title"), keywords: l.T("cmd.volumeUp.keywords"), icon: "volume-2"},
@@ -274,7 +288,7 @@ func commands(l plugin.Localizer) []command {
 func (p *Plugin) buildCache(l plugin.Localizer) *itemCache {
 	c := &itemCache{locale: l.Locale(), commands: map[string]plugin.Item{}}
 	group := l.T("group.system")
-	for _, cmd := range commands(l) {
+	for _, cmd := range p.commands(l) {
 		a := plugin.Action{ID: "run", Title: cmd.title, EndsSession: cmd.ends,
 			Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: cmd.name}}
 		if cmd.destructive {
@@ -294,7 +308,7 @@ func (p *Plugin) buildCache(l plugin.Localizer) *itemCache {
 	}
 
 	group = l.T("group.settings")
-	cats := categories(l)
+	cats := categories(l, p.mac)
 	zh := strings.HasPrefix(l.Locale(), "zh")
 	openTitle, copyTitle := l.T("action.open"), l.T("action.copyURI")
 	for _, pg := range p.pages {
@@ -309,7 +323,7 @@ func (p *Plugin) buildCache(l plugin.Localizer) *itemCache {
 		// every keyword would match almost any short query.
 		kw := append([]string{other, pinyinOf(pg.Zh)}, pg.Keywords...)
 		c.static = append(c.static, plugin.Item{
-			ID:        "settings:" + strings.TrimPrefix(pg.URI, settingsPrefix),
+			ID:        "settings:" + pageID(pg.URI),
 			Title:     title,
 			Accessory: cats[pg.Category],
 			Icon:      plugin.Icon{Name: "settings"},
@@ -322,6 +336,21 @@ func (p *Plugin) buildCache(l plugin.Localizer) *itemCache {
 		})
 	}
 
+	if p.mac {
+		for _, t := range macTools(l) {
+			c.static = append(c.static, plugin.Item{
+				ID:        "tool:" + t.id,
+				Title:     t.title,
+				Subtitle:  t.shown,
+				Accessory: cats["tools"],
+				Icon:      plugin.Icon{Name: t.icon},
+				Keywords:  withTitlePinyin(splitKeywords(t.keywords)),
+				Group:     group,
+				Actions:   []plugin.Action{{ID: "open", Title: openTitle, Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: t.target}}},
+			})
+		}
+		return c
+	}
 	runAsTitle := l.T("action.runAs")
 	for _, t := range tools(l) {
 		if t.pro && winsys.HomeEdition(p.edition) {
@@ -355,9 +384,9 @@ func (p *Plugin) buildCache(l plugin.Localizer) *itemCache {
 }
 
 // binSummary describes the content of the Recycle Bin: "3 items · 1.5 MB".
-func binSummary(l plugin.Localizer, bin winsys.RecycleBin) string {
+func (p *Plugin) binSummary(l plugin.Localizer, bin winsys.RecycleBin) string {
 	if bin.Items == 0 {
-		return l.T("bin.empty")
+		return p.pick(l.T("bin.empty"), l.T("mac.bin.empty"))
 	}
 	return l.T("bin.summary", "items", l.N("bin.items", int(bin.Items)), "size", formatSize(l, bin.Size))
 }
@@ -436,7 +465,7 @@ func (p *Plugin) failure(name string, err error) *plugin.Toast {
 
 // title returns the title of command name in the current locale.
 func (p *Plugin) title(name string) string {
-	for _, c := range commands(p.h.I18n()) {
+	for _, c := range p.commands(p.h.I18n()) {
 		if c.name == name {
 			return c.title
 		}
@@ -469,13 +498,13 @@ func (p *Plugin) later(name string, fn func() error) {
 // emptyBin empties the Recycle Bin unless it is already empty.
 func (p *Plugin) emptyBin(l plugin.Localizer) plugin.Result {
 	if bin, err := p.sys.RecycleBin(); err == nil && bin.Items == 0 {
-		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.binAlreadyEmpty")}}
+		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: p.pick(l.T("toast.binAlreadyEmpty"), l.T("mac.toast.binAlreadyEmpty"))}}
 	}
 	if err := p.sys.EmptyRecycleBin(); err != nil {
 		return p.result(cmdEmptyBin, err, plugin.Result{})
 	}
 	p.refresh()
-	return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastSuccess, Title: l.T("toast.binEmptied")}}
+	return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastSuccess, Title: p.pick(l.T("toast.binEmptied"), l.T("mac.toast.binEmptied"))}}
 }
 
 // toggleDarkMode switches between the dark and the light theme.

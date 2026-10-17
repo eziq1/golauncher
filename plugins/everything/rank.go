@@ -44,6 +44,9 @@ type rulesEnv struct {
 	SystemRoot  string   // C:\Windows
 	ProgramData string   // C:\ProgramData
 	UserFolders []string // Desktop, Documents, … (see everything.UserFolders)
+	// The platform's additions (platformRules): system folders (prefixes)
+	// and folder names marking system and program files anywhere.
+	SystemDirs, SystemSegments, ProgramSegments []string
 }
 
 // systemSegments are folders that mark everything below them as system or
@@ -80,20 +83,24 @@ func defaultEnv() rulesEnv {
 		SystemRoot:  os.Getenv("SystemRoot"),
 		ProgramData: os.Getenv("ProgramData"),
 		UserFolders: everything.UserFolders(),
+
+		SystemDirs:      platformSystemDirs,
+		SystemSegments:  platformSystemSegments,
+		ProgramSegments: platformProgramSegments,
 	}
 }
 
 func newRules(env rulesEnv) *rules {
 	r := &rules{}
-	for _, p := range []string{env.SystemRoot, env.ProgramData} {
+	for _, p := range slices.Concat([]string{env.SystemRoot, env.ProgramData}, env.SystemDirs) {
 		if p = normDir(p); p != "" {
 			r.sysPrefixes = append(r.sysPrefixes, p)
 		}
 	}
-	for _, s := range systemSegments {
+	for _, s := range slices.Concat(systemSegments, env.SystemSegments) {
 		r.sysSegments = append(r.sysSegments, segment(s))
 	}
-	for _, s := range programSegments {
+	for _, s := range slices.Concat(programSegments, env.ProgramSegments) {
 		r.progSegs = append(r.progSegs, segment(s))
 	}
 	r.home = normDir(env.Home)

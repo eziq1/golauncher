@@ -48,5 +48,17 @@
   "action.copyPath": "复制路径",
   "action.copyFile": "复制文件",
   "toast.started": "已启动 Everything",
-  "toast.startFailed": "无法启动 Everything"
+  "toast.startFailed": "无法启动 Everything",
+  "plugin.name.spotlight": "文件搜索（聚焦）",
+  "plugin.description.spotlight": "用聚焦（Spotlight）找到这台 Mac 上的文件和文件夹。",
+  "command.search.subtitle.spotlight": "聚焦",
+  "command.search.keyword.everything.spotlight": "spotlight, 聚焦, jj",
+  "pref.hideSystemFiles.description.spotlight": "不显示系统文件夹（/System、/Library 等）、缓存、应用包和包文件夹（node_modules、site-packages 等）中的文件。关闭后，它们会排在你自己的文件之后。",
+  "pref.extraLowPriorityPaths.description.spotlight": "和系统文件一样排在你自己的文件之后的文件夹：可以是完整路径（/Volumes/VMs），也可以是在任意位置匹配的文件夹名（vendor、build）。",
+  "unavailable.notInstalled.spotlight": "这台 Mac 上无法使用聚焦搜索（mdfind）。",
+  "view.hint.spotlight": "输入内容，用聚焦搜索文件",
+  "view.noResults.spotlight": "没有匹配的文件。如果应该有，请检查聚焦是否为磁盘建立了索引（mdutil -s /）。",
+  "context.title.spotlight": "用聚焦搜索此文件夹",
+  "context.keywords.spotlight": "find, search, files, spotlight, 搜索, 查找, 文件, 聚焦, ss, cz",
+  "action.reveal.spotlight": "在访达中显示"
 }

@@ -48,5 +48,17 @@
   "action.copyPath": "Copy Path",
   "action.copyFile": "Copy File",
   "toast.started": "Everything started",
-  "toast.startFailed": "Could not start Everything"
+  "toast.startFailed": "Could not start Everything",
+  "plugin.name.spotlight": "File Search (Spotlight)",
+  "plugin.description.spotlight": "Find files and folders on this Mac with Spotlight.",
+  "command.search.subtitle.spotlight": "Spotlight",
+  "command.search.keyword.everything.spotlight": "spotlight",
+  "pref.hideSystemFiles.description.spotlight": "Leave out files in the system folders (/System, /Library, …), caches, app bundles and package folders (node_modules, site-packages, …). When off they are listed after your own files.",
+  "pref.extraLowPriorityPaths.description.spotlight": "Folders listed after your own files, like system files: a full path (/Volumes/VMs) or a folder name matched anywhere (vendor, build).",
+  "unavailable.notInstalled.spotlight": "Spotlight search (mdfind) is not available on this Mac.",
+  "view.hint.spotlight": "Type to search files with Spotlight",
+  "view.noResults.spotlight": "No matching files. If you expected some, check that Spotlight indexes the disk (mdutil -s /).",
+  "context.title.spotlight": "Search This Folder with Spotlight",
+  "context.keywords.spotlight": "find, search, files, spotlight, 搜索",
+  "action.reveal.spotlight": "Show in Finder"
 }

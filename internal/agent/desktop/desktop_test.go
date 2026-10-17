@@ -332,11 +332,14 @@ func TestConnectBackupNameTaken(t *testing.T) {
 
 func TestStatus(t *testing.T) {
 	exeJSON, _ := jsontext.AppendQuote(nil, testExe)
-	other := strings.ToUpper(testExe)
+	// The same file spelled differently: in other case on Windows, with a
+	// "." element (which filepath.Clean removes) elsewhere.
+	exe, other := testExe, strings.ToUpper(testExe)
 	if runtime.GOOS != "windows" {
-		other = testExe
+		exe, other = "/Applications/gol auncher.app/Contents/MacOS/golauncher", "/Applications/gol auncher.app/Contents/./MacOS/golauncher"
+		exeJSON, _ = jsontext.AppendQuote(nil, exe)
 	}
-	otherJSON, _ := jsontext.AppendQuote(nil, strings.ReplaceAll(other, `\gol auncher\`, `\gol auncher\.\`))
+	otherJSON, _ := jsontext.AppendQuote(nil, other)
 	tests := []struct {
 		name               string
 		content            string // "" = no file
@@ -354,7 +357,7 @@ func TestStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			path := setup(t, tt.content)
-			connected, sameExe, err := Status(path, testExe)
+			connected, sameExe, err := Status(path, exe)
 			if err != nil {
 				t.Fatal(err)
 			}

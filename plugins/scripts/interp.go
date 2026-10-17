@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -16,6 +17,9 @@ type System struct {
 	Getenv func(name string) string
 	// Exists reports whether a file exists.
 	Exists func(path string) bool
+	// Unix selects the rules of macOS and other Unix systems (unixInterpreter)
+	// instead of Windows'.
+	Unix bool
 }
 
 // RealSystem looks things up on this machine.
@@ -27,6 +31,7 @@ func RealSystem() System {
 			st, err := os.Stat(p)
 			return err == nil && !st.IsDir()
 		},
+		Unix: runtime.GOOS != "windows",
 	}
 }
 
@@ -42,6 +47,9 @@ type Interpreter struct {
 
 // interpreter picks the interpreter of s.
 func (sys System) interpreter(s *Script) Interpreter {
+	if sys.Unix {
+		return sys.unixInterpreter(s)
+	}
 	if len(s.Shebang) > 0 {
 		cmd := s.Shebang
 		if base(cmd[0]) == "env" {
@@ -139,4 +147,68 @@ func (sys System) gitBash() string {
 		}
 	}
 	return ""
+}
+
+// unixExtensions are the interpreters of the script extensions on Unix,
+// those of Raycast's Script Commands among them.
+var unixExtensions = map[string]string{
+	".sh": "bash", ".zsh": "zsh", ".py": "python3", ".js": "node", ".rb": "ruby",
+	".swift": "swift", ".applescript": "osascript", ".ps1": "pwsh",
+}
+
+// unixDirs are where interpreters are looked for after PATH: a program
+// started from Finder or at login has only /usr/bin:/bin:/usr/sbin:/sbin
+// on PATH, without Homebrew's or the user's own programs
+// (docs/macos-port.md §5.3).
+var unixDirs = []string{"/opt/homebrew/bin", "/usr/local/bin", "~/.local/bin", "/usr/bin", "/bin"}
+
+// unixInterpreter picks the interpreter of s on Unix. A shebang names it:
+// an absolute path is used as it is when it exists, a program of
+// "#!/usr/bin/env prog" (or a path that does not exist) is looked for on
+// PATH and in unixDirs. Without a shebang the extension decides; batch
+// files cannot run.
+func (sys System) unixInterpreter(s *Script) Interpreter {
+	if cmd := s.Shebang; len(cmd) > 0 {
+		if base(cmd[0]) == "env" {
+			cmd = cmd[1:]
+			if len(cmd) > 0 && cmd[0] == "-S" {
+				cmd = cmd[1:]
+			}
+		} else if filepath.IsAbs(cmd[0]) && sys.Exists(cmd[0]) {
+			return Interpreter{Program: cmd[0], Args: cmd[1:]}
+		}
+		if len(cmd) > 0 {
+			return sys.unixByName(filepath.Base(cmd[0]), cmd[1:])
+		}
+	}
+	if name, ok := unixExtensions[strings.ToLower(filepath.Ext(s.Path))]; ok {
+		return sys.unixByName(name, nil)
+	}
+	return Interpreter{Missing: filepath.Ext(s.Path)}
+}
+
+// unixByName finds the program name for unixInterpreter.
+func (sys System) unixByName(name string, extra []string) Interpreter {
+	var it Interpreter
+	if name == "pwsh" {
+		it.Args = []string{"-NoProfile", "-NonInteractive", "-File"}
+	}
+	if p, err := sys.LookPath(name); err == nil {
+		it.Program = p
+	} else {
+		for _, dir := range unixDirs {
+			if rest, ok := strings.CutPrefix(dir, "~/"); ok {
+				dir = filepath.Join(sys.Getenv("HOME"), rest)
+			}
+			if p := filepath.Join(dir, name); filepath.IsAbs(p) && sys.Exists(p) {
+				it.Program = p
+				break
+			}
+		}
+	}
+	if it.Program == "" {
+		return Interpreter{Missing: name}
+	}
+	it.Args = append(it.Args, extra...)
+	return it
 }

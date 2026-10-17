@@ -6,6 +6,7 @@ import (
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -25,7 +26,16 @@ const fixtures = "../../testdata/fixtures"
 
 func TestMain(m *testing.M) {
 	agent.SetSettle(20 * time.Millisecond)
-	os.Exit(m.Run())
+	// On Unix the test pipes are sockets in $XDG_RUNTIME_DIR/golauncher
+	// (internal/winapi/pipe); keep them out of the user's directory.
+	dir, err := os.MkdirTemp("", "glagent")
+	if err != nil {
+		panic(err)
+	}
+	os.Setenv("XDG_RUNTIME_DIR", dir)
+	code := m.Run()
+	os.RemoveAll(dir)
+	os.Exit(code)
 }
 
 // world is a fake launcher with an agent whose clock and confirmations the
@@ -469,8 +479,12 @@ func TestSensitiveClips(t *testing.T) {
 		c.Plugins = map[string]config.PluginConfig{"builtin.clipboard": {Preferences: map[string]jsontext.Value{"ignoreApps": jsontext.Value(`[]`)}}}
 	})
 	clip := w.env.Services.Clipboard.(*hostfake.Clipboard)
+	keepass := "KeePassXC.exe" // the source app as the system names it
+	if runtime.GOOS != "windows" {
+		keepass = "KeePassXC"
+	}
 	for _, c := range []plugin.ClipboardContent{
-		{Text: "hunter2-secret", SourceApp: "KeePassXC.exe"},
+		{Text: "hunter2-secret", SourceApp: keepass},
 		{Text: "never recorded", Exclude: true},
 		{Text: "meeting notes", SourceApp: "notepad.exe"},
 	} {

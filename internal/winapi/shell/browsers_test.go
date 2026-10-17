@@ -19,12 +19,12 @@ func TestCommandProgram(t *testing.T) {
 	}
 }
 
-// TestBrowsers only checks that reading the registry works; which browsers
-// are installed depends on the machine.
+// TestBrowsers only checks that reading the registry (on macOS, Launch
+// Services) works; which browsers are installed depends on the machine.
 func TestBrowsers(t *testing.T) {
 	bs := Browsers()
-	if runtime.GOOS != "windows" && bs != nil {
-		t.Fatal("browsers outside Windows")
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" && bs != nil {
+		t.Fatal("browsers outside Windows and macOS")
 	}
 	for _, b := range bs {
 		if b.Name == "" || b.Path == "" {

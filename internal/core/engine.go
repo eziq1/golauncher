@@ -565,41 +565,6 @@ func FindAction(entry Entry, id string) (plugin.Action, bool) {
 	return entry.Actions[i], true
 }
 
-// normalizeShortcut makes shortcut strings comparable: "ctrl + shift+c" -> "Ctrl+Shift+C".
-func normalizeShortcut(s string) string {
-	parts := strings.Split(s, "+")
-	var mods []string
-	key := ""
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		switch strings.ToLower(p) {
-		case "ctrl", "control", "cmdorctrl", "commandorcontrol":
-			mods = append(mods, "Ctrl")
-		case "alt", "option":
-			mods = append(mods, "Alt")
-		case "shift":
-			mods = append(mods, "Shift")
-		case "win", "super", "meta", "cmd", "command":
-			mods = append(mods, "Win")
-		case "esc":
-			key = "Escape"
-		case "return":
-			key = "Enter"
-		default:
-			if len(p) == 1 {
-				p = strings.ToUpper(p)
-			} else if p != "" {
-				p = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
-			}
-			key = p
-		}
-	}
-	order := map[string]int{"Ctrl": 0, "Alt": 1, "Shift": 2, "Win": 3}
-	slices.SortFunc(mods, func(a, b string) int { return order[a] - order[b] })
-	mods = slices.Compact(mods)
-	return strings.Join(append(mods, key), "+")
-}
-
 // guard calls into a plugin, turning a panic into an error so a faulty
 // plugin cannot take the launcher down. The stack is logged.
 func guard[T any](e *Engine, pluginID string, fn func() (T, error)) (v T, err error) {

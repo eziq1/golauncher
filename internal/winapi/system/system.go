@@ -7,7 +7,8 @@
 // others change the state of the machine and must never run in tests; the
 // plugin calls them through an interface that tests replace with a fake.
 //
-// On other platforms the functions return errors.ErrUnsupported.
+// On macOS they run pmset, osascript and defaults, and read ~/.Trash
+// (system_darwin.go); on other platforms they return errors.ErrUnsupported.
 package system
 
 import "strings"

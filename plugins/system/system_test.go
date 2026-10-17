@@ -63,7 +63,7 @@ var uriRe = regexp.MustCompile(`^ms-settings:[a-z0-9]+(-[a-z0-9]+)*$`)
 // TestCatalog checks every Settings page: a well-formed, unique URI, English
 // and Chinese titles, a known category and a valid Windows version.
 func TestCatalog(t *testing.T) {
-	pages, err := loadCatalog()
+	pages, err := loadCatalog(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cats := categories(h.I18n())
+	cats := categories(h.I18n(), false)
 	seen := map[string]bool{}
 	for _, pg := range pages {
 		if !uriRe.MatchString(pg.URI) {

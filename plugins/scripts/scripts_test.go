@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -424,8 +425,12 @@ func TestNoDirectory(t *testing.T) {
 func TestExpandAndDefaultDirectory(t *testing.T) {
 	appdata := t.TempDir()
 	sys := fakeSystem(nil)
+	env := "APPDATA"
+	if runtime.GOOS != "windows" {
+		env = "HOME" // the default directory is under ~/Library or ~/.config
+	}
 	sys.Getenv = func(name string) string {
-		if name == "APPDATA" {
+		if name == env {
 			return appdata
 		}
 		return ""
@@ -440,10 +445,17 @@ func TestExpandAndDefaultDirectory(t *testing.T) {
 	}
 	defer p.Close()
 	want := filepath.Join(appdata, "golauncher", "scripts")
+	switch runtime.GOOS {
+	case "darwin":
+		want = filepath.Join(appdata, "Library", "Application Support", "golauncher", "scripts")
+	case "windows":
+	default:
+		want = filepath.Join(appdata, ".config", "golauncher", "scripts")
+	}
 	if st, err := os.Stat(want); err != nil || !st.IsDir() {
 		t.Errorf("default directory not created: %v", err)
 	}
-	if got := p.expand(`%APPDATA%\x\%NOPE%\%%`); got != appdata+`\x\%NOPE%\%%` {
+	if got := p.expand(`%` + env + `%\x\%NOPE%\%%`); got != appdata+`\x\%NOPE%\%%` {
 		t.Errorf("expand = %q", got)
 	}
 }

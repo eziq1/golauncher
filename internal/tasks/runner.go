@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/eziq1/golauncher/internal/winapi/proc"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -82,8 +81,8 @@ func CommandLine(cmd plugin.ProcessSpec) string {
 	}
 	parts := make([]string, len(cmd.Argv))
 	for i, a := range cmd.Argv {
-		if a == "" || strings.ContainsAny(a, " \t\"") {
-			a = syscall.EscapeArg(a)
+		if a == "" || strings.ContainsAny(a, quoted) {
+			a = quoteArg(a)
 		}
 		parts[i] = a
 	}

@@ -208,7 +208,7 @@
         "name": "ignoreApps",
         "type": "stringList",
         "title": "Ignored applications",
-        "description": "Executable names whose copies are never recorded, e.g. KeePassXC.exe.",
+        "description": "Executable names whose copies are never recorded, e.g. KeePassXC.exe on Windows or KeePassXC on macOS.",
         "default": [
           "KeePassXC.exe",
           "1Password.exe",

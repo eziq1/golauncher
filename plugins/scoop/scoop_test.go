@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -631,6 +632,9 @@ func TestBadRequestsAreRefused(t *testing.T) {
 }
 
 func TestScriptQuoting(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Scoop is Windows-only (Windows paths in the PowerShell script)")
+	}
 	s := Script(`C:\my scoop`, [][]string{{"install", "it's", "a b", "$(evil)", "‘x’"}, {"update", "*"}})
 	for _, want := range []string{
 		`& scoop 'install' 'it''s' 'a b' '$(evil)' '‘‘x’’'`,

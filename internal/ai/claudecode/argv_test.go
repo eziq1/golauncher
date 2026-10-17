@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/eziq1/golauncher/plugins/ai/backend"
@@ -48,6 +50,7 @@ func TestArgvTable(t *testing.T) {
 								oo := backend.OpenOptions{SessionID: id, Resume: resume, Model: model, WebSearch: web,
 									LauncherTools: tools != "off", SystemPrompt: sp}
 								argv, env := commandFor(b, oo, path, persistent, resume)
+								argv = windowsPaths(argv, dir)
 								got = append(got, argvCase{
 									Name: fmt.Sprintf("%s persistent=%v resume=%v tools=%s web=%v model=%q prompt=%v",
 										filepath.Ext(path), persistent, resume, tools, web, model, sp != ""),
@@ -89,4 +92,21 @@ func TestArgvTable(t *testing.T) {
 		}
 		t.Fatalf("command lines differ from %s (%d cases)", golden, len(got))
 	}
+}
+
+// windowsPaths spells the paths under dir in argv the way Windows joins
+// them, so that the golden file recorded on Windows also holds elsewhere
+// (filepath.Join(`C:\`, "work") is `C:\/work` on Unix).
+func windowsPaths(argv []string, dir string) []string {
+	if runtime.GOOS == "windows" {
+		return argv
+	}
+	out := make([]string, len(argv))
+	for i, a := range argv {
+		if rest, ok := strings.CutPrefix(a, dir); ok {
+			a = `C:\work\ai` + strings.ReplaceAll(rest, "/", `\`)
+		}
+		out[i] = a
+	}
+	return out
 }

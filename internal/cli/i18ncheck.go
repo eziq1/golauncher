@@ -200,7 +200,15 @@ func checkReferences(m *i18n.Manager, root string, rep *i18nReport) error {
 	}
 	for _, ns := range m.Namespaces() {
 		for _, id := range m.Keys(ns, i18n.Source) {
-			if !used[ns+":"+id] {
+			// A platform variant ("id@darwin") is used where its id is.
+			ref := id
+			if base, _, ok := strings.Cut(id, i18n.PlatformSep); ok {
+				if m.Texts(ns, i18n.Source, base) == nil {
+					rep.Errors = append(rep.Errors, fmt.Sprintf("%s:%s: a platform variant of a missing message", ns, id))
+				}
+				ref = base
+			}
+			if !used[ns+":"+ref] {
 				rep.Warnings = append(rep.Warnings, fmt.Sprintf("%s:%s: never referenced (or built dynamically)", ns, id))
 			}
 		}

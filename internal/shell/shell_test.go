@@ -5,6 +5,8 @@ import (
 	"image/png"
 	"log/slog"
 	"testing"
+
+	"github.com/eziq1/golauncher/internal/core"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -26,6 +28,8 @@ func TestParseArgs(t *testing.T) {
 }
 
 func TestAccelerator(t *testing.T) {
+	defer func(v bool) { core.MacKeys = v }(core.MacKeys)
+	core.MacKeys = false
 	for in, want := range map[string]string{
 		"Alt+Space":        "Alt+Space",
 		"shift+ctrl+v":     "Ctrl+Shift+V",
@@ -34,6 +38,20 @@ func TestAccelerator(t *testing.T) {
 	} {
 		if got := accelerator(in); got != want {
 			t.Errorf("accelerator(%q) = %q, want %q", in, got, want)
+		}
+	}
+	// On macOS "Ctrl" is ⌘ and "Control" the Control key.
+	core.MacKeys = true
+	for in, want := range map[string]string{
+		"Alt+Space":         "Alt+Space",
+		"shift+ctrl+v":      "Cmd+Shift+V",
+		"Win+Alt+K":         "Cmd+Alt+K",
+		"Control+Space":     "Ctrl+Space",
+		"Ctrl+Control+Up":   "Cmd+Ctrl+Up",
+		"CmdOrCtrl+Shift+P": "Cmd+Shift+P",
+	} {
+		if got := accelerator(in); got != want {
+			t.Errorf("mac: accelerator(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

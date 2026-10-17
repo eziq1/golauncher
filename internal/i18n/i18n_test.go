@@ -92,3 +92,26 @@ func TestManifestKey(t *testing.T) {
 		}
 	}
 }
+
+func TestPlatformVariants(t *testing.T) {
+	m := newTestManager(t, "en")
+	if err := m.Register("x", fstest.MapFS{
+		"en.json":    {Data: []byte(`{"a": "Windows", "a@darwin": "macOS", "b": "B", "c": "C", "c@darwin": "C mac"}`)},
+		"zh-CN.json": {Data: []byte(`{"a": "视窗", "a@darwin": "苹果", "b": "乙", "c": "丙"}`)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	l := m.Localizer("x")
+	if l.T("a") != "Windows" || l.T("b") != "B" {
+		t.Errorf("without a platform: %q %q", l.T("a"), l.T("b"))
+	}
+	m.SetPlatform("darwin")
+	if l.T("a") != "macOS" || l.T("b") != "B" || l.T("c") != "C mac" {
+		t.Errorf("darwin: %q %q %q", l.T("a"), l.T("b"), l.T("c"))
+	}
+	m.SetLocale("zh-CN")
+	// A translated generic text wins over an untranslated variant.
+	if l.T("a") != "苹果" || l.T("b") != "乙" || l.T("c") != "丙" {
+		t.Errorf("zh-CN darwin: %q %q %q", l.T("a"), l.T("b"), l.T("c"))
+	}
+}

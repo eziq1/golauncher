@@ -7,8 +7,9 @@
 // EVERYTHING_IPC_LIST2 reply comes back to a message-only window. Nothing of
 // Everything is bundled: no Everything64.dll, no es.exe, no cgo.
 //
-// On other platforms the functions return errors.ErrUnsupported or report
-// that Everything is not installed.
+// On macOS the same API searches with Spotlight's mdfind instead
+// (everything_darwin.go, spotlight.go). On other platforms the functions
+// return errors.ErrUnsupported or report that Everything is not installed.
 package everything
 
 import (

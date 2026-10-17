@@ -1,5 +1,7 @@
 // Package everything is the builtin.everything plugin: it searches the files
-// and folders of the computer through voidtools Everything.
+// and folders of the computer through voidtools Everything, and on macOS
+// through Spotlight (internal/winapi/everything translates the queries to
+// mdfind; the wording differs, see msg).
 //
 // It relies on an Everything installed by the user; when there is none the
 // plugin stays disabled (plugin.ErrUnavailable). When Everything is
@@ -74,10 +76,12 @@ func (system) Search(ctx context.Context, q everything.Query) ([]everything.Resu
 
 // Plugin is the Everything file search plugin.
 type Plugin struct {
-	b    Backend
-	home string // user profile, shown as "~"
-	base *rules // path tiers, before the extraLowPriorityPaths preference
-	pred predictor
+	b Backend
+	// spotlight words the plugin for Spotlight (New on macOS, platform.go).
+	spotlight bool
+	home      string // user profile, shown as "~"
+	base      *rules // path tiers, before the extraLowPriorityPaths preference
+	pred      predictor
 
 	h    plugin.Host
 	exe  string
@@ -95,7 +99,11 @@ var (
 )
 
 // New returns the plugin searching with the Everything of this machine.
-func New() *Plugin { return NewWithBackend(system{}) }
+func New() *Plugin {
+	p := NewWithBackend(system{})
+	p.spotlight = spotlightSystem
+	return p
+}
 
 // NewWithBackend returns the plugin searching with b.
 func NewWithBackend(b Backend) *Plugin {
@@ -107,8 +115,8 @@ func NewWithBackend(b Backend) *Plugin {
 func (p *Plugin) Manifest() plugin.Manifest {
 	return plugin.Manifest{
 		ID:            ID,
-		Name:          "%plugin.name%",
-		Description:   "%plugin.description%",
+		Name:          "%" + p.msg("plugin.name") + "%",
+		Description:   "%" + p.msg("plugin.description") + "%",
 		Version:       "1.0.0",
 		Icon:          plugin.Icon{Name: "file"},
 		DefaultLocale: "en",
@@ -116,13 +124,13 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Commands: []plugin.Command{{
 			Name:     cmdSearch,
 			Title:    "%command.search.title%",
-			Subtitle: "%command.search.subtitle%",
+			Subtitle: "%" + p.msg("command.search.subtitle") + "%",
 			Mode:     plugin.ModeView,
 			Icon:     plugin.Icon{Name: "file"},
 			Keywords: []string{
 				"%command.search.keyword.files%",
 				"%command.search.keyword.find%",
-				"%command.search.keyword.everything%",
+				"%" + p.msg("command.search.keyword.everything") + "%",
 				"文件",
 			},
 		}},
@@ -134,9 +142,9 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			{Name: prefShowInRoot, Type: plugin.PrefBool, Title: "%pref.showInRoot.title%",
 				Description: "%pref.showInRoot.description%", Default: plugin.MustPayload(false)},
 			{Name: prefHideSystem, Type: plugin.PrefBool, Title: "%pref.hideSystemFiles.title%",
-				Description: "%pref.hideSystemFiles.description%", Default: plugin.MustPayload(false)},
+				Description: "%" + p.msg("pref.hideSystemFiles.description") + "%", Default: plugin.MustPayload(false)},
 			{Name: prefExtraLowPriority, Type: plugin.PrefStringList, Title: "%pref.extraLowPriorityPaths.title%",
-				Description: "%pref.extraLowPriorityPaths.description%", Default: plugin.MustPayload([]string{})},
+				Description: "%" + p.msg("pref.extraLowPriorityPaths.description") + "%", Default: plugin.MustPayload([]string{})},
 		},
 	}
 }
@@ -156,7 +164,7 @@ func (p *Plugin) Locales() fs.FS {
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	exe, ok := p.b.Installed()
 	if !ok {
-		return fmt.Errorf("%s: %w", h.I18n().T("unavailable.notInstalled"), plugin.ErrUnavailable)
+		return fmt.Errorf("%s: %w", h.I18n().T(p.msg("unavailable.notInstalled")), plugin.ErrUnavailable)
 	}
 	p.h, p.exe, p.stop = h, exe, make(chan struct{})
 	if !p.b.Running() {
@@ -258,14 +266,14 @@ func (p *Plugin) ContextItems(_ context.Context, c plugin.Context) ([]plugin.Ite
 	}
 	l := p.h.I18n()
 	var kw []string
-	for w := range strings.SplitSeq(l.T("context.keywords"), ",") {
+	for w := range strings.SplitSeq(l.T(p.msg("context.keywords")), ",") {
 		if w = strings.TrimSpace(w); w != "" {
 			kw = append(kw, w)
 		}
 	}
 	return []plugin.Item{{
 		ID:       "search-folder",
-		Title:    l.T("context.title"),
+		Title:    l.T(p.msg("context.title")),
 		Subtitle: c.Folder,
 		Icon:     plugin.Icon{Name: "search"},
 		Keywords: kw,
@@ -292,7 +300,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 		Title:       l.T("view.title"),
 		Placeholder: l.T("view.placeholder"),
 		ShowDetail:  true,
-		EmptyText:   l.T("view.hint"),
+		EmptyText:   l.T(p.msg("view.hint")),
 	}
 	var scope searchScope
 	if len(req.Payload) > 0 {
@@ -301,7 +309,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 		}
 	}
 	if scope.Scope != "" {
-		name := filepath.Base(strings.TrimRight(scope.Scope, `\/`))
+		name := baseName(strings.TrimRight(scope.Scope, `\/`))
 		if name == "." || name == `\` || name == "" || strings.HasSuffix(name, ":") {
 			name = scope.Scope
 		}
@@ -331,7 +339,7 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 		v.EmptyText = l.T("view.error", "error", err.Error())
 		return v, nil
 	}
-	v.EmptyText = l.T("view.noResults")
+	v.EmptyText = l.T(p.msg("view.noResults"))
 	items := make([]plugin.Item, len(res))
 	for i, r := range res {
 		items[i] = p.item(l, r.Result)
@@ -362,7 +370,7 @@ func (p *Plugin) item(l plugin.Localizer, r everything.Result) plugin.Item {
 		Title:    r.Name,
 		Subtitle: p.shorten(parentDir(r.Path)),
 		Icon:     plugin.Icon{Name: "file"},
-		Actions:  actions(l, r),
+		Actions:  p.actions(l, r),
 	}
 	kind := l.T("kind.file")
 	if r.IsFolder {
@@ -387,11 +395,11 @@ func (p *Plugin) item(l plugin.Localizer, r everything.Result) plugin.Item {
 }
 
 // actions are the actions of a result; opening it is the primary one.
-func actions(l plugin.Localizer, r everything.Result) []plugin.Action {
+func (p *Plugin) actions(l plugin.Localizer, r everything.Result) []plugin.Action {
 	return []plugin.Action{
 		{ID: "open", Title: l.T("action.open"),
 			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: r.Path}},
-		{ID: "reveal", Title: l.T("action.reveal"), Shortcut: "Ctrl+Shift+F",
+		{ID: "reveal", Title: l.T(p.msg("action.reveal")), Shortcut: "Ctrl+Shift+F",
 			Do: plugin.ActionDo{Kind: plugin.ActionOpen, Target: r.Path,
 				Payload: plugin.MustPayload(plugin.OpenOptions{Reveal: true})}},
 		{ID: "copy-path", Title: l.T("action.copyPath"), Shortcut: "Ctrl+Shift+C",
@@ -428,6 +436,20 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		}
 	}
 	return plugin.Result{Refresh: true, Toast: &plugin.Toast{Style: plugin.ToastSuccess, Title: l.T("toast.started")}}, nil
+}
+
+// baseName is the last element of path. A Windows path (with a drive
+// letter or a UNC prefix) is split at backslashes on every platform, as
+// the fixtures of glctl's fake environment are Windows paths; elsewhere it
+// is filepath.Base.
+func baseName(path string) string {
+	if len(path) >= 2 && path[1] == ':' || strings.HasPrefix(path, `\\`) {
+		if i := strings.LastIndexAny(path, `\/`); i >= 0 {
+			return path[i+1:]
+		}
+		return path
+	}
+	return filepath.Base(path)
 }
 
 // parentDir is the folder of a Windows path, or "" for a drive root.
