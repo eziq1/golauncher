@@ -159,3 +159,9 @@
   - CI 的 Windows job 新增"Release scripts"一步，提前跑 `scripts/windows/build.ps1` 和 `scripts/release/changelog.ps1`。
 - **结果**：2026-10-17 在 `b07ecda` 上打了 `v0.7.0`。第一次运行时 Windows job 的 `TestPythonHello` 偶发失败（启动示例 Python 插件时报"插件崩溃"；同一代码前两轮 CI 都通过，代码没有改动），只重跑失败的 job 后通过。Release 为正式版，`/releases/latest` 指向它。产物：`windows_amd64`（21.4MB）、`windows_arm64`（19.7MB）、`darwin_amd64`（21.9MB）、`darwin_arm64`（20.1MB）四个 zip 和 `checksums.txt`。下载 `darwin_amd64` 在 Intel Mac 上验证过：SHA-256 一致、签名有效、架构 x86_64、版本 0.7.0。<https://github.com/eziq1/golauncher/releases/tag/v0.7.0>
 
+## 14. v0.8.0（R86）
+
+- **内容**：AI 对话支持多个 Claude Code 版本（[ai.md §23](ai.md)，修复 2.1.259 以前的版本报 `unknown option --permission-prompts`）；设置 › 插件 › AI › 后端（R84，另一个会话开发）；"关于"和 macOS 安装窗口的文字、AI 的系统提示说明当前系统（R85）。
+- **版本号**：原先说发 0.7.1，因为带了 R84 的新设置页，按语义化版本改为 0.8.0。
+- **合并**：`claude-compat` 和 main 上的 R84 都改了 AI 运行层：两边给 `cliInfo` 加的字段都保留；两边都新增了 `Runtime.probe`，版本兼容的改名为 `probeFlags`；分支上的"检查"按钮和 R84 的后端页重复，去掉了。
+- **结果**：2026-10-17 在 `11444a7` 上打了 `v0.8.0`，CI 和发布工作流一次通过。Release 为正式版，`/releases/latest` 指向它。产物：`windows_amd64`（21.5MB）、`windows_arm64`（19.8MB）、`darwin_amd64`（22MB）、`darwin_arm64`（20.2MB）和 `checksums.txt`。下载 `darwin_amd64` 在 Intel Mac 上验证过：SHA-256 一致、签名有效、x86_64、版本 0.8.0。<https://github.com/eziq1/golauncher/releases/tag/v0.8.0>
