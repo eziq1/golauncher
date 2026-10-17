@@ -150,7 +150,9 @@ func (r *runner) get(j job, debounce, sync bool) []row {
 
 // wait waits for done, at most a little longer than the engines' timeout.
 func (r *runner) wait(done <-chan struct{}) {
-	t := time.NewTimer(2*r.p.opts.Timeout + time.Second)
+	// Within a view's time limit (10s); a slow engine's row stays pending
+	// and is pulled again when it answers.
+	t := time.NewTimer(r.p.opts.Timeout + 3*time.Second)
 	defer t.Stop()
 	select {
 	case <-done:
@@ -271,7 +273,11 @@ func (r *runner) translate(ctx context.Context, eng engines.Engine, j job) (engi
 }
 
 func (r *runner) ask(ctx context.Context, eng engines.Engine, req engines.Request) (engines.Result, error) {
-	tctx, cancel := context.WithTimeout(ctx, r.p.opts.Timeout)
+	d := r.p.opts.Timeout
+	if t, ok := eng.(engines.Timeouter); ok && t.Timeout() > d {
+		d = t.Timeout() // a local model may first have to load
+	}
+	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 	res, err := eng.Translate(tctx, req)
 	if err != nil && ctx.Err() == nil && tctx.Err() != nil {

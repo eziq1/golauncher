@@ -102,7 +102,9 @@
     already in it). Enter copies, Ctrl+Enter pastes into the previous
     window; swap the languages or open Google Translate, DeepL or Youdao.
     Text is sent only after the prefix; an instant translation of selected
-    text is off by default.
+    text is off by default. Add your own engines as HTTP templates, or
+    translate offline with a local model through Ollama; an optional
+    history of the translations you copy (off by default, local only).
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;

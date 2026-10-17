@@ -35,6 +35,12 @@ Before 1.0.0, minor versions may contain breaking changes.
   *Read Translation Aloud* / *Read Original Aloud* use the system's voices
   (SAPI on Windows, `say` on macOS), only when picked. *Translate with AI*
   opens an AI chat with the text.
+  *Custom engines*: one HTTP template per line (`name | GET/POST | URL |
+  JSON path [| body [| headers]]` with `{text}`, `{from}`, `{to}`). A local
+  model through Ollama's OpenAI-compatible endpoint (model chosen from the
+  server's list; offline). *Translation History* (off by default): the
+  translations you copy or paste, kept locally for 1–90 days, never synced;
+  *Clear History* in the settings, and turning it off deletes it.
 - **Plugin SDK: `ActionAskAI`** (`plugin.AskAI`, `plugin.AIAsker`): any
   plugin's action can hand text with an instruction to the AI chat; with AI
   off the chat asks to turn it on first (docs/plugin-guide.md "Asking AI").

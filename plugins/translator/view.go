@@ -18,7 +18,11 @@ func (p *Plugin) View(ctx context.Context, req plugin.ViewRequest) (plugin.View,
 	l := p.h.I18n()
 	v := plugin.View{Kind: plugin.ViewList, Title: l.T("view.title"), Placeholder: l.T("view.placeholder"), ShowDetail: true,
 		EmptyText: l.T("view.empty")}
-	if req.ID != viewTranslate {
+	switch req.ID {
+	case viewHistory:
+		return p.historyView(req), nil
+	case viewTranslate:
+	default:
 		return v, nil
 	}
 	var pl viewPayload

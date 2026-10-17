@@ -18,6 +18,7 @@ func TestGoldenTranslator(t *testing.T) {
 		{"query_translate_lang", []string{"query", "tr en>ja good morning"}},
 		{"zh_query_translate", []string{"query", "翻译 你好", "--locale", "zh-CN"}},
 		{"run_translate", []string{"run", "builtin.translator/translate", "--text", ">de thank you"}},
+		{"run_translate_history_off", []string{"run", "builtin.translator/history"}}, // off by default
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			out, code := glctl(t, tc.args...)

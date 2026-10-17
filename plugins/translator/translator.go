@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -43,6 +44,13 @@ const (
 	prefYoudaoKey = "youdaoSecret"
 	prefBaiduApp  = "baiduAppID"
 	prefBaiduKey  = "baiduSecret"
+	// Phase 3.
+	prefHistory      = "history"
+	prefHistoryDays  = "historyDays"
+	prefClearHistory = "clearHistory"
+	prefCustom       = "customEngines"
+	prefOllamaURL    = "ollamaURL"
+	prefOllamaModel  = "ollamaModel"
 )
 
 // Engine IDs.
@@ -53,15 +61,19 @@ const (
 	engAzure    = "azure"
 	engYoudao   = "youdao"
 	engBaidu    = "baidu"
+	engOllama   = "ollama"
+	// customPrefix starts the IDs of the user's engines ("custom:Name").
+	customPrefix = "custom:"
 )
 
 // knownEngines are the IDs of the engines.
-var knownEngines = []string{engGoogle, engMyMemory, engDeepL, engAzure, engYoudao, engBaidu}
+var knownEngines = []string{engGoogle, engMyMemory, engDeepL, engAzure, engYoudao, engBaidu, engOllama}
 
 // defaultEngines is the default of prefEngines: engines that need a key are
 // skipped while it is not set, so DeepL and Azure come first once theirs
-// is (docs/translator.md §3), then Youdao and Baidu.
-var defaultEngines = []string{engDeepL, engAzure, engYoudao, engBaidu, engGoogle}
+// is (docs/translator.md §3), then Youdao and Baidu; a local model (Ollama)
+// once its model is chosen.
+var defaultEngines = []string{engDeepL, engAzure, engYoudao, engBaidu, engGoogle, engOllama}
 
 // keyPrefs are the preferences an engine needs, by engine ID.
 var keyPrefs = map[string][]string{
@@ -69,6 +81,7 @@ var keyPrefs = map[string][]string{
 	engAzure:  {prefAzureKey},
 	engYoudao: {prefYoudaoApp, prefYoudaoKey},
 	engBaidu:  {prefBaiduApp, prefBaiduKey},
+	engOllama: {prefOllamaModel},
 }
 
 const (
@@ -122,6 +135,8 @@ type Plugin struct {
 	// speaking stops the speech going on; speech waits for it.
 	speaking context.CancelFunc
 	speech   sync.WaitGroup
+	// histMu serializes the history's reads and writes.
+	histMu sync.Mutex
 }
 
 // settings is a snapshot of the preferences, read when they change (keys
@@ -133,13 +148,14 @@ type settings struct {
 }
 
 var (
-	_ plugin.Plugin            = (*Plugin)(nil)
-	_ plugin.RootProvider      = (*Plugin)(nil)
-	_ plugin.ViewProvider      = (*Plugin)(nil)
-	_ plugin.ViewCloser        = (*Plugin)(nil)
-	_ plugin.SelectionProvider = (*Plugin)(nil)
-	_ plugin.LocaleProvider    = (*Plugin)(nil)
-	_ plugin.ActionHandler     = (*Plugin)(nil)
+	_ plugin.Plugin                    = (*Plugin)(nil)
+	_ plugin.RootProvider              = (*Plugin)(nil)
+	_ plugin.ViewProvider              = (*Plugin)(nil)
+	_ plugin.ViewCloser                = (*Plugin)(nil)
+	_ plugin.SelectionProvider         = (*Plugin)(nil)
+	_ plugin.LocaleProvider            = (*Plugin)(nil)
+	_ plugin.ActionHandler             = (*Plugin)(nil)
+	_ plugin.PreferenceOptionsProvider = (*Plugin)(nil)
 )
 
 // New returns the plugin for the real network.
@@ -180,10 +196,12 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Version:       "1.0.0",
 		Icon:          plugin.Icon{Name: "languages"},
 		DefaultLocale: "en",
-		Permissions:   []plugin.Permission{plugin.PermNetwork, plugin.PermSelection},
+		Permissions:   []plugin.Permission{plugin.PermNetwork, plugin.PermSelection, plugin.PermStorage},
 		Commands: []plugin.Command{
 			{Name: viewTranslate, Title: "%command.translate.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "languages"},
 				Keywords: []string{"%command.translate.keywords%"}},
+			{Name: viewHistory, Title: "%command.history.title%", Mode: plugin.ModeView, Icon: plugin.Icon{Name: "history"},
+				Keywords: []string{"%command.history.keywords%"}},
 		},
 		Preferences: []plugin.Preference{
 			{Name: prefTarget, Type: plugin.PrefSelect, Title: "%pref.target.title%", Description: "%pref.target.description%",
@@ -210,6 +228,21 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				Group: "%group.keys%"},
 			{Name: prefBaiduKey, Type: plugin.PrefPassword, Title: "%pref.baiduSecret.title%", Description: "%pref.baiduSecret.description%",
 				Group: "%group.keys%"},
+			{Name: prefOllamaModel, Type: plugin.PrefSelect, Title: "%pref.ollamaModel.title%", Description: "%pref.ollamaModel.description%",
+				Default: plugin.MustPayload(""), DynamicOptions: true, Group: "%group.local%"},
+			{Name: prefOllamaURL, Type: plugin.PrefText, Title: "%pref.ollamaURL.title%", Description: "%pref.ollamaURL.description%",
+				Default: plugin.MustPayload(engines.OllamaBase), Group: "%group.local%"},
+			{Name: prefCustom, Type: plugin.PrefStringList, Title: "%pref.customEngines.title%", Description: "%pref.customEngines.description%",
+				Group: "%group.custom%"},
+			{Name: prefHistory, Type: plugin.PrefBool, Title: "%pref.history.title%", Description: "%pref.history.description%",
+				Default: plugin.MustPayload(false), Group: "%group.history%"},
+			{Name: prefHistoryDays, Type: plugin.PrefSelect, Title: "%pref.historyDays.title%", Description: "%pref.historyDays.description%",
+				Default: plugin.MustPayload(strconv.Itoa(defaultHistoryDays)), Group: "%group.history%",
+				VisibleWhen: &plugin.Condition{Pref: prefHistory, Equals: plugin.MustPayload(true)},
+				Options: []plugin.Option{{Value: "1", Title: "%pref.historyDays.1%"}, {Value: "7", Title: "%pref.historyDays.7%"},
+					{Value: "30", Title: "%pref.historyDays.30%"}, {Value: "90", Title: "%pref.historyDays.90%"}}},
+			{Name: prefClearHistory, Type: plugin.PrefButton, Title: "%pref.clearHistory.title%", Description: "%pref.clearHistory.description%",
+				Group: "%group.history%", Action: &plugin.ActionDo{Kind: plugin.ActionCallback, Target: cbClearHistory}},
 		},
 	}
 }
@@ -242,6 +275,7 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.unsubs, p.seen = nil, map[string]bool{}
 	p.mu.Unlock()
 	p.reload()
+	p.pruneHistory()
 	ev := h.Events()
 	unsubs := []func(){
 		ev.Subscribe(plugin.EventConfigChanged, p.configChanged),
@@ -276,6 +310,7 @@ func (p *Plugin) Close() error {
 // from engines no longer used.
 func (p *Plugin) configChanged() {
 	p.reload()
+	p.pruneHistory() // turning the history off deletes it
 	p.typing.clear()
 	p.sel.clear()
 }
@@ -297,6 +332,7 @@ func (p *Plugin) reload() {
 	if len(ids) == 0 {
 		ids = defaultEngines
 	}
+	customs := p.customEngines(env)
 	var seen []string
 	for _, raw := range ids {
 		id := strings.ToLower(strings.TrimSpace(raw))
@@ -304,10 +340,19 @@ func (p *Plugin) reload() {
 			continue
 		}
 		seen = append(seen, id)
+		if strings.HasPrefix(id, customPrefix) {
+			// A custom engine named in the list goes there.
+			if i := slices.IndexFunc(customs, func(e engines.Engine) bool { return strings.EqualFold(e.ID(), id) }); i >= 0 {
+				list = append(list, customs[i])
+				customs = slices.Delete(customs, i, i+1)
+			}
+			continue
+		}
 		if e := p.newEngine(id, env); e != nil {
 			list = append(list, e)
 		}
 	}
+	list = append(list, customs...) // the others after the listed engines
 	var fallback engines.Engine
 	if prefs.Bool(prefFallback) && !slices.Contains(seen, engMyMemory) {
 		fallback = p.newEngine(engMyMemory, env)
@@ -346,6 +391,8 @@ func (p *Plugin) newEngine(id string, env engines.Env) engines.Engine {
 		return &engines.Youdao{Env: env, AppKey: prefs.String(prefYoudaoApp), Secret: prefs.String(prefYoudaoKey), BaseURL: base}
 	case engBaidu:
 		return &engines.Baidu{Env: env, AppID: prefs.String(prefBaiduApp), Secret: prefs.String(prefBaiduKey), BaseURL: base}
+	case engOllama:
+		return &engines.Ollama{Env: env, BaseURL: firstOf(base, prefs.String(prefOllamaURL)), Model: prefs.String(prefOllamaModel)}
 	}
 	return nil
 }

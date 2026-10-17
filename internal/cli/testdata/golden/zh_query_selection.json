@@ -575,6 +575,39 @@
           "key": "builtin.translator/cmd:translate"
         },
         {
+          "id": "cmd:history",
+          "title": "翻译历史",
+          "subtitle": "翻译",
+          "icon": {
+            "name": "history"
+          },
+          "keywords": [
+            "翻译历史",
+            "fyls",
+            "翻译",
+            "历史",
+            "translation history",
+            "history",
+            "tr",
+            "Translation History",
+            "translate"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/cmd:history"
+        },
+        {
           "id": "cmd:tracert",
           "title": "跟踪路由",
           "subtitle": "网络工具",

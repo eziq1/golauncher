@@ -1,6 +1,8 @@
 package translator
 
 import (
+	"strings"
+
 	"github.com/eziq1/golauncher/pkg/plugin"
 	"github.com/eziq1/golauncher/plugins/translator/engines"
 )
@@ -23,8 +25,10 @@ func engineName(l plugin.Localizer, id string) string {
 		return l.T("engine.youdao")
 	case engBaidu:
 		return l.T("engine.baidu")
+	case engOllama:
+		return l.T("engine.ollama")
 	}
-	return id
+	return strings.TrimPrefix(id, customPrefix) // a custom engine: its name
 }
 
 // webName is the name of a translation website.

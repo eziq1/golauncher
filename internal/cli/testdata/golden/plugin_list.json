@@ -735,12 +735,18 @@
     "enabled": true,
     "permissions": [
       "network",
-      "selection"
+      "selection",
+      "storage"
     ],
     "commands": [
       {
         "name": "translate",
         "title": "Translate",
+        "mode": "view"
+      },
+      {
+        "name": "history",
+        "title": "Translation History",
         "mode": "view"
       }
     ],
@@ -845,13 +851,14 @@
         "name": "engines",
         "type": "stringList",
         "title": "Engines",
-        "description": "The engines asked, in order, one row each: deepl (DeepL API), azure (Azure AI Translator), youdao (Youdao AI Cloud), baidu (Baidu Translate) — each needs a key below and is skipped until it is set; google (Google Translate’s web endpoint: no key, not an official API, may stop working; usually unreachable in mainland China), mymemory (MyMemory by Translated: no key, about 5,000 characters a day, 50,000 with an email address). The text after the prefix is sent to each of them.",
+        "description": "The engines asked, in order, one row each: deepl (DeepL API), azure (Azure AI Translator), youdao (Youdao AI Cloud), baidu (Baidu Translate) — each needs a key below and is skipped until it is set; google (Google Translate’s web endpoint: no key, not an official API, may stop working; usually unreachable in mainland China), mymemory (MyMemory by Translated: no key, about 5,000 characters a day, 50,000 with an email address); ollama (a local model, once one is chosen below: nothing leaves the computer). Your custom engines come after these unless you list them here as custom:Name. The text after the prefix is sent to each of them.",
         "default": [
           "deepl",
           "azure",
           "youdao",
           "baidu",
-          "google"
+          "google",
+          "ollama"
         ]
       },
       {
@@ -923,6 +930,78 @@
         "title": "Baidu Translate secret key",
         "description": "Used to sign requests; it is never sent. Stored in the Windows Credential Manager or the macOS Keychain.",
         "group": "Keys"
+      },
+      {
+        "name": "ollamaModel",
+        "type": "select",
+        "title": "Ollama model",
+        "description": "A model of your local Ollama server to translate with, offline (e.g. qwen2.5 or llama3.1). Install Ollama and pull a model first; local models are slower than the web engines.",
+        "dynamicOptions": true,
+        "group": "Local model"
+      },
+      {
+        "name": "ollamaURL",
+        "type": "text",
+        "title": "Ollama address",
+        "description": "Where Ollama listens; its OpenAI-compatible endpoint (/v1/chat/completions) is used.",
+        "default": "http://localhost:11434",
+        "group": "Local model"
+      },
+      {
+        "name": "customEngines",
+        "type": "stringList",
+        "title": "Custom engines",
+        "description": "One engine per line: name | GET or POST | URL | JSON path of the translation [| body [| headers]]. {text}, {from} and {to} are filled in (escaped for the URL, a JSON body or a form). Example: My API | POST | https://example.com/translate | data.text | {\"q\":\"{text}\",\"target\":\"{to}\"} | Authorization: Bearer KEY. Lines are stored in the configuration file, keys too: prefer engines with a key field above.",
+        "group": "Custom engines"
+      },
+      {
+        "name": "history",
+        "type": "bool",
+        "title": "Keep a translation history",
+        "description": "Records the translations you copy or paste (not what you type), on this computer only: never synced or sent. Turning it off deletes it.",
+        "default": false,
+        "group": "History"
+      },
+      {
+        "name": "historyDays",
+        "type": "select",
+        "title": "Keep the history for",
+        "description": "Older translations are deleted.",
+        "default": "30",
+        "options": [
+          {
+            "value": "1",
+            "title": "1 day"
+          },
+          {
+            "value": "7",
+            "title": "7 days"
+          },
+          {
+            "value": "30",
+            "title": "30 days"
+          },
+          {
+            "value": "90",
+            "title": "90 days"
+          }
+        ],
+        "group": "History",
+        "visibleWhen": {
+          "pref": "history",
+          "equals": true
+        }
+      },
+      {
+        "name": "clearHistory",
+        "type": "button",
+        "title": "Clear History",
+        "description": "Deletes every recorded translation.",
+        "group": "History",
+        "action": {
+          "kind": "Callback",
+          "target": "clearHistory"
+        }
       }
     ],
     "origin": "builtin"

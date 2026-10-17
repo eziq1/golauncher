@@ -66,9 +66,13 @@ func (p *Plugin) HandleAction(_ context.Context, a plugin.ActionDo) (plugin.Resu
 		}
 		p.speak(sp)
 		return plugin.Result{}, nil
+	case cbUse, cbForget, cbClearHistory:
+		return p.historyAction(a)
 	}
-	return plugin.Result{}, fmt.Errorf("translator: unknown action %q", a.Target)
+	return plugin.Result{}, fmt.Errorf("%w %q", errUnknownAction, a.Target)
 }
+
+var errUnknownAction = errors.New("translator: unknown action")
 
 // speak reads text aloud in the background, stopping what is being read.
 func (p *Plugin) speak(sp speakPayload) {

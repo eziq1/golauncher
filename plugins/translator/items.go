@@ -141,6 +141,12 @@ func (p *Plugin) rowItem(j job, r row, o origin) plugin.Item {
 		Detail:   p.detail(j, r),
 	}
 	it.Actions = p.resultActions(tr, text, from, r.to, o)
+	e := historyEntry{Text: text, Translation: tr, From: from, To: r.to, Engine: r.engine}
+	for i := range it.Actions {
+		if id := it.Actions[i].ID; id == "copy" || id == "paste" || id == "replace" {
+			it.Actions[i] = p.recording(it.Actions[i], e)
+		}
+	}
 	return it
 }
 

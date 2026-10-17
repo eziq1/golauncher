@@ -118,6 +118,35 @@
           "plugin": "builtin.translator",
           "key": "builtin.translator/cmd:translate",
           "rank": 0.7
+        },
+        {
+          "id": "cmd:history",
+          "title": "Translation History",
+          "subtitle": "Translator",
+          "icon": {
+            "name": "history"
+          },
+          "keywords": [
+            "translation history",
+            "translate",
+            "history",
+            "tr"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "history"
+              }
+            }
+          ],
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/cmd:history",
+          "rank": 0.6649999999999999
         }
       ]
     },
