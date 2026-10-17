@@ -18,7 +18,7 @@ const fixtures = "../../testdata/fixtures"
 
 // queries touch the root items of most built-in plugins.
 var queries = []string{"1+1", "100 usd", "timer 25m", "time tokyo", "notepad", "terminal", "ping", "ip", "recycle",
-	"g hello", "ask ai", "scoop", "winget", "processes", "clipboard", "files", "script", "world clock"}
+	"g hello", "tr hello", "ask ai", "scoop", "winget", "processes", "clipboard", "files", "script", "world clock"}
 
 func snapshot(t *testing.T, env *app.Env) map[string][]string {
 	t.Helper()

@@ -457,6 +457,8 @@
   "toast.permission.automation": "golauncher 无法控制访达",
   "toast.permission.automation.message": "要针对访达中的文件夹操作，请在 系统设置 › 隐私与安全性 › 自动化 中允许 golauncher（或运行它的终端）控制访达。设置 › 权限 中可查看状态。",
   "toast.pasteManual": "已复制，请按 ⌘V 粘贴",
+  "toast.aiUnavailable": "AI 不可用",
+  "toast.aiUnavailable.message": "请在 设置 › 插件 里打开 AI 插件。",
   "toast.pasteManual.message": "授予辅助功能权限后即可自动粘贴（设置 › 权限）。",
   "toast.permission.onboarding": "授予几项 macOS 权限后，golauncher 更好用",
   "toast.permission.onboarding.message": "设置 › 权限 中说明了每项权限的用途，并可直接打开系统设置。",

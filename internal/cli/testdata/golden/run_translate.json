@@ -1,0 +1,176 @@
+{
+  "step": "run builtin.translator/translate",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.translator",
+      "request": {
+        "id": "translate",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Translate",
+    "placeholder": "Text to translate (ja hello, en>zh apple)…",
+    "text": ">de thank you",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "result:google",
+            "title": "[de] thank you",
+            "subtitle": "Google Translate · English → German",
+            "icon": {
+              "name": "languages"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Translation",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "[de] thank you"
+                }
+              },
+              {
+                "id": "paste",
+                "title": "Paste to Previous Window",
+                "do": {
+                  "kind": "Paste",
+                  "target": "[de] thank you"
+                }
+              },
+              {
+                "id": "swap",
+                "title": "Swap Languages",
+                "do": {
+                  "kind": "Push",
+                  "target": "translate",
+                  "payload": {
+                    "text": "[de] thank you",
+                    "from": "de",
+                    "to": "en"
+                  }
+                }
+              },
+              {
+                "id": "copy-original",
+                "title": "Copy Original Text",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "thank you"
+                }
+              },
+              {
+                "id": "speak",
+                "title": "Read Translation Aloud",
+                "readOnly": true,
+                "do": {
+                  "kind": "Callback",
+                  "target": "speak",
+                  "payload": {
+                    "text": "[de] thank you",
+                    "lang": "de"
+                  }
+                }
+              },
+              {
+                "id": "speak-original",
+                "title": "Read Original Aloud",
+                "readOnly": true,
+                "do": {
+                  "kind": "Callback",
+                  "target": "speak",
+                  "payload": {
+                    "text": "thank you",
+                    "lang": "en"
+                  }
+                }
+              },
+              {
+                "id": "ai",
+                "title": "Translate with AI",
+                "do": {
+                  "kind": "AskAI",
+                  "payload": {
+                    "instruction": "Translate the quoted text into German. Output only the translation.",
+                    "text": "thank you",
+                    "title": "Translate: thank you"
+                  }
+                }
+              },
+              {
+                "id": "web-google",
+                "title": "Open in Google Translate",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://translate.google.com/?sl=en&tl=de&text=thank+you&op=translate"
+                }
+              },
+              {
+                "id": "web-deepl",
+                "title": "Open in DeepL",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.deepl.com/translator#en/de/thank%20you"
+                }
+              },
+              {
+                "id": "web-youdao",
+                "title": "Open in Youdao",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.youdao.com/result?word=thank+you&lang=en"
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "\\[de] thank you\n\n---\n\nthank you",
+              "metadata": [
+                {
+                  "label": "Engine",
+                  "value": "Google Translate"
+                },
+                {
+                  "label": "From",
+                  "value": "English"
+                },
+                {
+                  "label": "To",
+                  "value": "German"
+                }
+              ]
+            },
+            "transient": true,
+            "plugin": "builtin.translator",
+            "key": "builtin.translator/result:google"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "showDetail": true,
+    "detail": {
+      "markdown": "\\[de] thank you\n\n---\n\nthank you",
+      "metadata": [
+        {
+          "label": "Engine",
+          "value": "Google Translate"
+        },
+        {
+          "label": "From",
+          "value": "English"
+        },
+        {
+          "label": "To",
+          "value": "German"
+        }
+      ]
+    },
+    "emptyText": "Type the text to translate"
+  }
+}

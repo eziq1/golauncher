@@ -19,6 +19,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
 | [`timer`](../plugins/timer/) | keep state in `Storage`, run a scheduler on `Host.Go`, notify with `Host.Toast` |
 | [`quicklinks`](../plugins/quicklinks/) | offer fallback items, take keyword-prefixed text, create and edit data with forms, fetch in the background with debouncing and cancellation |
+| [`translator`](../plugins/translator/) | score prefixed root queries, ask several web APIs in parallel (debounced, cancelled, cached) and keep their engines behind one interface tested with `httptest`, keep API keys in password preferences, offer an opt-in action on the selected text |
 | [`processes`](../plugins/processes/) | sample only while shown (one loop for the root search and every open view), put system calls behind a `Backend` with a fixture and a dry-run variant, show values with bars (`Accessories`), keep sensitive parts from AI, need a space after a prefix (`Query.Raw`) |
 
 A prefix that must be followed by a space (`ps ` but not `ps`, which finds
@@ -313,6 +314,31 @@ first.
 
 These are in-process only for now; the external plugin protocol does not
 carry them.
+
+### Asking AI: `ActionAskAI`
+
+Plugins cannot call each other, but any action can hand text to the
+launcher's AI chat with the host action **`ActionAskAI`**:
+
+```go
+plugin.Action{ID: "ai", Title: l.T("action.ai"), Do: plugin.ActionDo{Kind: plugin.ActionAskAI,
+	Payload: plugin.MustPayload(plugin.AskAI{
+		Instruction: "Translate the quoted text into Japanese. Output only the translation.",
+		Text:        text,                                  // sent as a quote after the instruction
+		Title:       l.T("ai.title", "text", short(text)), // the chat's title ("" for the message's start)
+	})}}
+```
+
+- The host passes the `AskAI` to the enabled plugin implementing
+  `plugin.AIAsker` (`builtin.ai`), and applies its `Result` as an action's:
+  a new chat opens and sends the message. With AI turned off, the chat
+  shows the prompt to turn it on first and sends once it is; with the AI
+  plugin turned off in Settings, a toast says AI is not available.
+- Write the instruction in English (the AI answers in the user's
+  language); without `Text` the instruction is the whole message.
+- It may also be a `Result.Do`. For an AI using the launcher's tools it is
+  a "change" action (the user confirms). The translator's *Translate with
+  AI* is the example.
 
 ### Chat-like views
 

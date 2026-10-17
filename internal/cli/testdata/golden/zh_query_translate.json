@@ -1,0 +1,144 @@
+{
+  "query": "翻译 你好",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "翻译",
+      "items": [
+        {
+          "id": "result:google",
+          "title": "[en] 你好",
+          "subtitle": "Google 翻译 · 简体中文 → 英语",
+          "icon": {
+            "name": "languages"
+          },
+          "group": "翻译",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "复制译文",
+              "do": {
+                "kind": "CopyText",
+                "target": "[en] 你好"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "粘贴到前一个窗口",
+              "do": {
+                "kind": "Paste",
+                "target": "[en] 你好"
+              }
+            },
+            {
+              "id": "swap",
+              "title": "交换源语言和目标语言",
+              "do": {
+                "kind": "Push",
+                "target": "translate",
+                "payload": {
+                  "text": "[en] 你好",
+                  "from": "en",
+                  "to": "zh-CN"
+                }
+              }
+            },
+            {
+              "id": "copy-original",
+              "title": "复制原文",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "你好"
+              }
+            },
+            {
+              "id": "speak",
+              "title": "朗读译文",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "[en] 你好",
+                  "lang": "en"
+                }
+              }
+            },
+            {
+              "id": "speak-original",
+              "title": "朗读原文",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "你好",
+                  "lang": "zh-CN"
+                }
+              }
+            },
+            {
+              "id": "ai",
+              "title": "用 AI 翻译",
+              "do": {
+                "kind": "AskAI",
+                "payload": {
+                  "instruction": "Translate the quoted text into English. Output only the translation.",
+                  "text": "你好",
+                  "title": "翻译：你好"
+                }
+              }
+            },
+            {
+              "id": "web-google",
+              "title": "在Google 翻译中打开",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/?sl=zh-CN&tl=en&text=%E4%BD%A0%E5%A5%BD&op=translate"
+              }
+            },
+            {
+              "id": "web-deepl",
+              "title": "在DeepL中打开",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.deepl.com/translator#zh/en/%E4%BD%A0%E5%A5%BD"
+              }
+            },
+            {
+              "id": "web-youdao",
+              "title": "在有道翻译中打开",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.youdao.com/result?word=%E4%BD%A0%E5%A5%BD&lang=en"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "\\[en] 你好\n\n---\n\n你好",
+            "metadata": [
+              {
+                "label": "引擎",
+                "value": "Google 翻译"
+              },
+              {
+                "label": "源语言",
+                "value": "简体中文"
+              },
+              {
+                "label": "目标语言",
+                "value": "英语"
+              }
+            ]
+          },
+          "transient": true,
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/result:google",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

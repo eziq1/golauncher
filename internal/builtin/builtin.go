@@ -37,6 +37,8 @@ import (
 	"github.com/eziq1/golauncher/plugins/system"
 	"github.com/eziq1/golauncher/plugins/terminal"
 	"github.com/eziq1/golauncher/plugins/timer"
+	"github.com/eziq1/golauncher/plugins/translator"
+	"github.com/eziq1/golauncher/plugins/translator/engines"
 	"github.com/eziq1/golauncher/plugins/winget"
 )
 
@@ -66,6 +68,7 @@ func All() []plugin.Plugin {
 		terminal.New(),
 		network.New(),
 		processes.New(),
+		translator.New(),
 		quicklinks.New(), // its fallback comes after ai's: FallbackOrderLast (docs/quicklinks.md §3)
 		ai.NewWithOptions(ai.Options{Backends: aiBackends()}),
 	}
@@ -174,6 +177,7 @@ func FakeOn(platform, dir string, pluginRoots ...string) []plugin.Plugin {
 		terminal.NewWithOptions(terminal.FixtureOptions(dir)),
 		network.NewFake(fixture(dir, "network.json")),
 		processes.NewFake(fixture(dir, "processes.json")),
+		fakeTranslator(),
 		fakeQuicklinks(),
 		fakeAI(),
 	}
@@ -277,6 +281,19 @@ func fakeQuicklinks() *quicklinks.Plugin {
 		return []shell.Browser{{Name: "Firefox", Path: `C:\Program Files\Mozilla Firefox\firefox.exe`}}
 	}})
 }
+
+// fakeTranslator is the translator with fake engines that answer "[to] text"
+// at once and offline (engines.Fake); it never goes online.
+func fakeTranslator() *translator.Plugin {
+	return translator.NewWithOptions(translator.Options{Offline: true, Sync: true, Speaker: silentSpeaker{},
+		Engine: func(id string) engines.Engine { return &engines.Fake{EngineID: id} }})
+}
+
+// silentSpeaker stands in for reading aloud in the fake environment: it
+// never makes a sound.
+type silentSpeaker struct{}
+
+func (silentSpeaker) Speak(context.Context, string, string) error { return nil }
 
 // noOpen stands in for opening files in fake mode.
 func noOpen(string, plugin.OpenOptions) error { return nil }

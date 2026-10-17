@@ -726,6 +726,288 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.translator",
+    "name": "Translator",
+    "description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint, MyMemory or DeepL. Text is sent only after one of these prefixes.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "languages"
+    },
+    "enabled": true,
+    "permissions": [
+      "network",
+      "selection",
+      "storage"
+    ],
+    "commands": [
+      {
+        "name": "translate",
+        "title": "Translate",
+        "mode": "view"
+      },
+      {
+        "name": "history",
+        "title": "Translation History",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "target",
+        "type": "select",
+        "title": "Translate into",
+        "description": "The language text goes into when the query names none. Automatic: the language of the interface, or English for text already in it (Simplified Chinese for English text in the English interface).",
+        "options": [
+          {
+            "value": "",
+            "title": "Automatic"
+          },
+          {
+            "value": "en",
+            "title": "English"
+          },
+          {
+            "value": "zh-CN",
+            "title": "Chinese (Simplified)"
+          },
+          {
+            "value": "zh-TW",
+            "title": "Chinese (Traditional)"
+          },
+          {
+            "value": "ja",
+            "title": "Japanese"
+          },
+          {
+            "value": "ko",
+            "title": "Korean"
+          },
+          {
+            "value": "fr",
+            "title": "French"
+          },
+          {
+            "value": "de",
+            "title": "German"
+          },
+          {
+            "value": "es",
+            "title": "Spanish"
+          },
+          {
+            "value": "ru",
+            "title": "Russian"
+          },
+          {
+            "value": "pt",
+            "title": "Portuguese"
+          },
+          {
+            "value": "it",
+            "title": "Italian"
+          },
+          {
+            "value": "ar",
+            "title": "Arabic"
+          },
+          {
+            "value": "th",
+            "title": "Thai"
+          },
+          {
+            "value": "vi",
+            "title": "Vietnamese"
+          },
+          {
+            "value": "id",
+            "title": "Indonesian"
+          },
+          {
+            "value": "nl",
+            "title": "Dutch"
+          },
+          {
+            "value": "pl",
+            "title": "Polish"
+          },
+          {
+            "value": "tr",
+            "title": "Turkish"
+          },
+          {
+            "value": "uk",
+            "title": "Ukrainian"
+          },
+          {
+            "value": "sv",
+            "title": "Swedish"
+          },
+          {
+            "value": "hi",
+            "title": "Hindi"
+          }
+        ]
+      },
+      {
+        "name": "engines",
+        "type": "stringList",
+        "title": "Engines",
+        "description": "The engines asked, in order, one row each: deepl (DeepL API), azure (Azure AI Translator), youdao (Youdao AI Cloud), baidu (Baidu Translate) — each needs a key below and is skipped until it is set; google (Google Translate’s web endpoint: no key, not an official API, may stop working; usually unreachable in mainland China), mymemory (MyMemory by Translated: no key, about 5,000 characters a day, 50,000 with an email address); ollama (a local model, once one is chosen below: nothing leaves the computer). Your custom engines come after these unless you list them here as custom:Name. The text after the prefix is sent to each of them.",
+        "default": [
+          "deepl",
+          "azure",
+          "youdao",
+          "baidu",
+          "google",
+          "ollama"
+        ]
+      },
+      {
+        "name": "fallback",
+        "type": "bool",
+        "title": "Use MyMemory when the others fail",
+        "description": "When every engine above fails (no connection, quota exhausted), ask MyMemory instead.",
+        "default": true
+      },
+      {
+        "name": "selection",
+        "type": "bool",
+        "title": "Translate selected text at once",
+        "description": "Shows the translation of the text selected in another app in the “Selected Text” section as soon as the launcher opens. This sends the selected text to the first engine before you pick anything, so it is off by default.",
+        "default": false
+      },
+      {
+        "name": "deeplKey",
+        "type": "password",
+        "title": "DeepL API key",
+        "description": "From your DeepL account (the free plan has 500,000 characters a month; its keys end in “:fx”). Stored in the Windows Credential Manager or the macOS Keychain. With a key, DeepL is asked first.",
+        "group": "Keys"
+      },
+      {
+        "name": "mymemoryEmail",
+        "type": "text",
+        "title": "Email address for MyMemory",
+        "description": "Optional: MyMemory allows about 50,000 characters a day instead of 5,000 with a valid email address, which is sent with each request.",
+        "group": "Keys"
+      },
+      {
+        "name": "azureKey",
+        "type": "password",
+        "title": "Azure Translator key",
+        "description": "A key of your Azure AI Translator resource (the free F0 tier has a monthly quota). Stored in the Windows Credential Manager or the macOS Keychain.",
+        "group": "Keys"
+      },
+      {
+        "name": "azureRegion",
+        "type": "text",
+        "title": "Azure region",
+        "description": "The region of the resource, e.g. “eastasia”; leave empty for a global resource.",
+        "group": "Keys"
+      },
+      {
+        "name": "youdaoAppKey",
+        "type": "text",
+        "title": "Youdao app ID",
+        "description": "The application ID of a text translation app in Youdao AI Cloud (ai.youdao.com).",
+        "group": "Keys"
+      },
+      {
+        "name": "youdaoSecret",
+        "type": "password",
+        "title": "Youdao app secret",
+        "description": "The app’s secret, used to sign requests; it is never sent. Stored in the Windows Credential Manager or the macOS Keychain.",
+        "group": "Keys"
+      },
+      {
+        "name": "baiduAppID",
+        "type": "text",
+        "title": "Baidu Translate APP ID",
+        "description": "From the Baidu Translate open platform (fanyi-api.baidu.com).",
+        "group": "Keys"
+      },
+      {
+        "name": "baiduSecret",
+        "type": "password",
+        "title": "Baidu Translate secret key",
+        "description": "Used to sign requests; it is never sent. Stored in the Windows Credential Manager or the macOS Keychain.",
+        "group": "Keys"
+      },
+      {
+        "name": "ollamaModel",
+        "type": "select",
+        "title": "Ollama model",
+        "description": "A model of your local Ollama server to translate with, offline (e.g. qwen2.5 or llama3.1). Install Ollama and pull a model first; local models are slower than the web engines.",
+        "dynamicOptions": true,
+        "group": "Local model"
+      },
+      {
+        "name": "ollamaURL",
+        "type": "text",
+        "title": "Ollama address",
+        "description": "Where Ollama listens; its OpenAI-compatible endpoint (/v1/chat/completions) is used.",
+        "default": "http://localhost:11434",
+        "group": "Local model"
+      },
+      {
+        "name": "customEngines",
+        "type": "stringList",
+        "title": "Custom engines",
+        "description": "One engine per line: name | GET or POST | URL | JSON path of the translation [| body [| headers]]. {text}, {from} and {to} are filled in (escaped for the URL, a JSON body or a form). Example: My API | POST | https://example.com/translate | data.text | {\"q\":\"{text}\",\"target\":\"{to}\"} | Authorization: Bearer KEY. Lines are stored in the configuration file, keys too: prefer engines with a key field above.",
+        "group": "Custom engines"
+      },
+      {
+        "name": "history",
+        "type": "bool",
+        "title": "Keep a translation history",
+        "description": "Records the translations you copy or paste (not what you type), on this computer only: never synced or sent. Turning it off deletes it.",
+        "default": false,
+        "group": "History"
+      },
+      {
+        "name": "historyDays",
+        "type": "select",
+        "title": "Keep the history for",
+        "description": "Older translations are deleted.",
+        "default": "30",
+        "options": [
+          {
+            "value": "1",
+            "title": "1 day"
+          },
+          {
+            "value": "7",
+            "title": "7 days"
+          },
+          {
+            "value": "30",
+            "title": "30 days"
+          },
+          {
+            "value": "90",
+            "title": "90 days"
+          }
+        ],
+        "group": "History",
+        "visibleWhen": {
+          "pref": "history",
+          "equals": true
+        }
+      },
+      {
+        "name": "clearHistory",
+        "type": "button",
+        "title": "Clear History",
+        "description": "Deletes every recorded translation.",
+        "group": "History",
+        "action": {
+          "kind": "Callback",
+          "target": "clearHistory"
+        }
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.quicklinks",
     "name": "Quicklinks & Web Search",
     "description": "Search the web with keywords (“g golang generics”, “bd 天气”), open typed URLs, and keep named links to websites, files, folders and programs. When nothing matches, the main search offers to search the web.",

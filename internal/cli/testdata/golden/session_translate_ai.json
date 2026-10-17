@@ -1,0 +1,57 @@
+{
+  "step": "action \"builtin.translator/result:google\" ai",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.ai",
+      "request": {
+        "id": "chat",
+        "payload": {
+          "quote": "good morning",
+          "instruction": "Translate the quoted text into Japanese. Output only the translation.",
+          "title": "Translate: good morning"
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "AI Chat",
+    "layout": "detail",
+    "placeholder": "Press Enter to turn on AI",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "chat",
+            "title": "Turn On AI",
+            "icon": {
+              "name": "sparkles"
+            },
+            "actions": [
+              {
+                "id": "enable",
+                "title": "Turn On AI",
+                "do": {
+                  "kind": "Callback",
+                  "target": "enable"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/chat"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "detail": {
+      "markdown": "## Chat with Claude in the launcher\n\ngolauncher can send your questions to Claude through Claude Code, the Claude Code CLI installed on this computer, and your Claude subscription. No API key is needed; the usage counts toward your subscription.\n\nOnly what you type in an AI chat is sent, and only after you turn this on. Chats stay on this computer, for 30 days by default (Settings › Plugins › AI). Press Enter to turn it on.\n\nYour question will be sent then:\n\n> Translate the quoted text into Japanese. Output only the translation.\n> \n> > good morning"
+    },
+    "emptyText": "No results",
+    "acceptFiles": true
+  }
+}

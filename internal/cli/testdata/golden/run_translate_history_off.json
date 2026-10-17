@@ -1,0 +1,24 @@
+{
+  "step": "run builtin.translator/history",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.translator",
+      "request": {
+        "id": "history",
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Translation History",
+    "placeholder": "Search translations…",
+    "text": "",
+    "sections": [],
+    "selected": -1,
+    "showDetail": true,
+    "emptyText": "The history is off. Turn it on in the translator’s settings."
+  }
+}

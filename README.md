@@ -88,6 +88,23 @@
     links to websites, files, folders and programs with `{query}`,
     `{clipboard}` and `{date}` placeholders, created with a form and
     imported or exported as JSON. Search suggestions are off by default.
+    Google Translate's web search is `gt` (the translator took `tr`).
+  - **Translator**: `tr hello`, `fy …` or `翻译 …` translates as you type,
+    with each engine on its own row: Google Translate's web endpoint (no
+    key, unofficial; MyMemory when it cannot be reached), MyMemory, and with
+    your own keys DeepL, Azure AI Translator, Youdao and Baidu (asked
+    first). A single word also gets a dictionary entry (phonetics, parts
+    of speech, meanings); translations and originals can be read aloud
+    with the system's voices, or handed to the AI chat (*Translate with
+    AI*). Name the languages with
+    `tr ja 你好`, `tr >de thanks`, `tr 日 你好` or `tr en>zh apple`;
+    otherwise text goes into the interface language (or English when it is
+    already in it). Enter copies, Ctrl+Enter pastes into the previous
+    window; swap the languages or open Google Translate, DeepL or Youdao.
+    Text is sent only after the prefix; an instant translation of selected
+    text is off by default. Add your own engines as HTTP templates, or
+    translate offline with a local model through Ollama; an optional
+    history of the translations you copy (off by default, local only).
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;
