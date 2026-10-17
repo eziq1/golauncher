@@ -83,6 +83,9 @@ jobs:
     name: Build and publish
     needs: macos
     runs-on: windows-latest
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      cask: ${{ steps.cask.outcome }}
     defaults:
       run:
         shell: pwsh
@@ -191,6 +194,27 @@ jobs:
           path: dist/winget
           if-no-files-found: error
 
+      - name: Homebrew cask
+        # Casks/golauncher.rb of this release for the tap eziq1/homebrew-tap
+        # (docs/homebrew-packaging.md), kept as a build artifact; the
+        # homebrew job checks it and pushes it only when the
+        # HOMEBREW_TAP_TOKEN secret is set. Never holds the release back.
+        id: cask
+        if: steps.version.outputs.prerelease == 'false'
+        continue-on-error: true
+        run: |
+          go run ./scripts/release/brewcask -version '${{ steps.version.outputs.version }}' -dist dist -out dist/homebrew/Casks
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Content dist/homebrew/Casks/golauncher.rb
+
+      - uses: actions/upload-artifact@v4
+        if: steps.cask.outcome == 'success'
+        continue-on-error: true
+        with:
+          name: homebrew-cask
+          path: dist/homebrew/Casks/golauncher.rb
+          if-no-files-found: error
+
       - name: Sign checksums
         if: env.GOLAUNCHER_UPDATE_PUBLIC_KEY != ''
         env:
@@ -213,3 +237,54 @@ jobs:
           $flags = @()
           if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
           gh release create $env:TAG --title "golauncher $env:TAG" --notes-file dist/notes.md --verify-tag @flags @assets
+
+  homebrew:
+    # The cask built by the release job (docs/homebrew-packaging.md §5):
+    # brew style and brew audit in a throwaway local tap, then, only when
+    # the repository secret HOMEBREW_TAP_TOKEN is set, a commit to
+    # eziq1/homebrew-tap. The release is already published: nothing here
+    # can hold it back.
+    name: Homebrew cask
+    needs: release
+    if: needs.release.outputs.prerelease == 'false' && needs.release.outputs.cask == 'success'
+    runs-on: macos-latest
+    continue-on-error: true
+    env:
+      TAG: ${{ github.ref_name }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ENV_HINTS: "1"
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: homebrew-cask
+          path: cask
+
+      - name: brew style and brew audit
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          brew tap-new --no-git golauncher-ci/local
+          tap="$(brew --repository golauncher-ci/local)"
+          mkdir -p "$tap/Casks"
+          cp cask/golauncher.rb "$tap/Casks/"
+          brew style --cask golauncher-ci/local/golauncher
+          brew audit --cask --online golauncher-ci/local/golauncher
+
+      - name: Push to eziq1/homebrew-tap
+        if: env.HOMEBREW_TAP_TOKEN != ''
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/eziq1/homebrew-tap.git" tap
+          mkdir -p tap/Casks
+          cp cask/golauncher.rb tap/Casks/golauncher.rb
+          cd tap
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "the tap already has this cask"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/golauncher.rb
+          git commit -m "golauncher ${TAG#v}"
+          git push origin HEAD

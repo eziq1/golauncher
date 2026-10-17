@@ -161,6 +161,25 @@ func TestSettingsUpdatesWinget(t *testing.T) {
 	}
 }
 
+func TestSettingsUpdatesHomebrew(t *testing.T) {
+	for lang, want := range map[string]string{
+		"en":    "Managed by Homebrew: this copy was installed with Homebrew, which updates it. Run brew upgrade --cask golauncher in a terminal, then quit and reopen golauncher.",
+		"zh-CN": "由 Homebrew 管理：这个副本是用 Homebrew 安装的，由 Homebrew 负责更新。请在终端里运行 brew upgrade --cask golauncher，然后退出并重新打开 golauncher。",
+	} {
+		_, s, tt := newSettings(t, lang)
+		s.SetUpdater(&fakeUpdater{st: update.Status{Phase: update.PhaseIdle, Current: "0.4.0", Disabled: update.DisabledHomebrew, Latest: "0.5.0", Available: true}})
+		tt.SetSize(ui.SettingsWidth, 1400)
+		s.ShowPage(ui.PageAbout)
+		tt.Frame()
+		if !tt.HasText(want) {
+			t.Fatalf("%s: no note about Homebrew: %q", lang, tt.Texts())
+		}
+		if lang == "en" && (tt.HasText("Automatic updates") || tt.HasText("Download and Install") || tt.HasText("Skip This Version") || !tt.HasText("Check for Updates")) {
+			t.Fatalf("homebrew: %q", tt.Texts())
+		}
+	}
+}
+
 func TestSettingsUpdatesChinese(t *testing.T) {
 	_, s, tt := newSettings(t, "zh-CN")
 	tt.SetLocale("zh-CN")

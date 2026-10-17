@@ -14,6 +14,7 @@ import (
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/install"
 	"github.com/eziq1/golauncher/internal/ui"
+	"github.com/eziq1/golauncher/internal/update"
 	winstall "github.com/eziq1/golauncher/internal/winapi/install"
 )
 
@@ -30,8 +31,8 @@ func selfInstall(o *Options) (done bool, err error) {
 	if real, err := filepath.EvalSymlinks(self); err == nil {
 		self = real // e.g. winget's WinGet\Links\golauncher.exe
 	}
-	// winget installs, updates and removes this copy (docs/winget-packaging.md).
-	o.winget = install.WingetManaged(self, winstall.WingetLocations())
+	// A package manager installs, updates and removes this copy.
+	o.managedBy = packageManager(self)
 	in, err := newInstaller(self, o.Version)
 	if err != nil {
 		return false, nil // the folders are unknown: just run
@@ -49,7 +50,7 @@ func selfInstall(o *Options) (done bool, err error) {
 		install.Cleanup(st.Dir)
 		o.installDir = st.Dir // the installed copy updates itself
 	}
-	if o.winget || install.Skip(o.Version, f, os.Getenv) {
+	if o.managedBy != "" || install.Skip(o.Version, f, os.Getenv) {
 		return false, nil
 	}
 	switch st.Kind {
@@ -62,6 +63,22 @@ func selfInstall(o *Options) (done bool, err error) {
 		return true, runInstaller(in, st, o.Args)
 	}
 	return false, nil
+}
+
+// packageManager returns the package manager that installed self
+// (Options.managedBy): winget on Windows (docs/winget-packaging.md),
+// Homebrew on macOS (docs/homebrew-packaging.md).
+func packageManager(self string) string {
+	switch {
+	case install.WingetManaged(self, winstall.WingetLocations()):
+		return update.DisabledWinget
+	case winstall.Bundled:
+		home, _ := os.UserHomeDir()
+		if install.HomebrewManaged(self, install.HomebrewPrefixes(os.Getenv), home) {
+			return update.DisabledHomebrew
+		}
+	}
+	return ""
 }
 
 // newInstaller returns the installer of the running copy. On macOS that

@@ -37,6 +37,8 @@ func TestPluginCheck(t *testing.T) {
 			"golauncher 0.5.0 is available", "This copy does not update itself: download the new version from GitHub."},
 		{"winget", fakeChecker{st: update.Status{Current: "0.4.0", Latest: "0.5.0", Available: true, Disabled: update.DisabledWinget}}, update.ModeAuto, plugin.ToastInfo,
 			"golauncher 0.5.0 is available", "winget manages this copy: quit golauncher and run winget upgrade eziq1.golauncher."},
+		{"homebrew", fakeChecker{st: update.Status{Current: "0.4.0", Latest: "0.5.0", Available: true, Disabled: update.DisabledHomebrew}}, update.ModeAuto, plugin.ToastInfo,
+			"golauncher 0.5.0 is available", "Homebrew manages this copy: run brew upgrade --cask golauncher in a terminal, then reopen golauncher."},
 		{"failed", fakeChecker{err: errors.New("offline")}, update.ModeAuto, plugin.ToastFailure,
 			"Couldn't check for updates", "offline"},
 	} {

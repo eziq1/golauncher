@@ -104,6 +104,8 @@ func (s *Settings) updatesSection(c *mui.Context, cfg config.Config) {
 			note = s.loc.T("settings.updates.disabledEnv")
 		case update.DisabledWinget:
 			note = s.loc.T("settings.updates.disabledWinget", "command", install.WingetUpgrade)
+		case update.DisabledHomebrew:
+			note = s.loc.T("settings.updates.disabledHomebrew", "command", install.HomebrewUpgrade)
 		}
 		mui.Text(c, note).FontSize(12).TextColor(t.TextMuted)
 		return

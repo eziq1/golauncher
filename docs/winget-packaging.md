@@ -93,7 +93,7 @@ winget 的卸载项名字是 `eziq1.golauncher_<源>`，和自安装的 `Uninsta
 1. exe 在某个 `...\WinGet\Packages\eziq1.golauncher_<任意源>\` 文件夹里（或它的子文件夹里）。不看盘符和上一级是哪个根目录，所以用户范围、整机范围、别的源都认；比较不区分大小写；`eziq1.golauncher2_...`、没有 `_<源>` 后缀、上级不是 `WinGet\Packages` 的都不算。
 2. 用 `winget install --location <目录>` 装到自定义目录时，路径里没有 `WinGet\Packages`：读 HKCU 和 HKLM 的 `Uninstall` 下以 `eziq1.golauncher_` 开头、`WinGetPackageIdentifier` 是 `eziq1.golauncher` 的项的 `InstallLocation`（`winstall.WingetLocations`），exe 在其中一个目录里就算。
 
-只在 Windows 上判断；macOS 上永远不是。
+只在 Windows 上判断；macOS 上永远不是（macOS 上对应的是 Homebrew，见 [homebrew-packaging.md §3.2](homebrew-packaging.md)）。
 
 ### 3.3 由 winget 管理时的行为
 
@@ -118,8 +118,8 @@ winget 的卸载项名字是 `eziq1.golauncher_<源>`，和自安装的 `Uninsta
 |------|------|
 | `internal/install/winget.go` | `WingetID`、`WingetUpgrade`、`WingetManaged`（纯路径判断，测试用假路径） |
 | `internal/winapi/install/winget_windows.go` | `WingetLocations`：读注册表里 winget 的卸载项（集成测试要 `GOLAUNCHER_INSTALL_TESTS=1`，用临时的 HKCU 测试键） |
-| `internal/shell/installer.go` | `selfInstall`：判断后设 `Options.winget`，跳过安装流程 |
-| `internal/shell/update.go` | `updateDisabled`：`GOLAUNCHER_NO_UPDATE` 优先，其次 winget |
+| `internal/shell/installer.go` | `selfInstall`：判断后设 `Options.managedBy`（`update.DisabledWinget`；macOS 上的 Homebrew 见 [homebrew-packaging.md §3](homebrew-packaging.md)），跳过安装流程 |
+| `internal/shell/update.go` | `updateDisabled`：`GOLAUNCHER_NO_UPDATE` 优先，其次 `managedBy` |
 | `internal/update` | `DisabledWinget`；`Summary` 的 winget 提示 |
 | `internal/ui/updates.go` | 关于页的 winget 说明 |
 

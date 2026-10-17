@@ -38,6 +38,8 @@ func Summary(l Localizer, st Status, err error, mode Mode) (title, message strin
 	switch {
 	case st.Disabled == DisabledWinget:
 		message = l.T("update.result.availableWinget", "command", install.WingetUpgrade)
+	case st.Disabled == DisabledHomebrew:
+		message = l.T("update.result.availableHomebrew", "command", install.HomebrewUpgrade)
 	case st.Disabled != "":
 		message = l.T("update.result.availableManual")
 	case st.Blocked:

@@ -70,7 +70,7 @@ golauncher.exe --uninstall  # 卸载
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_darwin_arm64.zip`（Apple 芯片）或 `golauncher_<版本>_darwin_amd64.zip`（Intel），解压。
 2. 应用还没有经过公证，第一次打开时按住 Control 点按 `golauncher.app` › “打开”（macOS 15：先打开一次，再到“系统设置 › 隐私与安全性”点“仍要打开”），或者执行 `xattr -dr com.apple.quarantine golauncher.app`。第一次运行会提示安装到“应用程序”文件夹（没有权限时装到 `~/Applications`）。程序常驻在菜单栏，没有 Dock 图标，按 **⌥Space** 呼出。
 3. “设置 › 权限”列出需要你允许的权限：**辅助功能**（粘贴、读取选中的文字）和**自动化 › 访达**（访达当前文件夹）。应用没有用 Developer ID 签名，所以每次更新后 macOS 会忘掉辅助功能权限，需要在列表里删掉 golauncher 再重新添加。自动更新和 Windows 一样。需要 macOS 13 或更高版本。详见 [docs/macos-port.md](docs/macos-port.md)。
-
+4. **Homebrew**（tap 仓库发布之后）：`brew install --cask eziq1/tap/golauncher`，以后用 `brew upgrade --cask golauncher` 升级（升级后退出并重新打开 golauncher）。它把 golauncher.app 装到
 | 内容 | 位置 |
 |------|------|
 | 配置 | `~/Library/Application Support/golauncher/config.json` |
