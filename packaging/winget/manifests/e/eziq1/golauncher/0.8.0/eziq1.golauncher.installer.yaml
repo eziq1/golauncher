@@ -18,9 +18,9 @@ ReleaseDate: 2026-10-17
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_amd64.zip
-  InstallerSha256: 2F5777AE3ACCDBEAFABF4383B485EF93CD5A6E2C50CAB7ADE5CDD228B9F9AE83
+  InstallerSha256: C36F1031004F039DF2F5BFC832A195D78BFFCF63C8428EECEC0C9E626BE7257D
 - Architecture: arm64
   InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_arm64.zip
-  InstallerSha256: 58A21B011352CFD15E307E7296EC9F32F5A90878A793BBF5399017A6119327B3
+  InstallerSha256: 00E5F83EA7ECAC87D443E1E86160FEC9C292B6BCD06CDD3962F9F3C93B8F819C
 ManifestType: installer
 ManifestVersion: 1.12.0
