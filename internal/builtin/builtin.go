@@ -24,6 +24,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/clock"
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/files"
+	"github.com/eziq1/golauncher/plugins/homebrew"
 	"github.com/eziq1/golauncher/plugins/network"
 	"github.com/eziq1/golauncher/plugins/processes"
 	"github.com/eziq1/golauncher/plugins/quicklinks"
@@ -57,6 +58,7 @@ func All() []plugin.Plugin {
 		scripts.New(),
 		realScoop(),
 		winget.New(),
+		homebrew.New(),
 		system.New(),
 		terminal.New(),
 		network.New(),
@@ -96,6 +98,11 @@ func ForPlatform(platform string, ps []plugin.Plugin) []plugin.Plugin {
 	}
 	return out
 }
+
+// NotFaked returns new instances of the built-ins of All that Fake leaves
+// out because they only run on other platforms than FakePlatform and have
+// no fixtures: Homebrew. glctl i18n check reads their catalogs from here.
+func NotFaked() []plugin.Plugin { return []plugin.Plugin{homebrew.New()} }
 
 // External returns the external plugins under roots (see extproc.Find),
 // leaving out those whose ID is taken by one of loaded and those whose

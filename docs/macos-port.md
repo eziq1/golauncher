@@ -377,6 +377,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 | 时钟 | 顺带修了一个 Windows 上的 bug：Go 自带的 zoneinfo 在年末给出不是真实切换的边界，"下次切换"曾显示"1 月 1 日 → UTC+11"（偏移没变），现在跳过这种边界；golden 随之更新 | `TestNextChangeSlimZoneinfo` |
 | 插件平台 | `plugin.Manifest.Platforms`（`plugin.json` 的 `"platforms": ["windows"]`，GOOS 名，空表示全部平台；未知名字是 manifest 错误，`glctl plugin validate` 报错）。不匹配的插件完全不加载：内置插件在 `builtin.All`/`FakeOn` 共用的 `assemble` 里过滤，外部插件在 `extproc.Load` 里跳过、不起进程，都不出现在插件列表和设置里（debug 日志记一条）。`scoop`、`winget` 标为 `windows`，所以 macOS 上不注册；其余内置插件都是"一个插件、分平台实现"，不设。真实环境按 `runtime.GOOS`，glctl 假环境按 `builtin.FakePlatform`（windows） | `TestFakePlatforms`、`TestLoadPlatforms`、`TestValidatePlatforms` |
 | CI | Windows job 加 `GOOS=darwin` 的 build/vet；新增 `macos-latest` job：vet、test、构建、`glctl i18n check`、Windows 交叉编译 | — |
+| Homebrew | 新增独立插件 `builtin.homebrew`（[homebrew.md](homebrew.md)，与 scoop/winget 不共享代码）：读 brew 缓存里的 API 索引（新版 `api/internal/packages.*.jws.json`、旧版 `formula/cask.jws.json`、退路 `*_names.txt`）搜索 formula 和 cask；`brew info --json=v2 --installed` 列出已安装/可升级（后台、缓存）；⌘D 详情（`brew info`）；安装/升级/卸载/zap/全部升级/`brew update` 走后台任务队列 `homebrew`，实时输出；brew 按 `/opt/homebrew`、`/usr/local`、PATH 查找，找不到时显示"没有安装 Homebrew"并链接 brew.sh。manifest 声明 `platforms: ["darwin"]`，只在 macOS 加载；假环境不含它，`glctl i18n check` 经 `builtin.NotFaked()` 检查其翻译 | 夹具来自本机 Homebrew 7.0.9；只读真机测试需 `GOLAUNCHER_HOMEBREW_TESTS=1`；测试从不安装或卸载 |
 
 ### 10.2 测试的平台约定
 
@@ -393,6 +394,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 平台文案：还没处理的只剩并行分支负责的范围（终端、files、进程、网络工具、Scoop/WinGet/Homebrew、自安装和自动更新、环境感知/选中文本/权限），见 §10.6；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。
 - 自安装、自动更新：macOS 上一律跳过（显示为 portable）；`.app` 打包、签名、公证、DMG、release 流水线（第三期）都没做。
 - 自动更新用的系统代理在 macOS 上只读环境变量（没有读 `scutil --proxy`）。
+- （2026-10-16 更新）Homebrew 插件已完成，见 §10.1；需要 sudo 的 cask 在后台任务里会失败（无终端），见 [homebrew.md](homebrew.md) §7。
 
 ### 10.4 需要在真机上手动验证
 
@@ -403,6 +405,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 钥匙串：Set/Get/Delete；签名身份变化后是否弹授权（本次在无界面的会话里写入被拒绝：`-25308 User interaction is not allowed`，属环境原因）。
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
 - 环境感知与选中文本：见下面 §10.5 的步骤。
+- Homebrew：从访达启动后能否找到 brew；搜索（"vs code"、"微信"、`brew rg`）；安装/卸载一个小 formula（如 `cowsay`）和一个 cask，⌘J 看实时输出、停止；可升级列表与 `brew outdated` 一致；需要密码的 cask 的报错；没有 brew 的机器上的"没有安装 Homebrew"状态和 brew.sh 链接。
 - 系统语言（本机返回 `zh-Hans-CN`、`en-CN`，解析为 zh-CN）、登录 shell PATH（从访达启动后脚本能否找到 Homebrew 的 python3/node）、`golauncher mcp` 在启动器未运行时能否把它拉起来。
 
 ### 10.5 环境感知与选中文本的真机测试
@@ -455,6 +458,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - **材质名** Acrylic / Mica：Vibrancy 材质还没做（§10.3），等确定 macOS 上的材质再改。
 - **并行分支负责的范围**：`terminal`、`files`、`processes`、`network`、`scoop`、`winget`、Homebrew、`install.*`、`settings.updates.*`、`update.*`、`settings.selection.*`、`selection` 插件、环境感知和权限文案。
 - `clipboard_test.go` 的 `TestI18nKeys` 现在把 `id@darwin` 当作 `id` 的引用（与 `glctl i18n check` 一致）。
+
 ### 10.7 终端与 files 插件
 
 取代 10.3 里"终端插件的 macOS 版、files 插件的 macOS 打开方式"一条。详见 [terminal-wsl.md](terminal-wsl.md) §5。

@@ -1,0 +1,5 @@
+firefox
+visual-studio-code
+wechat
+iterm2
+google-chrome

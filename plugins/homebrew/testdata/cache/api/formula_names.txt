@@ -1,0 +1,8 @@
+wget
+git
+python@3.13
+node
+ripgrep
+abseil
+openssl@3
+gh
