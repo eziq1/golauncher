@@ -74,7 +74,8 @@ func TestPrepareBundle(t *testing.T) {
 	if data, err := os.ReadFile(exe); err != nil || string(data) != "fake golauncher 0.7.0 universal" {
 		t.Fatalf("exe = %q, %v", data, err)
 	}
-	if fi, err := os.Stat(exe); err != nil || fi.Mode().Perm()&0o111 == 0 {
+	// Windows (glctl update download --os darwin) has no execute bit to set.
+	if fi, err := os.Stat(exe); runtime.GOOS != "windows" && (err != nil || fi.Mode().Perm()&0o111 == 0) {
 		t.Fatalf("exe mode = %v, %v", fi.Mode(), err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "files", "LICENSE")); err == nil {

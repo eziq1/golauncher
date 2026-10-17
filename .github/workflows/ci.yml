@@ -55,6 +55,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go build -trimpath -o bin/glctl.exe ./cmd/glctl
 
+      - name: Release scripts
+        # The scripts the release workflow runs, so that a broken one shows
+        # up before a tag is pushed.
+        run: |
+          ./scripts/windows/build.ps1 -Version 0.0.0-ci -NoResources -OutDir "$env:RUNNER_TEMP/dist" -Zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem "$env:RUNNER_TEMP/dist"
+          $notes = ./scripts/release/changelog.ps1 -Version 0.7.0
+          if (-not $notes) { throw 'changelog.ps1 printed nothing for 0.7.0' }
+          $notes | Select-Object -First 5
+
       - name: glctl i18n check
         run: ./bin/glctl.exe i18n check
 
