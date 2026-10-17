@@ -37,6 +37,9 @@ type Message struct {
 	Error string `json:"error,omitempty"`
 	// Stopped marks an answer the user stopped.
 	Stopped bool `json:"stopped,omitzero"`
+	// Notice is what the backend said about the conversation before the
+	// answer (a backend.Notice code, e.g. that it started a new session).
+	Notice string `json:"notice,omitempty"`
 }
 
 // ToolStep is a tool call of an answer, shown as one line: e.g. a search
@@ -56,11 +59,14 @@ type ToolStep struct {
 
 // Session is the summary of a chat in the history.
 type Session struct {
-	ID      string    `json:"id"` // also the CLI's --session-id
-	Backend string    `json:"backend"`
-	Title   string    `json:"title"` // the first message, shortened
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
+	ID string `json:"id"` // also Claude Code's --session-id
+	// BackendID is the ID of the backend the chat was started with, which it
+	// keeps (R72); "" in older records (Claude Code). Backend is its name.
+	BackendID string    `json:"backendId,omitempty"`
+	Backend   string    `json:"backend"`
+	Title     string    `json:"title"` // the first message, shortened
+	Created   time.Time `json:"created"`
+	Updated   time.Time `json:"updated"`
 	// Messages is the number of messages.
 	Messages int `json:"messages"`
 	// Started is set once the backend has the session (an answer came), so
@@ -206,29 +212,28 @@ func (s *store) Clear() (int, error) {
 	return len(list), s.setIndex(nil)
 }
 
-// Prune removes the chats not used since before; it returns how many. keep
+// Prune removes the chats not used since before; it returns them. keep
 // lists chats that stay anyway (open ones).
-func (s *store) Prune(before time.Time, keep func(id string) bool) (int, error) {
+func (s *store) Prune(before time.Time, keep func(id string) bool) ([]Session, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	list, err := s.index()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	var kept []Session
-	n := 0
+	var kept, removed []Session
 	for _, x := range list {
 		if !x.Updated.Before(before) || keep != nil && keep(x.ID) {
 			kept = append(kept, x)
 			continue
 		}
 		if err := s.kv.Delete(sessionPrefix + x.ID); err != nil {
-			return n, err
+			return removed, err
 		}
-		n++
+		removed = append(removed, x)
 	}
-	if n == 0 {
-		return 0, nil
+	if len(removed) == 0 {
+		return nil, nil
 	}
-	return n, s.setIndex(kept)
+	return removed, s.setIndex(kept)
 }

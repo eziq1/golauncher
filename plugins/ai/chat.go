@@ -39,6 +39,7 @@ type chat struct {
 	busy    bool
 	partial strings.Builder
 	steps   []ToolStep
+	notice  string // a backend.Notice code of the answer being written
 	cancel  context.CancelFunc
 	usage   *backend.Usage
 
@@ -97,7 +98,7 @@ func (p *Plugin) chatOf(req plugin.ViewRequest) *chat {
 		}
 	}
 	if ch == nil {
-		ch = &chat{sess: Session{ID: p.o.NewID(), Backend: p.be.Name()}, pending: strings.TrimSpace(pl.Text), toRoot: pl.ToRoot}
+		ch = &chat{sess: p.newSession(), pending: strings.TrimSpace(pl.Text), toRoot: pl.ToRoot}
 		if strings.TrimSpace(pl.Quote) != "" {
 			ch.pending = selectionMessage(pl, req.Arguments)
 			ch.title = titleOf(pl.Title)
@@ -156,6 +157,8 @@ func (p *Plugin) send(instance, text string) plugin.Result {
 func (p *Plugin) startTurn(ch *chat, text string) func() {
 	now := p.h.Now()
 	if len(ch.msgs) == 0 {
+		// A chat takes the backend chosen when its first message is sent.
+		ch.sess.BackendID, ch.sess.Backend = p.be.id(), p.be.Name()
 		ch.sess.Created = now
 		ch.sess.Title = titleOf(text)
 		if ch.title != "" {
@@ -169,6 +172,7 @@ func (p *Plugin) startTurn(ch *chat, text string) func() {
 	ch.busy = true
 	ch.partial.Reset()
 	ch.steps = nil
+	ch.notice = ""
 	ctx, cancel := context.WithCancel(context.Background())
 	ch.cancel = cancel
 	p.turns.Add(1)
@@ -221,11 +225,12 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 			p.mu.Unlock()
 			p.push(ch)
 		case backend.EventPermission:
-			// The chat cannot ask yet (phase 2 shows a confirmation), so it
-			// rejects. Claude Code never asks (docs/ai.md §20).
-			if ev.Permission != nil && ev.Permission.Respond != nil {
-				ev.Permission.Respond("")
-			}
+			p.askPermission(ctx, ch, ev.Permission)
+		case backend.EventNotice:
+			p.mu.Lock()
+			ch.notice = ev.Text
+			p.mu.Unlock()
+			p.push(ch)
 		case backend.EventDone, backend.EventError:
 			p.finish(ch, ev, start)
 			return
@@ -239,11 +244,13 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 // logged, never the content (docs/ai.md §9).
 func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 	p.mu.Lock()
-	m := Message{Role: RoleAssistant, Text: ch.partial.String(), Time: p.h.Now(), Steps: ch.steps}
+	m := Message{Role: RoleAssistant, Text: ch.partial.String(), Time: p.h.Now(), Steps: ch.steps, Notice: ch.notice}
 	p.h.Logger().Info("answer", "kind", ev.Kind, "chars", len(m.Text), "steps", len(m.Steps), "took", time.Since(start).Round(time.Millisecond))
 	switch ev.Kind {
 	case backend.EventError:
-		if ev.Err != nil {
+		if e, ok := errors.AsType[errChatUnavailable](ev.Err); ok {
+			m.Error = recordedChatUnavailable + ":" + e.id
+		} else if ev.Err != nil {
 			m.Error = string(backend.KindOf(ev.Err)) + ":" + errorText(ev.Err)
 		}
 	case backend.EventDone:
@@ -259,6 +266,7 @@ func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 	ch.busy = false
 	ch.partial.Reset()
 	ch.steps = nil
+	ch.notice = ""
 	ch.cancel = nil
 	if !p.closed && p.chats[ch.sess.ID] == ch { // not deleted meanwhile
 		p.save(ch)
@@ -306,27 +314,28 @@ func errorText(err error) string {
 // preferences.
 func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversation, error) {
 	opts := p.openOptions(ch)
-	id, be := p.be.current()
 	p.mu.Lock()
+	id, be := p.backendOf(ch.sess)
 	conv, old, oldID := ch.conv, ch.convOpts, ch.convBackend
-	checked := p.checkedID == id && !p.checked.IsZero() && time.Since(p.checked) < checkTTL
+	c, ok := p.checks[id]
+	fresh := ok && time.Since(c.at) < checkTTL
 	p.mu.Unlock()
 	// Resume changes after the first answer; the conversation knows that.
 	old.Resume = opts.Resume
 	if conv != nil && old == opts && oldID == id {
 		return conv, nil
 	}
-	if !checked {
+	if !fresh {
 		st, err := be.Check(ctx)
 		if err != nil {
 			return nil, err
 		}
 		p.mu.Lock()
-		p.checked, p.checkedID, p.status = time.Now(), id, st
+		p.checks[id] = checked{at: time.Now(), status: st}
 		p.mu.Unlock()
 	}
 	if conv != nil {
-		_ = conv.Close() // the preferences (or the backend) changed
+		_ = conv.Close() // the preferences changed
 	}
 	conv, err := be.Open(ctx, opts)
 	if err != nil {
@@ -346,11 +355,12 @@ func (p *Plugin) openOptions(ch *chat) backend.OpenOptions {
 	p.mu.Lock()
 	resume := ch.sess.Started
 	id := ch.sess.ID
+	model := p.model(ch.sess)
 	p.mu.Unlock()
 	return backend.OpenOptions{
 		SessionID:     id,
 		Resume:        resume,
-		Model:         prefs.String(prefModel),
+		Model:         model,
 		WebSearch:     web,
 		LauncherTools: tools,
 		SystemPrompt:  systemPrompt(p.h.I18n().Locale(), web, tools),
@@ -431,7 +441,7 @@ func (p *Plugin) stopChat(ch *chat) {
 func (p *Plugin) newChat(instance string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	ch := &chat{sess: Session{ID: p.o.NewID(), Backend: p.be.Name()}}
+	ch := &chat{sess: p.newSession()}
 	p.chats[ch.sess.ID] = ch
 	p.views[instance] = ch.sess.ID
 }
@@ -509,100 +519,4 @@ func (p *Plugin) offView(ch *chat, instance string) plugin.View {
 		Detail:      &plugin.Detail{Markdown: md},
 		Sections:    []plugin.Section{{Items: []plugin.Item{{ID: "chat", Title: l.T("action.enable"), Icon: plugin.Icon{Name: "sparkles"}, Actions: []plugin.Action{enable}}}}},
 	}
-}
-
-// transcript is the Markdown of the chat's messages.
-func (p *Plugin) transcript(ch *chat) string {
-	l := p.h.I18n()
-	if len(ch.msgs) == 0 {
-		return l.T("chat.empty", "backend", p.be.Name())
-	}
-	var b strings.Builder
-	answer := func(text string, tools []string, steps []ToolStep) {
-		b.WriteString("**" + l.T("chat.assistant") + "**\n\n")
-		for _, t := range tools {
-			b.WriteString("_" + p.toolLine(t) + "_\n\n")
-		}
-		for _, s := range steps {
-			b.WriteString("_" + p.stepLine(s) + "_\n\n")
-		}
-		if text != "" {
-			b.WriteString(text + "\n\n")
-		}
-	}
-	for i, m := range ch.msgs {
-		if i > 0 && m.Role == RoleUser {
-			b.WriteString("---\n\n")
-		}
-		switch m.Role {
-		case RoleUser:
-			b.WriteString("**" + l.T("chat.you") + "**\n\n" + m.Text + "\n\n")
-		case RoleAssistant:
-			answer(m.Text, m.Tools, m.Steps)
-			if m.Stopped {
-				b.WriteString("_" + l.T("chat.stopped") + "_\n\n")
-			}
-			if m.Error != "" {
-				b.WriteString(p.errorMarkdown(m.Error) + "\n\n")
-			}
-		}
-	}
-	if ch.busy {
-		text := ch.partial.String()
-		if text == "" && len(ch.steps) == 0 {
-			text = "_" + l.T("chat.thinking") + "_"
-		} else {
-			text += "▍"
-		}
-		answer(text, nil, ch.steps)
-	}
-	return strings.TrimSpace(b.String())
-}
-
-// errorMarkdown explains a recorded error ("kind:message").
-func (p *Plugin) errorMarkdown(recorded string) string {
-	l := p.h.I18n()
-	kind, msg, _ := strings.Cut(recorded, ":")
-	var text string
-	switch backend.ErrorKind(kind) {
-	case backend.ErrNotInstalled:
-		text = l.T("error.notInstalled")
-	case backend.ErrNotLoggedIn:
-		text = l.T("error.notLoggedIn")
-	case backend.ErrVersion:
-		text = l.T("error.version")
-	case backend.ErrQuota:
-		text = l.T("error.quota")
-	case backend.ErrUnavailable:
-		text = l.T("error.unavailable")
-	default:
-		text = l.T("error.failed", "backend", p.be.Name())
-	}
-	out := "> **" + l.T("error.heading") + "** " + text
-	if msg = strings.TrimSpace(msg); msg != "" {
-		out += "\n>\n> " + strings.ReplaceAll(msg, "\n", "\n> ")
-	}
-	return out
-}
-
-// metadata is the footer line of a chat: backend, model and the last turn's
-// usage.
-func (p *Plugin) metadata(ch *chat) []plugin.Metadata {
-	l := p.h.I18n()
-	model := p.h.Preferences().String(prefModel)
-	if ch.usage != nil && ch.usage.Model != "" {
-		model = ch.usage.Model
-	}
-	if model == "" {
-		model = l.T("pref.model.default")
-	}
-	md := []plugin.Metadata{{Label: p.be.Name(), Value: model}}
-	if id, _ := p.be.current(); p.checkedID == id && p.status.Untested {
-		md[0].Value += " · " + l.T("meta.untested", "version", p.status.Version)
-	}
-	if u := ch.usage; u != nil && (u.InputTokens > 0 || u.OutputTokens > 0) {
-		md = append(md, plugin.Metadata{Label: l.T("meta.usage"),
-			Value: l.T("meta.tokens", "in", l.Number(float64(u.InputTokens)), "out", l.Number(float64(u.OutputTokens)))})
-	}
-	return md
 }

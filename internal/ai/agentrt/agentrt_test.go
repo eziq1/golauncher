@@ -39,7 +39,22 @@ func TestMain(m *testing.M) {
 func fakeCLI() {
 	args := os.Args[1:]
 	if len(args) > 0 && args[0] == "--version" {
-		fmt.Println("fake 1.2.3")
+		// A copy named fake-<x.y.z>.exe has that version.
+		ver := "1.2.3"
+		if exe, err := os.Executable(); err == nil {
+			if v, ok := strings.CutPrefix(strings.TrimSuffix(filepath.Base(exe), ".exe"), "fake-"); ok {
+				ver = v
+			}
+		}
+		fmt.Println("fake " + ver)
+		return
+	}
+	if len(args) > 0 && args[0] == "login" {
+		if os.Getenv("AGENTRT_FAKE_LOGIN") == "fail" {
+			fmt.Println("Not logged in")
+			os.Exit(1)
+		}
+		fmt.Println("Logged in")
 		return
 	}
 	if f, err := os.OpenFile(os.Getenv("AGENTRT_FAKE_LOG"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
@@ -68,6 +83,7 @@ func fakeCLI() {
 			if !sc.Scan() {
 				return
 			}
+			logLine("got " + sc.Text())
 			fmt.Printf("TEXT %s\nEND\n", strings.ToLower(sc.Text()))
 		case strings.HasPrefix(line, "MSG "):
 			fmt.Printf("TEXT echo: %s\nEND\n", strings.TrimPrefix(line, "MSG "))
@@ -75,17 +91,35 @@ func fakeCLI() {
 	}
 }
 
+// logLine appends a line to $AGENTRT_FAKE_LOG.
+func logLine(s string) {
+	if f, err := os.OpenFile(os.Getenv("AGENTRT_FAKE_LOG"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		fmt.Fprintln(f, s)
+		f.Close()
+	}
+}
+
 // testAdapter drives fakeCLI.
 type testAdapter struct {
 	perTurnOnly bool
+	loseResume  bool                     // the handshake never resumes (ResumeLoser)
+	interrupt   bool                     // Interrupt sends STOP instead of killing
+	candidates  func() ([]string, error) // Info.Candidates
+	login       bool                     // Info.LoginArgs
+	files       bool                     // Command.Files
 }
 
 func (a testAdapter) Info() Info {
-	return Info{ID: "fake", Name: "Fake CLI", VersionArgs: []string{"--version"}, MinVersion: "1.0.0", TestedMajor: 1,
-		PerTurnOnly: a.perTurnOnly, NoPerTurn: !a.perTurnOnly, AssignsSessionID: true, EnvDrop: []string{"AGENTRT_DROPPED"}}
+	i := Info{ID: "fake", Name: "Fake CLI", VersionArgs: []string{"--version"}, MinVersion: "1.0.0", TestedMajor: 1,
+		PerTurnOnly: a.perTurnOnly, NoPerTurn: !a.perTurnOnly, AssignsSessionID: true, EnvDrop: []string{"AGENTRT_DROPPED"},
+		Candidates: a.candidates}
+	if a.login {
+		i.LoginArgs = []string{"login"}
+	}
+	return i
 }
 
-func (testAdapter) Command(l Launch) (Command, error) {
+func (a testAdapter) Command(l Launch) (Command, error) {
 	argv := []string{l.Path, "persist"}
 	if !l.Persistent {
 		argv[1] = "turn"
@@ -93,21 +127,35 @@ func (testAdapter) Command(l Launch) (Command, error) {
 	if l.Resume {
 		argv = append(argv, "resume="+l.SessionID)
 	}
-	return Command{Argv: argv}, nil
+	cmd := Command{Argv: argv}
+	if a.files {
+		cmd.Files = map[string][]byte{"fake-settings.json": []byte(`{"version":"` + l.Version + `"}`)}
+	}
+	return cmd, nil
 }
 
 func (testAdapter) MCPConfig(MCPServer) ([]byte, error) { return nil, nil }
-func (testAdapter) NewCodec(Launch) Codec               { return &testCodec{} }
+func (a testAdapter) NewCodec(l Launch) Codec {
+	return &testCodec{lost: a.loseResume && l.Resume, interrupt: a.interrupt}
+}
 func (testAdapter) ExitOutcome(text string) Outcome {
 	return Outcome{Kind: Failed, Err: &backend.Error{Kind: backend.ErrFailed, Message: text}}
 }
 
-type testCodec struct{}
+type testCodec struct {
+	lost, interrupt bool
+}
 
 func (*testCodec) Message(text string) ([]byte, error) { return []byte("MSG " + text + "\n"), nil }
 func (*testCodec) Prompt(text string) []byte           { return []byte(text) }
-func (*testCodec) Interrupt() []byte                   { return nil }
-func (*testCodec) NewDecoder(io TurnIO) Decoder        { return &testDecoder{io: io} }
+func (c *testCodec) Interrupt() []byte {
+	if c.interrupt {
+		return []byte("STOP\n")
+	}
+	return nil
+}
+func (*testCodec) NewDecoder(io TurnIO) Decoder { return &testDecoder{io: io} }
+func (c *testCodec) ResumeLost() bool           { return c.lost }
 
 // Handshake implements Handshaker.
 func (*testCodec) Handshake(ctx context.Context, c Conn) (string, error) {
@@ -190,7 +238,13 @@ func newTest(t *testing.T, a Adapter, dir string) (*Runtime, string) {
 func starts(t *testing.T, log string) []string {
 	t.Helper()
 	b, _ := os.ReadFile(log)
-	return strings.Fields(strings.ReplaceAll(strings.TrimSpace(string(b)), " ", "_"))
+	var out []string
+	for _, l := range strings.Split(strings.TrimSpace(string(b)), "\n") {
+		if l = strings.TrimSpace(l); l != "" && !strings.HasPrefix(l, "got ") { // answers the fake got
+			out = append(out, strings.ReplaceAll(l, " ", "_"))
+		}
+	}
+	return out
 }
 
 // collect reads a turn, answering permission requests with answer.

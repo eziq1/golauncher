@@ -28,7 +28,7 @@ func (p *Plugin) historyView() plugin.View {
 		items = append(items, plugin.Item{
 			ID:        s.ID,
 			Title:     s.Title,
-			Subtitle:  l.RelativeTime(s.Updated, now),
+			Subtitle:  l.T("history.subtitle", "time", l.RelativeTime(s.Updated, now), "backend", p.backendName(s)),
 			Icon:      plugin.Icon{Name: "message-square"},
 			Accessory: l.N("history.messages", s.Messages),
 			Actions: []plugin.Action{
@@ -50,23 +50,26 @@ func (p *Plugin) historyView() plugin.View {
 // historyAction deletes one chat or all of them.
 func (p *Plugin) historyAction(a plugin.ActionDo) (plugin.Result, error) {
 	l := p.h.I18n()
-	var ids []string
+	var id string
 	if a.Target == "delete" {
-		var id string
 		if err := json.Unmarshal(a.Payload, &id); err != nil {
 			return plugin.Result{}, err
 		}
-		ids = []string{id}
-	} else {
-		list, err := p.st.Sessions()
-		if err != nil {
-			return plugin.Result{}, err
-		}
-		for _, s := range list {
+	}
+	list, err := p.st.Sessions()
+	if err != nil {
+		return plugin.Result{}, err
+	}
+	var ids []string
+	for _, s := range list {
+		if a.Target == "clear" || s.ID == id {
 			ids = append(ids, s.ID)
+			p.forget(s.ID)
+			p.be.forget(s) // the CLI's session ID of the chat (R72)
 		}
 	}
-	for _, id := range ids {
+	if a.Target == "delete" && len(ids) == 0 {
+		ids = []string{id} // not in the index: delete what may be left
 		p.forget(id)
 	}
 	n := len(ids)

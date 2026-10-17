@@ -1,0 +1,237 @@
+package gemini
+
+import (
+	"bytes"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/eziq1/golauncher/internal/ai/acp"
+	"github.com/eziq1/golauncher/internal/ai/agentrt"
+	"github.com/eziq1/golauncher/plugins/ai/backend"
+)
+
+var update = flag.Bool("update", false, "rewrite testdata/argv.golden.json")
+
+// fakeHost is a computer with the files in files and the variables in env.
+func fakeHost(env map[string]string, files map[string]string) host {
+	return host{
+		getenv: func(k string) string { return env[k] },
+		exists: func(p string) bool { _, ok := files[p]; return ok },
+		readFile: func(p string) ([]byte, error) {
+			if s, ok := files[p]; ok {
+				return []byte(s), nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+}
+
+// argvGolden is testdata/argv.golden.json.
+type argvGolden struct {
+	Cases []argvCase `json:"cases"`
+	// Settings are the system settings files written, by name.
+	Settings map[string]jsontext.Value `json:"settings"`
+}
+
+type argvCase struct {
+	Name  string   `json:"name"`
+	Argv  []string `json:"argv"`
+	Env   []string `json:"env"`
+	Files []string `json:"files"`
+}
+
+// TestArgvTable pins the command line, environment and system settings of
+// every combination of new or resumed session, launcher tools, web search,
+// model and system prompt for gemini.cmd and gemini.exe (on a computer
+// without system settings). Run with -update only for an intended change.
+func TestArgvTable(t *testing.T) {
+	dir := t.TempDir()
+	h := fakeHost(nil, nil)
+	ts := &ToolServer{Command: `C:\golauncher.exe`, Args: []string{"mcp"}, Env: map[string]string{"GOLAUNCHER_AGENT_TOKEN": "tok"}, SessionEnv: "GOLAUNCHER_AGENT_SESSION"}
+	b := agentrt.New(acp.NewAdapter(config(h)), Options{Dir: dir, Tools: ts})
+	const id = "12345678-1234-4234-8234-123456789abc"
+	g := argvGolden{Settings: map[string]jsontext.Value{}}
+	for _, path := range []string{`C:\npm\gemini.cmd`, `C:\bin\gemini.exe`} {
+		for _, resume := range []bool{false, true} {
+			for _, tools := range []bool{false, true} {
+				for _, web := range []bool{false, true} {
+					for _, model := range []string{"", "gemini-2.5-flash"} {
+						for _, sp := range []string{"", "Line one.\nLine two."} {
+							oo := backend.OpenOptions{SessionID: id, Resume: resume, Model: model, WebSearch: web, LauncherTools: tools, SystemPrompt: sp}
+							cmd, err := b.CommandAt(oo, path, "0.34.0", true, resume)
+							if err != nil {
+								t.Fatal(err)
+							}
+							c := argvCase{
+								Name: fmt.Sprintf("%s resume=%v tools=%v web=%v model=%q prompt=%v", filepath.Ext(path), resume, tools, web, model, sp != ""),
+								Argv: cmd.Argv, Env: slices.Clone(cmd.Env),
+							}
+							for i := range c.Env {
+								c.Env[i] = strings.ReplaceAll(c.Env[i], dir, `<dir>`)
+							}
+							for name, content := range cmd.Files {
+								c.Files = append(c.Files, name)
+								g.Settings[name] = jsontext.Value(content)
+							}
+							g.Cases = append(g.Cases, c)
+						}
+					}
+				}
+			}
+		}
+	}
+	got, err := json.Marshal(g, json.Deterministic(true), jsontext.WithIndent("  "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = append(got, '\n')
+	golden := filepath.Join("testdata", "argv.golden.json")
+	if *update {
+		if err := os.MkdirAll("testdata", 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(golden, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n")), got) {
+		t.Fatalf("command lines differ from %s; got:\n%s", golden, got)
+	}
+}
+
+// TestSettings: the settings without web search register no built-in tool;
+// with it only the web tools; an administrator's system settings are kept
+// under golauncher's, and its system defaults are still read.
+func TestSettings(t *testing.T) {
+	var s map[string]any
+	json.Unmarshal(systemSettings(false, fakeHost(nil, nil)).content, &s)
+	tools := s["tools"].(map[string]any)
+	if core := tools["core"].([]any); len(core) != 0 {
+		t.Errorf("core %v", core)
+	}
+	if ex := tools["exclude"].([]any); !slices.Contains(ex, any("run_shell_command")) || !slices.Contains(ex, any("web_fetch")) {
+		t.Errorf("exclude %v", ex)
+	}
+	json.Unmarshal(systemSettings(true, fakeHost(nil, nil)).content, &s)
+	tools = s["tools"].(map[string]any)
+	if core := tools["core"].([]any); !slices.Equal(core, []any{"google_web_search", "web_fetch"}) || slices.Contains(tools["exclude"].([]any), any("web_fetch")) {
+		t.Errorf("tools %v", tools)
+	}
+
+	admin := `{
+	  // the administrator's settings
+	  "tools": {"core": ["run_shell_command"], "sandbox": "docker"},
+	  "security": {"auth": {"enforcedType": "oauth-personal"}},
+	  "telemetry": {"enabled": false}, /* kept */
+	  "url": "https://example.com/a//b"
+	}`
+	h := fakeHost(nil, map[string]string{defaultSystemSettings: admin})
+	st := systemSettings(false, h)
+	if err := json.Unmarshal(st.content, &s); err != nil {
+		t.Fatal(err)
+	}
+	tools = s["tools"].(map[string]any)
+	if len(tools["core"].([]any)) != 0 || tools["sandbox"] != "docker" || s["url"] != "https://example.com/a//b" ||
+		s["security"].(map[string]any)["auth"].(map[string]any)["enforcedType"] != "oauth-personal" || s["security"].(map[string]any)["disableYoloMode"] != true ||
+		s["telemetry"].(map[string]any)["enabled"] != false {
+		t.Errorf("merged %s", st.content)
+	}
+	if st.defaultsPath != `C:\ProgramData\gemini-cli\system-defaults.json` {
+		t.Errorf("defaults %q", st.defaultsPath)
+	}
+	// Moved by the environment; an unparsable file is ignored, like Gemini CLI does.
+	h = fakeHost(map[string]string{envSystemSettings: `D:\policy\gemini.json`}, map[string]string{`D:\policy\gemini.json`: "{nonsense"})
+	if st := systemSettings(false, h); st.defaultsPath != `D:\policy\system-defaults.json` || !bytes.Equal(st.content, systemSettings(false, fakeHost(nil, nil)).content) {
+		t.Errorf("moved: %q %s", st.defaultsPath, st.content)
+	}
+	h = fakeHost(map[string]string{envSystemDefaults: `E:\d.json`}, nil)
+	if st := systemSettings(false, h); st.defaultsPath != `E:\d.json` {
+		t.Errorf("defaults %q", st.defaultsPath)
+	}
+}
+
+func TestModel(t *testing.T) {
+	h := fakeHost(nil, nil)
+	for _, m := range []string{"gemini 2.5", "-x", "a&b", "a\nb", `a"b`} {
+		if _, err := args(agentrt.Launch{Dir: `C:\w`, Model: m}, h); err == nil {
+			t.Errorf("model %q accepted", m)
+		}
+	}
+	if cmd, err := args(agentrt.Launch{Dir: `C:\w`, Model: "gemini-2.5-pro"}, h); err != nil || !slices.Contains(cmd.Argv, "gemini-2.5-pro") {
+		t.Errorf("%q %v", cmd.Argv, err)
+	}
+}
+
+func TestCandidates(t *testing.T) {
+	env := map[string]string{"PATH": `C:\a;"C:\b";;C:\c`, "APPDATA": `C:\Users\someone\AppData\Roaming`}
+	files := map[string]string{`C:\b\gemini.cmd`: "", `C:\c\gemini.exe`: "", `C:\Users\someone\AppData\Roaming\npm\gemini.cmd`: "", `C:\a\gemini.ps1`: ""}
+	got, err := candidates(fakeHost(env, files))
+	if err != nil || !slices.Equal(got, []string{`C:\c\gemini.exe`, `C:\b\gemini.cmd`, `C:\Users\someone\AppData\Roaming\npm\gemini.cmd`}) {
+		t.Errorf("candidates %q %v", got, err)
+	}
+	// Only launchers golauncher does not run.
+	got, err = candidates(fakeHost(env, map[string]string{`C:\a\gemini.ps1`: "", `C:\a\gemini`: ""}))
+	if len(got) != 0 || err == nil || !strings.Contains(err.Error(), `C:\a\gemini.ps1`) {
+		t.Errorf("candidates %q %v", got, err)
+	}
+	if got, err := candidates(fakeHost(env, nil)); len(got) != 0 || err != nil {
+		t.Errorf("candidates %q %v", got, err)
+	}
+	// Not installed: Check says so.
+	b := agentrt.New(acp.NewAdapter(config(fakeHost(env, nil))), Options{Dir: t.TempDir()})
+	if _, err := b.Check(t.Context()); backend.KindOf(err) != backend.ErrNotInstalled {
+		t.Errorf("Check %v", err)
+	}
+}
+
+func TestTool(t *testing.T) {
+	failed := func(tool, resp string) string {
+		return "MCP tool '" + tool + "' reported tool error for function call: {\"name\":\"" + tool + "\",\"args\":{}} with response: " + resp
+	}
+	for _, tc := range []struct {
+		c            acp.ToolCall
+		tool, result string
+	}{
+		{acp.ToolCall{Title: `{"query":"code"}`}, "mcp__golauncher__search", ""},
+		{acp.ToolCall{Title: `{}`}, "mcp__golauncher__list_plugins", ""},
+		{acp.ToolCall{Title: `{"plugin":"builtin.winget"}`}, "mcp__golauncher__list_plugins", ""},
+		{acp.ToolCall{Title: `{"plugin":"builtin.winget","command":"search"}`}, "mcp__golauncher__run_command", ""},
+		{acp.ToolCall{Title: `{"handle":"i1","action":"open"}`}, "mcp__golauncher__run_action", ""},
+		{acp.ToolCall{Title: `{"handle":"i1"}`}, "mcp", ""},
+		{acp.ToolCall{Title: `{"handle":"i1"}`, Done: true, Result: `{"title":"x","text":"y"}`}, "mcp__golauncher__get_detail", `{"title":"x","text":"y"}`},
+		{acp.ToolCall{Title: `{"handle":"i1"}`, Done: true, Result: `{"status":"done","action":"Open"}`}, "mcp__golauncher__run_action", `{"status":"done","action":"Open"}`},
+		{acp.ToolCall{Title: `{"handle":"i1"}`, Done: true, Failed: true,
+			Result: failed("run_action", `[{"functionResponse":{"name":"run_action","response":{"content":[{"type":"text","text":"{\"status\":\"declined\"}"}],"isError":true}}}]`)},
+			"mcp__golauncher__run_action", `{"status":"declined"}`},
+		{acp.ToolCall{Title: `Searching the web for: "x"`, Kind: "search"}, "WebSearch", ""},
+	} {
+		if tool, _ := tool(tc.c); tool != tc.tool {
+			t.Errorf("tool(%+v) = %q, want %q", tc.c, tool, tc.tool)
+		}
+		if tc.c.Done {
+			if r := toolResult(tc.c); r != tc.result {
+				t.Errorf("toolResult(%+v) = %q, want %q", tc.c, r, tc.result)
+			}
+		}
+	}
+}
+
+func TestStripComments(t *testing.T) {
+	in := "{\"a\": \"// no\", // yes\n \"b\": /* x */ 1, \"c\": \"\\\"/*\"}"
+	var v map[string]any
+	if err := json.Unmarshal(stripComments([]byte(in)), &v); err != nil || v["a"] != "// no" || v["c"] != `"/*` {
+		t.Errorf("%s %v %v", stripComments([]byte(in)), v, err)
+	}
+}

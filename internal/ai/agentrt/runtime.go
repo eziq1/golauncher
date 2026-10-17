@@ -2,6 +2,7 @@ package agentrt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -112,17 +113,54 @@ func (r *Runtime) errorf(format string, args ...any) error {
 	return fmt.Errorf(r.info.ID+": "+format, args...)
 }
 
-// Check implements backend.Backend: it finds the CLI and checks its version.
+// Check implements backend.Backend: it finds the CLI and checks its version
+// (and, with Info.LoginArgs, that it is signed in). Of several candidates
+// (Info.Candidates) the one with the highest acceptable version is used.
 func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
-	path, err := r.find()
+	paths, err := r.findAll()
 	if err != nil {
 		return backend.Status{}, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
-	out, code, err := r.runVersion(ctx, path)
+	var best *cliInfo
+	var firstErr error
+	for _, path := range paths {
+		cli, err := r.checkOne(ctx, path)
+		if err != nil {
+			if firstErr == nil || backend.KindOf(firstErr) != backend.ErrVersion && backend.KindOf(err) == backend.ErrVersion {
+				firstErr = err
+			}
+			continue
+		}
+		if best == nil || CompareVersions(cli.version, best.version) > 0 {
+			best = cli
+		}
+	}
+	if best == nil {
+		return backend.Status{}, firstErr
+	}
+	if len(r.info.LoginArgs) > 0 {
+		out, code, err := r.run(ctx, best.path, r.info.LoginArgs)
+		if err != nil {
+			return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+		}
+		if code != 0 {
+			return backend.Status{}, &backend.Error{Kind: backend.ErrNotLoggedIn, Message: strings.TrimSpace(out)}
+		}
+	}
+	r.mu.Lock()
+	r.cli = best
+	r.mu.Unlock()
+	r.log.Info("agent CLI found", "version", best.version, "untested", best.untested, "candidates", len(paths))
+	return backend.Status{Version: best.version, Untested: best.untested}, nil
+}
+
+// checkOne checks the version of the CLI at path.
+func (r *Runtime) checkOne(ctx context.Context, path string) (*cliInfo, error) {
+	out, code, err := r.run(ctx, path, r.info.VersionArgs)
 	if err != nil {
-		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+		return nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
 	}
 	parse := r.info.ParseVersion
 	if parse == nil {
@@ -134,17 +172,25 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 		if msg == "" {
 			msg = fmt.Sprintf("%s: exit code %d", strings.Join(append([]string{r.command()}, r.info.VersionArgs...), " "), code)
 		}
-		return backend.Status{}, &backend.Error{Kind: backend.ErrFailed, Message: msg}
+		return nil, &backend.Error{Kind: backend.ErrFailed, Message: msg}
 	}
 	if r.info.MinVersion != "" && CompareVersions(ver, r.info.MinVersion) < 0 {
-		return backend.Status{}, &backend.Error{Kind: backend.ErrVersion, Version: ver}
+		return nil, &backend.Error{Kind: backend.ErrVersion, Version: ver}
 	}
-	cli := &cliInfo{path: path, version: ver, untested: MajorOf(ver) != r.info.TestedMajor}
-	r.mu.Lock()
-	r.cli = cli
-	r.mu.Unlock()
-	r.log.Info("agent CLI found", "version", ver, "untested", cli.untested)
-	return backend.Status{Version: ver, Untested: cli.untested}, nil
+	return &cliInfo{path: path, version: ver, untested: MajorOf(ver) != r.info.TestedMajor}, nil
+}
+
+// Forget implements backend.Forgetter: the CLI's session ID of a deleted
+// chat is dropped from the session map (CLIs that assign their own IDs).
+// The CLI's own session files are left alone.
+func (r *Runtime) Forget(chatID string) {
+	m := r.sessionMap()
+	if m == nil {
+		return
+	}
+	if err := m.Delete(chatID); err != nil {
+		r.log.Warn("forgetting the session ID failed", "error", err)
+	}
 }
 
 // command is the CLI's command name, for messages.
@@ -212,9 +258,15 @@ func (r *Runtime) LiveCount() int {
 // of a process of a conversation opened with o, for the CLI at path
 // (diagnostics and tests; nothing is written or started).
 func (r *Runtime) Command(o backend.OpenOptions, path string, persistent, resume bool) (Command, error) {
+	return r.CommandAt(o, path, "", persistent, resume)
+}
+
+// CommandAt is Command for a CLI of the given version.
+func (r *Runtime) CommandAt(o backend.OpenOptions, path, version string, persistent, resume bool) (Command, error) {
 	c := &conversation{r: r, oo: o}
 	dir := r.o.Dir
 	l := c.launch(path, dir, persistent, resume, "")
+	l.Version = version
 	if l.Tools != nil {
 		if b, err := r.a.MCPConfig(*l.Tools); err == nil && b != nil {
 			l.MCPConfig = filepath.Join(dir, MCPConfigName(o.SessionID))
@@ -267,6 +319,33 @@ func (r *Runtime) drop(c *conversation) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
+}
+
+// findAll locates the CLIs to choose from: the configured one, the
+// adapter's candidates, or the first found on PATH or in the usual install
+// locations.
+func (r *Runtime) findAll() ([]string, error) {
+	if r.o.Path == "" {
+		if c := r.a.Info().Candidates; c != nil {
+			paths, err := c()
+			if len(paths) > 0 {
+				return paths, nil
+			}
+			if _, ok := errors.AsType[*backend.Error](err); ok {
+				return nil, err
+			}
+			msg := ""
+			if err != nil {
+				msg = err.Error()
+			}
+			return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: msg}
+		}
+	}
+	p, err := r.find()
+	if err != nil {
+		return nil, err
+	}
+	return []string{p}, nil
 }
 
 // find locates the CLI.
@@ -341,14 +420,15 @@ func (r *Runtime) Env() []string {
 	return proc.MergeEnv(env, r.o.Env)
 }
 
-// runVersion runs the version command and returns its output and exit code.
-func (r *Runtime) runVersion(ctx context.Context, path string) (string, int, error) {
+// run runs the CLI with args (the version or login check) and returns its
+// output and exit code.
+func (r *Runtime) run(ctx context.Context, path string, args []string) (string, int, error) {
 	dir, err := r.dir()
 	if err != nil {
 		return "", 0, err
 	}
 	out := &tail{max: 4096}
-	p, err := proc.Start(proc.Options{Argv: append([]string{path}, r.info.VersionArgs...), Dir: dir, Env: r.Env(), Output: out})
+	p, err := proc.Start(proc.Options{Argv: append([]string{path}, args...), Dir: dir, Env: r.Env(), Output: out})
 	if err != nil {
 		return "", 0, err
 	}

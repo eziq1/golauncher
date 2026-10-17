@@ -26,8 +26,9 @@ type BridgeOptions struct {
 	Start func() error
 	// Wait is how long to wait for a launcher that was started (default 30s).
 	Wait time.Duration
-	// Token and Session are sent in the hello (EnvToken, EnvSession).
-	Token, Session string
+	// Token, Session and Agent are sent in the hello (EnvToken, EnvSession,
+	// EnvAgent).
+	Token, Session, Agent string
 	// Version is reported when the launcher cannot be reached.
 	Version string
 	Log     *slog.Logger
@@ -49,7 +50,7 @@ func Bridge(ctx context.Context, stdin io.Reader, stdout io.Writer, o BridgeOpti
 		return serveMCP(ctx, stdin, stdout, unavailable{err}, mcpOptions{Version: o.Version, Log: log})
 	}
 	defer conn.Close()
-	b, _ := json.Marshal(hello{Golauncher: helloKind, Token: o.Token, Session: o.Session})
+	b, _ := json.Marshal(hello{Golauncher: helloKind, Token: o.Token, Session: o.Session, Agent: o.Agent})
 	if _, err := conn.Write(append(b, '\n')); err != nil {
 		return err
 	}

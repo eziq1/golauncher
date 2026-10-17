@@ -26,35 +26,23 @@
 //   - the mapping from chat IDs to the CLI's session IDs, for CLIs that
 //     assign their own (SessionMap);
 //   - error classification at the process level (not installed, too old,
-//     exit without an answer) and the logging policy: lengths, durations and
-//     error kinds only, never message content (docs/ai.md §9).
+//     not signed in with Info.LoginArgs, exit without an answer) and the
+//     logging policy: lengths, durations and error kinds only, never message
+//     content (docs/ai.md §9);
+//   - the permission bridge: an agent's permission request (EventPermission)
+//     is answered at most once, and rejected when the user does not answer
+//     within PermissionTimeout, stops the answer, or the turn ends;
+//   - choosing among several installations (Info.Candidates: the highest
+//     acceptable version), and telling the user when a session could not be
+//     resumed (EventNotice).
 //
-// # How other CLIs map onto Adapter (phase 2, not implemented)
-//
-// ACP (Agent Client Protocol; e.g. `gemini --acp`, or Zed's claude-code-acp
-// and codex-acp): Info.PerTurnOnly is false and there is no per-turn mode
-// (Info.NoPerTurn), so the fallback is a restarted persistent process.
-// Command returns the agent's command line. MCPConfig returns nil: the tool
-// server (Launch.Tools) goes into session/new's mcpServers instead. The Codec
-// is a Handshaker: Handshake sends initialize, then session/load (when
-// Launch.Resume and the agent has the loadSession capability) or
-// session/new, and returns the session ID the agent assigned
-// (Info.AssignsSessionID, kept in the SessionMap). Message is a session/prompt
-// request; the Decoder turns session/update notifications into events
-// (agent_message_chunk → EventText, tool_call → EventTool, tool_call_update →
-// EventToolResult), answers session/request_permission requests through
-// TurnIO.Reply after the user decided (EventPermission), and reports end at
-// the response to the session/prompt request (its stopReason "cancelled" →
-// Cancelled). Interrupt is the session/cancel notification. JSON-RPC errors
-// map to Outcome errors (auth → ErrNotLoggedIn and so on).
-//
-// Codex CLI (`codex exec --json`, `codex exec resume <id>`): Info.PerTurnOnly
-// and Info.AssignsSessionID. Command returns `codex exec --json` with
-// `--sandbox read-only`, `-c mcp_servers.golauncher.*` from Launch.Tools
-// (MCPConfig returns nil), `resume <Launch.SessionID>` when resuming, and
-// reads the prompt from stdin (Codec.Prompt). The Decoder reports the
-// thread.started event's ID as Progress.SessionID, item events as text and
-// tool steps, and end at turn.completed (usage) or turn.failed.
+// The adapters: Claude Code (internal/ai/claudecode, stream-json, persistent
+// with a per-turn fallback); the generic ACP adapter (internal/ai/acp,
+// persistent only: a Handshaker sends initialize and session/new or
+// session/load, Message is session/prompt, Interrupt session/cancel, the
+// Decoder maps session/update and session/request_permission), used by
+// Gemini CLI (internal/ai/gemini); Codex (internal/ai/codex, `codex exec
+// --json` per turn, `resume <id>`). See docs/ai.md §20 and §21.
 package agentrt
 
 import (
@@ -122,12 +110,28 @@ type Info struct {
 	// Progress.SessionID or Handshaker), which the runtime maps to the chat's
 	// ID; otherwise the chat's ID is the CLI's session ID.
 	AssignsSessionID bool
+	// Candidates, when set, replaces Commands and InstallPaths: it returns
+	// the CLIs found, in order of preference. With more than one, Check uses
+	// the one with the highest version. err explains why none can be used
+	// (e.g. only a launcher script that needs another runtime was found); it
+	// is reported when there is no candidate (as ErrNotInstalled unless it
+	// is a *backend.Error).
+	Candidates func() (paths []string, err error)
+	// LoginArgs, when set, are run by Check after the version check: a
+	// non-zero exit code means that the CLI is not signed in
+	// (ErrNotLoggedIn, with the command's output as the message).
+	LoginArgs []string
 }
 
 // Launch is what a process is started for.
 type Launch struct {
 	// Path is the CLI found; Dir its working directory.
 	Path, Dir string
+	// Version is the CLI's version as Check found it ("" when unknown, e.g.
+	// for Runtime.Command), for flags that depend on it.
+	Version string
+	// ChatID is the chat's ID (backend.OpenOptions.SessionID).
+	ChatID string
 	// Persistent: the process answers several turns (else one).
 	Persistent bool
 	// SessionID is the CLI's session ID: the chat's ID, or the one the CLI
@@ -155,6 +159,10 @@ type Command struct {
 	Argv []string
 	// Env are NAME=value entries added to (or replacing in) the environment.
 	Env []string
+	// Files are written into the working directory (Launch.Dir) before the
+	// process starts, by name (a base name, 0600), e.g. a settings file the
+	// CLI reads; Runtime.Command, which only previews, writes nothing.
+	Files map[string][]byte
 }
 
 // Codec speaks the CLI's protocol with one process.
@@ -179,6 +187,15 @@ type Handshaker interface {
 	Handshake(ctx context.Context, c Conn) (sessionID string, err error)
 }
 
+// ResumeLoser is implemented by Codecs whose Handshake may start a new
+// session although Launch.Resume asked to continue one (the agent cannot
+// load sessions, or it no longer has this one). ResumeLost reports that it
+// did, after Handshake; the runtime then tells the user with an EventNotice
+// (backend.NoticeNewSession) at the start of the turn.
+type ResumeLoser interface {
+	ResumeLost() bool
+}
+
 // Conn is a process's input and output during a handshake.
 type Conn interface {
 	// Write writes to the process's input.
@@ -192,6 +209,13 @@ type Conn interface {
 type TurnIO struct {
 	// Emit delivers an event to the conversation's reader (text, tool
 	// steps, permission requests). The final event is the runtime's.
+	//
+	// A permission request (EventPermission) is bridged by the runtime: its
+	// Respond is called at most once, with "" (reject) when the user does not
+	// answer within PermissionTimeout, when the user stops the answer (before
+	// Interrupt is sent) or when the turn ends; Permission.Done is closed
+	// once it was answered. The decoder's Respond writes the answer (through
+	// Reply) and maps "" to the agent's reject option.
 	Emit func(backend.Event)
 	// Reply writes to the process's input, e.g. the answer to a permission
 	// request.

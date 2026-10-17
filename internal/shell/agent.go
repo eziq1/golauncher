@@ -23,6 +23,7 @@ func runBridge(o Options) error {
 		Start:   startBackground,
 		Token:   os.Getenv(agent.EnvToken),
 		Session: os.Getenv(agent.EnvSession),
+		Agent:   os.Getenv(agent.EnvAgent),
 		Version: o.Version,
 	})
 }

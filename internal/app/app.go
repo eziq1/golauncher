@@ -24,6 +24,7 @@ import (
 	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
 // Options configure Build.
@@ -258,7 +259,33 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		Log:      log,
 		Now:      now,
 	})
+	// The AI chat asks its agent's permission requests in the same dialog
+	// (docs/ai.md §21).
+	ask := permissionAsker(env.Agent)
+	for _, p := range plugins {
+		if s, ok := p.(interface {
+			SetPermissionAsker(backend.PermissionAsker)
+		}); ok {
+			s.SetPermissionAsker(ask)
+		}
+	}
 	return env, nil
+}
+
+// permissionAsker asks the user about an agent's permission request through
+// the agent layer, which also records it.
+func permissionAsker(a *agent.Agent) backend.PermissionAsker {
+	return func(ctx context.Context, p backend.PermissionAsk) backend.PermissionDecision {
+		d := a.ConfirmChatPermission(ctx, core.ExternalRequest{Client: p.Client, Action: p.Action, Message: p.Message,
+			Destructive: p.Destructive, AllowSession: p.AllowSession}, p.Tool)
+		switch d {
+		case core.DecisionAllow:
+			return backend.PermissionAllow
+		case core.DecisionAllowSession:
+			return backend.PermissionAllowSession
+		}
+		return backend.PermissionDeny
+	}
 }
 
 // newTasks creates the background task manager. A finished task publishes

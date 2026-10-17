@@ -2,6 +2,7 @@ package agentrt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"strconv"
@@ -30,6 +31,9 @@ type conversation struct {
 	started  bool     // the session exists: later processes resume it
 	forceNew bool     // the next process starts a new session (it was lost)
 	perTurn  bool     // the persistent process failed: one process per turn
+	// notice: the session to resume was lost and a new one started; the
+	// next turn tells the user (backend.NoticeNewSession).
+	notice bool
 	// toolConfig is the MCP configuration file written for the CLI, "" when
 	// none.
 	toolConfig string
@@ -219,6 +223,9 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 				c.r.log.Warn("the CLI lost the session; starting it again")
 				c.mu.Lock()
 				c.forceNew = true
+				// The CLIs that assign session IDs say so in the chat (R72);
+				// Claude Code's behaviour is kept as it was (R71).
+				c.notice = c.r.info.AssignsSessionID
 				c.mu.Unlock()
 				continue
 			}
@@ -303,8 +310,12 @@ func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attemp
 	}
 	resume := c.takeResume()
 	l := c.launch(cli.path, dir, false, resume, mcpConfig)
+	l.Version = cli.version
 	l.Prompt = text
 	cmd, err := c.r.a.Command(l)
+	if err == nil {
+		err = writeFiles(dir, cmd.Files)
+	}
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
 	}
@@ -343,7 +354,22 @@ func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attemp
 // of the process. A cancel request interrupts the answer (persistent, when
 // the protocol can) or kills the process.
 func (c *conversation) pump(t *turn, p *process, codec Codec, persistent bool) attempt {
-	dec := codec.NewDecoder(TurnIO{Emit: t.emit, Reply: p.write})
+	c.mu.Lock()
+	notice := c.notice
+	c.notice = false
+	c.mu.Unlock()
+	if notice {
+		t.emit(backend.Event{Kind: backend.EventNotice, Text: backend.NoticeNewSession})
+	}
+	perms := newPermissions(c.r.log)
+	defer perms.close()
+	emit := func(ev backend.Event) {
+		if ev.Kind == backend.EventPermission && ev.Permission != nil {
+			ev.Permission = perms.track(ev.Permission)
+		}
+		t.emit(ev)
+	}
+	dec := codec.NewDecoder(TurnIO{Emit: emit, Reply: p.write})
 	cancel := t.cancelCh
 	var killTimer <-chan time.Time
 	cancelled := false
@@ -387,6 +413,10 @@ func (c *conversation) pump(t *turn, p *process, codec Codec, persistent bool) a
 			if o.Kind == SessionInUse && !pr.Emitted {
 				return attempt{kind: kInUse}
 			}
+			if o.Kind == LostSession && !pr.Emitted {
+				// e.g. Codex reports an unknown thread on stderr only.
+				return attempt{kind: kLostSession}
+			}
 			err := o.Err
 			if err == nil {
 				err = &backend.Error{Kind: backend.ErrFailed, Message: msg}
@@ -402,6 +432,9 @@ func (c *conversation) pump(t *turn, p *process, codec Codec, persistent bool) a
 			exited = true // read what is left, then report the end
 		case <-cancel:
 			cancel, cancelled = nil, true
+			// Pending permission requests are rejected first (ACP: the
+			// client answers them before the prompt ends as cancelled).
+			perms.rejectAll()
 			var in []byte
 			if persistent {
 				in = codec.Interrupt()
@@ -456,6 +489,9 @@ func (c *conversation) ensureProcess(cli *cliInfo) (*process, Codec, error) {
 		prev.stop()
 	}
 	failed := func(err error) (*process, Codec, error) {
+		if _, ok := errors.AsType[*backend.Error](err); ok {
+			return nil, nil, err // classified by the adapter (e.g. not signed in)
+		}
 		return nil, nil, &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
 	}
 	dir, err := c.r.dir()
@@ -468,7 +504,11 @@ func (c *conversation) ensureProcess(cli *cliInfo) (*process, Codec, error) {
 	}
 	resume := c.takeResume()
 	l := c.launch(cli.path, dir, true, resume, mcpConfig)
+	l.Version = cli.version
 	cmd, err := c.r.a.Command(l)
+	if err == nil {
+		err = writeFiles(dir, cmd.Files)
+	}
 	if err != nil {
 		return failed(err)
 	}
@@ -496,6 +536,12 @@ func (c *conversation) ensureProcess(cli *cliInfo) (*process, Codec, error) {
 		if id != "" {
 			c.recordSession(id)
 			c.markStarted()
+		}
+		if rl, ok := codec.(ResumeLoser); ok && rl.ResumeLost() {
+			c.r.log.Warn("the CLI could not resume the session; a new one started")
+			c.mu.Lock()
+			c.notice = true
+			c.mu.Unlock()
 		}
 	}
 	c.mu.Lock()
@@ -526,7 +572,7 @@ func (c *conversation) launch(path, dir string, persistent, resume bool, mcpConf
 		resume = id != ""
 	}
 	return Launch{
-		Path: path, Dir: dir, Persistent: persistent,
+		Path: path, Dir: dir, Persistent: persistent, ChatID: c.oo.SessionID,
 		SessionID: id, Resume: resume,
 		Model: c.oo.Model, WebSearch: c.oo.WebSearch, SystemPrompt: c.oo.SystemPrompt,
 		Tools: c.toolServer(), MCPConfig: mcpConfig,

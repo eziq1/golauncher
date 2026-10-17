@@ -20,6 +20,7 @@
   "confirm.tasksInterrupted": { "one": "{{.Count}} background task will be interrupted.", "other": "{{.Count}} background tasks will be interrupted." },
   "confirm.cancel": "Cancel",
   "agent.client.chat": "Claude (AI Chat)",
+  "agent.client.chatOf": "{{.agent}} (AI Chat)",
   "agent.client.desktop": "Claude Desktop",
   "agent.client.code": "Claude Code",
   "agent.client.unknown": "An AI app",
