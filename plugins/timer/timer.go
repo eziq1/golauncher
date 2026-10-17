@@ -273,13 +273,13 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	for i, e := range b.active {
 		if rest == "" || len(previews) > 0 || b.matches(e, rest) {
 			it := b.activeItem(e)
-			it.Score = 0.9 - 0.001*float64(i)
+			it.Score = 0.9 - float64(0.001*float64(i))
 			items = append(items, it)
 		}
 	}
 	if rest == "" {
 		for i, it := range append(b.presetItems(), b.recentItems()...) {
-			it.Score = 0.5 - 0.001*float64(i)
+			it.Score = 0.5 - float64(0.001*float64(i))
 			items = append(items, it)
 		}
 	}
@@ -329,7 +329,7 @@ func (b *builder) previews(text string, timer, remind bool) []plugin.Item {
 		}
 	}
 	for i := range items {
-		items[i].Score = 1 - 0.001*float64(i)
+		items[i].Score = 1 - float64(0.001*float64(i))
 	}
 	return items
 }

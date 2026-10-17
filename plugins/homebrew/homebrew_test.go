@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -303,6 +304,9 @@ func TestParseDetails(t *testing.T) {
 }
 
 func TestFindBrew(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("execute bits of Unix paths; macOS and Unix only")
+	}
 	noPath := func(string) (string, error) { return "", errors.New("not found") }
 	if got := FindBrew(func(p string) bool { return p == "/usr/local/bin/brew" }, noPath); got != "/usr/local/bin/brew" {
 		t.Errorf("Intel: %q", got)

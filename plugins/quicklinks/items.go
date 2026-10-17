@@ -110,7 +110,7 @@ func (b *builder) suggestionItems(e Engine, res []string) []plugin.Item {
 			Subtitle:  b.l.T("suggest.subtitle", "engine", e.Name),
 			Icon:      plugin.Icon{Name: "search", Tint: plugin.TintMuted},
 			Group:     b.l.T("group.web"),
-			Score:     0.99 - 0.001*float64(i),
+			Score:     0.99 - float64(0.001*float64(i)),
 			Transient: true,
 			Actions:   b.urlActions(b.l.T("action.search"), u),
 		})

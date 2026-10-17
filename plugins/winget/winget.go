@@ -693,7 +693,7 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	var items []plugin.Item
 	for i, pkg := range ix.Search(ctx, text, rootMax) {
 		it := p.packageItem(t, pkg, installed[strings.ToLower(pkg.ID)])
-		it.Score = rootScore - float64(i)*0.01
+		it.Score = rootScore - float64(float64(i)*0.01)
 		it.Group = group
 		it.Detail = nil
 		items = append(items, it)

@@ -225,6 +225,8 @@ func ExtractBundle(archive, dir string) ([]string, error) {
 	prefix := install.BundleName + "/"
 	var names []string
 	var total uint64
+	exeName := prefix + "Contents/MacOS/" + install.BundleExeName
+	exeExecutable := false
 	for _, f := range zr.File {
 		name := f.Name
 		if !strings.HasPrefix(name, prefix) {
@@ -258,6 +260,9 @@ func ExtractBundle(archive, dir string) ([]string, error) {
 		if mode.Perm()&0o111 != 0 {
 			perm = 0o755
 		}
+		if name == exeName {
+			exeExecutable = perm == 0o755
+		}
 		if err := extractFileMode(f, dst, perm); err != nil {
 			return nil, err
 		}
@@ -271,7 +276,9 @@ func ExtractBundle(archive, dir string) ([]string, error) {
 			return nil, fmt.Errorf("update: the archive has no %s", filepath.ToSlash(rel))
 		}
 	}
-	if fi, err := os.Stat(exe); err != nil || fi.Mode().Perm()&0o111 == 0 {
+	// The archive's mode bits, not the extracted file's: Windows (glctl
+	// update download --os darwin) has no execute bit.
+	if !exeExecutable {
 		return nil, fmt.Errorf("update: %s in the archive is not executable", install.BundleExeName)
 	}
 	if err := install.ClearQuarantine(app); err != nil {

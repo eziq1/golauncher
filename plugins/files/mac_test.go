@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -90,6 +91,9 @@ func actionIDs(it plugin.Item) []string {
 }
 
 func TestMacFolderItems(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Mac paths (AppleScript, open) of a real folder; macOS and Unix only")
+	}
 	dir := filepath.Join(t.TempDir(), "My Project")
 	if err := os.Mkdir(dir, 0o755); err != nil {
 		t.Fatal(err)

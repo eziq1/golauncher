@@ -235,13 +235,13 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 		// The local clock first; frecency (at most 0.3 of the rank) must not
 		// move a city above it.
 		for i := range items {
-			items[i].Score = 0.55 - 0.001*float64(i)
+			items[i].Score = 0.55 - float64(0.001*float64(i))
 		}
 		items[0].Score = 1
 	} else {
 		items = c.search(rest, true)
 		for i := range items {
-			items[i].Score = 1 - 0.005*float64(i)
+			items[i].Score = 1 - float64(0.005*float64(i))
 		}
 	}
 	for i := range items {

@@ -3,7 +3,7 @@ package macterm
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"path"
 	"strings"
 )
 
@@ -87,7 +87,7 @@ func (t Installed) Launch(r Request) (Launch, error) {
 		}
 		return Launch{Argv: argv}, nil
 	case DriverWezTerm:
-		cli := filepath.Join(t.Path, "Contents", "MacOS", "wezterm")
+		cli := path.Join(t.Path, "Contents", "MacOS", "wezterm") // a Mac path on any OS
 		var prog []string
 		if r.Command != "" {
 			prog = append([]string{"--"}, shellArgv(r.Shell, r.Command)...)

@@ -91,16 +91,19 @@ func rank(cfg config.Config, text string, candidates []Entry, freq map[string]fl
 			// The selected text is often left over from earlier: its items
 			// never push out clear matches, nor stand for a good result
 			// that would hide the fallback items.
-			c.Rank = weightMatch*m + contextBonus
+			c.Rank = float64(weightMatch*m) + contextBonus
 			ranked = append(ranked, c)
 			continue
 		}
 		best = max(best, m)
 		f := freq[c.Key]
-		c.Rank = weightMatch*m + weightFrecency*f/(f+frecencyHalf)
+		// The float64 conversions keep arm64 from fusing the multiply and
+		// add (one rounding fewer), so that ranks are the same on every
+		// processor; plugins' Score formulas do the same.
+		c.Rank = float64(weightMatch*m) + float64(weightFrecency*f/(f+frecencyHalf))
 		if c.Context {
 			// Context items are never recorded, so they get a fixed lift instead.
-			c.Rank = weightMatch*m + contextBonus
+			c.Rank = float64(weightMatch*m) + contextBonus
 		}
 		if c.Score > 0 {
 			// Pre-matched results (e.g. a calculation) answer the query directly.

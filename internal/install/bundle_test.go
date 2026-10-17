@@ -260,6 +260,9 @@ func readFile(t *testing.T, path string) string {
 }
 
 func TestReplaceBundle(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("app bundles need execute bits and symbolic links; macOS and Unix only")
+	}
 	root := t.TempDir()
 	src := makeBundle(t, filepath.Join(root, "Downloads"), "0.2.0")
 	apps := filepath.Join(root, "Applications")

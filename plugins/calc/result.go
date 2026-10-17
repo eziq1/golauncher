@@ -76,7 +76,7 @@ func (p *Plugin) resultItems(r *result, text string) []plugin.Item {
 			Subtitle: r.subtitle(x),
 			Icon:     plugin.Icon{Name: "calculator"},
 			Group:    l.T("group"),
-			Score:    1 - float64(i)*0.01,
+			Score:    1 - float64(float64(i)*0.01),
 			Actions:  append(p.rowActions(x), p.conversionsAction(text)),
 			Detail:   detail,
 		})
@@ -267,7 +267,7 @@ func suggest(v *value, cands []*uexpr) []*uexpr {
 	default:
 		// Keep the preferred order, but numbers like 1,000,000 cm last.
 		slices.SortStableFunc(out, func(a, b *uexpr) int {
-			return cmpBool(readability(v, a) > maxReadability, readability(v, b) > maxReadability)
+			return cmpBool(hardToRead(readability(v, a)), hardToRead(readability(v, b)))
 		})
 	}
 	return out[:min(len(out), maxSuggestions)]
@@ -276,6 +276,11 @@ func suggest(v *value, cands []*uexpr) []*uexpr {
 // maxReadability: numbers from 10,000 up or 0.001 down are hard to read
 // (see readability).
 const maxReadability = 3
+
+// hardToRead reports whether a readability is past maxReadability. 10,000
+// is exactly at it, but math.Log10 may be off by an ulp (it is on arm64), so
+// the comparison leaves a margin.
+func hardToRead(r float64) bool { return r > maxReadability+1e-9 }
 
 func cmpBool(a, b bool) int {
 	switch {

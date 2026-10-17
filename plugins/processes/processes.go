@@ -409,7 +409,7 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 	group := l.T("group")
 	for i := range items {
 		items[i].Group = group
-		items[i].Score = 1 - 0.001*float64(i)
+		items[i].Score = 1 - float64(0.001*float64(i))
 	}
 	return items, nil
 }

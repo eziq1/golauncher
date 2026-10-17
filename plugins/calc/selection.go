@@ -46,7 +46,7 @@ func (p *Plugin) SelectionItems(ctx context.Context, q plugin.SelectionQuery) ([
 		it.Group = ""
 		it.Score = 0
 		if q.Text == "" {
-			it.Score = 1 - float64(i)*0.01
+			it.Score = 1 - float64(float64(i)*0.01)
 		}
 		var acts []plugin.Action
 		for _, a := range it.Actions {

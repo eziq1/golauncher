@@ -290,6 +290,9 @@ func TestOutputLastLine(t *testing.T) {
 }
 
 func TestInterpreterUnix(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix interpreters with execute bits; macOS and Unix only")
+	}
 	on := func(programs map[string]string, files ...string) System {
 		sys := fakeSystem(programs, files...)
 		sys.Unix = true

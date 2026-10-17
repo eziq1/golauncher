@@ -2,11 +2,15 @@ package shell
 
 import (
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestMergePath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a Unix PATH; macOS and Unix only")
+	}
 	sep := string(filepath.ListSeparator)
 	join := func(d ...string) string { return strings.Join(d, sep) }
 	launchd := join("/usr/bin", "/bin", "/usr/sbin", "/sbin")
