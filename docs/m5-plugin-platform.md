@@ -541,3 +541,37 @@ func main() { rpcserve.Serve(hello.New()) }
   - 未签名的 DLL 更容易被杀毒软件拦截。
 - **性能不是瓶颈**：一次进程间调用不到 1ms，而根搜索给每个插件的时间是 150ms。
 - **如果需要进程内的轻量插件**：用 WebAssembly，例如纯 Go 的 wazero 运行时。它在沙箱里运行，可以限时、限内存，多种语言都能编译成 WASM，不需要 cgo，也没有第二套 Go 运行时。代价是不能直接调用 Windows API，适合纯逻辑插件。作为以后的补充类型，现在不做。
+## 其他启动器的插件机制对比（R82）
+
+（凭对各项目的了解整理，细节以各项目的最新文档为准。）
+
+| 启动器 | 插件写法 | 运行方式 | 通信 | 分发 |
+|---|---|---|---|---|
+| Raycast | TypeScript + React（`@raycast/api`） | 独立 Node 进程，React 树转成原生界面 | 专用协议（插件描述界面，宿主绘制） | 官方商店 + 代码审核 |
+| Alfred | Workflow（图形化 + 任意语言脚本） | 每次调用起新进程（Script Filter） | 脚本输出 JSON/XML | `.alfredworkflow` 文件 |
+| PowerToys Run（旧） | C# DLL（`IPlugin`） | 进程内 | .NET 接口 | 手动放目录 |
+| PowerToys 命令面板（新） | WinRT/COM（主要是 C#） | 进程外 COM 服务 | WinRT 接口 | MSIX（商店、winget） |
+| Flow Launcher | C# DLL，或 Python/JS 等 | C# 进程内，其他语言独立进程 | 直接调用 / JSON-RPC | GitHub 清单仓库 |
+| Wox / Wox 2 | C#、Python；Wox 2 为 Go 宿主 + Python/Node/脚本 | 多为独立进程 | JSON-RPC / WebSocket | 插件商店 |
+| Ulauncher | Python | 每个扩展一个进程 | WebSocket | 扩展网站 + GitHub |
+| Albert | C++ 共享库 / Python | 进程内（嵌入 Python） | 直接调用 | 随程序发行 |
+| Spotlight | 不开放插件（App Intents / 快捷指令） | 系统管理 | 系统框架 | App Store |
+
+**趋势**：
+
+1. 新设计倾向进程隔离（命令面板、Raycast）。
+2. 插件描述界面、宿主统一绘制。
+3. 多语言插件走 stdio + JSON。
+4. 生态靠分发（商店、审核、工具），而不是插件机制本身。
+
+**golauncher 的现状**：
+
+- **已经具备**：进程隔离加自动重启（同 Raycast、命令面板）；描述式界面加推送更新；JSON-RPC 多语言（同 Flow、Wox）；兼容 Raycast Script Commands；插件自动成为 AI 工具（同类启动器基本没有）。
+- **还欠缺**：插件商店和一键安装、签名和审核、开发脚手架、自定义界面能力。
+
+**建议补的顺序**：
+
+1. 从 GitHub Release 或 zip 一键安装，首次运行时提示确认；
+2. 用 GitHub 仓库做插件清单，在启动器里搜索和安装；
+3. `glctl plugin new` 生成模板；
+4. （可选）签名校验。
