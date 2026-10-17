@@ -10,6 +10,18 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Views kept across a hide** (R75): reopening the launcher after leaving
+  an AI chat (copy the answer, paste it elsewhere) returns to the chat, with
+  the whole navigation stack and the text you had typed, instead of the main
+  screen. A footer hint (*Esc Back to main screen*, also clickable) shows on
+  the restored view. *Settings › General › Return to the main screen*:
+  immediately, after 10 minutes (default) or never. The main screen comes
+  back anyway when text was selected for the new show or the selected-text
+  hotkey was used, when a command hotkey or a task notification opened the
+  launcher, when the chat was deleted, AI was turned off or the plugin was
+  disabled. Plugins opt in with `View.KeepOnHide` and may refuse a restore
+  (`ViewRequest.Restore`); `glctl session` has `hide` and `reopen` steps.
+
 - **AI chat with Codex and Gemini CLI** (R72): Settings › Plugins › AI ›
   *Backend* offers *Codex (ChatGPT)* and *Gemini CLI* next to Claude Code,
   each with its own *Model* setting. Codex runs as the native `codex.exe`

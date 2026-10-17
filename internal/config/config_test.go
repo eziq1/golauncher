@@ -257,3 +257,39 @@ func TestUpdatesDefaultsAndRoundTrip(t *testing.T) {
 		t.Fatalf("import of an export with updates: %v", err)
 	}
 }
+
+// TestReturnToRoot: the field is optional (an older file has none, an older
+// version ignores it); unknown values take the default (docs/keep-view.md).
+func TestReturnToRoot(t *testing.T) {
+	if got := Default().EffectiveReturnToRoot(); got != ReturnToRootAfter {
+		t.Fatalf("default = %q", got)
+	}
+	dir := t.TempDir()
+	old := filepath.Join(dir, "old.json")
+	if err := os.WriteFile(old, []byte(`{"schemaVersion": 1, "hotkey": "Alt+Space"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ReturnToRoot != "" || cfg.EffectiveReturnToRoot() != ReturnToRootAfter {
+		t.Fatalf("old file: %q", cfg.ReturnToRoot)
+	}
+	// The default is not written, so the file stays as an older version wrote it.
+	if data, _ := marshal(Default()); strings.Contains(string(data), "returnToRoot") {
+		t.Fatal("the default value is written")
+	}
+	for v, want := range map[string]string{
+		ReturnToRootNever: ReturnToRootNever, ReturnToRootImmediately: ReturnToRootImmediately,
+		ReturnToRootAfter: ReturnToRootAfter, "5m": ReturnToRootAfter,
+	} {
+		cfg, err := Import([]byte(`{"returnToRoot": "` + v + `"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := cfg.EffectiveReturnToRoot(); got != want {
+			t.Errorf("%q -> %q, want %q", v, got, want)
+		}
+	}
+}

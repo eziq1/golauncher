@@ -29,7 +29,7 @@ type sessionFile struct {
 
 // step is one interaction.
 type step struct {
-	Op   string `json:"op"` // type, key, select, action, field, arg, wait-tasks
+	Op   string `json:"op"` // type, key, select, action, field, arg, wait-tasks, hide, reopen
 	Arg  string `json:"arg,omitempty"`
 	Arg2 string `json:"arg2,omitempty"`
 }
@@ -40,7 +40,7 @@ func (s step) String() string {
 
 func (c *cli) session(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return usagef("session: want new|type|key|select|action|field|arg|wait-tasks|show")
+		return usagef("session: want new|type|key|select|action|field|arg|wait-tasks|hide|reopen|show")
 	}
 	op := args[0]
 	var ef envFlags
@@ -81,11 +81,18 @@ func (c *cli) session(ctx context.Context, args []string) error {
 		if len(pos) == 2 {
 			next.Arg2 = pos[1]
 		}
-	case "wait-tasks":
+	case "wait-tasks", "hide":
 		if len(pos) != 0 {
-			return usagef("session wait-tasks: takes no arguments")
+			return usagef("session %s: takes no arguments", op)
 		}
 		next = &step{Op: op}
+	case "reopen":
+		// The window hid (hide) and shows again: the views kept come back
+		// (docs/keep-view.md); "root" shows as the selected-text hotkey does.
+		if len(pos) > 1 || len(pos) == 1 && pos[0] != "root" {
+			return usagef("session reopen: want [root]")
+		}
+		next = &step{Op: op, Arg: strings.Join(pos, "")}
 	case "field", "arg":
 		if len(pos) < 1 {
 			return usagef("session %s: want <name> <value>", op)
@@ -169,6 +176,12 @@ func apply(ctx context.Context, e *env, s step) (*core.Outcome, error) {
 		return nil, ctrl.SetArgument(s.Arg, s.Arg2)
 	case "wait-tasks":
 		return nil, waitTasks(ctx, e)
+	case "hide":
+		ctrl.Hidden()
+		return nil, nil
+	case "reopen":
+		ctrl.Show(ctx, core.ShowOptions{Root: s.Arg == "root"})
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown step %q", s.Op)
 	}

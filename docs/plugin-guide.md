@@ -256,8 +256,9 @@ is opened. Push a complete new `View` for it with
   should return the same current state.
 - Implement `plugin.ViewCloser` to hear when an instance closes, so a timer
   pushing to it can stop. Also stop on the `window-hidden` event: while the
-  launcher is hidden nothing is shown, and showing it again resets it to the
-  root search (closing open views).
+  launcher is hidden nothing is shown, and showing it again usually resets it
+  to the root search (closing open views) — unless the view is kept, see
+  below.
 
 Prefer `Invalidate` unless pulling is too slow or too coarse: pulled views
 stay simple, testable and deterministic.
@@ -325,6 +326,34 @@ is an input:
 - `Result{ClearText: true}` empties the field and pulls the view again;
 - `View.Escape` (an action) takes `Escape`, e.g. *Stop* while an answer is
   streaming with `Host.Render`; leave it nil and `Escape` goes back.
+
+### Keeping a view across a hide: KeepOnHide
+
+Normally the next show after a hide starts at the root search. A view the
+user comes back to — a chat whose answer they copied and pasted elsewhere —
+can set **`View.KeepOnHide`** (docs/keep-view.md):
+
+- The host looks at the top view when the window hides. If it asks, the
+  whole navigation stack is kept: every view, its instance ID and payload,
+  the text typed in each level (a chat's unsent draft), the selected row,
+  form and argument inputs. Nothing is closed (no `ViewClosed`) while kept;
+  pushes with `Host.Render` keep reaching the instance, so a streaming
+  answer goes on and shows its current state when the launcher opens again.
+- On the next show the host requests the top view again with the same
+  request and **`ViewRequest.Restore: true`**. Return an error to refuse
+  (the chat was deleted, the feature was turned off): the host then goes to
+  the root search, silently, and closes the kept views. Do not build a new
+  view from the payload when the instance is unknown — it may send a
+  message again.
+- The host goes to the root anyway when the user's *Return to the main
+  screen* setting says so (immediately / after 10 minutes, the default /
+  never), when text was selected for the new show or the selected-text
+  hotkey opened it, when a command hotkey or a task notification opened
+  it, or when a plugin of the stack is disabled.
+- `Escape` behaves as always (clear the text, then back one level); the
+  footer shows *Esc Back to main screen* on a restored view at depth 1.
+- Stopping work on `window-hidden` is still right; restart it when the view
+  is requested again.
 
 `Result.Preferences` stores values of the plugin's own (non-password)
 preferences, as Settings would — for an *Enable* button in a first-use

@@ -289,6 +289,7 @@ func (s *Shell) ready(action string) {
 	s.panel.OnHide(func() {
 		touched()
 		s.env.Engine.ClearSelection() // the selected text lives for one show only
+		s.launcher.Hidden()           // the top view may ask to be kept (docs/keep-view.md)
 		s.env.Services.Bus.Publish(plugin.EventWindowHidden)
 	})
 	s.env.Controller.OnChange(s.panel.Invalidate)
@@ -448,7 +449,9 @@ func (s *Shell) present(sel *winselection.Pending, then func(), forSelection boo
 	w, h := s.panel.Size()
 	s.panel.SetPosition(d.WorkArea.X+(d.WorkArea.Width-w)/2, d.WorkArea.Y+(d.WorkArea.Height-h)/3)
 	mygo.RunOnMain(func() {
-		s.launcher.Shown()
+		// Views kept by the last hide come back, except for the selected-text
+		// hotkey and a show that opens a command or task (docs/keep-view.md §3).
+		s.launcher.ShownWith(core.ShowOptions{Root: forSelection || then != nil})
 		if read != nil {
 			// After Shown's reset, which clears toasts.
 			s.work.Do(func(context.Context) {

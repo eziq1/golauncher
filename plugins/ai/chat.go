@@ -114,8 +114,18 @@ func (p *Plugin) chatOf(req plugin.ViewRequest) *chat {
 
 // chatView renders a chat view, first sending the message the chat was
 // opened with once AI is on.
-func (p *Plugin) chatView(req plugin.ViewRequest) plugin.View {
+func (p *Plugin) chatView(req plugin.ViewRequest) (plugin.View, error) {
 	p.mu.Lock()
+	if req.Restore {
+		// Shown again after a hide (docs/keep-view.md §6): only the chat the
+		// instance showed, never a new one from the payload (that would send
+		// its first message again), and not with AI turned off.
+		_, live := p.chats[p.views[req.Instance]]
+		if !live || !p.enabled() {
+			p.mu.Unlock()
+			return plugin.View{}, errChatGone
+		}
+	}
 	ch := p.chatOf(req)
 	if text := ch.pending; text != "" && p.enabled() && !ch.busy {
 		ch.pending = ""
@@ -126,8 +136,12 @@ func (p *Plugin) chatView(req plugin.ViewRequest) plugin.View {
 	}
 	v := p.render(ch, req.Instance)
 	p.mu.Unlock()
-	return v
+	return v, nil
 }
+
+// errChatGone refuses to restore a chat view whose chat was deleted, or
+// while AI is off.
+var errChatGone = errors.New("ai: the chat is no longer available")
 
 // send sends the message typed in the search field of a chat view.
 func (p *Plugin) send(instance, text string) plugin.Result {
@@ -489,6 +503,8 @@ func (p *Plugin) render(ch *chat, instance string) plugin.View {
 		Placeholder: l.T("chat.placeholder"),
 		Detail:      &plugin.Detail{Markdown: p.transcript(ch), Metadata: p.metadata(ch)},
 		Sections:    []plugin.Section{{Items: []plugin.Item{{ID: "chat", Title: title, Icon: plugin.Icon{Name: "sparkles"}, Actions: actions}}}},
+		// Copy the answer, paste it elsewhere, come back to the chat (R75).
+		KeepOnHide: true,
 	}
 	if len(ch.msgs) > 0 {
 		v.Placeholder = l.T("chat.placeholderFollowUp")

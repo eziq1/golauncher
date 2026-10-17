@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 )
 
 // SchemaVersion is the current config schema version.
@@ -51,6 +52,31 @@ type Config struct {
 	Agent AgentConfig `json:"agent,omitzero"`
 	// Updates configures automatic updates (docs/auto-update.md §7.1).
 	Updates UpdatesConfig `json:"updates,omitzero"`
+	// ReturnToRoot is when a view that asks to be kept across a hide
+	// (plugin.View.KeepOnHide) gives way to the root search on the next show
+	// (docs/keep-view.md): ReturnToRootImmediately, ReturnToRootAfter
+	// (KeepViewsFor; the default, also for "") or ReturnToRootNever.
+	ReturnToRoot string `json:"returnToRoot,omitempty"`
+}
+
+// Values of Config.ReturnToRoot.
+const (
+	ReturnToRootImmediately = "immediately"
+	ReturnToRootAfter       = "10m" // after KeepViewsFor (default)
+	ReturnToRootNever       = "never"
+)
+
+// KeepViewsFor is how long a kept view is restored after the window hid,
+// with ReturnToRootAfter.
+const KeepViewsFor = 10 * time.Minute
+
+// EffectiveReturnToRoot returns ReturnToRoot, or its default.
+func (c Config) EffectiveReturnToRoot() string {
+	switch c.ReturnToRoot {
+	case ReturnToRootImmediately, ReturnToRootNever:
+		return c.ReturnToRoot
+	}
+	return ReturnToRootAfter
 }
 
 // Values of UpdatesConfig. Empty values take the defaults.
