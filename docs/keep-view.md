@@ -81,3 +81,15 @@
 - `plugins/ai/keep_test.go`：对话界面带 `KeepOnHide`；进程释放（R59 和隐藏后的释放）后恢复，不重发第一条消息，下一条消息继续；删除对话、未知实例、AI 关闭时拒绝恢复；"打开 AI"提示界面不保留。
 - `internal/config`：字段可省略、默认值不写入文件、未知值取默认。
 - `internal/cli`：`session_ai_kept` golden。
+
+## 修订：有未发送的草稿时留在原界面（R76，2026-10-16）
+
+- **你的决定**：保留的界面里输入框有未发送的文字（草稿）时，新的选中文字不会把你带回主界面。
+- **两种情况都适用**：
+  - 打开前就读到了选中文字；
+  - 恢复后才读到。
+- **不变的情况**：
+  - 只有空白字符不算草稿；
+  - 用"选中文字"专用热键打开，是明确的意图，仍然回到主界面。
+- **实现**：`Controller.hasDraft()`（`internal/core/keep.go`），用在 `restorable` 和 `selectionOverRestore`。
+- **测试**：`TestKeepSelectionGoesToRoot` 新增 4 个子测试；其中两个草稿用例在旧代码上会失败。

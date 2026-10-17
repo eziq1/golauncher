@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/config"
@@ -11,7 +12,8 @@ import (
 // while the top view asks for it (plugin.View.KeepOnHide), the navigation
 // stack is kept as it is, views open, and the next show returns to it
 // instead of the root search, unless too long has passed (the ReturnToRoot
-// setting), text was selected for the new show, a plugin of the stack is
+// setting), text was selected for the new show (unless the kept view holds
+// an unsent draft, R76), a plugin of the stack is
 // disabled, or the top view refuses the restore (an error for a
 // plugin.ViewRequest with Restore).
 
@@ -81,8 +83,10 @@ func (c *Controller) restorable(hiddenAt time.Time) bool {
 			return false
 		}
 	}
-	if c.eng.Selection() != nil {
-		return false // text was selected for this show: the root shows it
+	if c.eng.Selection() != nil && !c.hasDraft() {
+		// Text was selected for this show: the root shows it, unless the
+		// kept view holds an unsent draft (R76).
+		return false
 	}
 	for _, f := range c.stack {
 		if f.nav == nil {
@@ -99,7 +103,7 @@ func (c *Controller) restorable(hiddenAt time.Time) bool {
 // show arrived after a kept stack was restored and before the user acted on
 // it. c.mu is held on entry; it reports true after unlocking when it did.
 func (c *Controller) selectionOverRestore() bool {
-	if !c.keep.fresh || c.top() != c.keep.restored || c.eng.Selection() == nil {
+	if !c.keep.fresh || c.top() != c.keep.restored || c.eng.Selection() == nil || c.hasDraft() {
 		return false
 	}
 	navs := c.toRoot()
@@ -108,6 +112,14 @@ func (c *Controller) selectionOverRestore() bool {
 	c.closed(navs)
 	c.refresh(context.Background())
 	return true
+}
+
+// hasDraft reports whether the top view holds text the user typed and did
+// not send (e.g. an AI chat's next message): a selection then does not take
+// the user away from it (R76). c.mu must be held.
+func (c *Controller) hasDraft() bool {
+	f := c.top()
+	return f.nav != nil && strings.TrimSpace(f.text) != ""
 }
 
 // PopToRoot closes every view and goes back to the root search, keeping

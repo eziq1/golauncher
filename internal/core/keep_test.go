@@ -308,6 +308,52 @@ func TestKeepSelectionGoesToRoot(t *testing.T) {
 			t.Fatalf("the selection interrupted the user: depth %d", s.Depth)
 		}
 	})
+	// An unsent draft keeps the view, whenever the selection arrives (R76).
+	t.Run("draft, selection before show", func(t *testing.T) {
+		e := newKeepEnv(t)
+		e.open(t, "Keep Chat")
+		e.typeText(t, "half a message")
+		e.Controller.Hidden()
+		e.Engine.SetSelection(sel)
+		e.Controller.Show(t.Context(), core.ShowOptions{})
+		e.Controller.Wait()
+		if s := e.Controller.Snapshot(); s.Depth != 1 || s.Text != "half a message" {
+			t.Fatalf("depth %d text %q", s.Depth, s.Text)
+		}
+	})
+	t.Run("draft, selection read after the restore", func(t *testing.T) {
+		e := newKeepEnv(t)
+		e.open(t, "Keep Chat")
+		e.typeText(t, "half a message")
+		e.hideShow(t, 0, core.ShowOptions{})
+		e.Engine.SetSelection(sel)
+		e.Controller.Wait()
+		if s := e.Controller.Snapshot(); s.Depth != 1 || s.Text != "half a message" {
+			t.Fatalf("depth %d text %q", s.Depth, s.Text)
+		}
+	})
+	// Blank text is no draft.
+	t.Run("blank text", func(t *testing.T) {
+		e := newKeepEnv(t)
+		e.open(t, "Keep Chat")
+		e.typeText(t, "   ")
+		e.Controller.Hidden()
+		e.Engine.SetSelection(sel)
+		e.Controller.Show(t.Context(), core.ShowOptions{})
+		e.Controller.Wait()
+		if s := e.Controller.Snapshot(); s.Depth != 0 {
+			t.Fatalf("depth %d", s.Depth)
+		}
+	})
+	// The selected-text hotkey still goes to the root, draft or not.
+	t.Run("draft, selected-text hotkey", func(t *testing.T) {
+		e := newKeepEnv(t)
+		e.open(t, "Keep Chat")
+		e.typeText(t, "half a message")
+		if s := e.hideShow(t, 0, core.ShowOptions{Root: true}); s.Depth != 0 {
+			t.Fatalf("depth %d", s.Depth)
+		}
+	})
 }
 
 func TestKeepRefused(t *testing.T) {
