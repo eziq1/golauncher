@@ -11,27 +11,31 @@
   <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-- Press **Alt+Space** anywhere to search apps, commands, files and math.
+- Press **Alt+Space** (**⌥Space** on a Mac) anywhere to search apps, commands,
+  files and math. On macOS, ⌘ takes the place of Ctrl in every shortcut.
 - Everything is a plugin. The built-in features use the same
   [plugin SDK](pkg/plugin/) that third-party plugins use.
-- **Context aware**: open it from File Explorer or the desktop and the top of
-  the list offers actions for that folder and the selected files: open a
-  terminal or VS Code there, create a folder or text file, copy paths,
-  compress to ZIP, copy a SHA-256, search the folder with Everything. Works
-  with Windows 11 tabs, and with any window whose title shows a path. Nothing
-  is stored, and it can be turned off in Settings.
+- **Context aware**: open it from File Explorer, Finder or the desktop and
+  the top of the list offers actions for that folder and the selected files:
+  open a terminal or VS Code there, create a folder or text file, copy paths,
+  compress to ZIP, copy a SHA-256, search the folder with Everything or
+  Spotlight. Works with Windows 11 tabs, and with any window whose title (or,
+  on a Mac, whose document) shows a path. Nothing is stored, and it can be
+  turned off in Settings.
 - **Selected text**: select some text in any app, press Alt+Space, and the
   top of the list offers actions for it: translate, ask AI (explain,
   summarize, rewrite, suggest replies, or type an instruction), search the
   web, open it if it is a link, calculate it if it is an expression, see the
-  full text and its word count. It is read with UI Automation, without
-  touching the clipboard; copying with Ctrl+C (the clipboard put back at
-  once) is an opt-in fallback for apps that do not support it. The text is
+  full text and its word count. It is read with UI Automation on Windows and
+  the Accessibility API on macOS, without touching the clipboard; copying
+  with Ctrl+C / ⌘C (the clipboard put back at once) is an opt-in fallback for
+  apps that do not support it. The text is
   never stored and is sent to AI only when you pick an AI action
   ([docs/selected-text.md](docs/selected-text.md)).
 - **Built-in plugins**
-  - **Applications**: Start menu apps, including Store apps, with pinyin
-    matching (`wx` finds 微信).
+  - **Applications**: Start menu apps, including Store apps, on Windows; the
+    apps in Applications and the system folders, with their localized names,
+    on macOS. Pinyin matching (`wx` finds 微信).
   - **Calculator**: exact decimal arithmetic, functions, and base conversion
     (`255 in hex`), plus **unit conversion**: `10 km in mi`, `30 ℃`,
     `5 GB / 100 Mbps`, `3 斤 to kg`, `8 L/100km in mpg`, `16 px in rem`,
@@ -39,25 +43,32 @@
     offline use), timestamps (`1700000000 to date`, `now in unix`), colors
     (`#ff8800 to hsl`) and clothing/shoe sizes (`US 9 shoe in EU`). Units have
     English, Chinese and pinyin names (`10 公里 换成 英里`).
-  - **Clipboard History** (`Alt+Shift+V`): text, images and files, with full-text
-    search. Copies from password managers are skipped.
+  - **Clipboard History** (`Alt+Shift+V`, `⌥⇧V`): text, images and files, with
+    full-text search. Copies from password managers are skipped.
   - **Files**: the context actions above (`builtin.files`).
-  - **File Search**: powered by [Everything](https://www.voidtools.com/), when it
-    is installed.
-  - **Scoop**: search, install, update and remove [Scoop](https://scoop.sh)
-    packages, when Scoop is installed.
-  - **WinGet**: search, install, upgrade and remove packages with the Windows
-    Package Manager (`winget`), when it is installed.
-  - **System**: Lock, Sleep, Hibernate, Restart, Shut Down, Sign Out, Empty
-    Recycle Bin, Toggle Dark Mode, volume, Turn Off Display and Show Desktop,
-    plus about 150 Windows Settings pages and the classic tools (Device
-    Manager, Services, Registry Editor, …), searchable in English, Chinese and
-    pinyin (`蓝牙`, `wifi`, `关机`, `gj`). Restart, Shut Down, Sign Out and
-    Empty Recycle Bin ask first.
-  - **Terminal & WSL**: your Windows Terminal profiles (including fragments
-    such as Git Bash) and WSL distributions with their running state; open
-    one in a new window or tab, as administrator or in the current folder,
-    set the default distribution, stop it, shut down or update WSL.
+  - **File Search**: powered by [Everything](https://www.voidtools.com/) on
+    Windows, when it is installed, and by Spotlight on macOS.
+  - **Scoop** (Windows): search, install, update and remove
+    [Scoop](https://scoop.sh) packages, when Scoop is installed.
+  - **WinGet** (Windows): search, install, upgrade and remove packages with
+    the Windows Package Manager (`winget`), when it is installed.
+  - **Homebrew** (macOS): search formulae and casks, install, upgrade and
+    uninstall them, and list installed and outdated packages, when
+    [Homebrew](https://brew.sh) is installed.
+  - **System**: Lock, Sleep, Restart, Shut Down, Sign Out, Empty Recycle Bin
+    or Trash, Toggle Dark Mode, volume and Turn Off Display (plus Hibernate
+    and Show Desktop on Windows), with about 150 Windows Settings pages and
+    the classic tools (Device Manager, Services, Registry Editor, …) on
+    Windows, or the System Settings panes and utilities on macOS; searchable
+    in English, Chinese and pinyin (`蓝牙`, `wifi`, `关机`, `gj`). Restart,
+    Shut Down, Sign Out and emptying the bin ask first.
+  - **Terminal**: on Windows, your Windows Terminal profiles (including
+    fragments such as Git Bash) and WSL distributions with their running
+    state; open one in a new window or tab, as administrator or in the
+    current folder, set the default distribution, stop it, shut down or
+    update WSL. On macOS, Terminal, iTerm2, Ghostty, WezTerm, Alacritty, kitty
+    and Warp: a new window or tab, in the current folder, or running a
+    command, with a default terminal of your choice.
   - **World Clock**: type `time` for your local time and major cities, or
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find
     one of about 32,000 cities (every city of 15,000 people or more, from
@@ -83,12 +94,13 @@
     `port 8080` shows (and can end) the process listening on a port, and
     `port host:443` checks whether a port can be reached; `wifi` copies the
     password of a saved network; `tracert <host>`, Flush DNS Cache and
-    Renew IP Address run in the background.
+    (on Windows) Renew IP Address run in the background.
   - **Processes**: `ps ` (with a space), `kill` or `进程` lists running apps
     and processes grouped by app, with live CPU and memory bars; search by
     name, window title, pinyin or PID. Enter switches to the window; End
     Task asks an app to close, Force End and End Process Tree ask first;
-    elevated processes are ended through a one-off UAC prompt. Critical
+    elevated processes are ended through a one-off UAC prompt (on macOS,
+    the administrator password prompt). Critical
     system processes and golauncher itself cannot be ended. *Quit <app>*
     acts on the app in front, and *Force Quit* is offered when it hangs.
   - **AI Chat** (off until you turn it on): press `Tab` after typing a
@@ -103,8 +115,9 @@
     anything that changes something asks you first in the launcher
     (*Allow*, *Allow for this session*, *Deny*; destructive actions always
     ask). Web search is an option. Instead of Claude Code you can choose
-    **Codex** (your ChatGPT account; golauncher runs the native `codex.exe`,
-    e.g. the one the Codex app installs) or **Gemini CLI** (your Google
+    **Codex** (your ChatGPT account; golauncher runs the native Codex
+    binary, e.g. the one the Codex app, Homebrew or npm installs) or
+    **Gemini CLI** (your Google
     account; Gemini CLI itself needs Node.js) in *Settings › Plugins › AI ›
     Backend*. Each runs isolated from your own setup of that CLI (no other
     MCP servers, hooks, extensions or memory files, no file or shell tools),
@@ -115,26 +128,28 @@
     General › Return to the main screen*).
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
-    `golauncher.exe mcp` is an MCP server for your plugins. The settings
+    `golauncher mcp` is an MCP server for your plugins. The settings
     page connects Claude Desktop for you (only its `golauncher` entry, after
     a backup) and shows the `claude mcp add` command for Claude Code. You
     choose which plugins AI may use (clipboard history and third-party
     plugins are off by default); *AI Activity* lists every tool call of the
     last 30 days.
-- **Settings window** (`Ctrl+,`): set hotkeys, aliases, plugin preferences,
-  the appearance and the language.
+- **Settings window** (`Ctrl+,`, `⌘,`): set hotkeys, aliases, plugin
+  preferences, the appearance and the language, and, on macOS, see which
+  permissions golauncher has (*Settings › Permissions*).
 - **Themes** (*Settings › Appearance*, [docs/themes.md](docs/themes.md)): 18
   built-in themes (golauncher Light/Dark, Crimson, GitHub, Nord,
   Dracula, Catppuccin, Tokyo Night, Solarized, Gruvbox, One Dark, Paper and
   two high-contrast themes) in a gallery of live thumbnails; separate light
-  and dark themes when following Windows; a background opacity slider that
-  lets the Acrylic or Mica material show through while text stays solid
-  (solid when Windows transparency effects or a contrast theme are on);
-  the theme's, the Windows or your own accent color; corner radius,
+  and dark themes when following the system; a background opacity slider
+  that lets the Acrylic or Mica material show through on Windows while text
+  stays solid (solid when transparency effects or a contrast theme are on);
+  the theme's, the system's or your own accent color; corner radius,
   density and text size. Your own themes are JSON files in
-  `%APPDATA%\golauncher\themes` that can `extend` another theme and reload
+  `%APPDATA%\golauncher\themes` (`~/Library/Application Support/golauncher/themes`
+  on macOS) that can `extend` another theme and reload
   as you save them; `glctl theme validate` checks them, contrast included.
-- **English and Simplified Chinese UI**: golauncher follows the Windows
+- **English and Simplified Chinese UI**: golauncher follows the system's
   display language (Simplified Chinese for zh-CN, zh-Hans and zh-SG, English
   otherwise). To switch, open *Settings › General › Language* and pick
   *System default*, *English* or *简体中文*; the change applies at once.
@@ -142,7 +157,7 @@
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.2 is an early public release. See the
+> **Status:** v0.7 is an early public release, the first for macOS. See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 
 ## Install
@@ -216,6 +231,8 @@ later. See [docs/macos-port.md](docs/macos-port.md).
 | Logs | `~/Library/Caches/golauncher/logs/golauncher.log` (updates: `update.log`) |
 
 ## Keyboard
+
+On a Mac, press ⌥ for Alt and ⌘ for Ctrl (`⌥Space`, `⌘K`, `⌘,`); `⌃N` and `⌃P` also move the selection.
 
 | Key | Action |
 |-----|--------|

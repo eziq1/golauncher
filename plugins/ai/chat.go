@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"errors"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -389,7 +390,7 @@ func systemPrompt(locale string, web, tools bool) string {
 	if lang == "" {
 		lang = "the language of the locale " + locale
 	}
-	s := "You are the AI assistant built into golauncher, a keyboard launcher for Windows; the user opened you from its search box. " +
+	s := "You are the AI assistant built into golauncher, a keyboard launcher, on the user's " + osName() + " computer; the user opened you from its search box. " +
 		"Answer in " + lang + " unless the user writes in another language. " +
 		"Be concise and direct, and format answers in Markdown (short paragraphs, lists, fenced code blocks). "
 	if tools {
@@ -535,4 +536,12 @@ func (p *Plugin) offView(ch *chat, instance string) plugin.View {
 		Detail:      &plugin.Detail{Markdown: md},
 		Sections:    []plugin.Section{{Items: []plugin.Item{{ID: "chat", Title: l.T("action.enable"), Icon: plugin.Icon{Name: "sparkles"}, Actions: []plugin.Action{enable}}}}},
 	}
+}
+
+// osName is the system golauncher runs on, as the assistant is told.
+func osName() string {
+	if runtime.GOOS == "darwin" {
+		return "macOS"
+	}
+	return "Windows"
 }

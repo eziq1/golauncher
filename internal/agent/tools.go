@@ -42,7 +42,7 @@ type Annotations struct {
 }
 
 // Instructions is the MCP server's instructions: how to use the tools.
-const Instructions = `golauncher is the user's keyboard launcher for Windows. Its plugins (apps, files, WinGet and Scoop packages, network tools, system commands, clipboard history when the user allows it, and more) are available through these tools:
+const Instructions = `golauncher is the user's keyboard launcher (on Windows or macOS). Its plugins (apps, files, packages from WinGet, Scoop or Homebrew, network tools, system commands, clipboard history when the user allows it, and more) are available through these tools:
 1. list_plugins shows the plugins you may use and their commands; search finds items (apps, commands, results of plugins) by words, like typing in the launcher.
 2. run_command runs a plugin command (e.g. one that opens a list such as a package search), optionally with arguments and a search query; its items come back with handles.
 3. get_detail reads an item's details; run_action runs one of an item's actions (the first is the default). Use only handles returned by these tools; they expire after 10 minutes.
