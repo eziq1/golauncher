@@ -20,8 +20,8 @@ var v080 = Release{
 	Version: "0.8.0",
 	Date:    "2026-10-17",
 	Installers: []Installer{
-		{Arch: "x64", GOARCH: "amd64", URL: DownloadURL("0.8.0", ZipName("0.8.0", "amd64")), SHA256: "2f5777ae3accdbeafabf4383b485ef93cd5a6e2c50cab7ade5cdd228b9f9ae83"},
-		{Arch: "arm64", GOARCH: "arm64", URL: DownloadURL("0.8.0", ZipName("0.8.0", "arm64")), SHA256: "58a21b011352cfd15e307e7296ec9f32f5a90878a793bbf5399017a6119327b3"},
+		{Arch: "x64", GOARCH: "amd64", URL: DownloadURL("0.8.0", ZipName("0.8.0", "amd64")), SHA256: "c36f1031004f039df2f5bfc832a195d78bffcf63c8428eecec0c9e626be7257d"},
+		{Arch: "arm64", GOARCH: "arm64", URL: DownloadURL("0.8.0", ZipName("0.8.0", "arm64")), SHA256: "00e5f83ea7ecac87d443e1e86160fec9c292b6bcd06cdd3962f9f3c93b8f819c"},
 	},
 }
 
@@ -56,7 +56,7 @@ func TestManifestContent(t *testing.T) {
 		"InstallerType: zip\nNestedInstallerType: portable\n",
 		"- RelativeFilePath: golauncher.exe\n  PortableCommandAlias: golauncher\n",
 		"- RelativeFilePath: glctl.exe\n  PortableCommandAlias: glctl\n",
-		"- Architecture: x64\n  InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_amd64.zip\n  InstallerSha256: 2F5777AE",
+		"- Architecture: x64\n  InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_amd64.zip\n  InstallerSha256: C36F1031",
 		"- Architecture: arm64\n",
 		"ReleaseDate: 2026-10-17\n",
 		"MinimumOSVersion: 10.0.17763.0\n",
