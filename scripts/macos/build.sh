@@ -2,7 +2,7 @@
 #
 # Builds golauncher and glctl for macOS into dist/, optionally as the app
 # bundle golauncher.app and zipped as in a release. The macOS counterpart
-# of scripts/build.ps1.
+# of scripts/windows/build.ps1.
 #
 # The version comes from "git describe --tags --always --dirty" (without the
 # leading "v"), unless --version is given. It is linked into both binaries
@@ -33,15 +33,16 @@
 # and CHANGELOG.md go beside them.
 #
 # Examples:
-#   scripts/build-macos.sh
-#   scripts/build-macos.sh --app
-#   scripts/build-macos.sh --debug
-#   scripts/build-macos.sh --arch universal --app --zip
-#   scripts/build-macos.sh --version 0.1.0 --arch arm64 --zip
+#   scripts/macos/build.sh
+#   scripts/macos/build.sh --app
+#   scripts/macos/build.sh --debug
+#   scripts/macos/build.sh --arch arm64 --app --zip    # a release zip (amd64: Intel)
+#   scripts/macos/build.sh --arch universal --app --zip
+#   scripts/macos/build.sh --version 0.1.0 --arch arm64 --zip
 
 set -euo pipefail
 
-root="$(cd "$(dirname "$0")/.." && pwd)"
+root="$(cd "$(dirname "$0")/../.." && pwd)"
 arch=""
 version=""
 out_dir=""
@@ -53,7 +54,8 @@ sign_identity="${GOLAUNCHER_CODESIGN_IDENTITY:--}"
 bundle_id="io.github.eziq1.golauncher"
 
 usage() {
-    sed -n '3,40p' "$0" | sed 's/^# \{0,1\}//'
+    # The comment at the top of this file.
+    awk 'NR > 2 && !/^#/ { exit } NR > 2' "$0" | sed 's/^# \{0,1\}//'
     echo
     echo "Options: --arch amd64|arm64|universal  --version V  --out-dir DIR"
     echo "         --app  --sign IDENTITY  --zip  --debug  --update-public-key KEY  -h|--help"
@@ -166,7 +168,7 @@ if [ "$app" -eq 1 ]; then
     mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
     cp "$out_dir/golauncher" "$out_dir/glctl" "$bundle/Contents/MacOS/"
     # Info.plist, PkgInfo and the localized purpose strings (internal/install).
-    GOOS= GOARCH= go run ./scripts/macbundle -version "$version" -app "$bundle"
+    GOOS= GOARCH= go run ./scripts/macos/macbundle -version "$version" -app "$bundle"
     make_icns "$bundle/Contents/Resources/golauncher.icns"
     # Nested code first, then the bundle, which seals everything in it. The
     # identifiers stay the same from build to build; an ad hoc signature

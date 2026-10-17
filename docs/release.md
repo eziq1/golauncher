@@ -20,7 +20,7 @@
 - **发布工程**：
   - 版本号通过 ldflags 注入，`glctl version` 可以查看；
   - 新图标，exe 内嵌 manifest 和版本资源；
-  - 本地打包脚本 `scripts/build.ps1`；
+  - 本地打包脚本 `scripts/windows/build.ps1`；
   - CI `.github/workflows/ci.yml`：gofmt、vet、测试、`-race`、构建、i18n 检查；
   - 发布工作流 `.github/workflows/release.yml`：推送 `v*` tag 后，跑测试、构建两种架构、生成校验和，用 `gh release create` 发布。
 - **补齐缺口**：密码类偏好改存凭据管理器；设置可以导出和导入；规范检查（插件 import 边界、禁止写死界面文字）。
@@ -41,7 +41,7 @@
 ## 3. 发布步骤
 
 1. 在 `CHANGELOG.md` 里把 `[Unreleased]` 下的条目整理成 `## [X.Y.Z] - 日期`，并更新文件底部的比较链接。
-2. 本地验证：`gofmt -l .` 输出为空，`go vet ./...`，`go test ./...`，`go test -race ./internal/... ./plugins/...`，`pwsh scripts/build.ps1 -Zip`。
+2. 本地验证：`gofmt -l .` 输出为空，`go vet ./...`，`go test ./...`，`go test -race ./internal/... ./plugins/...`，`pwsh scripts/windows/build.ps1 -Zip`。
 3. 推送 `main`，等 CI 通过（`gh run watch`）。
 4. `git tag -a vX.Y.Z -m "golauncher X.Y.Z"`，然后 `git push origin vX.Y.Z`。
 5. 等发布工作流跑完，在 Releases 页面检查产物和发布说明。
@@ -59,7 +59,7 @@
 - **开发者工具没有关闭**（R21）：MyGo 只有在用 `mygo build` 以生产模式构建时才关闭它的开发者工具。我们用的是 `go build`，所以 v0.1.0 里按 F12、Ctrl+Shift+I、Ctrl+Shift+C 会打开 Inspector 面板。其中 Ctrl+Shift+C 还会抢走"复制路径"这个快捷键。
 - 已在 main 上修复：
   - 所有窗口显式设置 `PageOptions.DevTools`：只有版本号为 `dev`（本地未打版本号的构建）或设置了环境变量 `GOLAUNCHER_DEVTOOLS=1` 时才开启。
-  - `scripts/build.ps1` 加了 `-tags mygo_noinspector`，发布包里不再包含开发者工具的代码。
+  - `scripts/windows/build.ps1` 加了 `-tags mygo_noinspector`，发布包里不再包含开发者工具的代码。
 - 修复随 v0.2.0 发布。
 - **以后升级 MyGo 时要检查**：是否有新的、只在 `mygo build` 下才生效的生产模式行为。
 
@@ -137,11 +137,19 @@
 
 ## 12. macOS 产物（2026-10-16，`macos-support` 分支）
 
-- **新产物**：`golauncher_<版本>_darwin_universal.zip`，根目录是 `golauncher.app`（x86_64 + arm64 通用二进制，ad-hoc 签名，[self-install.md §9](self-install.md)），旁边是 LICENSE、两份 README、CHANGELOG。它和 Windows 的两个 zip 一起列在 `checksums.txt` 里（有签名密钥时一起被签名）。
+- **新产物**：`golauncher_<版本>_darwin_arm64.zip`（Apple 芯片）和 `golauncher_<版本>_darwin_amd64.zip`（Intel），根目录是 `golauncher.app`（ad-hoc 签名，[self-install.md §9](self-install.md)），旁边是 LICENSE、两份 README、CHANGELOG。它和 Windows 的两个 zip 一起列在 `checksums.txt` 里（有签名密钥时一起被签名）。
 - **工作流**（`.github/workflows/release.yml`）：
-  - 新增 `macos` job（`macos-latest`）：`go vet`、`go test`，`scripts/build-macos.sh --arch universal --app --zip --version <版本>`（构建时同样写入 `UPDATE_PUBLIC_KEY`），冒烟测试（`glctl version`、`glctl i18n check`、`plutil -lint`、`Info.plist` 里的版本、`codesign --verify --strict --deep`、`lipo -archs`、zip 里有 `golauncher.app/Contents/MacOS/golauncher`），把 zip 作为 artifact 上传。
+  - 新增 `macos` job（`macos-latest`）：`go vet`、`go test`，对 arm64 和 amd64 各跑一次 `scripts/macos/build.sh --arch <架构> --app --zip --version <版本>`（构建时同样写入 `UPDATE_PUBLIC_KEY`），冒烟测试（`glctl version` 和 `glctl i18n check` 只对运行器本机的架构跑；`plutil -lint`、`Info.plist` 里的版本、`codesign --verify --strict --deep`、`lipo -archs` 只含该架构、zip 里有 `golauncher.app/Contents/MacOS/golauncher`），把两个 zip 作为 artifact 上传。
   - 原来的 Windows job（`release`）改为 `needs: macos`：构建 Windows 的 zip 后下载这个 artifact 到 `dist/`，再一起算 `checksums.txt`、签名、`gh release create`。所以 macOS 构建失败时不会发出缺 macOS 产物的 Release。
   - CI（`ci.yml`）的 macOS job 也会打一次 `.app`（不打 zip），提早发现打包问题。
-- **和 §9 一样不能随便改**：产物名（`golauncher_<版本>_darwin_universal.zip`）、zip 里 `golauncher.app/` 在根目录、包内 `Contents/MacOS/golauncher` 和 `Contents/Info.plist` 的 `GolauncherVersion`、`CFBundleIdentifier`（`io.github.eziq1.golauncher`）。已安装的 macOS 版本靠它们自动更新。
+- **和 §9 一样不能随便改**：产物名（`golauncher_<版本>_darwin_{arm64,amd64}.zip`）、zip 里 `golauncher.app/` 在根目录、包内 `Contents/MacOS/golauncher` 和 `Contents/Info.plist` 的 `GolauncherVersion`、`CFBundleIdentifier`（`io.github.eziq1.golauncher`）。已安装的 macOS 版本靠它们自动更新。
 - **不做**：Developer ID 签名、公证（`notarytool`、`stapler`）、DMG。用户第一次打开要过 Gatekeeper（右键 →“打开”，或 macOS 15 起在“隐私与安全性”里点“仍要打开”，或 `xattr -dr com.apple.quarantine golauncher.app`），每次更新后要重新授予辅助功能权限（self-install.md §9.4）。Release 说明里应该写上这两点。
-- **本地打包**：`scripts/build-macos.sh --arch universal --app --zip`；只要 `.app` 用 `--app`；用自己的证书签名用 `--sign <名称>`。
+- **本地打包**：`scripts/macos/build.sh --arch arm64 --app --zip`（Intel 用 `amd64`；`--arch universal` 打一个通用包，更新程序也认）；只要 `.app` 用 `--app`；用自己的证书签名用 `--sign <名称>`。
+
+## 13. v0.7.0：第一个 macOS 版本（R77）
+
+- **内容**：macOS 支持（R74，[macos-port.md §10](macos-port.md)）、插件的 `platforms` 字段（R76）、Homebrew 插件，以及 `[Unreleased]` 里原有的条目。
+- **脚本归类**：`scripts/windows/`（`build.ps1`、`winres.ps1`）、`scripts/macos/`（`build.sh`、`macbundle`、`genmenubaricon`）、`scripts/release/changelog.ps1`、`scripts/data/gencities`，索引见 [scripts/README.md](../scripts/README.md)。`build.ps1`、`winres.ps1`、`changelog.ps1`、`build.sh` 里求仓库根目录的地方随之多上一级。
+- **macOS 产物改为两个**：`golauncher_<版本>_darwin_arm64.zip` 和 `golauncher_<版本>_darwin_amd64.zip`（§12 原来是一个通用包）。`macos` job 对两个架构各打一次 `.app` 并做冒烟测试（`glctl` 只在运行器本机的架构上运行）。更新程序（`SelectAssetsFor`）改为先找本机架构的包，没有再找 `darwin_universal`，所以以后改回通用包也能更新。
+- **步骤**：同 §3。`macos-support` 分支先推送并等 CI（Windows 上的测试此前只在本机交叉编译过、没跑过）通过，再快进合并到 `main`，打 `v0.7.0` tag。
+

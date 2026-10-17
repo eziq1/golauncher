@@ -5,7 +5,7 @@
 <h1 align="center">golauncher</h1>
 
 <p align="center">
-  A Raycast-style launcher for Windows, written in Go with the
+  A Raycast-style launcher for Windows and macOS, written in Go with the
   <a href="https://github.com/egoist/mygo">MyGo</a> native UI toolkit.
   <br>
   <a href="README.zh-CN.md">简体中文</a>
@@ -137,6 +137,8 @@
 
 ## Install
 
+### Windows
+
 Download `golauncher_<version>_windows_<arch>.zip` from
 [Releases](https://github.com/eziq1/golauncher/releases), unzip it and run
 `golauncher.exe`. On first run it offers to install itself into
@@ -178,6 +180,31 @@ golauncher.exe --uninstall  # remove the installation
 | Logs | `%LOCALAPPDATA%\golauncher\logs\golauncher.log` (updates: `update.log`) |
 | Updates (downloads, previous version) | `%LOCALAPPDATA%\golauncher\update\` |
 
+### macOS
+
+Download `golauncher_<version>_darwin_arm64.zip` (Apple silicon) or
+`golauncher_<version>_darwin_amd64.zip` (Intel) from
+[Releases](https://github.com/eziq1/golauncher/releases) and unzip it. The app
+is not notarized yet, so the first time Control-click `golauncher.app` ›
+*Open* (on macOS 15: open it once, then *System Settings › Privacy & Security
+› Open Anyway*), or run `xattr -dr com.apple.quarantine golauncher.app`. On
+first run it offers to install itself into `/Applications` (or
+`~/Applications`). It lives in the menu bar, with no Dock icon; press
+**⌥Space** to search.
+
+*Settings › Permissions* shows what macOS needs you to allow: **Accessibility**
+(pasting, the selected text) and **Automation › Finder** (the current Finder
+folder). Because the app is not signed with a Developer ID, macOS forgets the
+Accessibility permission after each update: remove golauncher from the list
+and add it again. Automatic updates work as on Windows. Requires macOS 13 or
+later. See [docs/macos-port.md](docs/macos-port.md).
+
+| What | Where |
+|------|-------|
+| Configuration | `~/Library/Application Support/golauncher/config.json` |
+| Databases, clipboard history | `~/Library/Application Support/golauncher/data/` |
+| Logs | `~/Library/Caches/golauncher/logs/golauncher.log` (updates: `update.log`) |
+
 ## Keyboard
 
 | Key | Action |
@@ -193,14 +220,28 @@ golauncher.exe --uninstall  # remove the installation
 
 Requires Go 1.27 or later. No cgo is needed.
 
+Windows:
+
 ```powershell
 git clone https://github.com/eziq1/golauncher
 cd golauncher
-pwsh scripts/build.ps1          # builds dist/golauncher.exe and dist/glctl.exe
+pwsh scripts/windows/build.ps1          # builds dist/golauncher.exe and dist/glctl.exe
 # or by hand:
 go build -ldflags "-H windowsgui" -o golauncher.exe ./cmd/golauncher
 go build -o glctl.exe ./cmd/glctl
 ```
+
+macOS:
+
+```sh
+git clone https://github.com/eziq1/golauncher
+cd golauncher
+scripts/macos/build.sh --app            # builds dist/golauncher.app (this Mac's architecture)
+scripts/macos/build.sh --arch arm64 --app --zip   # the release zip for Apple silicon (amd64 for Intel)
+scripts/macos/build.sh --debug          # unoptimized dist/golauncher and dist/glctl, for Delve
+```
+
+All the scripts are listed in [scripts/README.md](scripts/README.md).
 
 ## Test
 
@@ -221,7 +262,7 @@ $env:GOLAUNCHER_E2E=1; go test ./internal/shell -run RunningInstance
 
 ### Debugging the UI
 
-Release builds (`scripts/build.ps1`, GitHub releases) leave MyGo's developer
+Release builds (`scripts/windows/build.ps1`, GitHub releases) leave MyGo's developer
 tools out. For the inspector and the Performance panel, build a dev binary
 (no version stamp, so the version is `dev`, the tools are on and the
 installer is skipped):
@@ -346,7 +387,7 @@ The World Clock's city data comes from [GeoNames](https://www.geonames.org/)
 (cities with a population of 15,000 or more, their regions, countries and
 Chinese names), licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is converted by
-[`scripts/gencities`](scripts/gencities/) and embedded in the program.
+[`scripts/data/gencities`](scripts/data/gencities/) and embedded in the program.
 
 ## License
 

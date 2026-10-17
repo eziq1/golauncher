@@ -8,7 +8,52 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-16
+
 ### Added
+
+- **macOS support** (R46, docs/macos-port.md): golauncher now runs on macOS 13
+  or later, Apple silicon and Intel. Releases have
+  `golauncher_<version>_darwin_arm64.zip` and `…_darwin_amd64.zip` with an
+  ad hoc signed `golauncher.app` (not notarized: Control-click › Open the
+  first time). It lives in the menu bar, without a Dock icon, and opens with
+  ⌥Space. ⌘ is the main modifier: shortcuts written `Ctrl+…` mean ⌘ and are
+  shown as ⌃⌥⇧⌘ symbols. On a Mac:
+  - **Applications** from `/Applications` and the system folders, with
+    localized names (`微信` and `WeChat` both find WeChat) and their icons.
+  - **Clipboard History**: text, images and files; copies that password
+    managers mark as concealed are skipped. Pasting needs Accessibility;
+    without it the item is copied and a notification says to press ⌘V.
+  - **Context awareness**: the current Finder folder and the selected files
+    (Automation › Finder), or the desktop. **Selected text** is read with
+    the Accessibility API, never from password fields; copying with ⌘C is the
+    same opt-in fallback as on Windows.
+  - **File Search** with Spotlight (`mdfind`) instead of Everything.
+  - **Terminal**: Terminal, iTerm2, Ghostty, WezTerm, Alacritty, kitty and
+    Warp, with a default terminal setting; new window or tab, open a folder,
+    run a command. The files actions open the folder in that terminal, in VS
+    Code, Cursor or Zed, show it in Finder, or Quick Look the selection.
+  - **Homebrew**: a new plugin (`builtin.homebrew`, docs/homebrew.md) to
+    search formulae and casks, see details, install, upgrade, uninstall and
+    upgrade all as background tasks, and list installed and outdated
+    packages.
+  - **Processes** and **Network** tools: the process list with CPU and
+    memory, quit and force quit (as administrator through the macOS
+    password prompt); interfaces, Wi-Fi, ping, listening ports, trace route
+    and flushing the DNS cache.
+  - **System**: lock, sleep, log out, restart, shut down, empty and measure
+    the Trash, dark mode, volume, display off, and 45 System Settings panes.
+  - Passwords in the keychain; the system language from the macOS
+    preferences; the login shell's PATH when started from Finder.
+  - **Settings › Permissions** shows the status of Accessibility,
+    Automation › Finder and (optional) Full Disk Access, with buttons that
+    open System Settings.
+  - Installing into `/Applications`, launch at login, and automatic updates
+    of the whole app bundle, verified like the Windows ones.
+- **Plugin platforms**: a manifest may list the platforms a plugin runs on
+  (`"platforms": ["windows"]`, GOOS names); elsewhere it is not loaded and
+  its process never starts. `glctl plugin validate` rejects unknown names.
+  Scoop and WinGet are Windows-only, Homebrew macOS-only.
 
 - **Background tasks as administrator** (R68): the SDK's
   `ProcessSpec.Elevate` (JSON `elevate`, also for external plugins) runs a
@@ -24,6 +69,10 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- **Scripts** are grouped by platform: `scripts/windows/build.ps1`,
+  `scripts/macos/build.sh`, `scripts/release/changelog.ps1`,
+  `scripts/data/gencities` (scripts/README.md).
+
 - **AI chat: Backend setting** (R71): Settings › Plugins › AI has a
   *Backend* choice, with one option for now (Claude Code, the default). A
   configuration naming a backend this version does not have explains that
@@ -38,6 +87,9 @@ Before 1.0.0, minor versions may contain breaking changes.
   test.
 
 ### Fixed
+
+- **World clock**: the next time change no longer shows a change on January
+  1 for zones that have none ("Next change: Jan 1 → UTC+11").
 
 - **Flush DNS Cache** and **Renew IP Address** failed with "The requested
   operation requires elevation." They now ask for administrator rights with
@@ -543,7 +595,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/eziq1/golauncher/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/eziq1/golauncher/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eziq1/golauncher/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/eziq1/golauncher/compare/v0.3.0...v0.4.0

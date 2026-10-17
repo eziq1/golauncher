@@ -13,8 +13,9 @@ concurrency:
 
 jobs:
   macos:
-    # The universal golauncher.app (docs/self-install.md §9), ad hoc signed:
-    # no Developer ID signing or notarization yet.
+    # golauncher.app for Apple Silicon (arm64) and Intel (amd64), one zip
+    # each (docs/self-install.md §9), ad hoc signed: no Developer ID signing
+    # or notarization yet.
     name: Build (macos)
     runs-on: macos-latest
     env:
@@ -44,29 +45,38 @@ jobs:
       - name: go test
         run: go test ./...
 
-      - name: Build and package
-        run: scripts/build-macos.sh --arch universal --app --zip --version '${{ steps.version.outputs.version }}'
-
-      - name: Smoke test
+      - name: Build, package and smoke test
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          app=dist/golauncher.app
-          v="$("$app/Contents/MacOS/glctl" version --format text)"
-          [ "$v" = '${{ steps.version.outputs.version }}' ] || { echo "glctl version = $v" >&2; exit 1; }
-          "$app/Contents/MacOS/glctl" i18n check
-          plutil -lint "$app/Contents/Info.plist"
-          got="$(plutil -extract GolauncherVersion raw "$app/Contents/Info.plist")"
-          [ "$got" = '${{ steps.version.outputs.version }}' ] || { echo "Info.plist version = $got" >&2; exit 1; }
-          codesign --verify --strict --deep --verbose=2 "$app"
-          codesign -dv "$app"
-          lipo -archs "$app/Contents/MacOS/golauncher"
-          zip="dist/golauncher_${{ steps.version.outputs.version }}_darwin_universal.zip"
-          unzip -Z1 "$zip" > "$RUNNER_TEMP/zip.txt"
-          grep -qx 'golauncher.app/Contents/MacOS/golauncher' "$RUNNER_TEMP/zip.txt"
+          set -euo pipefail
+          host="$(go env GOHOSTARCH)"
+          for arch in arm64 amd64; do
+            out="dist/$arch"
+            scripts/macos/build.sh --arch "$arch" --app --zip --version "$VERSION" --out-dir "$out"
+            app="$out/golauncher.app"
+            plutil -lint "$app/Contents/Info.plist"
+            got="$(plutil -extract GolauncherVersion raw "$app/Contents/Info.plist")"
+            [ "$got" = "$VERSION" ] || { echo "$arch: Info.plist version = $got" >&2; exit 1; }
+            codesign --verify --strict --deep --verbose=2 "$app"
+            codesign -dv "$app"
+            [ "$(lipo -archs "$app/Contents/MacOS/golauncher")" = "$([ "$arch" = amd64 ] && echo x86_64 || echo arm64)" ]
+            if [ "$arch" = "$host" ]; then
+              v="$("$app/Contents/MacOS/glctl" version --format text)"
+              [ "$v" = "$VERSION" ] || { echo "$arch: glctl version = $v" >&2; exit 1; }
+              "$app/Contents/MacOS/glctl" i18n check
+            fi
+            zip="$out/golauncher_${VERSION}_darwin_$arch.zip"
+            unzip -Z1 "$zip" > "$RUNNER_TEMP/zip.txt"
+            grep -qx 'golauncher.app/Contents/MacOS/golauncher' "$RUNNER_TEMP/zip.txt"
+            mv "$zip" dist/
+          done
+          ls -l dist/*.zip
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: dist/golauncher_*_darwin_universal.zip
+          path: dist/golauncher_*_darwin_*.zip
           if-no-files-found: error
 
   release:
@@ -109,7 +119,7 @@ jobs:
       - name: Release notes from CHANGELOG.md
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          $notes = ./scripts/changelog.ps1 -Version '${{ steps.version.outputs.version }}'
+          $notes = ./scripts/release/changelog.ps1 -Version '${{ steps.version.outputs.version }}'
           Set-Content -Path dist/notes.md -Value $notes -Encoding utf8NoBOM
           Get-Content dist/notes.md
 
@@ -128,7 +138,7 @@ jobs:
         run: |
           # amd64 last, so that dist/*.exe are the runner's for the smoke test.
           foreach ($arch in 'arm64', 'amd64') {
-            ./scripts/build.ps1 -Arch $arch -Version '${{ steps.version.outputs.version }}' -Zip
+            ./scripts/windows/build.ps1 -Arch $arch -Version '${{ steps.version.outputs.version }}' -Zip
           }
 
       - name: Smoke test (amd64)

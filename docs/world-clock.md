@@ -173,7 +173,7 @@
 
 ### 9.2 生成器与数据文件
 
-- 生成器 `scripts/gencities`（`go run ./scripts/gencities -dir <下载目录>`，`-fetch` 先下载）。输出 `plugins/clock/geonames.tsv.gz`（gzip -9 的 TSV），通过 `go:embed` 嵌入。
+- 生成器 `scripts/data/gencities`（`go run ./scripts/data/gencities -dir <下载目录>`，`-fetch` 先下载）。输出 `plugins/clock/geonames.tsv.gz`（gzip -9 的 TSV），通过 `go:embed` 嵌入。
 - 文件分三节，以 `#countries`、`#admin1`、`#cities` 开头：
   - 国家：`代码 名称 中文名`
   - 行政区：`国家.代码 名称 中文名`
@@ -228,12 +228,12 @@ GeoNames 数据按 CC BY 4.0 授权，需要署名：README 的"致谢"（Acknow
 
 ### 9.9 实现记录（2026-10-15）
 
-代码：`scripts/gencities`（生成器、繁简对照表 `trad.go`、测试）、`plugins/clock/cities.go`（数据加载、覆盖层合并、匹配键、查找）、`plugins/clock/search.go`（名称索引和分层搜索）、`plugins/clock/geonames.tsv.gz`（生成的数据）、`plugins/clock/geonames_test.go`（虚构样本上的加载、匹配、同名测试）。
+代码：`scripts/data/gencities`（生成器、繁简对照表 `trad.go`、测试）、`plugins/clock/cities.go`（数据加载、覆盖层合并、匹配键、查找）、`plugins/clock/search.go`（名称索引和分层搜索）、`plugins/clock/geonames.tsv.gz`（生成的数据）、`plugins/clock/geonames_test.go`（虚构样本上的加载、匹配、同名测试）。
 
 重新生成数据：
 
 ```
-go run ./scripts/gencities -fetch -dir <下载目录>   # 下载约 210MB，生成约 5 秒
+go run ./scripts/data/gencities -fetch -dir <下载目录>   # 下载约 210MB，生成约 5 秒
 ```
 
 **数据**：31,765 个城市（11,057 个有中文名），252 个国家/地区，3,865 个用到的行政区。数据文件 638,503 字节（gzip -9）。
@@ -266,7 +266,7 @@ go run ./scripts/gencities -fetch -dir <下载目录>   # 下载约 210MB，生�
 
 **测试**：
 
-- 生成器（`scripts/gencities/main_test.go`，虚构样本）：国家、行政区、城市的解析（人口排序、去掉片区和历史地点、无时区的行）、时区校验、中文名选择（语言优先级、首选名、短名、繁转简、排除口语/历史/含拉丁字母的名字、忽略无关 ID 和其他语言）、去"市"后缀、输出格式（ASCII 名去重、制表符替换、只写用到的行政区）。
+- 生成器（`scripts/data/gencities/main_test.go`，虚构样本）：国家、行政区、城市的解析（人口排序、去掉片区和历史地点、无时区的行）、时区校验、中文名选择（语言优先级、首选名、短名、繁转简、排除口语/历史/含拉丁字母的名字、忽略无关 ID 和其他语言）、去"市"后缀、输出格式（ASCII 名去重、制表符替换、只写用到的行政区）。
 - 加载（`geonames_test.go`，虚构样本）：覆盖层排在前面并替换 GeoNames 同 ID 条目，保留覆盖层的 ID、名称、中文名、别名、时区，行政区从 GeoNames 补上；未知时区的城市被跳过；同名标记；各种查找；国家和时区的城市列表；匹配键（只有中国城市和覆盖层城市有拼音首字母）；数据格式错误。
 - 搜索（`TestFind`）：同分按人口、偏好排名优先、上限、国家/时区/偏移/缩写展开、子串和子序列；`TestFindSkipsWeakMatches` 在真实数据上验证跳过子串扫描不改变前 30 条。
 - 真实数据（`clock_test.go`）：≥ 30,000 个城市，覆盖层排在最前、都有中文名、`geonameid` 都能在数据里找到；新增 Springfield、San José、Kiruna、Tromsø、宝鸡/baoji、基律纳/jilvna、Nepal/尼泊尔 等用例；`bkl` 不匹配博克拉（外国城市没有首字母）；同名副标题；中文界面（`TestChineseUI`）。

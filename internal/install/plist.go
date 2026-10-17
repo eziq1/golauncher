@@ -14,8 +14,8 @@ import (
 // Property lists of the macOS app bundle: its Info.plist, the localized
 // InfoPlist.strings, and the launch agent that starts it at login when the
 // system's login items cannot. They are generated here rather than kept
-// as files so that they are tested, and scripts/build-macos.sh writes them
-// with scripts/macbundle.
+// as files so that they are tested, and scripts/macos/build.sh writes them
+// with scripts/macos/macbundle.
 
 // BundleIcon is the icon file in Contents/Resources (CFBundleIconFile).
 const BundleIcon = AppName + ".icns"

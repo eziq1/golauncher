@@ -1,10 +1,10 @@
 // Command macbundle writes the property lists of golauncher.app for
-// scripts/build-macos.sh --app: Contents/Info.plist, Contents/PkgInfo and
+// scripts/macos/build.sh --app: Contents/Info.plist, Contents/PkgInfo and
 // the localized purpose strings, Contents/Resources/<lang>.lproj/
 // InfoPlist.strings. They come from internal/install, where they are
 // tested. The programs, the icon and the signature are the script's.
 //
-//	go run ./scripts/macbundle -version 0.7.0 -app dist/golauncher.app
+//	go run ./scripts/macos/macbundle -version 0.7.0 -app dist/golauncher.app
 package main
 
 import (

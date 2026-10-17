@@ -18,26 +18,32 @@ import (
 	"github.com/eziq1/golauncher/internal/update/fakegithub"
 )
 
-// The macOS updates: the universal archive with golauncher.app, which is
-// extracted and replaced as a whole. Temporary folders only.
+// The macOS updates: the archive with golauncher.app (one per architecture,
+// or a universal one), which is extracted and replaced as a whole.
+// Temporary folders only.
 
 func TestSelectAssetsBundle(t *testing.T) {
 	r := update.Release{Tag: "v0.7.0", Assets: []update.Asset{
 		{Name: update.ArchiveName("0.7.0", "arm64")},
-		{Name: "golauncher_0.7.0_darwin_universal.zip"},
 		{Name: "golauncher_0.7.0_darwin_arm64.zip"},
+		{Name: "golauncher_0.7.0_darwin_amd64.zip"},
 		{Name: update.ChecksumsName},
 	}}
-	a, err := update.SelectAssetsFor(r, "arm64", true)
-	if err != nil || a.Archive.Name != "golauncher_0.7.0_darwin_universal.zip" {
+	// The archive of the architecture, as releases publish them.
+	for _, arch := range []string{"arm64", "amd64"} {
+		if a, err := update.SelectAssetsFor(r, arch, true); err != nil || a.Archive.Name != "golauncher_0.7.0_darwin_"+arch+".zip" {
+			t.Fatalf("%s: %+v, %v", arch, a, err)
+		}
+	}
+	// Without it, a universal archive.
+	r.Assets = slices.Delete(r.Assets, 2, 3)
+	r.Assets = append(r.Assets, update.Asset{Name: "golauncher_0.7.0_darwin_universal.zip"})
+	if a, err := update.SelectAssetsFor(r, "amd64", true); err != nil || a.Archive.Name != "golauncher_0.7.0_darwin_universal.zip" {
 		t.Fatalf("universal: %+v, %v", a, err)
 	}
-	// Without a universal archive, the one of the architecture.
-	r.Assets = slices.Delete(r.Assets, 1, 2)
-	if a, err := update.SelectAssetsFor(r, "arm64", true); err != nil || a.Archive.Name != "golauncher_0.7.0_darwin_arm64.zip" {
-		t.Fatalf("arm64: %+v, %v", a, err)
-	}
-	if _, err := update.SelectAssetsFor(r, "amd64", true); !errors.Is(err, update.ErrNoAsset) || !strings.Contains(err.Error(), "darwin_universal") {
+	// Neither.
+	r.Assets = slices.DeleteFunc(r.Assets, func(a update.Asset) bool { return strings.Contains(a.Name, "universal") })
+	if _, err := update.SelectAssetsFor(r, "amd64", true); !errors.Is(err, update.ErrNoAsset) || !strings.Contains(err.Error(), "darwin_amd64") {
 		t.Fatalf("amd64: %v", err)
 	}
 	// Windows still gets its own.

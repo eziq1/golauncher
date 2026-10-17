@@ -79,3 +79,7 @@
 | R71 | 2026-10-16 | 先做多 CLI 抽象层的第一期 | [ai.md §19](ai.md)：抽出 Agent 运行层，Claude 改造成第一个适配器（行为不变），设置里加"后端"选择；实现记录见 [ai.md §20](ai.md) | ✅ 已合并 |
 | R72 | 2026-10-16 | 把 Codex 和 Gemini CLI 接入（多 CLI 抽象层第二期） | [ai.md §21](ai.md)：Gemini 走 ACP 通用适配器（`gemini --acp`），Codex 走原生适配器（`codex exec --json` + `resume`，不用 Zed 的 Node 适配器）；第一期遗留问题按默认处理：授权请求复用宿主确认框（共用层负责，60 秒超时、停止回答即拒绝；你已确认由共用层处理）、删除对话时清理会话对应、每个对话固定使用创建时的后端 | 🚧 子代理开发中（worktree） |
 | R73 | 2026-10-16 | 不引入 Zed 的 ACP 适配器，不希望依赖 Node.js | golauncher 本身不引入 Node；Codex 直接调用原生 `codex.exe`（npm 包里自带的 Rust 二进制，或独立安装），不经过 npm 的 Node 脚本；Gemini CLI 本身是 Node 程序，无法避免，你决定保留 Gemini（它本身是 Node.js 程序，没有问题） | ✅ 已确认，已通知开发中的子代理 |
+| R74 | 2026-10-16 | 给项目添加 macOS 支持（启动子 agent）；之后补上环境感知和选中文本，并开多个 agent 实现其余未完成的功能 | [macos-port.md §10](macos-port.md)：darwin 后端（应用、剪贴板、钥匙串、系统命令、Spotlight、语言、进程组），⌘ 作主修饰键；访达环境感知、AX 选中文本；终端/files、进程、网络；Homebrew；权限页、粘贴退化；`.app`、自安装、自动更新；平台文案 | ✅ 已合并，v0.7.0 发布 |
+| R75 | 2026-10-16 | Homebrew 和 Scoop 这类插件拆成不同的插件，不要揉在一起；终端插件保持一个 | 不同平台的不同产品各自一个插件（`builtin.homebrew` 与 scoop、winget 不共享代码）；同一功能按平台分实现文件（终端、进程、网络、files……） | ✅ |
+| R76 | 2026-10-16 | 插件能声明平台，内置插件也加上 | `plugin.Manifest.Platforms`（`"platforms": ["windows"]`），加载器统一过滤，`glctl plugin validate` 校验；Scoop、WinGet 为 windows，Homebrew 为 darwin（[plugin-guide.md](plugin-guide.md)） | ✅ |
+| R77 | 2026-10-16 | 整理 Windows 和 macOS 的编译脚本并统一归类；推送到 GitHub，发布 Windows 版和 Mac 版（Arm、x86 各一个） | `scripts/{windows,macos,release,data}`（[scripts/README.md](../scripts/README.md)）；发布 `darwin_arm64`、`darwin_amd64` 两个 zip，更新程序先找本机架构的包（[release.md §13](release.md)） | 进行中 |

@@ -29,17 +29,19 @@ import (
 var PublicKey = ""
 
 // ArchiveName is the release archive of version for arch (a GOARCH),
-// as scripts/build.ps1 names it.
+// as scripts/windows/build.ps1 names it.
 func ArchiveName(version, arch string) string {
 	return "golauncher_" + version + "_windows_" + arch + ".zip"
 }
 
-// Universal is the "architecture" of the macOS release archive, whose
-// golauncher.app runs on both Apple silicon and Intel Macs.
+// Universal is the "architecture" of a macOS archive whose golauncher.app
+// runs on both Apple silicon and Intel Macs (scripts/macos/build.sh --arch
+// universal). Releases publish one archive per architecture instead; an
+// update falls back to a universal one.
 const Universal = "universal"
 
 // BundleArchiveName is the macOS release archive of version for arch
-// (Universal, amd64 or arm64), as scripts/build-macos.sh --app --zip names
+// (Universal, amd64 or arm64), as scripts/macos/build.sh --app --zip names
 // it; it holds golauncher.app.
 func BundleArchiveName(version, arch string) string {
 	return "golauncher_" + version + "_darwin_" + arch + ".zip"
@@ -59,7 +61,7 @@ func SelectAssets(r Release, arch string) (Assets, error) {
 }
 
 // SelectAssetsFor is SelectAssets for the Windows archive, or with bundle
-// for the macOS one: the universal archive, else the one of arch.
+// for the macOS one: the archive of arch, else the universal one.
 func SelectAssetsFor(r Release, arch string, bundle bool) (Assets, error) {
 	if arch == "" {
 		arch = runtime.GOARCH
@@ -70,7 +72,7 @@ func SelectAssetsFor(r Release, arch string, bundle bool) (Assets, error) {
 	}
 	names := []string{ArchiveName(v, arch)}
 	if bundle {
-		names = []string{BundleArchiveName(v, Universal), BundleArchiveName(v, arch)}
+		names = []string{BundleArchiveName(v, arch), BundleArchiveName(v, Universal)}
 	}
 	var a Assets
 	var ok bool

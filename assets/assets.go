@@ -1,9 +1,9 @@
 // Package assets holds the golauncher icon: the designer's files (icon.svg,
 // icon-small.svg for small sizes, icon.ico and icon-<size>.png). The same
 // images are embedded as Windows resources in the executables (cmd/*/winres,
-// regenerated with scripts/winres.ps1); scripts/build-macos.sh --app turns
+// regenerated with scripts/windows/winres.ps1); scripts/macos/build.sh --app turns
 // the PNGs into the app bundle's golauncher.icns. icon-menubar.png is drawn
-// by scripts/genmenubaricon.
+// by scripts/macos/genmenubaricon.
 package assets
 
 import _ "embed"

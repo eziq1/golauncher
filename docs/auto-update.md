@@ -19,7 +19,7 @@ design.md 的 M6 原计划用 MyGo 的 `plugins/updater`。读过它的源码（
 
 | 方面 | `plugins/updater` / `mygo.Updater` | golauncher 的情况 |
 |------|-----------------------------------|-------------------|
-| 构建方式 | 依赖 `mygo build`：它用 `mygo.config.ts` 里的 `updates` 配置，通过 `-ldflags -X` 注入更新源和公钥，并为每个平台生成 `update-windows-amd64.json` 清单和签名的归档 | 我们用 `go build` + `scripts/build.ps1`，发布产物是 zip + `checksums.txt`（[release.md](release.md)），没有它的清单 |
+| 构建方式 | 依赖 `mygo build`：它用 `mygo.config.ts` 里的 `updates` 配置，通过 `-ldflags -X` 注入更新源和公钥，并为每个平台生成 `update-windows-amd64.json` 清单和签名的归档 | 我们用 `go build` + `scripts/windows/build.ps1`，发布产物是 zip + `checksums.txt`（[release.md](release.md)），没有它的清单 |
 | 签名 | 必须有 ed25519 私钥，没有私钥就不生成更新文件，`Updater.Enabled()` 为假 | 目前没有签名密钥；需要用户先配置 CI 密钥 |
 | 替换方式 | 把整个程序目录的条目改名为 `.<name>.old-<pid>` 再放入新文件，下次启动删掉 | 我们的安装还包括卸载项（`DisplayVersion`）、开始菜单快捷方式、`glctl.exe`；用自安装的逻辑才能一起更新 |
 | 安装时机 | 下载完立即替换文件，用户点“重新启动”或下次启动才运行新版本 | 需要在“安全时刻”（启动器隐藏、没有后台任务、AI 没在回答、用户最近没在用）自动重启 |
@@ -227,7 +227,7 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 
 | 项 | macOS |
 |----|-------|
-| 产物 | `golauncher_<版本>_darwin_universal.zip`（`update.BundleArchiveName`），根目录是 `golauncher.app/`（旁边还有 LICENSE、README、CHANGELOG，忽略）。选择时先找 `darwin_universal`，没有再找 `darwin_<GOARCH>`（`SelectAssetsFor(…, bundle=true)`）。它和 Windows 的 zip 列在同一个 `checksums.txt` 里，同样受 ed25519 签名保护 |
+| 产物 | `golauncher_<版本>_darwin_<GOARCH>.zip`（`update.BundleArchiveName`；Release 里有 arm64 和 amd64 两个），根目录是 `golauncher.app/`（旁边还有 LICENSE、README、CHANGELOG，忽略）。选择时先找 `darwin_<GOARCH>`，没有再找 `darwin_universal`（`SelectAssetsFor(…, bundle=true)`）。它和 Windows 的 zip 列在同一个 `checksums.txt` 里，同样受 ed25519 签名保护 |
 | 校验 | 不变：`checksums.txt`（有公钥时先验签名）→ SHA-256 → 解压 → 读解压出来的 `Info.plist` 里的 `GolauncherVersion`，必须等于要安装的版本 |
 | 解压（`ExtractBundle`） | 只取 `golauncher.app/` 下的条目；拒绝 `..`、绝对路径、反斜杠、符号链接和其他非普通文件、重复条目；单个文件 200MB、整个包 400MB 的上限；保留可执行位；必须有 `Contents/MacOS/golauncher` 和 `Contents/Info.plist`。解压后**清除隔离属性**（`com.apple.quarantine`，`install.ClearQuarantine`）：这些是 golauncher 自己下载并校验过的文件。Go 写文件本来就不会加隔离属性，这一步是保险 |
 | 位置 | `~/Library/Caches/golauncher/update/`（`downloads/<版本>/files/golauncher.app`、`helper/`、`previous/golauncher.app`、`state.json`、`result.json`）；日志 `~/Library/Caches/golauncher/logs/update.log` |
@@ -242,6 +242,6 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 
 **TCC 的代价**：发布版本是 ad-hoc 签名，每次更新代码哈希都变，“辅助功能”的授权更新后失效，需要在系统设置里删掉 golauncher 再重新授权（[self-install.md §9.4](self-install.md)）。在有 Developer ID 签名之前，这是 macOS 自动更新最大的体验问题；如果它太烦人，可以在设置里把自动更新改成“只通知”。
 
-测试（全部在临时目录、假 GitHub，不碰 `/Applications`、不启动真的 golauncher）：产物选择（通用优先、按架构退回、缺失时的错误、Windows 不受影响）；带签名的 `Prepare`（包里的程序、可执行位、`Info.plist` 版本、不解压包外的文件、zip 被换后拒绝）；`ExtractBundle` 拒绝路径穿越、链接、缺程序、缺 `Info.plist`、重复条目；助手在临时 `Applications` 里成功更新（新包就位、旧包备份、启动的是包里的程序、没有残留的隐藏包）和新版本崩溃后回滚；`ParseScutilProxy`；`glctl update download --dry-run --os darwin` 的 golden。另外手动用 `scripts/build-macos.sh --arch universal --app --zip` 打出的真实 zip 跑过一次 `ExtractBundle`：解压出的包 `codesign --verify --strict --deep` 通过，`FileVersion` 读到正确的版本。
+测试（全部在临时目录、假 GitHub，不碰 `/Applications`、不启动真的 golauncher）：产物选择（本机架构优先、退回通用包、缺失时的错误、Windows 不受影响）；带签名的 `Prepare`（包里的程序、可执行位、`Info.plist` 版本、不解压包外的文件、zip 被换后拒绝）；`ExtractBundle` 拒绝路径穿越、链接、缺程序、缺 `Info.plist`、重复条目；助手在临时 `Applications` 里成功更新（新包就位、旧包备份、启动的是包里的程序、没有残留的隐藏包）和新版本崩溃后回滚；`ParseScutilProxy`；`glctl update download --dry-run --os darwin` 的 golden。另外手动用 `scripts/macos/build.sh --arch universal --app --zip` 打出的真实 zip 跑过一次 `ExtractBundle`：解压出的包 `codesign --verify --strict --deep` 通过，`FileVersion` 读到正确的版本。
 
 没有在真机上跑完整的自动更新（会替换正在运行的应用）。第一次真实验证要等有两个带 macOS 产物的版本之后，看 `~/Library/Caches/golauncher/logs/update.log`；也可以用 `GOLAUNCHER_UPDATE_API` 指向本机的假服务器演练。

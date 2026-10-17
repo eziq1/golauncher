@@ -1,4 +1,4 @@
-# Build output (scripts/build.ps1)
+# Build output (scripts/windows/build.ps1)
 /dist/
 *.exe
 *.exe~
@@ -22,7 +22,7 @@ Desktop.ini
 .DS_Store
 
 # Note: cmd/*/rsrc_windows_*.syso are generated but committed on purpose
-# (scripts/winres.ps1), so that "go build" embeds the icon and manifest.
+# (scripts/windows/winres.ps1), so that "go build" embeds the icon and manifest.
 
 # Agent worktrees
 /.claude/

@@ -19,9 +19,9 @@
   (.github/workflows/release.yml runs this script).
 
 .EXAMPLE
-  pwsh scripts/build.ps1
-  pwsh scripts/build.ps1 -Arch arm64 -Zip
-  pwsh scripts/build.ps1 -Version 0.1.0 -Zip
+  pwsh scripts/windows/build.ps1
+  pwsh scripts/windows/build.ps1 -Arch arm64 -Zip
+  pwsh scripts/windows/build.ps1 -Version 0.1.0 -Zip
 #>
 param(
     [ValidateSet('amd64', 'arm64')]
@@ -36,7 +36,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $OutDir) { $OutDir = Join-Path $root 'dist' }
 if (-not $Arch) { $Arch = (go env GOHOSTARCH).Trim() }
 if ($Arch -notin 'amd64', 'arm64') { throw "unsupported architecture $Arch (want amd64 or arm64)" }

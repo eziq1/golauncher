@@ -4,8 +4,8 @@
   release notes. Fails when the section is missing or empty.
 
 .EXAMPLE
-  pwsh scripts/changelog.ps1 -Version 0.1.0 > notes.md
-  pwsh scripts/changelog.ps1 -Version v0.1.0
+  pwsh scripts/release/changelog.ps1 -Version 0.1.0 > notes.md
+  pwsh scripts/release/changelog.ps1 -Version v0.1.0
 #>
 param(
     [Parameter(Mandatory)]
@@ -14,7 +14,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if (-not $Path) { $Path = Join-Path (Split-Path -Parent $PSScriptRoot) 'CHANGELOG.md' }
+if (-not $Path) { $Path = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'CHANGELOG.md' }
 $Version = $Version -replace '^v', ''
 
 $heading = '^## \[' + [regex]::Escape($Version) + '\]'

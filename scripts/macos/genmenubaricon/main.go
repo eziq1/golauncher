@@ -4,7 +4,7 @@
 // light and dark menu bars. It is 44×36 pixels, 22×18 points at 2x (menu
 // bar icons are 18 points tall).
 //
-//	go run ./scripts/genmenubaricon
+//	go run ./scripts/macos/genmenubaricon
 package main
 
 import (

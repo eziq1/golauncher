@@ -13,15 +13,15 @@
   the committed files afterwards.
 
 .EXAMPLE
-  pwsh scripts/winres.ps1
-  pwsh scripts/winres.ps1 -Version 0.2.0
+  pwsh scripts/windows/winres.ps1
+  pwsh scripts/windows/winres.ps1 -Version 0.2.0
 #>
 param(
     [string]$Version = ''
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $goWinres = 'github.com/tc-hib/go-winres@v0.3.3'
 
 foreach ($name in 'golauncher', 'glctl') {

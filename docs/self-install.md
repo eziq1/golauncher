@@ -128,12 +128,12 @@ macOS 上同样是"程序自己安装自己"，只是安装的对象是整个 `.
 
 ### 9.1 包的形态
 
-`scripts/build-macos.sh --app` 生成 `dist/golauncher.app`：
+`scripts/macos/build.sh --app` 生成 `dist/golauncher.app`：
 
 | 位置 | 内容 |
 |------|------|
 | `Contents/MacOS/golauncher`、`Contents/MacOS/glctl` | 两个程序（`--arch universal` 时是 x86_64 + arm64 的通用二进制） |
-| `Contents/Info.plist` | 由 `install.InfoPlist` 生成（经 `scripts/macbundle` 写出，有单元测试） |
+| `Contents/Info.plist` | 由 `install.InfoPlist` 生成（经 `scripts/macos/macbundle` 写出，有单元测试） |
 | `Contents/Resources/golauncher.icns` | 用 `iconutil` 从 `assets/icon-{16,32,64,128,256,512}.png` 生成；1024 像素那张由 `sips` 从 512 放大 |
 | `Contents/Resources/{en,zh-Hans}.lproj/InfoPlist.strings` | 权限说明文字的英文、中文版本 |
 | `Contents/PkgInfo`、`Contents/_CodeSignature/` | `APPL????`；代码签名 |
@@ -193,7 +193,7 @@ MyGo 的 `mygo build` 也能打 `.app`，但它在 `cmd/mygo` 的 `package main`
 - **TCC 权限（辅助功能、自动化）按签名身份记录**。ad-hoc 签名没有证书，它的"指定要求"（designated requirement）就是代码哈希（`cdhash`），**每次构建都不同**。所以：
   - 每次升级（包括自动更新）后，"系统设置 › 隐私与安全性 › 辅助功能"里的 golauncher 虽然还显示为打开，但已经不生效：要先用"−"删掉，再重新添加或重新授权。"自动化"的授权会在下次使用时重新弹窗。
   - 包的标识符是固定的，所以列表里不会出现多个 golauncher，只是授权要重给。
-  - **让授权在本机重新构建后保留**：在"钥匙串访问 › 证书助理 › 创建证书"里建一个自签名的"代码签名"证书（例如叫 `golauncher local`），然后 `scripts/build-macos.sh --app --sign "golauncher local"`（或设置环境变量 `GOLAUNCHER_CODESIGN_IDENTITY`）。这时指定要求是"标识符 + 这张证书"，换构建不变。这只对自己构建的版本有效；发布版本（CI 构建）仍是 ad-hoc。
+  - **让授权在本机重新构建后保留**：在"钥匙串访问 › 证书助理 › 创建证书"里建一个自签名的"代码签名"证书（例如叫 `golauncher local`），然后 `scripts/macos/build.sh --app --sign "golauncher local"`（或设置环境变量 `GOLAUNCHER_CODESIGN_IDENTITY`）。这时指定要求是"标识符 + 这张证书"，换构建不变。这只对自己构建的版本有效；发布版本（CI 构建）仍是 ad-hoc。
   - 根本的解决办法是 Developer ID 签名和公证（docs/macos-port.md §6.3），不在本期范围。
 - 钥匙串：签名身份变化后，读取以前存的密码时 macOS 可能弹"允许访问"，点"始终允许"。
 
@@ -206,7 +206,7 @@ MyGo 的 `mygo build` 也能打 `.app`，但它在 `cmd/mygo` 的 `package main`
 ### 9.6 再次打开、菜单栏图标
 
 - **再次打开**：应用已经在运行时，双击 `golauncher.app` 或执行 `open -a golauncher`，macOS 不会启动第二个进程，而是给运行中的实例发 reopen 事件（`applicationShouldHandleReopen`）。MyGo 把它转成 `App.OnActivate`，shell 把它当作 `--show`：显示启动器。真的启动了第二个进程时（`open -n`、终端直接运行可执行文件），仍由 MyGo 的单实例锁把参数转给第一个（`OnSecondInstance`），各平台一样。
-- **菜单栏图标**：Windows 托盘用彩色的 32×32 应用图标；macOS 菜单栏用 `assets/icon-menubar.png`：`icon-small.svg` 里的圆弧和箭头，黑色加透明度、去掉底色，44×36 像素（2 倍下 22×18 点），作为模板图片（`IconIsTemplate`）由系统按浅色/深色菜单栏着色。由 `go run ./scripts/genmenubaricon` 生成。
+- **菜单栏图标**：Windows 托盘用彩色的 32×32 应用图标；macOS 菜单栏用 `assets/icon-menubar.png`：`icon-small.svg` 里的圆弧和箭头，黑色加透明度、去掉底色，44×36 像素（2 倍下 22×18 点），作为模板图片（`IconIsTemplate`）由系统按浅色/深色菜单栏着色。由 `go run ./scripts/macos/genmenubaricon` 生成。
 
 ### 9.7 代码与测试
 
@@ -218,7 +218,7 @@ MyGo 的 `mygo build` 也能打 `.app`，但它在 `cmd/mygo` 的 `package main`
 | `internal/install/quarantine_*.go` | `ClearQuarantine`（只在 macOS 上做事） |
 | `internal/winapi/install/install_darwin.go` | `System`：安装记录、在 `/Applications`/`~/Applications` 里查找、`FileVersion`、进程枚举和 `StopInstances`、`open` 启动、延迟删除 |
 | `internal/winapi/install/update_darwin.go` | 更新助手的 `HelperSystem`、`scutil --proxy` 系统代理、开机自启的 LaunchAgent 后备 |
-| `scripts/build-macos.sh --app`、`scripts/macbundle` | 打包、图标、签名 |
+| `scripts/macos/build.sh --app`、`scripts/macos/macbundle` | 打包、图标、签名 |
 | `internal/shell` | `newInstaller` 用 `Bundle` 模式、登录项走 `winstall.SetLoginItem`、`OnActivate` → `--show`、模板托盘图标 |
 | `internal/ui/installer.go` | `InstallerInfo.Bundle`：不提供桌面快捷方式，选的文件夹就是安装位置 |
 

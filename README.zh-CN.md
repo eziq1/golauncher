@@ -5,7 +5,7 @@
 <h1 align="center">golauncher</h1>
 
 <p align="center">
-  类 Raycast 的 Windows 启动器，用 Go 和 <a href="https://github.com/egoist/mygo">MyGo</a> 原生 UI 编写。
+  类 Raycast 的 Windows 和 macOS 启动器，用 Go 和 <a href="https://github.com/egoist/mygo">MyGo</a> 原生 UI 编写。
   <br>
   <a href="README.md">English</a>
 </p>
@@ -40,6 +40,8 @@
 
 ## 安装
 
+### Windows
+
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_windows_<架构>.zip`。
 2. 解压后运行 `golauncher.exe`。第一次运行会弹出安装界面，默认安装到 `%LOCALAPPDATA%\Programs\golauncher`（不需要管理员权限），并创建开始菜单项、在"设置 › 应用"里注册卸载入口。之后运行更新或更旧的版本，会提示升级或降级；版本相同则直接启动已安装的程序。也可以选择"不安装，直接运行"（或加 `--portable` 参数）。程序常驻在系统托盘。
 3. **自动更新**：已安装的副本在启动 30 秒后、之后每天（或每周）查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 Release 里的 SHA-256 校验和校验，在 golauncher 空闲时（窗口隐藏、没有后台任务和 AI 回答、几分钟内没用过）安装并自动重启，然后通知“已更新”。新版本起不来就自动恢复旧版本，并跳过这个版本。“设置 › 关于”里可以查看状态、立即检查、跳过某个版本，或改成“只通知我”“关闭”；托盘菜单和“检查更新”命令也能检查。便携运行和开发构建不会自动更新。详见 [docs/auto-update.md](docs/auto-update.md)。
@@ -61,6 +63,18 @@ golauncher.exe --uninstall  # 卸载
 | 日志 | `%LOCALAPPDATA%\golauncher\logs\golauncher.log`（更新：`update.log`） |
 | 更新（下载、上一个版本） | `%LOCALAPPDATA%\golauncher\update\` |
 
+### macOS
+
+1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_darwin_arm64.zip`（Apple 芯片）或 `golauncher_<版本>_darwin_amd64.zip`（Intel），解压。
+2. 应用还没有经过公证，第一次打开时按住 Control 点按 `golauncher.app` › “打开”（macOS 15：先打开一次，再到“系统设置 › 隐私与安全性”点“仍要打开”），或者执行 `xattr -dr com.apple.quarantine golauncher.app`。第一次运行会提示安装到“应用程序”文件夹（没有权限时装到 `~/Applications`）。程序常驻在菜单栏，没有 Dock 图标，按 **⌥Space** 呼出。
+3. “设置 › 权限”列出需要你允许的权限：**辅助功能**（粘贴、读取选中的文字）和**自动化 › 访达**（访达当前文件夹）。应用没有用 Developer ID 签名，所以每次更新后 macOS 会忘掉辅助功能权限，需要在列表里删掉 golauncher 再重新添加。自动更新和 Windows 一样。需要 macOS 13 或更高版本。详见 [docs/macos-port.md](docs/macos-port.md)。
+
+| 内容 | 位置 |
+|------|------|
+| 配置 | `~/Library/Application Support/golauncher/config.json` |
+| 数据库、剪贴板历史 | `~/Library/Application Support/golauncher/data/` |
+| 日志 | `~/Library/Caches/golauncher/logs/golauncher.log`（更新：`update.log`） |
+
 ## 快捷键
 
 | 按键 | 作用 |
@@ -76,11 +90,25 @@ golauncher.exe --uninstall  # 卸载
 
 需要 Go 1.27 或更高版本，不需要 cgo。
 
+Windows：
+
 ```powershell
 git clone https://github.com/eziq1/golauncher
 cd golauncher
-pwsh scripts/build.ps1          # 生成 dist/golauncher.exe 和 dist/glctl.exe
+pwsh scripts/windows/build.ps1          # 生成 dist/golauncher.exe 和 dist/glctl.exe
 ```
+
+macOS：
+
+```sh
+git clone https://github.com/eziq1/golauncher
+cd golauncher
+scripts/macos/build.sh --app            # 生成 dist/golauncher.app（本机架构）
+scripts/macos/build.sh --arch arm64 --app --zip   # Apple 芯片的发布包（Intel 用 amd64）
+scripts/macos/build.sh --debug          # 不优化的 dist/golauncher 和 dist/glctl，供 Delve 调试
+```
+
+所有脚本见 [scripts/README.md](scripts/README.md)。
 
 ## 测试
 
@@ -94,7 +122,7 @@ go test ./internal/cli -update                 # 输出格式有意变更后，�
 
 ### 调试界面
 
-正式发布版（`scripts/build.ps1` 和 GitHub Releases）不包含 MyGo 的开发者工具。要看元素和性能面板，需要构建一个开发版：不注入版本号，版本就是 `dev`，开发者工具默认开启，也不会弹出安装界面。
+正式发布版（`scripts/windows/build.ps1` 和 GitHub Releases）不包含 MyGo 的开发者工具。要看元素和性能面板，需要构建一个开发版：不注入版本号，版本就是 `dev`，开发者工具默认开启，也不会弹出安装界面。
 
 ```powershell
 go build -ldflags "-H windowsgui" -o golauncher-dev.exe ./cmd/golauncher
@@ -174,7 +202,7 @@ ipconfig /flushdns | Select-Object -Last 1
 
 ## 致谢
 
-世界时钟的城市数据（人口 1.5 万以上的城市及其省/州、国家和中文名）来自 [GeoNames](https://www.geonames.org/)，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 授权，由 [`scripts/gencities`](scripts/gencities/) 转换后嵌入程序。
+世界时钟的城市数据（人口 1.5 万以上的城市及其省/州、国家和中文名）来自 [GeoNames](https://www.geonames.org/)，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 授权，由 [`scripts/data/gencities`](scripts/data/gencities/) 转换后嵌入程序。
 
 ## 许可证
 

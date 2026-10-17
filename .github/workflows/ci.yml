@@ -103,7 +103,7 @@ jobs:
 
       - name: App bundle
         run: |
-          scripts/build-macos.sh --app --version 0.0.0-ci --out-dir "$RUNNER_TEMP/dist"
+          scripts/macos/build.sh --app --version 0.0.0-ci --out-dir "$RUNNER_TEMP/dist"
           codesign -dv "$RUNNER_TEMP/dist/golauncher.app"
 
       - name: Cross-compile for Windows
