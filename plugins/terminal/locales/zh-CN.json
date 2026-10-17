@@ -36,5 +36,27 @@
   "toast.defaultSet": "已将 {{.name}} 设为默认发行版",
   "toast.terminated": "已停止 {{.name}}",
   "toast.shutdown": "已关闭 WSL",
-  "toast.failed": "{{.command}} 失败"
+  "toast.failed": "{{.command}} 失败",
+
+  "mac.plugin.name": "终端",
+  "mac.plugin.description": "在主搜索中列出终端应用（终端、iTerm2、Ghostty、WezTerm、Alacritty、kitty、Warp）：打开新窗口或新标签页、在当前文件夹中打开，或在其中运行命令。可以选择默认终端，“文件”的操作也会打开它。",
+  "mac.unavailable.notInstalled": "没有找到终端应用",
+  "mac.app.subtitle": "终端应用",
+  "mac.pref.terminal.title": "默认终端",
+  "mac.pref.terminal.description": "用来运行命令的终端，“文件”操作里的“在终端中打开”也会打开它。",
+  "mac.pref.terminal.auto": "自动（{{.app}}）",
+  "mac.action.setDefault": "设为默认终端",
+  "mac.item.run.title": "在终端中运行",
+  "mac.item.run.subtitle": "在 {{.app}} 中运行一条 shell 命令",
+  "mac.arg.command": "命令",
+  "mac.action.run": "在新窗口中运行",
+  "mac.action.runTab": "在新标签页中运行",
+  "mac.action.runHere": "在 {{.folder}} 中运行",
+  "mac.keywords.app": "终端, 命令行, zd, mlh, terminal, shell, console, iterm, iterm2, ghostty, wezterm, alacritty, kitty, warp, zsh, bash",
+  "mac.keywords.run": "运行, 命令, 终端, yx, ml, zd, run, command, shell, terminal, execute",
+  "mac.toast.defaultSet": "已将 {{.app}} 设为默认终端",
+  "mac.toast.noCommand": "请输入要运行的命令",
+  "mac.toast.failed": "无法打开 {{.app}}",
+  "mac.toast.needAutomation": "请在“系统设置 › 隐私与安全性 › 自动化”中允许 golauncher 控制 {{.app}}，然后重试。",
+  "mac.toast.needAccessibility": "终端的新标签页要通过按下 ⌘T 打开：请在“系统设置 › 隐私与安全性 › 辅助功能”中允许 golauncher，然后重试。"
 }

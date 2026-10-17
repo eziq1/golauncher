@@ -22,10 +22,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/winapi/macterm"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -75,6 +77,23 @@ type Options struct {
 	// Sync refreshes on the calling goroutine instead of in the background,
 	// so results are deterministic (glctl's fake environment).
 	Sync bool
+
+	// Mac lists the terminal apps of macOS instead of Windows Terminal and
+	// WSL (mac.go). New sets it on macOS; glctl's fake environment stays a
+	// Windows machine on every platform.
+	Mac bool
+	// AppPath finds an app by bundle identifier, "" when it is not
+	// installed (default: Launch Services).
+	AppPath func(bundleID string) string
+	// Launch starts a terminal (default macterm.Run). Tests pass a fake:
+	// nothing must be opened for real.
+	Launch func(macterm.Launch) error
+	// Home is where a terminal opens without a folder (default: the home
+	// folder); Shell the login shell (default $SHELL).
+	Home, Shell string
+	// SetPreferred shares the default terminal with builtin.files
+	// (default macterm.SetPreferred).
+	SetPreferred func(id string)
 }
 
 // Plugin is the terminal plugin.
@@ -97,6 +116,7 @@ type Plugin struct {
 	states   map[string]State // nil until listed
 	listedAt time.Time
 	listing  bool
+	terms    []macterm.Installed // macOS: the installed terminals
 }
 
 var (
@@ -104,10 +124,12 @@ var (
 	_ plugin.RootProvider   = (*Plugin)(nil)
 	_ plugin.ActionHandler  = (*Plugin)(nil)
 	_ plugin.LocaleProvider = (*Plugin)(nil)
+
+	_ plugin.PreferenceOptionsProvider = (*Plugin)(nil)
 )
 
 // New returns the plugin for this computer.
-func New() *Plugin { return NewWithOptions(Options{}) }
+func New() *Plugin { return NewWithOptions(Options{Mac: runtime.GOOS == "darwin"}) }
 
 // NewWithOptions returns the plugin configured by o.
 func NewWithOptions(o Options) *Plugin {
@@ -132,12 +154,27 @@ func NewWithOptions(o Options) *Plugin {
 	if o.Run == nil {
 		o.Run = runHidden
 	}
+	if o.AppPath == nil {
+		o.AppPath = macterm.AppPath
+	}
+	if o.Launch == nil {
+		o.Launch = macterm.Run
+	}
+	if o.Home == "" {
+		o.Home, _ = os.UserHomeDir()
+	}
+	if o.Shell == "" {
+		o.Shell = o.Getenv("SHELL")
+	}
+	if o.SetPreferred == nil {
+		o.SetPreferred = macterm.SetPreferred
+	}
 	return &Plugin{o: o}
 }
 
 // Manifest implements plugin.Plugin.
 func (p *Plugin) Manifest() plugin.Manifest {
-	return plugin.Manifest{
+	m := plugin.Manifest{
 		ID:            ID,
 		Name:          "%plugin.name%",
 		Description:   "%plugin.description%",
@@ -146,6 +183,10 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		DefaultLocale: "en",
 		Permissions:   []plugin.Permission{plugin.PermClipboard, plugin.PermExec},
 	}
+	if p.o.Mac {
+		m = p.macManifest(m)
+	}
+	return m
 }
 
 // Locales implements plugin.LocaleProvider.
@@ -179,6 +220,9 @@ func systemWhich(localAppData string) func(string) string {
 // Windows Terminal nor a WSL distribution is installed.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.h = h
+	if p.o.Mac {
+		return p.initMac(h)
+	}
 	wt := p.o.Which("wt")
 	settings := findSettings(p.o.LocalAppData)
 	reg, err := p.o.Registry()
@@ -375,6 +419,10 @@ func (p *Plugin) RootItems(_ context.Context, q plugin.Query) ([]plugin.Item, er
 	if q.Context != nil {
 		folder = q.Context.Folder
 	}
+	if p.o.Mac {
+		terms, def := p.macTerminals()
+		return buildMacItems(p.h.I18n(), terms, def, folder), nil
+	}
 	return buildItems(p.h.I18n(), p.snapshot(), folder), nil
 }
 
@@ -387,6 +435,9 @@ type callbackPayload struct {
 func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Result, error) {
 	if a.Kind != plugin.ActionCallback {
 		return plugin.Result{}, fmt.Errorf("terminal: unknown action %s %q", a.Kind, a.Target)
+	}
+	if p.o.Mac {
+		return p.handleMac(a)
 	}
 	var pl callbackPayload
 	if len(a.Payload) > 0 {

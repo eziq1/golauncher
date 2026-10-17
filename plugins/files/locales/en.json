@@ -49,5 +49,23 @@
   "toast.hashFailed": "Could not compute the checksum",
   "task.zip": { "one": "Compress “{{.name}}”", "other": "Compress {{.Count}} items" },
   "toast.zipStarted": "Compressing in the background",
-  "toast.stillWorking": "Still working in the background"
+  "toast.stillWorking": "Still working in the background",
+
+  "mac.plugin.description": "Actions for the folder you are working in when the launcher opens: open it in your terminal or code editor, reveal it in Finder, create folders and text files, copy paths, preview, compress and hash files.",
+  "mac.item.terminal.title": "Open in {{.app}}",
+  "mac.item.editor.title": "Open Folder in {{.app}}",
+  "mac.item.editorSelected.title": "Open Selection in {{.app}}",
+  "mac.item.reveal.title": "Show in Finder",
+  "mac.item.quickLook.title": "Quick Look",
+  "mac.action.openWindow": "Open in New Window",
+  "mac.action.openTab": "Open in New Tab",
+  "mac.action.openIn": "Open in {{.app}}",
+  "mac.action.reveal": "Show in Finder",
+  "mac.action.preview": "Preview",
+  "mac.keywords.terminal": "terminal, shell, console, iterm, ghostty, wezterm, alacritty, kitty, warp, zsh, 终端, 命令行",
+  "mac.keywords.reveal": "finder, reveal, show, folder, 访达, 显示",
+  "mac.keywords.quickLook": "quick look, preview, space, ql, 快速查看, 预览",
+  "mac.toast.openFailed": "Could not open {{.app}}",
+  "mac.toast.needAutomation": "Allow golauncher to control {{.app}} in System Settings › Privacy & Security › Automation, then try again.",
+  "mac.toast.needAccessibility": "A new Terminal tab is opened by pressing ⌘T: allow golauncher in System Settings › Privacy & Security › Accessibility, then try again."
 }

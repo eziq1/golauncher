@@ -455,3 +455,12 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - **材质名** Acrylic / Mica：Vibrancy 材质还没做（§10.3），等确定 macOS 上的材质再改。
 - **并行分支负责的范围**：`terminal`、`files`、`processes`、`network`、`scoop`、`winget`、Homebrew、`install.*`、`settings.updates.*`、`update.*`、`settings.selection.*`、`selection` 插件、环境感知和权限文案。
 - `clipboard_test.go` 的 `TestI18nKeys` 现在把 `id@darwin` 当作 `id` 的引用（与 `glctl i18n check` 一致）。
+### 10.7 终端与 files 插件
+
+取代 10.3 里"终端插件的 macOS 版、files 插件的 macOS 打开方式"一条。详见 [terminal-wsl.md](terminal-wsl.md) §5。
+
+- **已实现**：新包 `internal/winapi/macterm`（纯 Go 的终端/编辑器目录、命令行与 AppleScript 构造、`AppPath` 走 Launch Services、`Run`、权限错误识别、两个插件共享的默认终端）。`terminal` 插件在 macOS 上列出已安装的 Terminal/iTerm2/Ghostty/WezTerm/Alacritty/kitty/Warp（新窗口、新标签页、在当前文件夹打开、设为默认），"在终端中运行"带命令参数，设置里选默认终端；不显示 WSL。`files` 插件在 macOS 上：在默认终端中打开（其他已安装终端作为附加动作）、用 VS Code/Cursor/Zed 打开（`open -b`）、在访达中显示、复制路径、快速查看（`qlmanage -p`）；去掉 cmd、PowerShell、以管理员身份运行；复制多个路径用 `\n` 分隔。Windows 行为、glctl 假环境和 golden 不变（`Options.Mac` 只在真实的 `New()` 里于 darwin 打开）。
+- **测试**：命令行和脚本全部是单元测试，假的启动函数只记录 argv，从不打开应用；`GOLAUNCHER_TERMINAL_TESTS=1` 时用 `osacompile` 编译本机终端的脚本（本机 Terminal、iTerm2 通过）。
+- **待接**：`files` 只对 `ContextExplorer/Desktop/PathInTitle/FileDialog` 出条目；访达的环境感知若用新的 Kind，要加进 `files.applies`。
+- **需手动验证**：首次用 AppleScript 控制 Terminal/iTerm2 时的**自动化**授权弹窗及拒绝后的提示；Terminal 新标签页需要**辅助功能**（System Events 按 ⌘T）；应用未运行时是否只开一个窗口；Ghostty/WezTerm/Alacritty/kitty/Warp 的参数（本机未安装，按文档写成）；Cursor、Zed 的 bundle id；`qlmanage -p` 的窗口是否到前台。
+
