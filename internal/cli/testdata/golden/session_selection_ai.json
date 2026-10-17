@@ -45,6 +45,18 @@
                 }
               },
               {
+                "id": "attach",
+                "title": "Add Attachment…",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "ChooseFiles",
+                  "payload": {
+                    "title": "Attach Files to the Message",
+                    "multiple": true
+                  }
+                }
+              },
+              {
                 "id": "copy",
                 "title": "Copy Answer",
                 "shortcut": "Ctrl+Shift+C",
@@ -137,6 +149,7 @@
     "selection": {
       "chars": 65,
       "label": "65 characters selected"
-    }
+    },
+    "acceptFiles": true
   }
 }

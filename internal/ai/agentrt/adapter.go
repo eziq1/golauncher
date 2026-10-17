@@ -149,6 +149,10 @@ type Info struct {
 	// error (usually ErrVersion: something it cannot do without is missing)
 	// makes Check refuse the CLI. Command must apply the same decision.
 	Fit func(version string, flags Flags) (Fit, error)
+	// Attachments is what the CLI can send with a message (R91); the
+	// Codec implements AttachmentCodec when it is not empty. The runtime
+	// reports it as the backend's (backend.AttachmentCapser).
+	Attachments backend.AttachmentCaps
 }
 
 // Launch is what a process is started for.
@@ -184,6 +188,10 @@ type Launch struct {
 	// Prompt is the message of a per-turn process (for CLIs that take it as
 	// an argument; it is also written with Codec.Prompt).
 	Prompt string
+	// Attachments are the files attached to the message of a per-turn
+	// process (Codex: its images are passed with --image); nil for a
+	// persistent process, whose messages bring theirs (AttachmentCodec).
+	Attachments []backend.Attachment
 }
 
 // Command is how a process is started.
@@ -209,6 +217,19 @@ type Codec interface {
 	Interrupt() []byte
 	// NewDecoder returns the decoder of one turn's output.
 	NewDecoder(io TurnIO) Decoder
+}
+
+// AttachmentCodec is implemented by the Codecs of CLIs that can send
+// attachments with a message (Info.Attachments, R91): images as the CLI takes
+// them, text files inline (backend.InlineText). The runtime uses it for the
+// messages that have attachments, Message and Prompt for the others, so that
+// what is sent without attachments never changes. An attachment the process
+// cannot send is an error (a *backend.Error of kind ErrAttachment).
+type AttachmentCodec interface {
+	// MessageWith is Message with attachments.
+	MessageWith(text string, atts []backend.Attachment) ([]byte, error)
+	// PromptWith is Prompt with attachments (Launch.Attachments has them too).
+	PromptWith(text string, atts []backend.Attachment) ([]byte, error)
 }
 
 // Handshaker is implemented by Codecs whose persistent process needs

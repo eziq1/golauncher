@@ -144,6 +144,9 @@ type Shell struct {
 	// copying is set while the selected text is copied before the launcher
 	// shows (main thread only); hotkeys are ignored meanwhile.
 	copying bool
+	// choosing is set while the launcher's open dialog is shown
+	// (launcherHost.ChooseFiles): losing the focus to it does not hide it.
+	choosing atomic.Bool
 
 	// The appearance applied to the windows last (main thread only).
 	source        mygo.ThemeSource
@@ -309,10 +312,14 @@ func (s *Shell) ready(action string) {
 		s.panel.Hide()
 	})
 	s.panel.OnBlur(func() {
-		if s.env.Config.Get().HideOnBlur {
+		// The open dialog of an attachment (launcherHost.ChooseFiles) takes
+		// the focus: the launcher stays.
+		if s.env.Config.Get().HideOnBlur && !s.choosing.Load() {
 			s.panel.Hide()
 		}
 	})
+	// Files dropped onto the launcher go to the current view (R91).
+	s.panel.OnFileDrop(func(e *mygo.FileDropEvent) { s.launcher.DropFiles(e.Paths) })
 	// Every way of hiding the panel ends in Window.Hide, which fires OnHide
 	// once per hide; plugins stop their refresh timers on this event.
 	s.panel.OnHide(func() {
@@ -806,6 +813,25 @@ func (h settingsHost) ChooseThemeFile(save bool, name string, done func(string, 
 		}
 		h.finish(func() { done(path, err) })
 	}()
+}
+
+// ChooseFiles shows the open dialog over the launcher, which does not hide
+// while it is open, and gives the launcher the focus back afterwards. It
+// runs on the launcher's Dispatcher, never on the main thread.
+func (h launcherHost) ChooseFiles(o plugin.ChooseFilesOptions) ([]string, error) {
+	s := h.s
+	if s.panel == nil {
+		return nil, nil
+	}
+	s.choosing.Store(true)
+	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Parent: s.panel, Title: o.Title, Multiple: o.Multiple})
+	s.post(func() {
+		s.choosing.Store(false)
+		if s.panel.IsVisible() {
+			s.panel.Focus()
+		}
+	})
+	return paths, err
 }
 
 func (h launcherHost) Invalidate() {

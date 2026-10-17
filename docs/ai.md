@@ -988,3 +988,83 @@ MyGo 0.5.1 提供 `Window.OnFileDrop`（Windows、macOS 都支持从资源管理
 - **文本类文件：可行**。
 - **PDF/Office：Claude 可行，Codex 只能先抽文字**，放第二期。
 - **视频：目前不可行**，不做。
+## 24. 实现记录（R91：输入框的附件，第一期，2026-10-17）
+
+§23（R90 可行性评估）的第一期：AI 对话的消息可以带**图片和文本文件**。PDF、Office 文档、视频、音频可以加进来，但标红、说明原因，移除之前不能发送。
+
+### 24.1 用户看到的
+
+- **三种添加方式**：
+  - **拖文件到启动器窗口**：在 AI 对话里加进草稿；拖到主界面会打开一个新对话，带着这些文件（AI 没打开时先显示“打开 AI”的提示，附件留着，打开后就在草稿里）；拖到别的界面提示“这里不能使用这些文件”。在主界面拖入时，搜索框里已经输入的文字不会带过去。
+  - **在对话里按 `Ctrl+V`**：剪贴板里是复制的文件或者图片（例如截图）时，作为附件加入；是文字时照常粘贴到输入框。只有在接受文件的界面里按 `Ctrl+V` 才会读取剪贴板，先用不打开剪贴板的格式检查（Windows 用 `IsClipboardFormatAvailable`，macOS 看粘贴板的类型）决定是否接管这个按键。
+  - **“添加附件…”（`Ctrl+O`）**：在对话的操作面板里，打开系统的文件选择框，可以多选。选择框打开时启动器不会因为失去焦点而隐藏，关闭后焦点回到启动器。
+- **附件卡片**：在对话内容下面、页脚上面一排（可以横向滚动），不改变搜索栏的高度（R74 的测试照常通过，另加了有卡片和没有卡片时搜索栏高度一致的测试）。图片显示缩略图，文本文件显示图标；下面是大小，图片再加尺寸（缩小过的写“已缩小为 2000×1125”）；`×` 移除。不能发送的卡片用红色显示原因（例如“PDF 文件要在以后的版本里支持”“Codex (ChatGPT) 不接受视频”），鼠标悬停显示文件名和原因。
+- **发送**：有任何一个不能发送的附件时，整条消息都不发送，提示“请先移除不能发送的附件”，并列出它们；输入框里的文字保留。只有附件、没有文字也可以发送：发给模型的文字是一句固定的英文请求（不翻译，模型按界面语言回答），对话记录里只显示附件；对话标题取附件的文件名。
+- **对话记录**：发出的消息先显示图片的缩略图（一排），再显示“📎 文件名（大小）· …”，然后是文字。“AI 对话历史”在有附件的对话后面显示“📎 数量”。
+- **隐藏后保留（R75/R76）**：草稿里有附件时，即使输入框是空的，也算“有草稿”：新的选中文字不会把你带回主界面。
+
+### 24.2 类型和上限
+
+| 项目 | 规定 |
+|------|------|
+| 图片 | PNG、JPEG、GIF、WebP 原样使用（GIF 动画保留）；BMP、TIFF 转成 PNG；HEIC/HEIF/AVIF 不转换，标为不支持（“请另存为 JPEG 或 PNG”）；动态 WebP 读不出来，标为“无法读取这张图片” |
+| 图片缩小 | 最长边超过 **2000 像素**或文件超过 **3.75 MB**（这样 base64 后不超过 5 MB）时等比缩小、重新编码：PNG/GIF/BMP/TIFF 和有透明通道的保持 PNG，JPEG/WebP 用 JPEG（质量 85）；还太大就把不透明的 PNG 改成 JPEG，再每次缩小到 0.8 倍直到合格。只保存缩小后的副本。EXIF 方向不处理（第二期） |
+| 图片来源 | 原文件最大 **50 MB**、**1 亿像素**（先读文件头的尺寸，超过就不解码） |
+| 文本文件 | 按**内容**判断：合法 UTF-8（去掉 BOM）或带 BOM 的 UTF-16（转成 UTF-8）；不能有 NUL，其他控制字符不超过 2%。扩展名只用来决定媒体类型（`.md`、`.csv`、`.json`、`.go`……），比如名叫 `photo.png` 的文本文件按文本处理。每个最大 **200 KB** |
+| 判断方式 | 都看文件内容（魔数），不看扩展名；大文件只读开头 8 KB 判断类型（比如 100 MB 的视频不会整个读进来） |
+| 不支持（加进来但标红） | PDF（“以后的版本”）、Office（docx/xlsx/pptx/odt…和旧的 OLE 格式，“以后的版本”）、视频和音频（“<后端> 不接受视频/音频”）、压缩包、文件夹、空文件、其他二进制文件、超过上限的文件 |
+| 每条消息 | 最多 **10 个附件**（多出的不加，提示几个没加上）；准备好的副本加起来最多 **16 MB**（超过的那个标红） |
+| 后端不接受的类型 | 卡片标红（“<后端> 不接受图片”）；按对话的后端判断（还没发过消息的对话按设置里选的后端） |
+
+### 24.3 存储和隐私
+
+- 附件复制到插件数据目录下的 `attachments\<对话 ID>\`（`<id>.<扩展名>` 和图片的 `<id>.thumb.png`，0600），和设计（§23.3）写的 `<data>\ai\attachments` 不同：插件只能写自己的数据目录。消息记录（`Message.Attachments`）里存文件名、类型、大小、尺寸和副本的文件名；`Session.Attachments` 是数量。
+- 删除对话、清空历史、按保留期（默认 30 天）清理时，连同目录一起删除；没有对应对话的目录（草稿没发就丢了、插件关着时删的对话）超过 1 天后在清理时删除。草稿里移除的附件立即删除文件；对话离开内存或插件关闭时，草稿的文件也删除（草稿不跨重启保存）。
+- 永远不会自动附加任何东西：只在你拖入、按 `Ctrl+V`、选择文件时才读文件或剪贴板。
+- 日志只记数量、类型和大小（插件的 `attachments added`，运行层 `agent turn ended` 的 `images`、`texts`、`attached_bytes`），不记文件名、路径和内容；读不到附件时的错误文字也不带路径。AI 对话插件本来就不开放给 MCP 工具层，附件也不会出现在 AI 活动记录里。
+
+### 24.4 后端怎么发送
+
+契约：`backend.Conversation.Send(ctx, text, atts ...Attachment)`（可变参数，原来的调用不变）；`backend.Attachment{Kind, Name, Path, MediaType, Size}`；后端用 `AttachmentCapser`（`Attachments() AttachmentCaps`）静态声明接受的类型，运行层的 `Info.Attachments` 就是它。运行层只在消息有附件时调用适配器的 `AttachmentCodec`（`MessageWith`/`PromptWith`）和 `Launch.Attachments`，**没有附件的消息发送的内容和命令行一字不变**。文本文件对三家都一样：放在消息文字前面，每个文件是
+
+```
+<attached-file name="notes.md">
+……
+</attached-file>
+```
+
+（内容里的结束标签会被打断，文件名里的引号和尖括号会被替换）。
+
+| | 图片 | 文本文件 | 不支持时 |
+|---|---|---|---|
+| Claude Code | stream-json 用户消息的 `content` 改成数组：`{"type":"image","source":{"type":"base64","media_type":…,"data":…}}`，文本文件是 text 块，最后是你的文字 | text 块 | 单轮模式下有附件时加 `--input-format stream-json`，写一行同样的 JSON 再关闭标准输入；CLI 没有 `--input-format` 时文本文件放进纯文本提示，图片报“这个版本不能接收图片” |
+| Codex | 每张图片一个 `--image=<路径>`：新会话放在 `exec` 后面、`--json` 前面；续接放在 `resume` 后面、会话 ID 前面（`exec -i` 会吃掉后面所有非选项参数，`resume -i` 可能按逗号拆分，所以用等号写法、放在选项前）。路径里有逗号时报错 | 放进标准输入的提示里 | — |
+| Gemini CLI / ACP | `session/prompt` 的 image 块 `{"type":"image","mimeType":…,"data":…}`；需要 Agent 在 `initialize` 里声明 `promptCapabilities.image`，没有时报“不接受图片” | text 块 | — |
+
+后端发送失败时的错误种类是新的 `ErrAttachment`，对话里显示“<后端> 无法发送附件：”加原因。
+
+### 24.5 宿主和 SDK（插件开发指南新增“Files”一节）
+
+- `plugin.FileReceiver`（`ReceiveFiles(ctx, Files) (Result, error)`）、`plugin.Files{Instance, View, Paths, Image, Source, Query}`、`ErrFilesNotTaken`；`View.AcceptFiles`、`View.Chips`（`Chip{ID, Title, Subtitle, Icon, Image, Error, Tooltip, Remove}`）、`View.Draft`；`ActionChooseFiles`（`ChooseFilesOptions{Title, Multiple}`）。只对进程内插件可用。
+- core：`Controller.ReceiveFiles`、`PasteFiles`、`RemoveChip`，`Engine.SetFileChooser`，探测接口 `core.FilesClipboard`；`ActionChooseFiles` 只由 Controller 处理（AI 工具和 `Result.Do` 里出现会报错，不会弹出选择框）；`Snapshot.AcceptFiles`、`Snapshot.Chips`；`hasDraft` 也看 `View.Draft`。
+- ui：`Host.ChooseFiles`、`Launcher.DropFiles`、`Ctrl+V` 的接管、卡片一排；Markdown 图片只加载本机的绝对路径（png/jpg/gif/webp/bmp，最大 4 MB，不加载网址、`data:`、相对路径和网络共享）。
+- shell：`Window.OnFileDrop`、`mygo.Dialog.Open`（选择框打开时不因失去焦点隐藏）。
+- glctl：`session drop <路径>...`、`session choose [<路径>...]`（下一次 `ActionChooseFiles` 的结果，不带路径就是取消）、`session remove-chip <ID>`；文本输出多一行 `chips:`。
+
+### 24.6 测试和验证
+
+- `plugins/ai/attach`：约 40 种内容判断（改了扩展名的 PNG 和文本、PDF、docx 和普通 zip、OLE、各种压缩包、mp4/mov/webm/avi/flv、mp3/wav/ogg/flac/m4a、HEIC/AVIF、随机二进制）、UTF-16 转换、NUL 和控制字符、空文件、200 KB 边界、大文件只读开头、缩小（4000×1000 → 2000×500，JPEG 保持 JPEG，噪点 PNG 压到上限以内，透明通道保留）、BMP 转 PNG、GIF 原样、缩略图、像素上限（只有文件头的 20000×20000 PNG 不解码就拒绝）、300 个畸形输入不崩溃。
+- `plugins/ai`：拖入和发送（副本在对话目录、草稿清空、记录和历史里的数量、删除对话删目录）、阻止发送（PDF、后端不接受图片、移除后能发）、拖到主界面（AI 关闭时的提示、打开后在草稿里、只发附件）、粘贴图片、10 个的上限、清理（过期对话、孤立目录）、隐藏后保留的草稿、存储格式。
+- 后端（假 CLI / 假 Agent）：Claude 常驻和单轮、base64 和文件一致、旧版没有 `--input-format`；Codex `exec` 和 `resume` 的 `--image=`、逗号路径；ACP 的块、不声明图片能力的 Agent；运行层没有 `AttachmentCodec`、不接受的类型在启动进程前拒绝、日志里没有文件名。新金样 `claudecode/testdata/argv.attachments.golden.json`、`codex/testdata/argv.attachments.golden.json`；原有的命令行金样都没变。
+- 宿主：core 的拖入（主界面、接受的界面、不接受的界面）、粘贴（文件、图片、文字不接管、排除的内容）、选择文件（取消、单选、多选）、卡片移除、草稿；ui 的拖入、`Ctrl+V`、`Ctrl+O`、卡片和搜索栏高度、Markdown 本机图片；glctl 的 `TestSessionAIAttach`（AI 关闭时拖到主界面、打开后的卡片、PDF 阻止发送）。glctl 的 AI 金样只多了“添加附件…”动作和 `acceptFiles`。真实剪贴板的探测测试只在 `GOLAUNCHER_CLIPBOARD_TESTS=1` 时运行。
+- **真机（`GOLAUNCHER_AI_TESTS=1`，各跑一次，16×16 的红色 PNG 加一个写着暗号的文本文件，问“图片是什么颜色、暗号是什么”）**：
+  - **Claude Code**：常驻和单轮两种模式都通过（回答里有颜色和暗号）；单轮模式加 `--input-format stream-json`、写一行后关闭标准输入可以正常回答。
+  - **Codex**：`exec` 后的 `--image=` 通过（图片加内联的文本文件）；第二轮 `resume` 后的 `--image=`（换一张蓝色图片）也通过，没有新开会话。关掉的 `view_image` 功能不影响 `--image`。
+  - **Gemini CLI**：账号被拒绝，只用假 Agent 测试。
+
+### 24.7 和要求不同的地方、第二期
+
+- 附件目录在插件数据目录下（见 24.3），不是 `<data>\ai\attachments`。
+- 拖到主界面时不带上搜索框里的文字；“在资源管理器里选中文件后问 AI”没有做（要把环境感知的选中文件接进来，留到下一期）。
+- 一条消息只有附件时，发给模型的是一句固定的英文请求。
+- 第二期：PDF（Claude 的 document 块；Codex 先抽文字）、Office 文档抽文字、EXIF 方向、动态 WebP、HEIC 转换、从资源管理器选中的文件发起对话；图片在对话记录里点击放大；草稿跨重启保存。

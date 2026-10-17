@@ -59,7 +59,13 @@ func (sy system) Paste(text string, content plugin.PasteContent) error {
 // clipboard is the system clipboard for plugins.
 type clipboard struct{}
 
-var _ plugin.Clipboard = clipboard{}
+var (
+	_ plugin.Clipboard    = clipboard{}
+	_ core.FilesClipboard = clipboard{}
+)
+
+// HasFilesOrImage is the launcher's probe on Ctrl+V: no content is read.
+func (clipboard) HasFilesOrImage() bool { return clip.HasFilesOrImage() }
 
 func (clipboard) Read() (plugin.ClipboardContent, error) { return clip.Read() }
 func (clipboard) WriteText(text string) error            { return clip.WriteText(text) }

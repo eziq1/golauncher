@@ -8,6 +8,28 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Attachments in the AI chat** (R91): attach images and text files to a
+  message by dropping files onto the launcher (onto the root search, a new
+  chat opens with them; with AI off, after the prompt to turn it on), by
+  pasting with `Ctrl+V` in a chat (a screenshot or copied files; other
+  clipboard content pastes as text) or with *Add Attachment…* (`Ctrl+O`).
+  They show as chips under the chat, with thumbnails, and in the transcript
+  and the history (📎 count) once sent. Images (PNG, JPEG, GIF, WebP; BMP and
+  TIFF are converted to PNG) are scaled down to at most 2000 px and 3.75 MB;
+  text files are detected by content (UTF-8, UTF-16 with BOM) up to 200 KB
+  and sent inline with their names; at most 10 attachments and 16 MB per
+  message. Claude Code gets them as stream-json content blocks, Codex images
+  as `--image` (also when resuming), Gemini CLI as ACP image blocks. Files
+  that cannot be sent (PDF and Office documents for now, video, audio,
+  archives, or a kind the chat's backend does not take) are shown in red with
+  the reason and keep the message from being sent. Copies live in the chat's
+  folder in golauncher's data and are deleted with the chat (30-day
+  retention); logs only have counts, kinds and sizes.
+- **Plugin SDK: files** — `plugin.FileReceiver`, `View.AcceptFiles`,
+  `View.Chips`, `View.Draft`, and `ActionChooseFiles` (docs/plugin-guide.md).
+
 ### Fixed
 
 - **A plugin turned off no longer runs in the background** (R88, code review

@@ -25,6 +25,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -151,7 +152,7 @@ func runPersistent(lost bool) {
 	controls := make(chan map[string]any, 16)
 	go func() {
 		s := bufio.NewScanner(os.Stdin)
-		s.Buffer(nil, 1<<20)
+		s.Buffer(nil, 64<<20) // a message with images is one long line
 		for s.Scan() {
 			logEntry(map[string]any{"stdin": s.Text()})
 			var m map[string]any
@@ -182,12 +183,52 @@ func runPersistent(lost bool) {
 				continue
 			}
 			msg, _ := m["message"].(map[string]any)
-			text, _ := msg["content"].(string)
-			turn(strings.TrimPrefix(text, " "), controls)
+			turn(messageText(msg["content"]), controls)
 		case c := <-controls:
 			controlResponse(c)
 		}
 	}
+}
+
+// messageText is the text of a user message's content: a string, or a list
+// of blocks (a message with attachments), whose last text block that is not
+// an attached file is the text, followed by " [images: N, files: M]". Each
+// image block must have a media type and base64 data; the log gets the
+// counts and the decoded sizes.
+func messageText(content any) string {
+	if s, ok := content.(string); ok {
+		return strings.TrimPrefix(s, " ")
+	}
+	blocks, _ := content.([]any)
+	text := ""
+	images, files := 0, 0
+	var sizes []int
+	var types []string
+	for _, raw := range blocks {
+		b, _ := raw.(map[string]any)
+		switch b["type"] {
+		case "image":
+			src, _ := b["source"].(map[string]any)
+			mt, _ := src["media_type"].(string)
+			data, _ := src["data"].(string)
+			dec, err := base64.StdEncoding.DecodeString(data)
+			if src["type"] != "base64" || mt == "" || err != nil || len(dec) == 0 {
+				return "bad image block"
+			}
+			images++
+			sizes = append(sizes, len(dec))
+			types = append(types, mt)
+		case "text":
+			t, _ := b["text"].(string)
+			if strings.HasPrefix(t, "<attached-file") {
+				files++
+				continue
+			}
+			text = strings.TrimPrefix(t, " ")
+		}
+	}
+	logEntry(map[string]any{"images": images, "imageBytes": sizes, "imageTypes": types, "files": files})
+	return fmt.Sprintf("%s [images: %d, files: %d]", text, images, files)
 }
 
 // askPermission sends a can_use_tool control request, as a CLI without

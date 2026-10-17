@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -88,5 +89,36 @@ func TestAIBackends(t *testing.T) {
 	}
 	if _, code := glctl(t, "ai", "nope"); code != 2 {
 		t.Errorf("exit code %d for a wrong subcommand", code)
+	}
+}
+
+// TestSessionAIAttach drops files onto the root search (R91): with AI off a
+// new chat opens with its prompt to turn AI on, which keeps them; turned on,
+// they show as chips (a PDF as unsupported, which blocks sending until it is
+// removed), and the message goes out with the others.
+func TestSessionAIAttach(t *testing.T) {
+	dir := t.TempDir()
+	notes := filepath.Join(dir, "notes.txt")
+	pdf := filepath.Join(dir, "report.pdf")
+	if err := os.WriteFile(notes, []byte("The secret word is pineapple.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(pdf, []byte("%PDF-1.7\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	out, _ := glctl(t, "session", "drop", "-s", s, notes, pdf, "--format", "text")
+	if !strings.Contains(out, "2 attachments are waiting") {
+		t.Fatalf("drop on the root with AI off:\n%s", out)
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter", "--format", "text") // turns AI on
+	if !strings.Contains(out, "chips: notes.txt (") || !strings.Contains(out, "report.pdf (PDF files come in a later version) [error]") {
+		t.Fatalf("chips:\n%s", out)
+	}
+	glctl(t, "session", "type", "-s", s, "what is the secret word?")
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter", "--format", "text")
+	if strings.Contains(out, "You asked") || !strings.Contains(out, "Remove the attachments") {
+		t.Fatalf("sent with an unsupported attachment:\n%s", out)
 	}
 }

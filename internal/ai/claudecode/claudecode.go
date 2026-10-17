@@ -22,7 +22,10 @@
 package claudecode
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -101,6 +104,7 @@ func (adapter) Info() agentrt.Info {
 		HelpArgs:     []string{"--help"},
 		ParseHelp:    parseHelp,
 		Fit:          fit,
+		Attachments:  backend.AllAttachments(),
 	}
 }
 
@@ -122,7 +126,7 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 		return agentrt.Command{}, p.refused
 	}
 	a := []string{l.Path, "-p"}
-	if l.Persistent && p.persistent {
+	if streamInput(l, p) {
 		a = append(a, "--input-format", "stream-json")
 	}
 	a = append(a, "--output-format", "stream-json")
@@ -177,6 +181,14 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 	return cmd, nil
 }
 
+// streamInput reports whether the process reads stream-json input
+// (--input-format stream-json): a persistent process, and a per-turn process
+// whose message has attachments (R91: content blocks need it; without them
+// the per-turn prompt stays plain text), when the CLI has the flag.
+func streamInput(l agentrt.Launch, p plan) bool {
+	return p.persistent && (l.Persistent || len(l.Attachments) > 0)
+}
+
 // MCPConfig implements agentrt.Adapter: Claude Code reads the tool server
 // from an --mcp-config file.
 func (adapter) MCPConfig(s agentrt.MCPServer) ([]byte, error) { return toolConfig(s) }
@@ -184,8 +196,9 @@ func (adapter) MCPConfig(s agentrt.MCPServer) ([]byte, error) { return toolConfi
 // NewCodec implements agentrt.Adapter. A CLI without --append-system-prompt
 // gets the system prompt with the first message of a new session instead.
 func (adapter) NewCodec(l agentrt.Launch) agentrt.Codec {
-	c := &codec{}
-	if l.SystemPrompt != "" && !l.Resume && !decide(support{version: l.Version, flags: l.Flags}).appendSP {
+	p := decide(support{version: l.Version, flags: l.Flags})
+	c := &codec{streamPrompt: !l.Persistent && streamInput(l, p)}
+	if l.SystemPrompt != "" && !l.Resume && !p.appendSP {
 		c.fold = l.SystemPrompt
 	}
 	return c
@@ -213,7 +226,12 @@ var interruptSeq atomic.Int64
 type codec struct {
 	mu   sync.Mutex
 	fold string
+	// streamPrompt: a per-turn process that reads its message as stream-json
+	// (it has attachments and the CLI has --input-format, streamInput).
+	streamPrompt bool
 }
+
+var _ agentrt.AttachmentCodec = (*codec)(nil)
 
 // first returns text with the system prompt still to be sent, if any.
 func (c *codec) first(text string) string {
@@ -238,6 +256,63 @@ func (c *codec) Message(text string) ([]byte, error) { return jsonLine(userLine(
 // Prompt implements agentrt.Codec: a per-turn process reads the question
 // from stdin.
 func (c *codec) Prompt(text string) []byte { return []byte(promptText(c.first(text))) }
+
+// MessageWith implements agentrt.AttachmentCodec: a user line whose content
+// is a list of blocks, in the order of atts (images as base64 image blocks,
+// text files as backend.FileBlock text blocks), then the message's text.
+func (c *codec) MessageWith(text string, atts []backend.Attachment) ([]byte, error) {
+	blocks := make([]inBlock, 0, len(atts)+1)
+	for _, a := range atts {
+		data, err := readAttachment(a)
+		if err != nil {
+			return nil, err
+		}
+		switch a.Kind {
+		case backend.AttachImage:
+			blocks = append(blocks, inBlock{Type: "image", Source: &imageSource{Type: "base64", MediaType: a.MediaType,
+				Data: base64.StdEncoding.EncodeToString(data)}})
+		case backend.AttachText:
+			blocks = append(blocks, inBlock{Type: "text", Text: backend.FileBlock(a.Name, string(data))})
+		default:
+			return nil, backend.AttachmentError("Claude Code", "%s attachments cannot be sent", a.Kind)
+		}
+	}
+	if t := promptText(c.first(text)); t != "" {
+		blocks = append(blocks, inBlock{Type: "text", Text: t})
+	}
+	return jsonLine(userBlocksLine(blocks))
+}
+
+// PromptWith implements agentrt.AttachmentCodec. With --input-format
+// stream-json (streamPrompt) the per-turn process reads the line of
+// MessageWith; an older CLI without it reads plain text, which carries the
+// text files inline but cannot carry images.
+func (c *codec) PromptWith(text string, atts []backend.Attachment) ([]byte, error) {
+	if c.streamPrompt {
+		return c.MessageWith(text, atts)
+	}
+	if len(backend.Images(atts)) > 0 {
+		return nil, backend.AttachmentError("Claude Code", "this version cannot take images (it lacks %s)", flagInputFormat)
+	}
+	inlined, err := backend.InlineText(text, atts)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(promptText(c.first(inlined))), nil
+}
+
+// readAttachment reads the file of a; an error does not name the file
+// (docs/ai.md §9: errors are logged).
+func readAttachment(a backend.Attachment) ([]byte, error) {
+	data, err := os.ReadFile(a.Path)
+	if err != nil {
+		if pe, ok := errors.AsType[*fs.PathError](err); ok {
+			err = pe.Err
+		}
+		return nil, backend.AttachmentError("Claude Code", "reading an attachment: %v", err)
+	}
+	return data, nil
+}
 
 // Interrupt implements agentrt.Codec: the control request that stops the
 // answer.

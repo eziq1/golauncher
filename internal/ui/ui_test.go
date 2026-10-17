@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -85,6 +86,11 @@ type fakeHost struct {
 	themeSavePath, themeOpenPath string
 	themeSaveName                string
 	previews                     int // PreviewLauncher calls
+
+	// The launcher's open dialog (ChooseFiles) answers with chosen.
+	mu         sync.Mutex
+	chosen     []string
+	chooseOpts []plugin.ChooseFilesOptions
 }
 
 func (h *fakeHost) ChooseThemeFile(save bool, name string, done func(string, error)) {
@@ -112,6 +118,15 @@ func (h *fakeHost) ChooseImportFile(done func(string, error)) {
 func (h *fakeHost) Hide()         { h.hidden.Add(1) }
 func (h *fakeHost) OpenSettings() { h.settings.Add(1) }
 func (h *fakeHost) Invalidate()   {}
+
+// ChooseFiles answers the launcher's open dialog with chosen (nil cancels)
+// and records the options.
+func (h *fakeHost) ChooseFiles(o plugin.ChooseFilesOptions) ([]string, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.chooseOpts = append(h.chooseOpts, o)
+	return h.chosen, nil
+}
 
 func (h *fakeHost) OpenPath(string) error { return nil }
 func (h *fakeHost) SuspendHotkeys(bool)   {}

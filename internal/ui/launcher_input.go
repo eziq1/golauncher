@@ -109,6 +109,11 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 		l.host.OpenSettings()
 		return true
 	}
+	if !panel && mods == Primary() && key == mui.KeyV && l.pasteFiles() {
+		// Files or an image into a view that accepts them; text is pasted
+		// by the field as usual.
+		return true
+	}
 	name := KeyString(mods, key)
 	switch {
 	case name == "":

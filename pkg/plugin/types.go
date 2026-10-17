@@ -315,7 +315,68 @@ const (
 	// ActionShowTask opens Background Tasks at the task with ID Target, or
 	// the list of all tasks when Target is empty.
 	ActionShowTask ActionKind = "ShowTask"
+	// ActionChooseFiles shows the system's open dialog (Payload:
+	// ChooseFilesOptions) and hands the files chosen to the plugin's
+	// FileReceiver (FilesChosen) for the view the action ran from, which must
+	// declare View.AcceptFiles. Nothing happens when the user cancels.
+	ActionChooseFiles ActionKind = "ChooseFiles"
 )
+
+// ChooseFilesOptions is the Payload of ActionChooseFiles.
+type ChooseFilesOptions struct {
+	// Title is the dialog's title ("" for the system's).
+	Title string `json:"title,omitempty"`
+	// Multiple lets the user choose several files.
+	Multiple bool `json:"multiple,omitzero"`
+}
+
+// FilesSource is how files reached a FileReceiver.
+type FilesSource string
+
+const (
+	// FilesDropped: dropped onto the launcher's window.
+	FilesDropped FilesSource = "drop"
+	// FilesPasted: pasted with Ctrl+V (⌘V) from the clipboard (files, or an
+	// image in Files.Image).
+	FilesPasted FilesSource = "paste"
+	// FilesChosen: chosen in the open dialog of ActionChooseFiles.
+	FilesChosen FilesSource = "dialog"
+)
+
+// Files are files the user handed to the launcher (FileReceiver).
+type Files struct {
+	// Instance is the view instance they were given to, "" in the root
+	// search; View is that view's ID.
+	Instance string `json:"instance,omitempty"`
+	View     string `json:"view,omitempty"`
+	// Paths are the files (and folders) as the system named them.
+	Paths []string `json:"paths,omitempty"`
+	// Image is a PNG image pasted from the clipboard (Paths is empty then).
+	Image  []byte      `json:"image,omitempty"`
+	Source FilesSource `json:"source"`
+	// Query is the search text of the view (or of the root search).
+	Query string `json:"query,omitempty"`
+}
+
+// Chip is a small labeled box in View.Chips, e.g. an attachment of a chat's
+// next message: an image's thumbnail or an icon, a title and a subtitle,
+// and a button that removes it.
+type Chip struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle,omitempty"`
+	Icon     Icon   `json:"icon,omitzero"`
+	// Image is the path of a thumbnail shown instead of Icon.
+	Image string `json:"image,omitempty"`
+	// Error shows the chip in the danger color: it cannot be used as it is
+	// (Subtitle and Tooltip say why).
+	Error bool `json:"error,omitzero"`
+	// Tooltip is shown when the pointer rests on the chip.
+	Tooltip string `json:"tooltip,omitempty"`
+	// Remove, when set, is the action of the chip's × button (usually an
+	// ActionCallback).
+	Remove *Action `json:"remove,omitempty"`
+}
 
 // ActionDo is a serializable description of an action. The host executes
 // built-in kinds itself, which keeps them observable and side-effect free in
@@ -392,6 +453,19 @@ type View struct {
 	// when text was selected for the new show, or when the restore request
 	// (ViewRequest.Restore) fails. See docs/keep-view.md.
 	KeepOnHide bool `json:"keepOnHide,omitzero"`
+	// AcceptFiles makes the view take files (FileReceiver): dropped onto the
+	// window, pasted with Ctrl+V while the clipboard holds files or an image,
+	// or chosen with ActionChooseFiles.
+	AcceptFiles bool `json:"acceptFiles,omitzero"`
+	// Chips are shown in a row under the content of the view, above the
+	// footer (e.g. a chat's attachments). They never change the height of the
+	// search bar.
+	Chips []Chip `json:"chips,omitempty"`
+	// Draft tells the host that the view holds an unsent draft besides the
+	// text of its search field (e.g. a chat's attachments): like typed text,
+	// it keeps a kept view from being left for newly selected text
+	// (docs/keep-view.md, R76).
+	Draft bool `json:"draft,omitzero"`
 }
 
 // Form is an input form. The host keeps the field values and passes them in

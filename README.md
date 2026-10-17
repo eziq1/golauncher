@@ -129,7 +129,14 @@
     than once you can pick which one, or enter a path. Copy an answer,
     paste it elsewhere and reopen the launcher: you are back in the chat,
     with your unsent draft (within 10 minutes by default; *Settings ›
-    General › Return to the main screen*).
+    General › Return to the main screen*). **Attach images and text files**
+    to a message: drop files onto the launcher (onto the root search it opens
+    a new chat with them), paste a screenshot or copied files with `Ctrl+V`
+    in a chat, or choose them with *Add Attachment…* (`Ctrl+O`). Images (PNG,
+    JPEG, GIF, WebP; BMP and TIFF are converted) are scaled down to at most
+    2000 px, text files (up to 200 KB) are sent inline; up to 10 per message.
+    PDF, Office documents, video and audio show as unsupported and keep the
+    message from being sent until you remove them.
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
     `golauncher mcp` is an MCP server for your plugins. The settings

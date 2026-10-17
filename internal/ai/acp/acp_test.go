@@ -26,7 +26,8 @@ func TestMain(m *testing.M) {
 // testConfig is the fake agent's configuration.
 func testConfig() Config {
 	return Config{
-		Info: agentrt.Info{ID: "fakeacp", Name: "Fake ACP", VersionArgs: []string{"--version"}, MinVersion: "1.0.0", TestedMajor: 1},
+		Info: agentrt.Info{ID: "fakeacp", Name: "Fake ACP", VersionArgs: []string{"--version"}, MinVersion: "1.0.0", TestedMajor: 1,
+			Attachments: backend.AllAttachments()},
 		Args: func(agentrt.Launch) (agentrt.Command, error) {
 			return agentrt.Command{Argv: []string{"--acp"}}, nil
 		},

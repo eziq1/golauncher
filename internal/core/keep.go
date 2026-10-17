@@ -115,11 +115,12 @@ func (c *Controller) selectionOverRestore() bool {
 }
 
 // hasDraft reports whether the top view holds text the user typed and did
-// not send (e.g. an AI chat's next message): a selection then does not take
+// not send (e.g. an AI chat's next message), or another draft it declares
+// (plugin.View.Draft: a chat's attachments): a selection then does not take
 // the user away from it (R76). c.mu must be held.
 func (c *Controller) hasDraft() bool {
 	f := c.top()
-	return f.nav != nil && strings.TrimSpace(f.text) != ""
+	return f.nav != nil && (strings.TrimSpace(f.text) != "" || f.view != nil && f.view.Draft)
 }
 
 // PopToRoot closes every view and goes back to the root search, keeping

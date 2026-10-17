@@ -116,6 +116,30 @@ type TabProvider interface {
 	TabAction(q Query) (Action, bool)
 }
 
+// FileReceiver takes files the user hands to the launcher
+// (docs/plugin-guide.md "Files"): dropped onto its window, pasted with
+// Ctrl+V (⌘V) while the clipboard holds files or an image, or chosen in the
+// open dialog of an ActionChooseFiles action.
+//
+// Files given to a view that declares View.AcceptFiles go to the view's
+// plugin, with the view's Instance. Files dropped on the root search go to
+// the enabled plugins implementing FileReceiver, in their order, with an
+// empty Instance, until one does not return ErrFilesNotTaken (the AI chat
+// opens a new chat with them). Dropped on any other view they are refused
+// with a toast. The host reads the clipboard for this only when the user
+// pressed Ctrl+V in a view that accepts files, and only takes files or an
+// image from it (text is pasted into the search field as usual).
+//
+// Only in-process plugins can receive files; the external plugin protocol
+// has no message for them.
+type FileReceiver interface {
+	ReceiveFiles(ctx context.Context, f Files) (Result, error)
+}
+
+// ErrFilesNotTaken is returned by FileReceiver.ReceiveFiles for files a
+// plugin does not want (in the root search: the next plugin gets them).
+var ErrFilesNotTaken = errors.New("files not taken")
+
 // Query is the search text typed by the user.
 type Query struct {
 	Text string `json:"text"`

@@ -362,6 +362,42 @@ func TestKeepSelectionGoesToRoot(t *testing.T) {
 	})
 }
 
+// TestKeepDraftView: a view declaring a draft besides its text
+// (plugin.View.Draft, a chat's attachments) is kept for newly selected text
+// like typed text (R76, R91).
+func TestKeepDraftView(t *testing.T) {
+	sel := &plugin.Selection{Text: "some selected words"}
+	showWithSelection := func(e *filesEnv) core.Snapshot {
+		e.Controller.Hidden()
+		e.Engine.SetSelection(sel)
+		e.Controller.Show(t.Context(), core.ShowOptions{})
+		e.Controller.Wait()
+		return e.Controller.Snapshot()
+	}
+	e := newFilesEnv(t)
+	e.open(t, "Bravo Chat")
+	if s := showWithSelection(e); s.Depth != 0 {
+		t.Fatalf("no draft: depth %d", s.Depth)
+	}
+	e.Engine.ClearSelection()
+	e.open(t, "Bravo Chat")
+	e.drop(t, "notes.txt")
+	s := showWithSelection(e)
+	if s.Depth != 1 || len(s.Chips) != 1 {
+		t.Fatalf("draft: depth %d chips %v", s.Depth, s.Chips)
+	}
+	// Also when the selection arrives after the restore.
+	e.Engine.ClearSelection()
+	e.Controller.Hidden()
+	e.Controller.Show(t.Context(), core.ShowOptions{})
+	e.Controller.Wait()
+	e.Engine.SetSelection(sel)
+	e.Controller.Wait()
+	if s := e.Controller.Snapshot(); s.Depth != 1 {
+		t.Fatalf("draft, selection read after the restore: depth %d", s.Depth)
+	}
+}
+
 func TestKeepRefused(t *testing.T) {
 	e := newKeepEnv(t)
 	e.open(t, "Keep Chat")

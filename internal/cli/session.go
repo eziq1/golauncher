@@ -29,18 +29,23 @@ type sessionFile struct {
 
 // step is one interaction.
 type step struct {
-	Op   string `json:"op"` // type, key, select, action, field, arg, wait-tasks, hide, reopen
+	Op   string `json:"op"` // type, key, select, action, field, arg, wait-tasks, hide, reopen, drop, choose, remove-chip
 	Arg  string `json:"arg,omitempty"`
 	Arg2 string `json:"arg2,omitempty"`
+	// Paths are the files of drop and choose.
+	Paths []string `json:"paths,omitempty"`
 }
 
 func (s step) String() string {
+	if s.Op == "drop" || s.Op == "choose" {
+		return strings.TrimSpace(fmt.Sprintf("%s %q", s.Op, s.Paths))
+	}
 	return strings.TrimSpace(fmt.Sprintf("%s %q %s", s.Op, s.Arg, s.Arg2))
 }
 
 func (c *cli) session(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return usagef("session: want new|type|key|select|action|field|arg|wait-tasks|hide|reopen|show")
+		return usagef("session: want new|type|key|select|action|field|arg|wait-tasks|hide|reopen|drop|choose|remove-chip|show")
 	}
 	op := args[0]
 	var ef envFlags
@@ -98,6 +103,22 @@ func (c *cli) session(ctx context.Context, args []string) error {
 			return usagef("session %s: want <name> <value>", op)
 		}
 		next = &step{Op: op, Arg: pos[0], Arg2: strings.Join(pos[1:], " ")}
+	case "drop":
+		// Files dropped onto the launcher (Controller.ReceiveFiles).
+		if len(pos) == 0 {
+			return usagef("session drop: want <path>...")
+		}
+		next = &step{Op: op, Paths: pos}
+	case "choose":
+		// The answer of the next open dialog (ActionChooseFiles); no paths
+		// cancels it. The dialog shows when the action runs (key, action).
+		next = &step{Op: op, Paths: pos}
+	case "remove-chip":
+		// The × of a chip of the current view (Controller.RemoveChip).
+		if len(pos) != 1 {
+			return usagef("session remove-chip: want <chip id>")
+		}
+		next = &step{Op: op, Arg: pos[0]}
 	default:
 		return usagef("session: unknown step %q", op)
 	}
@@ -182,9 +203,33 @@ func apply(ctx context.Context, e *env, s step) (*core.Outcome, error) {
 	case "reopen":
 		ctrl.Show(ctx, core.ShowOptions{Root: s.Arg == "root"})
 		return nil, nil
+	case "drop":
+		out, err := ctrl.ReceiveFiles(ctx, plugin.Files{Paths: s.Paths, Source: plugin.FilesDropped})
+		return &out, err
+	case "choose":
+		e.chooseNext(s.Paths)
+		return nil, nil
+	case "remove-chip":
+		out, err := ctrl.RemoveChip(ctx, s.Arg)
+		return &out, err
 	default:
 		return nil, fmt.Errorf("unknown step %q", s.Op)
 	}
+}
+
+// chooseNext makes the next open dialog answer paths (none: cancelled).
+func (e *env) chooseNext(paths []string) { e.chosen = append(e.chosen, paths) }
+
+// choose is the fake environment's open dialog (ActionChooseFiles): the
+// answers of the choose steps, in order, then cancelled. Steps run one at a
+// time, on one goroutine.
+func (e *env) choose(context.Context, plugin.ChooseFilesOptions) ([]string, error) {
+	if len(e.chosen) == 0 {
+		return nil, nil
+	}
+	paths := e.chosen[0]
+	e.chosen = e.chosen[1:]
+	return paths, nil
 }
 
 func readSession(path string) (sessionFile, error) {

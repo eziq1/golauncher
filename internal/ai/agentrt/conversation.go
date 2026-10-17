@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -43,7 +44,7 @@ type conversation struct {
 }
 
 // Send implements backend.Conversation.
-func (c *conversation) Send(ctx context.Context, text string) (<-chan backend.Event, error) {
+func (c *conversation) Send(ctx context.Context, text string, atts ...backend.Attachment) (<-chan backend.Event, error) {
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
@@ -66,7 +67,7 @@ func (c *conversation) Send(ctx context.Context, text string) (<-chan backend.Ev
 		case <-t.finished:
 		}
 	}()
-	go c.run(ctx, t, text)
+	go c.run(ctx, t, text, slices.Clone(atts))
 	return t.ch, nil
 }
 
@@ -173,7 +174,7 @@ func (c *conversation) perTurnMode(cli *cliInfo) bool {
 }
 
 // run answers a turn, retrying where the CLI's failure allows it.
-func (c *conversation) run(ctx context.Context, t *turn, text string) {
+func (c *conversation) run(ctx context.Context, t *turn, text string, atts []backend.Attachment) {
 	start := time.Now()
 	var final backend.Event
 	defer func() {
@@ -187,10 +188,20 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 		}
 		c.busy.Store(false)
 		c.mu.Unlock()
+		// Attachments: how many, of which kinds and sizes, never their names or
+		// content (docs/ai.md §9, §24).
+		images, texts, size := attachmentStats(atts)
 		c.r.log.Info("agent turn ended", "kind", final.Kind, "cancelled", final.Cancelled,
-			"error", errString(final.Err), "duration", time.Since(start), "input_len", len(text), "output_len", t.textLength())
+			"error", errString(final.Err), "duration", time.Since(start), "input_len", len(text), "output_len", t.textLength(),
+			"images", images, "texts", texts, "attached_bytes", size)
 		t.end(final)
 	}()
+	if len(atts) > 0 {
+		if err := c.r.checkAttachments(atts); err != nil {
+			final = backend.Event{Kind: backend.EventError, Err: err}
+			return
+		}
+	}
 	cli, err := c.r.resolve(ctx)
 	if err != nil {
 		if t.cancelled() {
@@ -218,9 +229,9 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 		perTurn := c.perTurnMode(cli)
 		var a attempt
 		if perTurn {
-			a = c.perTurnAttempt(t, cli, text)
+			a = c.perTurnAttempt(t, cli, text, atts)
 		} else {
-			a = c.persistentAttempt(t, cli, text)
+			a = c.persistentAttempt(t, cli, text, atts)
 		}
 		switch a.kind {
 		case kDone:
@@ -284,14 +295,26 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 
 // persistentAttempt sends the message to the conversation's persistent
 // process, starting it when needed.
-func (c *conversation) persistentAttempt(t *turn, cli *cliInfo, text string) attempt {
+func (c *conversation) persistentAttempt(t *turn, cli *cliInfo, text string, atts []backend.Attachment) attempt {
 	p, codec, err := c.ensureProcess(cli)
 	if err != nil {
 		return attempt{kind: kError, err: err}
 	}
+	var msg []byte
+	if len(atts) > 0 {
+		ac, ok := codec.(AttachmentCodec)
+		if !ok {
+			return attempt{kind: kError, err: backend.AttachmentError(c.r.info.Name, "attachments cannot be sent")}
+		}
+		if msg, err = ac.MessageWith(text, atts); err != nil {
+			// Nothing was written: the process is fine for the next turn.
+			return attempt{kind: kError, err: attachmentErr(err)}
+		}
+	} else if msg, err = codec.Message(text); err != nil {
+		msg = nil
+	}
 	p.turns++
 	first := p.turns == 1
-	msg, err := codec.Message(text)
 	if err == nil {
 		err = p.write(msg)
 	}
@@ -311,7 +334,7 @@ func (c *conversation) persistentAttempt(t *turn, cli *cliInfo, text string) att
 }
 
 // perTurnAttempt answers the turn with a process of its own.
-func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attempt {
+func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string, atts []backend.Attachment) attempt {
 	dir, err := c.r.dir()
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
@@ -324,14 +347,29 @@ func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attemp
 	l := c.launch(cli.path, dir, false, resume, mcpConfig)
 	l.Version, l.Flags = cli.version, cli.flags
 	l.Prompt = text
+	l.Attachments = atts
 	cmd, err := c.r.a.Command(l)
 	if err == nil {
 		err = writeFiles(dir, cmd.Files)
 	}
 	if err != nil {
-		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
+		return attempt{kind: kError, err: attachmentErr(err)}
 	}
 	codec := c.r.a.NewCodec(l)
+	// Prompt or PromptWith, never both: a codec may send something once
+	// (Claude Code: the system prompt with the first message).
+	var in []byte
+	if len(atts) == 0 {
+		in = codec.Prompt(text)
+	} else {
+		ac, ok := codec.(AttachmentCodec)
+		if !ok {
+			return attempt{kind: kError, err: backend.AttachmentError(c.r.info.Name, "attachments cannot be sent")}
+		}
+		if in, err = ac.PromptWith(text, atts); err != nil {
+			return attempt{kind: kError, err: attachmentErr(err)}
+		}
+	}
 	p, err := startProcess(cmd.Argv, dir, c.env(cmd), nil)
 	if err != nil {
 		return attempt{kind: kError, err: &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}}
@@ -345,7 +383,7 @@ func (c *conversation) perTurnAttempt(t *turn, cli *cliInfo, text string) attemp
 	}
 	c.oneShot = p
 	c.mu.Unlock()
-	if in := codec.Prompt(text); in != nil {
+	if in != nil {
 		if err := p.write(in); err != nil {
 			p.stop()
 		}
@@ -464,6 +502,39 @@ func (c *conversation) pump(t *turn, p *process, codec Codec, persistent bool) a
 			p.stop()
 		}
 	}
+}
+
+// checkAttachments refuses attachments the CLI cannot send (Info.Attachments).
+func (r *Runtime) checkAttachments(atts []backend.Attachment) error {
+	for _, a := range atts {
+		if !r.info.Attachments.Accepts(a.Kind, a.MediaType) {
+			return backend.AttachmentError(r.info.Name, "%s attachments are not accepted", a.MediaType)
+		}
+	}
+	return nil
+}
+
+// attachmentErr is err as a backend error: an ErrAttachment of the adapter
+// as it is, anything else ErrFailed (as before attachments).
+func attachmentErr(err error) error {
+	if backend.KindOf(err) == backend.ErrAttachment {
+		return err
+	}
+	return &backend.Error{Kind: backend.ErrFailed, Message: err.Error()}
+}
+
+// attachmentStats counts the attachments by kind and adds up their sizes.
+func attachmentStats(atts []backend.Attachment) (images, texts int, size int64) {
+	for _, a := range atts {
+		switch a.Kind {
+		case backend.AttachImage:
+			images++
+		case backend.AttachText:
+			texts++
+		}
+		size += a.Size
+	}
+	return images, texts, size
 }
 
 // decodeLine decodes a line, containing a panic over unexpected output.

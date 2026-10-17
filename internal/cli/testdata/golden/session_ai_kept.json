@@ -28,6 +28,18 @@
                 }
               },
               {
+                "id": "attach",
+                "title": "Add Attachment…",
+                "shortcut": "Ctrl+O",
+                "do": {
+                  "kind": "ChooseFiles",
+                  "payload": {
+                    "title": "Attach Files to the Message",
+                    "multiple": true
+                  }
+                }
+              },
+              {
                 "id": "copy",
                 "title": "Copy Answer",
                 "shortcut": "Ctrl+Shift+C",
@@ -117,6 +129,7 @@
       ]
     },
     "emptyText": "No results",
-    "hint": "Back to main screen"
+    "hint": "Back to main screen",
+    "acceptFiles": true
   }
 }

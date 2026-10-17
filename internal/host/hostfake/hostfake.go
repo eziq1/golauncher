@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -188,6 +189,18 @@ func (c *Clipboard) Read() (plugin.ClipboardContent, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.Content, nil
+}
+
+// HasFilesOrImage reports, as the real clipboard's cheap probe does
+// (core.FilesClipboard), whether the content has files, or an image and no
+// text.
+func (c *Clipboard) HasFilesOrImage() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.Content.Exclude {
+		return false
+	}
+	return len(c.Content.Files) > 0 || len(c.Content.Image) > 0 && strings.TrimSpace(c.Content.Text) == ""
 }
 
 // Set replaces the content, as if another app copied it.

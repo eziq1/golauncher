@@ -34,11 +34,14 @@ type Fake struct {
 	SendErr  error
 	// Status is what a successful Check reports (nil: version 2.1.0).
 	Status *Status
+	// Caps is what the fake accepts as attachments (nil: AllAttachments).
+	Caps *AttachmentCaps
 
-	mu    sync.Mutex
-	opens []OpenOptions
-	sends []string
-	convs []*fakeConv
+	mu       sync.Mutex
+	opens    []OpenOptions
+	sends    []string
+	attached [][]Attachment
+	convs    []*fakeConv
 }
 
 var _ Backend = (*Fake)(nil)
@@ -81,6 +84,22 @@ func (f *Fake) Sends() []string {
 	return slices.Clone(f.sends)
 }
 
+// Attached returns the attachments of the messages sent so far, in order
+// (nil for a message without).
+func (f *Fake) Attached() [][]Attachment {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.attached)
+}
+
+// Attachments implements AttachmentCapser.
+func (f *Fake) Attachments() AttachmentCaps {
+	if f.Caps != nil {
+		return *f.Caps
+	}
+	return AllAttachments()
+}
+
 // Released reports how many conversations have been released or closed
 // and not used since.
 func (f *Fake) Released() int {
@@ -97,11 +116,19 @@ func (f *Fake) Released() int {
 	return n
 }
 
-func (f *Fake) reply(text string) []string {
+func (f *Fake) reply(text string, atts []Attachment) []string {
 	if f.Reply != nil {
 		return f.Reply(text)
 	}
-	return []string{"You ", "asked: ", text}
+	out := []string{"You ", "asked: ", text}
+	if len(atts) > 0 {
+		names := make([]string, len(atts))
+		for i, a := range atts {
+			names[i] = a.Name + " (" + string(a.Kind) + ")"
+		}
+		out = append(out, " [attached: "+strings.Join(names, ", ")+"]")
+	}
+	return out
 }
 
 type fakeConv struct {
@@ -114,7 +141,7 @@ type fakeConv struct {
 	released bool
 }
 
-func (c *fakeConv) Send(ctx context.Context, text string) (<-chan Event, error) {
+func (c *fakeConv) Send(ctx context.Context, text string, atts ...Attachment) (<-chan Event, error) {
 	c.mu.Lock()
 	if c.running {
 		c.mu.Unlock()
@@ -126,7 +153,9 @@ func (c *fakeConv) Send(ctx context.Context, text string) (<-chan Event, error) 
 	c.mu.Unlock()
 	c.f.mu.Lock()
 	c.f.sends = append(c.f.sends, text)
+	c.f.attached = append(c.f.attached, slices.Clone(atts))
 	c.f.mu.Unlock()
+	caps := c.f.Attachments()
 
 	out := make(chan Event, 256)
 	finish := func(e Event) {
@@ -142,6 +171,12 @@ func (c *fakeConv) Send(ctx context.Context, text string) (<-chan Event, error) 
 			finish(Event{Kind: EventError, Err: c.f.SendErr})
 			return
 		}
+		for _, a := range atts {
+			if !caps.Accepts(a.Kind, a.MediaType) {
+				finish(Event{Kind: EventError, Err: AttachmentError(c.f.Name(), "%s attachments are not accepted", a.MediaType)})
+				return
+			}
+		}
 		if c.f.Steps != nil {
 			for _, e := range c.f.Steps(text) {
 				if err := c.f.wait(ctx); err != nil {
@@ -152,7 +187,7 @@ func (c *fakeConv) Send(ctx context.Context, text string) (<-chan Event, error) 
 			}
 		}
 		var all strings.Builder
-		for _, piece := range c.f.reply(text) {
+		for _, piece := range c.f.reply(text, atts) {
 			if err := c.f.wait(ctx); err != nil {
 				finish(Event{Kind: EventDone, Cancelled: true})
 				return

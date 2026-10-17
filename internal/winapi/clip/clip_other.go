@@ -18,6 +18,9 @@ func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
 	return plugin.ClipboardContent{}, errors.ErrUnsupported
 }
 
+// HasFilesOrImage reports whether the clipboard holds files or an image.
+func HasFilesOrImage() bool { return false }
+
 // WriteText replaces the clipboard content with text.
 func WriteText(s string) error { return errors.ErrUnsupported }
 

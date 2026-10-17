@@ -347,9 +347,14 @@ can set **`View.KeepOnHide`** (docs/keep-view.md):
   message again.
 - The host goes to the root anyway when the user's *Return to the main
   screen* setting says so (immediately / after 10 minutes, the default /
-  never), when text was selected for the new show or the selected-text
-  hotkey opened it, when a command hotkey or a task notification opened
-  it, or when a plugin of the stack is disabled.
+  never), when text was selected for the new show (unless the kept view
+  holds an unsent draft) or the selected-text hotkey opened it, when a
+  command hotkey or a task notification opened it, or when a plugin of the
+  stack is disabled.
+- An unsent draft is text typed in the top view's search field, or
+  whatever the view declares with **`View.Draft`** (a chat's attachments
+  waiting for the next message): newly selected text then does not take the
+  user away from it (R76).
 - `Escape` behaves as always (clear the text, then back one level); the
   footer shows *Esc Back to main screen* on a restored view at depth 1.
 - Stopping work on `window-hidden` is still right; restart it when the view
@@ -358,6 +363,63 @@ can set **`View.KeepOnHide`** (docs/keep-view.md):
 `Result.Preferences` stores values of the plugin's own (non-password)
 preferences, as Settings would — for an *Enable* button in a first-use
 prompt.
+
+### Files (drop, paste, open dialog)
+
+A plugin implementing **`plugin.FileReceiver`** takes files the user hands
+to the launcher (R91):
+
+```go
+func (p *Plugin) ReceiveFiles(ctx context.Context, f plugin.Files) (plugin.Result, error)
+```
+
+`plugin.Files` has the `Paths` (files and folders, as the system named
+them) or, pasted from the clipboard, a PNG `Image` (no paths then); the
+`Source` (`FilesDropped`, `FilesPasted`, `FilesChosen`); the `Instance`
+and `View` ID of the view they were given to (`""` in the root search);
+and the `Query`, the view's search text. The `Result` is applied as an
+action's: `Push`, `Refresh`, `ClearText`, `Toast`, `PopToRoot`,
+`Preferences`, `Do`.
+
+Where files go:
+
+- **A view that sets `View.AcceptFiles`**: to its plugin, with its
+  instance. Files dropped onto the window, files chosen with
+  `ActionChooseFiles`, and **Ctrl+V** (⌘V) when the clipboard holds files
+  or an image.
+- **The root search**: files dropped there go to the enabled plugins
+  implementing `FileReceiver`, in their order, with an empty `Instance`,
+  until one does not return **`plugin.ErrFilesNotTaken`** (the AI chat
+  opens a new chat with them). Return it for files you do not want.
+- **Any other view**, or nobody took them: a toast says they cannot be
+  used there.
+
+**`ActionChooseFiles`** shows the system's open dialog (Payload:
+`plugin.ChooseFilesOptions{Title, Multiple}`) and hands the chosen files
+to the view the action runs from, which must accept files; nothing happens
+when the user cancels. Give it a shortcut (`Ctrl+O` for *Add Attachment…*).
+It runs only for the user: from a key, the action panel or the footer,
+never from an AI tool or a `Result.Do` (the engine returns an error).
+
+**`View.Chips`** are shown in a row under the view's content, above the
+footer: each `plugin.Chip` has a thumbnail (`Image`, a file path) or an
+`Icon`, a `Title`, a muted `Subtitle`, a `Tooltip`, and a × button that
+runs its `Remove` action (usually an `ActionCallback` of your plugin, with
+the chip's ID in its target). `Error` shows it in the danger color. The
+row never changes the height of the search bar.
+
+Set **`View.Draft`** while the view holds attachments the user has not sent
+(see *Keeping a view across a hide*).
+
+Markdown in views may show local image files: `![name](</abs/path.png>)`
+with an absolute path (PNG, JPEG, GIF, WebP, BMP; at most 4 MB). Network
+addresses and `data:` URLs are not loaded.
+
+Privacy: the host reads the clipboard for files only when the user presses
+Ctrl+V in a view that accepts files, and then only takes files or an image
+(text is pasted into the search field as usual). Do not log file names or
+contents. Only in-process plugins can receive files: the external plugin
+protocol has no message for them.
 
 ### How your plugin appears to AI
 

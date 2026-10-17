@@ -89,8 +89,10 @@ type Conversation interface {
 	// Send sends a user message and returns the events of the answer. The
 	// channel is closed after the EventDone or EventError that ends the
 	// turn. Only one turn runs at a time: Send fails while one is running.
-	// Cancelling ctx stops the answer like Cancel.
-	Send(ctx context.Context, text string) (<-chan Event, error)
+	// Cancelling ctx stops the answer like Cancel. atts are files attached to
+	// the message (R91), of the kinds the backend accepts (AttachmentCapser);
+	// one it cannot send ends the turn with an ErrAttachment.
+	Send(ctx context.Context, text string, atts ...Attachment) (<-chan Event, error)
 	// Cancel stops the answer being written; its turn ends with an EventDone
 	// marked Cancelled. It does nothing when no answer is running.
 	Cancel()
