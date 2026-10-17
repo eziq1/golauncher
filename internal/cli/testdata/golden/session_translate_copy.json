@@ -1,0 +1,129 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "hide": true,
+    "toast": {
+      "style": "success",
+      "title": "Copied to clipboard"
+    }
+  },
+  "effects": [
+    {
+      "kind": "CopyText",
+      "target": "[zh-CN] good morning"
+    }
+  ],
+  "snapshot": {
+    "depth": 0,
+    "placeholder": "Search apps, commands, and more…",
+    "text": "tr good morning",
+    "sections": [
+      {
+        "title": "Translator",
+        "items": [
+          {
+            "id": "result:google",
+            "title": "[zh-CN] good morning",
+            "subtitle": "Google Translate · English → Chinese (Simplified)",
+            "icon": {
+              "name": "languages"
+            },
+            "group": "Translator",
+            "score": 1,
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy Translation",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "[zh-CN] good morning"
+                }
+              },
+              {
+                "id": "paste",
+                "title": "Paste to Previous Window",
+                "do": {
+                  "kind": "Paste",
+                  "target": "[zh-CN] good morning"
+                }
+              },
+              {
+                "id": "swap",
+                "title": "Swap Languages",
+                "do": {
+                  "kind": "Push",
+                  "target": "translate",
+                  "payload": {
+                    "text": "[zh-CN] good morning",
+                    "from": "zh-CN",
+                    "to": "en"
+                  }
+                }
+              },
+              {
+                "id": "copy-original",
+                "title": "Copy Original Text",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "good morning"
+                }
+              },
+              {
+                "id": "web-google",
+                "title": "Open in Google Translate",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://translate.google.com/?sl=en&tl=zh-CN&text=good+morning&op=translate"
+                }
+              },
+              {
+                "id": "web-deepl",
+                "title": "Open in DeepL",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.deepl.com/translator#en/zh/good%20morning"
+                }
+              },
+              {
+                "id": "web-youdao",
+                "title": "Open in Youdao",
+                "do": {
+                  "kind": "Open",
+                  "target": "https://www.youdao.com/result?word=good+morning&lang=en"
+                }
+              }
+            ],
+            "detail": {
+              "markdown": "\\[zh-CN] good morning\n\n---\n\ngood morning",
+              "metadata": [
+                {
+                  "label": "Engine",
+                  "value": "Google Translate"
+                },
+                {
+                  "label": "From",
+                  "value": "English"
+                },
+                {
+                  "label": "To",
+                  "value": "Chinese (Simplified)"
+                }
+              ]
+            },
+            "transient": true,
+            "plugin": "builtin.translator",
+            "key": "builtin.translator/result:google",
+            "rank": 1.7
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "emptyText": "No results",
+    "toast": {
+      "style": "success",
+      "title": "Copied to clipboard"
+    }
+  }
+}

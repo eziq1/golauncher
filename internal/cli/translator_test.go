@@ -1,0 +1,47 @@
+package cli
+
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// The translator (docs/translator.md) in the fake environment: its engines
+// are engines.Fake, which answer "[to] text" at once and never go online.
+
+func TestGoldenTranslator(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"query_translate", []string{"query", "tr hello world"}},
+		{"query_translate_lang", []string{"query", "tr en>ja good morning"}},
+		{"zh_query_translate", []string{"query", "翻译 你好", "--locale", "zh-CN"}},
+		{"run_translate", []string{"run", "builtin.translator/translate", "--text", ">de thank you"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, code := glctl(t, tc.args...)
+			if code != 0 {
+				t.Fatalf("exit code %d", code)
+			}
+			golden(t, tc.name, out)
+		})
+	}
+}
+
+// TestSessionTranslate copies a translation with Enter; it is not recorded
+// as recently used (the text is not stored).
+func TestSessionTranslate(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	glctl(t, "session", "type", "-s", s, "tr good morning")
+	out, _ := glctl(t, "session", "key", "-s", s, "Enter")
+	golden(t, "session_translate_copy", out)
+	if !strings.Contains(out, "[zh-CN] good morning") {
+		t.Errorf("no copied translation in:\n%s", out)
+	}
+	out, _ = glctl(t, "session", "type", "-s", s, "")
+	if strings.Contains(out, "good morning") {
+		t.Errorf("the translation was recorded:\n%s", out)
+	}
+}

@@ -1,0 +1,106 @@
+{
+  "query": "tr hello world",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Translator",
+      "items": [
+        {
+          "id": "result:google",
+          "title": "[zh-CN] hello world",
+          "subtitle": "Google Translate · English → Chinese (Simplified)",
+          "icon": {
+            "name": "languages"
+          },
+          "group": "Translator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Translation",
+              "do": {
+                "kind": "CopyText",
+                "target": "[zh-CN] hello world"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste to Previous Window",
+              "do": {
+                "kind": "Paste",
+                "target": "[zh-CN] hello world"
+              }
+            },
+            {
+              "id": "swap",
+              "title": "Swap Languages",
+              "do": {
+                "kind": "Push",
+                "target": "translate",
+                "payload": {
+                  "text": "[zh-CN] hello world",
+                  "from": "zh-CN",
+                  "to": "en"
+                }
+              }
+            },
+            {
+              "id": "copy-original",
+              "title": "Copy Original Text",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "hello world"
+              }
+            },
+            {
+              "id": "web-google",
+              "title": "Open in Google Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/?sl=en&tl=zh-CN&text=hello+world&op=translate"
+              }
+            },
+            {
+              "id": "web-deepl",
+              "title": "Open in DeepL",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.deepl.com/translator#en/zh/hello%20world"
+              }
+            },
+            {
+              "id": "web-youdao",
+              "title": "Open in Youdao",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.youdao.com/result?word=hello+world&lang=en"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "\\[zh-CN] hello world\n\n---\n\nhello world",
+            "metadata": [
+              {
+                "label": "Engine",
+                "value": "Google Translate"
+              },
+              {
+                "label": "From",
+                "value": "English"
+              },
+              {
+                "label": "To",
+                "value": "Chinese (Simplified)"
+              }
+            ]
+          },
+          "transient": true,
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/result:google",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

@@ -725,6 +725,164 @@
     "origin": "builtin"
   },
   {
+    "id": "builtin.translator",
+    "name": "Translator",
+    "description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint, MyMemory or DeepL. Text is sent only after one of these prefixes.",
+    "version": "1.0.0",
+    "icon": {
+      "name": "languages"
+    },
+    "enabled": true,
+    "permissions": [
+      "network",
+      "selection"
+    ],
+    "commands": [
+      {
+        "name": "translate",
+        "title": "Translate",
+        "mode": "view"
+      }
+    ],
+    "preferences": [
+      {
+        "name": "target",
+        "type": "select",
+        "title": "Translate into",
+        "description": "The language text goes into when the query names none. Automatic: the language of the interface, or English for text already in it (Simplified Chinese for English text in the English interface).",
+        "options": [
+          {
+            "value": "",
+            "title": "Automatic"
+          },
+          {
+            "value": "en",
+            "title": "English"
+          },
+          {
+            "value": "zh-CN",
+            "title": "Chinese (Simplified)"
+          },
+          {
+            "value": "zh-TW",
+            "title": "Chinese (Traditional)"
+          },
+          {
+            "value": "ja",
+            "title": "Japanese"
+          },
+          {
+            "value": "ko",
+            "title": "Korean"
+          },
+          {
+            "value": "fr",
+            "title": "French"
+          },
+          {
+            "value": "de",
+            "title": "German"
+          },
+          {
+            "value": "es",
+            "title": "Spanish"
+          },
+          {
+            "value": "ru",
+            "title": "Russian"
+          },
+          {
+            "value": "pt",
+            "title": "Portuguese"
+          },
+          {
+            "value": "it",
+            "title": "Italian"
+          },
+          {
+            "value": "ar",
+            "title": "Arabic"
+          },
+          {
+            "value": "th",
+            "title": "Thai"
+          },
+          {
+            "value": "vi",
+            "title": "Vietnamese"
+          },
+          {
+            "value": "id",
+            "title": "Indonesian"
+          },
+          {
+            "value": "nl",
+            "title": "Dutch"
+          },
+          {
+            "value": "pl",
+            "title": "Polish"
+          },
+          {
+            "value": "tr",
+            "title": "Turkish"
+          },
+          {
+            "value": "uk",
+            "title": "Ukrainian"
+          },
+          {
+            "value": "sv",
+            "title": "Swedish"
+          },
+          {
+            "value": "hi",
+            "title": "Hindi"
+          }
+        ]
+      },
+      {
+        "name": "engines",
+        "type": "stringList",
+        "title": "Engines",
+        "description": "The engines asked, in order, one row each: google (Google Translate’s web endpoint: no key, not an official API, may stop working; usually unreachable in mainland China), mymemory (MyMemory by Translated: no key, about 5,000 characters a day, 50,000 with an email address), deepl (DeepL API: needs a key). Engines that need a key are skipped until it is set. The text after the prefix is sent to each of them.",
+        "default": [
+          "deepl",
+          "google"
+        ]
+      },
+      {
+        "name": "fallback",
+        "type": "bool",
+        "title": "Use MyMemory when the others fail",
+        "description": "When every engine above fails (no connection, quota exhausted), ask MyMemory instead.",
+        "default": true
+      },
+      {
+        "name": "selection",
+        "type": "bool",
+        "title": "Translate selected text at once",
+        "description": "Shows the translation of the text selected in another app in the “Selected Text” section as soon as the launcher opens. This sends the selected text to the first engine before you pick anything, so it is off by default.",
+        "default": false
+      },
+      {
+        "name": "deeplKey",
+        "type": "password",
+        "title": "DeepL API key",
+        "description": "From your DeepL account (the free plan has 500,000 characters a month; its keys end in “:fx”). Stored in the Windows Credential Manager or the macOS Keychain. With a key, DeepL is asked first.",
+        "group": "Keys"
+      },
+      {
+        "name": "mymemoryEmail",
+        "type": "text",
+        "title": "Email address for MyMemory",
+        "description": "Optional: MyMemory allows about 50,000 characters a day instead of 5,000 with a valid email address, which is sent with each request.",
+        "group": "Keys"
+      }
+    ],
+    "origin": "builtin"
+  },
+  {
     "id": "builtin.quicklinks",
     "name": "Quicklinks & Web Search",
     "description": "Search the web with keywords (“g golang generics”, “bd 天气”), open typed URLs, and keep named links to websites, files, folders and programs. When nothing matches, the main search offers to search the web.",

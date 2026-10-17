@@ -39,14 +39,14 @@
 | `npm` | npm | `npm` | `https://www.npmjs.com/search?q={query}` |
 | `gopkg` | Go 包（pkg.go.dev） | `go` `gopkg` | `https://pkg.go.dev/search?q={query}` |
 | `mdn` | MDN | `mdn` | `https://developer.mozilla.org/search?q={query}`（中文界面 `/zh-CN/search`） |
-| `translate` | Google 翻译 | `tr` `translate` | `https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate`（中文界面 `tl=zh-CN`） |
-| `youdao` | 有道翻译 | `yd` `有道` `翻译` | `https://www.youdao.com/result?word={query}&lang=en` |
+| `translate` | Google 翻译 | `gt` `translate`（R99 之前是 `tr`，现在 `tr` 归翻译插件） | `https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate`（中文界面 `tl=zh-CN`） |
+| `youdao` | 有道翻译 | `yd` `有道`（`翻译` 自 R99 起归翻译插件） | `https://www.youdao.com/result?word={query}&lang=en` |
 | `maps` | Google 地图 | `map` `maps` | `https://www.google.com/maps/search/{query}` |
 | `amap` | 高德地图 | `amap` `gd` `高德` `地图` | `https://www.amap.com/search?query={query}` |
 
 - 全部默认启用（只在输入关键词时才出现，不打扰普通搜索）。可以逐个停用、改关键词、恢复默认；内置引擎的名称和网址不能改（想改就新建一个自定义引擎）。
 - **字符集**：所有引擎都用 UTF-8 加百分号编码（百度加 `ie=utf-8`，京东加 `enc=utf-8`），不需要 GBK。自定义引擎的模板也一律按 UTF-8 编码。
-- **和其他插件的前缀不冲突**：`time` `tz` `timer` `计时` `倒计时` `remind` `提醒` `winget` `wg` `scoop` `sc` `ip` `ping` `dns` `port` `wifi` `tracert` 都不是默认关键词（有测试检查）。
+- **和其他插件的前缀不冲突**：`time` `tz` `timer` `计时` `倒计时` `remind` `提醒` `winget` `wg` `scoop` `sc` `ip` `ping` `dns` `port` `wifi` `tracert` `ps` `kill` `进程`，以及翻译插件的 `tr` `fy` `翻译`（R99，[translator.md](translator.md) §6）都不是默认关键词（有测试检查）。
 
 ### 2.2 关键词解析
 

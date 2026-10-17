@@ -540,6 +540,41 @@
           "key": "builtin.network/cmd:port"
         },
         {
+          "id": "cmd:translate",
+          "title": "翻译",
+          "subtitle": "翻译",
+          "icon": {
+            "name": "languages"
+          },
+          "keywords": [
+            "翻译",
+            "fy",
+            "翻译器",
+            "译文",
+            "translate",
+            "translator",
+            "tr",
+            "deepl",
+            "google translate",
+            "Translate",
+            "translation"
+          ],
+          "accessory": "命令",
+          "group": "命令",
+          "actions": [
+            {
+              "id": "run",
+              "title": "打开命令",
+              "do": {
+                "kind": "Push",
+                "target": "translate"
+              }
+            }
+          ],
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/cmd:translate"
+        },
+        {
           "id": "cmd:tracert",
           "title": "跟踪路由",
           "subtitle": "网络工具",

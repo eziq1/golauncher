@@ -975,6 +975,37 @@
             "key": "builtin.network/cmd:tracert"
           },
           {
+            "id": "cmd:translate",
+            "title": "Translate",
+            "subtitle": "Translator",
+            "icon": {
+              "name": "languages"
+            },
+            "keywords": [
+              "translate",
+              "translator",
+              "translation",
+              "tr",
+              "fy",
+              "deepl",
+              "google translate"
+            ],
+            "accessory": "Command",
+            "group": "Commands",
+            "actions": [
+              {
+                "id": "run",
+                "title": "Open Command",
+                "do": {
+                  "kind": "Push",
+                  "target": "translate"
+                }
+              }
+            ],
+            "plugin": "builtin.translator",
+            "key": "builtin.translator/cmd:translate"
+          },
+          {
             "id": "cmd:update-all",
             "title": "Update All Scoop Apps",
             "subtitle": "Scoop",

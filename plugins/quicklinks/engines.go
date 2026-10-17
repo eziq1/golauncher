@@ -66,9 +66,9 @@ var builtins = []builtinEngine{
 	{id: "gopkg", name: "%engine.gopkg%", keywords: []string{"go", "gopkg"}, url: "https://pkg.go.dev/search?q={query}"},
 	{id: "mdn", name: "%engine.mdn%", keywords: []string{"mdn"}, url: "https://developer.mozilla.org/search?q={query}",
 		urlZh: "https://developer.mozilla.org/zh-CN/search?q={query}"},
-	{id: "translate", name: "%engine.translate%", keywords: []string{"tr", "translate"}, url: "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
+	{id: "translate", name: "%engine.translate%", keywords: []string{"gt", "translate"}, url: "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
 		urlZh: "https://translate.google.com/?sl=auto&tl=zh-CN&text={query}&op=translate"},
-	{id: "youdao", name: "%engine.youdao%", keywords: []string{"yd", "有道", "翻译"}, url: "https://www.youdao.com/result?word={query}&lang=en"},
+	{id: "youdao", name: "%engine.youdao%", keywords: []string{"yd", "有道"}, url: "https://www.youdao.com/result?word={query}&lang=en"},
 	{id: "maps", name: "%engine.maps%", keywords: []string{"map", "maps"}, url: "https://www.google.com/maps/search/{query}"},
 	{id: "amap", name: "%engine.amap%", keywords: []string{"amap", "gd", "高德", "地图"}, url: "https://www.amap.com/search?query={query}"},
 }
@@ -175,6 +175,7 @@ var reservedPrefixes = []string{
 	"time", "tz", "timer", "计时", "倒计时", "remind", "提醒",
 	"winget", "wg", "scoop", "sc", "ip", "ping", "dns", "port", "wifi", "tracert",
 	"ps", "kill", "进程",
+	"tr", "fy", "翻译", // builtin.translator (docs/translator.md §6)
 }
 
 // localName is the engine's name in the current language.

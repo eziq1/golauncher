@@ -10,6 +10,24 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Translator** (R99, issue #3, `builtin.translator`): `tr hello`,
+  `fy …` or `翻译 …` translates as you type (after a 300 ms pause; a new
+  text cancels the last request; answers are cached in memory), one row per
+  engine with the detected source language: Google Translate's web endpoint
+  (no key, unofficial), MyMemory (no key; an optional email address raises
+  its daily quota; long text is sent in pieces of at most 500 bytes) and
+  DeepL API Free/Pro (key stored in the Credential Manager or Keychain;
+  asked first once set). When every engine fails, MyMemory is asked
+  instead. Languages: `tr ja 你好`, `tr >de …`, `tr 日 …`, `tr en>zh …`
+  (codes and Chinese names); by default the interface language, or English
+  for text already in it. Actions: copy (Enter), paste into the previous
+  window (Ctrl+Enter), swap the languages, copy the original, open in
+  Google Translate, DeepL or Youdao. A *Translate* command opens the same
+  as a view. An optional instant translation of selected text (off by
+  default) adds a row to the *Selected Text* section, with *Replace
+  Selected Text*. Text is sent only after a prefix; rows are never recorded
+  in Recent; logs have lengths and timings only.
+
 - **Attachments in the AI chat** (R91): attach images and text files to a
   message by dropping files onto the launcher (onto the root search, a new
   chat opens with them; with AI off, after the prompt to turn it on), by
@@ -66,6 +84,10 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Changed
 
+- Web search keywords (R99): Google Translate's web search is now `gt`
+  (and still `translate`); `tr` and `翻译` (formerly Youdao's) belong to the
+  translator, and `fy` too. Youdao's web search keeps `yd` and `有道`. A
+  keyword you set yourself is kept.
 - Internal: the background refresh scheduling of the Homebrew, WinGet and
   Scoop plugins and the whole-second refresh of the World Clock and Timers
   share small helpers in `pkg/plugin/bg`; the Files plugin quotes command

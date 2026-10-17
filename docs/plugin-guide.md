@@ -19,6 +19,7 @@ The SDK lives in [`pkg/plugin`](../pkg/plugin/). The built-in plugins in
 | [`clock`](../plugins/clock/) | score prefixed root queries itself, tick every second with `Invalidate` (root) and `Render` (view) |
 | [`timer`](../plugins/timer/) | keep state in `Storage`, run a scheduler on `Host.Go`, notify with `Host.Toast` |
 | [`quicklinks`](../plugins/quicklinks/) | offer fallback items, take keyword-prefixed text, create and edit data with forms, fetch in the background with debouncing and cancellation |
+| [`translator`](../plugins/translator/) | score prefixed root queries, ask several web APIs in parallel (debounced, cancelled, cached) and keep their engines behind one interface tested with `httptest`, keep API keys in password preferences, offer an opt-in action on the selected text |
 | [`processes`](../plugins/processes/) | sample only while shown (one loop for the root search and every open view), put system calls behind a `Backend` with a fixture and a dry-run variant, show values with bars (`Accessories`), keep sensitive parts from AI, need a space after a prefix (`Query.Raw`) |
 
 A prefix that must be followed by a space (`ps ` but not `ps`, which finds

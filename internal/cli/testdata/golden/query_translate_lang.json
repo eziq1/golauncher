@@ -1,0 +1,106 @@
+{
+  "query": "tr en>ja good morning",
+  "elapsedMs": 0,
+  "sections": [
+    {
+      "title": "Translator",
+      "items": [
+        {
+          "id": "result:google",
+          "title": "[ja] good morning",
+          "subtitle": "Google Translate · English → Japanese",
+          "icon": {
+            "name": "languages"
+          },
+          "group": "Translator",
+          "score": 1,
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy Translation",
+              "do": {
+                "kind": "CopyText",
+                "target": "[ja] good morning"
+              }
+            },
+            {
+              "id": "paste",
+              "title": "Paste to Previous Window",
+              "do": {
+                "kind": "Paste",
+                "target": "[ja] good morning"
+              }
+            },
+            {
+              "id": "swap",
+              "title": "Swap Languages",
+              "do": {
+                "kind": "Push",
+                "target": "translate",
+                "payload": {
+                  "text": "[ja] good morning",
+                  "from": "ja",
+                  "to": "en"
+                }
+              }
+            },
+            {
+              "id": "copy-original",
+              "title": "Copy Original Text",
+              "shortcut": "Ctrl+Shift+C",
+              "do": {
+                "kind": "CopyText",
+                "target": "good morning"
+              }
+            },
+            {
+              "id": "web-google",
+              "title": "Open in Google Translate",
+              "do": {
+                "kind": "Open",
+                "target": "https://translate.google.com/?sl=en&tl=ja&text=good+morning&op=translate"
+              }
+            },
+            {
+              "id": "web-deepl",
+              "title": "Open in DeepL",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.deepl.com/translator#en/ja/good%20morning"
+              }
+            },
+            {
+              "id": "web-youdao",
+              "title": "Open in Youdao",
+              "do": {
+                "kind": "Open",
+                "target": "https://www.youdao.com/result?word=good+morning&lang=en"
+              }
+            }
+          ],
+          "detail": {
+            "markdown": "\\[ja] good morning\n\n---\n\ngood morning",
+            "metadata": [
+              {
+                "label": "Engine",
+                "value": "Google Translate"
+              },
+              {
+                "label": "From",
+                "value": "English"
+              },
+              {
+                "label": "To",
+                "value": "Japanese"
+              }
+            ]
+          },
+          "transient": true,
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/result:google",
+          "rank": 1.7
+        }
+      ]
+    }
+  ]
+}

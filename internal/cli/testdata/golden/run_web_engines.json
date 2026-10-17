@@ -1345,12 +1345,12 @@
           {
             "id": "engine:translate",
             "title": "Google Translate",
-            "subtitle": "tr, translate",
+            "subtitle": "gt, translate",
             "icon": {
               "name": "search"
             },
             "keywords": [
-              "tr",
+              "gt",
               "translate"
             ],
             "actions": [
@@ -1413,7 +1413,7 @@
               "metadata": [
                 {
                   "label": "Keywords",
-                  "value": "tr, translate"
+                  "value": "gt, translate"
                 },
                 {
                   "label": "URL",
@@ -1427,14 +1427,13 @@
           {
             "id": "engine:youdao",
             "title": "Youdao Translate",
-            "subtitle": "yd, 有道, 翻译",
+            "subtitle": "yd, 有道",
             "icon": {
               "name": "search"
             },
             "keywords": [
               "yd",
-              "有道",
-              "翻译"
+              "有道"
             ],
             "actions": [
               {
@@ -1496,7 +1495,7 @@
               "metadata": [
                 {
                   "label": "Keywords",
-                  "value": "yd, 有道, 翻译"
+                  "value": "yd, 有道"
                 },
                 {
                   "label": "URL",

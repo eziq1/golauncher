@@ -85,17 +85,54 @@
       ]
     },
     {
+      "title": "Commands",
+      "items": [
+        {
+          "id": "cmd:translate",
+          "title": "Translate",
+          "subtitle": "Translator",
+          "icon": {
+            "name": "languages"
+          },
+          "keywords": [
+            "translate",
+            "translator",
+            "translation",
+            "tr",
+            "fy",
+            "deepl",
+            "google translate"
+          ],
+          "accessory": "Command",
+          "group": "Commands",
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open Command",
+              "do": {
+                "kind": "Push",
+                "target": "translate"
+              }
+            }
+          ],
+          "plugin": "builtin.translator",
+          "key": "builtin.translator/cmd:translate",
+          "rank": 0.7
+        }
+      ]
+    },
+    {
       "title": "Web Search",
       "items": [
         {
           "id": "engine:translate",
           "title": "Search Google Translate",
-          "subtitle": "tr, translate",
+          "subtitle": "gt, translate",
           "icon": {
             "name": "search"
           },
           "keywords": [
-            "tr",
+            "gt",
             "translate"
           ],
           "accessory": "Search Engine",
