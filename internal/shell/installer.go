@@ -28,8 +28,10 @@ func selfInstall(o *Options) (done bool, err error) {
 		return false, nil
 	}
 	if real, err := filepath.EvalSymlinks(self); err == nil {
-		self = real
+		self = real // e.g. winget's WinGet\Links\golauncher.exe
 	}
+	// winget installs, updates and removes this copy (docs/winget-packaging.md).
+	o.winget = install.WingetManaged(self, winstall.WingetLocations())
 	in, err := newInstaller(self, o.Version)
 	if err != nil {
 		return false, nil // the folders are unknown: just run
@@ -47,7 +49,7 @@ func selfInstall(o *Options) (done bool, err error) {
 		install.Cleanup(st.Dir)
 		o.installDir = st.Dir // the installed copy updates itself
 	}
-	if install.Skip(o.Version, f, os.Getenv) {
+	if o.winget || install.Skip(o.Version, f, os.Getenv) {
 		return false, nil
 	}
 	switch st.Kind {

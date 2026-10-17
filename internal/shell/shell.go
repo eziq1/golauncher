@@ -58,6 +58,10 @@ type Options struct {
 	// installDir is the installation when this is the installed copy, the
 	// only one that updates itself ("" otherwise).
 	installDir string
+	// winget is set when winget installed this copy (a portable package):
+	// it offers no installation and leaves updates to winget
+	// (docs/winget-packaging.md).
+	winget bool
 }
 
 // Command-line actions.

@@ -184,6 +184,13 @@ newer or older download later offers to upgrade or downgrade; the same version
 just starts the installed copy. Choose *Run without installing* (or pass
 `--portable`) to run it from where it is. golauncher lives in the system tray.
 
+**winget** (after the package is accepted into the winget community
+repository): `winget install eziq1.golauncher`, and later
+`winget upgrade eziq1.golauncher`. A copy installed with winget does not offer
+to install itself and leaves updates to winget (*Settings › About* says so);
+quit golauncher before upgrading. See
+[docs/winget-packaging.md](docs/winget-packaging.md).
+
 **Automatic updates**: the installed copy checks GitHub Releases for a new
 stable version (30 seconds after starting, then daily or weekly), downloads
 the archive for your architecture, verifies it against the release's SHA-256

@@ -46,6 +46,7 @@
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_windows_<架构>.zip`。
 2. 解压后运行 `golauncher.exe`。第一次运行会弹出安装界面，默认安装到 `%LOCALAPPDATA%\Programs\golauncher`（不需要管理员权限），并创建开始菜单项、在"设置 › 应用"里注册卸载入口。之后运行更新或更旧的版本，会提示升级或降级；版本相同则直接启动已安装的程序。也可以选择"不安装，直接运行"（或加 `--portable` 参数）。程序常驻在系统托盘。
 3. **自动更新**：已安装的副本在启动 30 秒后、之后每天（或每周）查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 Release 里的 SHA-256 校验和校验，在 golauncher 空闲时（窗口隐藏、没有后台任务和 AI 回答、几分钟内没用过）安装并自动重启，然后通知“已更新”。新版本起不来就自动恢复旧版本，并跳过这个版本。“设置 › 关于”里可以查看状态、立即检查、跳过某个版本，或改成“只通知我”“关闭”；托盘菜单和“检查更新”命令也能检查。便携运行和开发构建不会自动更新。详见 [docs/auto-update.md](docs/auto-update.md)。
+4. **winget**（软件包被 winget 社区仓库接受之后）：`winget install eziq1.golauncher`，以后用 `winget upgrade eziq1.golauncher` 升级。用 winget 安装的副本不弹安装界面，也不自己更新，交给 winget（“设置 › 关于”里有说明）；升级前请先退出 golauncher。详见 [docs/winget-packaging.md](docs/winget-packaging.md)。
 
 需要 Windows 10 或 11，Acrylic 毛玻璃背景只在 Windows 11 上有。不需要 WebView2 运行时。
 

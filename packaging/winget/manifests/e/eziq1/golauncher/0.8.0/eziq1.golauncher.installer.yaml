@@ -1,0 +1,26 @@
+# Created with scripts/release/wingetmanifest (github.com/eziq1/golauncher)
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+
+PackageIdentifier: eziq1.golauncher
+PackageVersion: 0.8.0
+MinimumOSVersion: 10.0.17763.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+- RelativeFilePath: golauncher.exe
+  PortableCommandAlias: golauncher
+- RelativeFilePath: glctl.exe
+  PortableCommandAlias: glctl
+Commands:
+- golauncher
+- glctl
+ReleaseDate: 2026-10-17
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_amd64.zip
+  InstallerSha256: 2F5777AE3ACCDBEAFABF4383B485EF93CD5A6E2C50CAB7ADE5CDD228B9F9AE83
+- Architecture: arm64
+  InstallerUrl: https://github.com/eziq1/golauncher/releases/download/v0.8.0/golauncher_0.8.0_windows_arm64.zip
+  InstallerSha256: 58A21B011352CFD15E307E7296EC9F32F5A90878A793BBF5399017A6119327B3
+ManifestType: installer
+ManifestVersion: 1.12.0

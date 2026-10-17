@@ -21,7 +21,7 @@ golauncher 只发布一个 zip（`golauncher.exe` + `glctl.exe`）。不另做�
 | 开机自启 | 复选框，默认勾选；写进 `config.json` 的 `launchAtLogin`，由安装后的 exe 启动时自己同步 Run 项（这样 Run 项指向安装后的路径） |
 | 卸载项 | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\golauncher`：DisplayName、DisplayVersion、Publisher（eziq1）、InstallLocation、DisplayIcon、UninstallString（`"<dir>\golauncher.exe" --uninstall`）、NoModify、NoRepair、EstimatedSize、InstallDate、URLInfoAbout |
 | 已安装版本 | 读卸载项的 DisplayVersion；读不到时读已安装 exe 的版本资源（ProductVersion） |
-| 何时不进入安装流程 | 版本是 `dev`（未注入版本号的开发构建）、带 `--portable`、环境变量 `GOLAUNCHER_NO_INSTALL=1`、带 `--quit`、运行的就是已安装的 exe |
+| 何时不进入安装流程 | 版本是 `dev`（未注入版本号的开发构建）、带 `--portable`、环境变量 `GOLAUNCHER_NO_INSTALL=1`、带 `--quit`、运行的就是已安装的 exe、由 winget 安装（[winget-packaging.md §3](winget-packaging.md)） |
 
 ## 3. 启动时的判断
 
