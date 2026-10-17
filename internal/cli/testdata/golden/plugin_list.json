@@ -332,7 +332,7 @@
         "name": "sound",
         "type": "bool",
         "title": "Play a sound",
-        "description": "Windows notifications of ended timers make a sound.",
+        "description": "Notifications of ended timers make a sound.",
         "default": true
       },
       {

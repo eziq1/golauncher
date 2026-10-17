@@ -36,6 +36,7 @@
   "chat.placeholder": "问点什么…",
   "chat.placeholderFollowUp": "继续追问…",
   "chat.empty": "向 {{.backend}} 提问：输入问题后按 Enter。\n\nEnter 发送，Esc 先停止回答、再返回，Ctrl+K 查看更多操作。",
+  "chat.empty@darwin": "向 {{.backend}} 提问：输入问题后按 Enter。\n\nEnter 发送，Esc 先停止回答、再返回，⌘K 查看更多操作。",
   "chat.you": "你",
   "chat.assistant": "Claude",
   "chat.thinking": "正在思考…",

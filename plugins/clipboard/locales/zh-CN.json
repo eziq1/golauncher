@@ -14,6 +14,7 @@
   "pref.recordImages.description": "把复制的图片也保存到历史中。",
   "pref.ignoreApps.title": "忽略的应用",
   "pref.ignoreApps.description": "从这些程序复制的内容不会被记录，填写可执行文件名，比如 Windows 上的 KeePassXC.exe、macOS 上的 KeePassXC。",
+  "pref.ignoreApps.description@darwin": "从这些应用复制的内容不会被记录，填写应用的名称，比如 KeePassXC。密码管理器标记为隐藏的内容本来就不会被记录。",
   "view.title": "剪贴板历史",
   "view.placeholder": "搜索剪贴板历史…",
   "view.empty": "还没有复制过内容",

@@ -385,7 +385,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - **终端插件**的 macOS 版（Terminal/iTerm2/Warp）、`files` 插件的 macOS 打开方式（目前仍是 `wt.exe`、`Code.exe` 等）、**Homebrew 插件**；`scoop`、`winget`、`terminal`、`processes` 在 macOS 上照常注册，只是不可用（§5.2 建议的 `builtin_darwin.go` 分平台列表没做）。
 - **权限引导页**（辅助功能、自动化的状态与跳转）：只有 `clip.Trusted()` 可用于检测辅助功能权限，界面没做；没有权限时粘贴只会失败并报错，还没有退化成"已复制，请按 ⌘V"。
 - 再次双击 `.app` 时的 `applicationShouldHandleReopen` → `--show`、菜单栏单色模板图标、Vibrancy 材质挑选。
-- 插件和设置页里其余约 45 条 Windows 措辞（资源管理器、回收站、以管理员身份运行、Win+V……）还没加 `@darwin` 变体；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。
+- 平台文案：还没处理的只剩并行分支负责的范围（终端、files、进程、网络工具、Scoop/WinGet/Homebrew、自安装和自动更新、环境感知/选中文本/权限），见 §10.5；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。
 - 自安装、自动更新：macOS 上一律跳过（显示为 portable）；`.app` 打包、签名、公证、DMG、release 流水线（第三期）都没做。
 - 自动更新用的系统代理在 macOS 上只读环境变量（没有读 `scutil --proxy`）。
 
@@ -399,3 +399,34 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
 - 系统语言（本机返回 `zh-Hans-CN`、`en-CN`，解析为 zh-CN）、登录 shell PATH（从访达启动后脚本能否找到 Homebrew 的 python3/node）、`golauncher mcp` 在启动器未运行时能否把它拉起来。
 
+### 10.5 平台文案（2026-10-16）
+
+核心、apps、ai、clipboard、quicklinks、scripts、timer 里在 macOS 上会显示的 Windows 措辞都处理了：16 条加了 `@darwin` 变体（en 和 zh-CN 都有），1 条改成中性措辞。中文用 Apple 的官方译名（访达、聚焦、系统设置 › 辅助功能 › 显示、增强对比度、降低透明度）。消息里写死的快捷键文字（`Ctrl+J`、`Ctrl+K`）在变体里写成 `⌘J`、`⌘K`，和按键显示（`core.MacKeys`）一致。
+
+| key | 处理 | macOS 上的英文 |
+|-----|------|----------------|
+| `settings.general.hotkeyFailed` | 变体 | 提到 Raycast、Alfred、ChatGPT 应用占用 ⌥Space、聚焦占用 ⌘Space；建议 ⌥⇧Space 或 ⌘⇧Space（原文建议的 Ctrl+Space 在 Mac 上就是 ⌘Space，⌃Space 是切换输入法） |
+| `notify.hotkeyFailed.body` | 变体 | 同上 |
+| `settings.appearance.opaque.highContrast` | 变体 | “Increase contrast” is on in System Settings › Accessibility › Display… |
+| `settings.appearance.opaque.transparencyOff` | 变体 | “Reduce transparency” is on in System Settings › Accessibility › Display… |
+| `settings.appearance.opaque.unsupported` | 变体 | This version of macOS cannot show a material… |
+| `settings.accent.windows` | 变体 | macOS |
+| `settings.appearance.accent.noWindows` | 变体 | macOS gives no accent color; the theme's is used. |
+| `tasks.toast.startedHint` | 变体 | Press ⌘J to see its progress. |
+| `tasks.elevate.prompt` | 变体 | Asking for administrator rights…（去掉 UAC） |
+| `apps:action.reveal` | 变体 | Show in Finder（`.app` 本来就用 `action.revealFinder`，这条兜底非 bundle 的条目） |
+| `ai:chat.empty` | 变体 | …⌘K shows more actions. |
+| `clipboard:pref.ignoreApps.description` | 变体 | 只写 macOS 的应用名，并说明密码管理器标记为隐藏（Concealed）的内容本来就不记录 |
+| `quicklinks:form.openWith.placeholder` | 变体 | /Applications/Firefox.app（macOS 上 `open -a` 需要 app 路径，`firefox.exe` 这种程序名没用） |
+| `quicklinks:form.openWith.info` | 变体 | Optional: the path of an app or a program. Empty: the default app. |
+| `scripts:pref.directories.description` | 变体 | 列出 Unix 上扫描的扩展名（.sh .zsh .py .js .rb .swift .applescript .ps1），举例 %HOME% |
+| `scripts:action.reveal` | 变体 | Show in Finder |
+| `timer:pref.sound.description` | 中性 | Notifications of ended timers make a sound.（golden `plugin_list.json` 随之更新） |
+
+有意没动的：
+
+- **已有自己的机制**：`system` 插件的 `mac.*` 消息和 everything 插件的 `*.spotlight` 消息是按后端（`system.Fake.Mac`、Spotlight 后端）选的，不按 `@darwin`，测试能在任何平台上覆盖两种文案，保持不变。`apps` 的 `.app` 条目用 `action.revealFinder`，也保持不变。
+- **提权**：`tasks.*` 的其他提权文案（`needsElevation`、`elevate.running/noOutput/cancelled/notEnded`、`retryAdmin`、`rightsAdmin`）用的“administrator”在 macOS 上也是对的说法，不改。不过行为上有个问题：macOS 上 `ProcessRunner` 仍实现 `Elevator`，`Elevate` 的任务会先打印“正在请求管理员权限…”，再因 `proc.StartElevated` 返回 `ErrUnsupported` 而失败；`proc.NeedsElevation` 按 Windows 的输出特征判断，误判时还会给出走不通的“以管理员身份重试”。应改成非 Windows 上不实现 `Elevator`（直接报 `tasks.error.noElevation`）、不设 `NeedsElevation`，留给后续。`apps:action.runAsAdmin` 只给非 `.app` 条目，macOS 上没有这种条目。
+- **材质名** Acrylic / Mica：Vibrancy 材质还没做（§10.3），等确定 macOS 上的材质再改。
+- **并行分支负责的范围**：`terminal`、`files`、`processes`、`network`、`scoop`、`winget`、Homebrew、`install.*`、`settings.updates.*`、`update.*`、`settings.selection.*`、`selection` 插件、环境感知和权限文案。
+- `clipboard_test.go` 的 `TestI18nKeys` 现在把 `id@darwin` 当作 `id` 的引用（与 `glctl i18n check` 一致）。

@@ -9,7 +9,7 @@
   "pref.remindPrefixes.title": "提醒前缀",
   "pref.remindPrefixes.description": "在主搜索中以这些词开头时设置提醒，比如“remind 15:30 开会”或“提醒 明天 9点 交周报”。",
   "pref.sound.title": "播放声音",
-  "pref.sound.description": "计时结束的 Windows 通知带提示音。",
+  "pref.sound.description": "计时结束的通知带提示音。",
   "pref.historySize.title": "历史记录",
   "pref.historySize.description": "保留多少个已结束和已取消的计时器（0 到 100）。",
   "pref.hour24.title": "24 小时制",

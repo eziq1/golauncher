@@ -9,6 +9,7 @@
   "action.open": "打开",
   "action.runAsAdmin": "以管理员身份运行",
   "action.reveal": "在文件资源管理器中显示",
+  "action.reveal@darwin": "在访达中显示",
   "action.revealFinder": "在访达中显示",
   "action.copyPath": "复制路径",
   "action.hide": "隐藏应用",
