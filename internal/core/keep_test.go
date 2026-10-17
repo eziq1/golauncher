@@ -23,6 +23,7 @@ type keepPlugin struct {
 	refuse   bool                 // refuse restores
 	requests []plugin.ViewRequest // every View call
 	closed   []string             // instances closed
+	closes   int                  // Close calls
 }
 
 func (p *keepPlugin) Manifest() plugin.Manifest {
@@ -33,7 +34,12 @@ func (p *keepPlugin) Manifest() plugin.Manifest {
 }
 
 func (p *keepPlugin) Init(context.Context, plugin.Host) error { return nil }
-func (p *keepPlugin) Close() error                            { return nil }
+func (p *keepPlugin) Close() error {
+	p.mu.Lock()
+	p.closes++
+	p.mu.Unlock()
+	return nil
+}
 
 func (p *keepPlugin) View(_ context.Context, req plugin.ViewRequest) (plugin.View, error) {
 	p.mu.Lock()
@@ -391,7 +397,22 @@ func TestKeepDisabledPlugin(t *testing.T) {
 	if s := e.Controller.Snapshot(); s.Depth != 0 {
 		t.Fatalf("disabled plugin restored: depth %d", s.Depth)
 	}
-	e.kp.waitClosed(t, inst)
+	// The kept view is released either way: told it closed (the show came
+	// first) or, the plugin being turned off in the background (R88), the
+	// whole plugin was Closed and nothing more reaches it.
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		e.kp.mu.Lock()
+		closed, closes := slices.Clone(e.kp.closed), e.kp.closes
+		e.kp.mu.Unlock()
+		if slices.Equal(closed, []string{inst}) || closes > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("neither ViewClosed(%s) nor Close: closed %v", inst, closed)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func TestKeepClosesPanelAndConfirm(t *testing.T) {
