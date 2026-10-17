@@ -73,3 +73,20 @@ func TestSessionAIChatKept(t *testing.T) {
 		t.Errorf("reopen root:\n%s", out)
 	}
 }
+
+// TestAIBackends lists the fake environment's made-up installations of the
+// backends' programs (R84), as JSON and as text.
+func TestAIBackends(t *testing.T) {
+	out, _ := glctl(t, "ai", "backends")
+	golden(t, "ai_backends", out)
+	out, _ = glctl(t, "ai", "backends", "--format", "text")
+	golden(t, "ai_backends_text", out)
+	for _, want := range []string{"Codex (ChatGPT) (codex): available", "launcher script, not used", "too old (needs 0.130.0)", "Gemini CLI (gemini): notSignedIn"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("no %q in:\n%s", want, out)
+		}
+	}
+	if _, code := glctl(t, "ai", "nope"); code != 2 {
+		t.Errorf("exit code %d for a wrong subcommand", code)
+	}
+}

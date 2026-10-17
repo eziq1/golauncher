@@ -13,6 +13,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/ai/claudecode"
+	"github.com/eziq1/golauncher/internal/ai/codex"
+	"github.com/eziq1/golauncher/internal/ai/gemini"
 	"github.com/eziq1/golauncher/internal/extproc"
 	"github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -232,8 +235,39 @@ func fakeWhich(name string) string {
 // runs Claude Code. Links go to the websites (no Claude app).
 func fakeAI() *ai.Plugin {
 	n := 0
-	return ai.NewWithOptions(ai.Options{Backend: &backend.Fake{}, Sync: true, HasProtocol: func(string) bool { return false },
+	return ai.NewWithOptions(ai.Options{Backends: fakeAIBackends(), Sync: true, HasProtocol: func(string) bool { return false },
 		NewID: func() string { n++; return fmt.Sprintf("00000000-0000-4000-8000-%012d", n) }})
+}
+
+// fakeAIBackends are the backends of the fake environment: the three of the
+// registry (aiBackends), each a fake that answers "You asked: …" and has
+// made-up installations (R84; invented paths, never this computer's), for
+// `glctl ai backends` and the Backends section of the settings.
+func fakeAIBackends() []ai.BackendOption {
+	const home = `C:\Users\someone`
+	in := func(path string, src backend.Source, version string) backend.Install {
+		return backend.Install{Path: home + path, Source: src, Version: version}
+	}
+	claude := backend.Discovery{MinVersion: claudecode.MinVersion, Auto: 0, AutoReason: backend.ReasonFirst, Status: backend.StatusAvailable,
+		Installs: []backend.Install{
+			in(`\.local\bin\claude.exe`, backend.SourcePath, "2.1.296"),
+			in(`\AppData\Roaming\npm\claude.cmd`, backend.SourceInstallDir, "2.1.120"),
+		}}
+	claude.Installs[1].Shadowed = true
+	codexD := backend.Discovery{MinVersion: codex.MinVersion, Auto: 0, AutoReason: backend.ReasonOnly, Status: backend.StatusAvailable,
+		Installs: []backend.Install{
+			in(`\AppData\Local\OpenAI\Codex\bin\codex.exe`, backend.SourceApp, "0.162.0"),
+			in(`\AppData\Roaming\npm\node_modules\@openai\codex\vendor\x86_64-pc-windows-msvc\codex\codex.exe`, backend.SourceNpmVendor, "0.46.0"),
+			{Path: home + `\AppData\Roaming\npm\codex.cmd`, Source: backend.SourceInstallDir, Launcher: true},
+		}}
+	codexD.Installs[1].TooOld = true
+	geminiD := backend.Discovery{MinVersion: gemini.MinVersion, Auto: 0, AutoReason: backend.ReasonOnly, Status: backend.StatusNotSignedIn,
+		Installs: []backend.Install{in(`\AppData\Roaming\npm\gemini.cmd`, backend.SourceInstallDir, "0.34.0")}}
+	return []ai.BackendOption{
+		{ID: claudecode.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, Found: claude}},
+		{ID: codex.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Codex (ChatGPT)", Found: codexD}},
+		{ID: gemini.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Gemini CLI", Found: geminiD}},
+	}
 }
 
 // fakeQuicklinks is the quicklinks and web search plugin with one fake

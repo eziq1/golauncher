@@ -34,6 +34,9 @@ type conversation struct {
 	// notice: the session to resume was lost and a new one started; the
 	// next turn tells the user (backend.NoticeNewSession).
 	notice bool
+	// missingNoticed: the chat was told that the configured CLI is missing
+	// (backend.NoticeProgramMissing), once per conversation.
+	missingNoticed bool
 	// toolConfig is the MCP configuration file written for the CLI, "" when
 	// none.
 	toolConfig string
@@ -196,6 +199,15 @@ func (c *conversation) run(ctx context.Context, t *turn, text string) {
 			final = backend.Event{Kind: backend.EventError, Err: err}
 		}
 		return
+	}
+	if cli.fallback {
+		c.mu.Lock()
+		tell := !c.missingNoticed
+		c.missingNoticed = true
+		c.mu.Unlock()
+		if tell {
+			t.emit(backend.Event{Kind: backend.EventNotice, Text: backend.NoticeProgramMissing})
+		}
 	}
 	var retriedLost, retriedInUse, retriedFallback, retriedRestart bool
 	for {

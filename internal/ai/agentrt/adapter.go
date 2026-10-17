@@ -117,6 +117,15 @@ type Info struct {
 	// is reported when there is no candidate (as ErrNotInstalled unless it
 	// is a *backend.Error).
 	Candidates func() (paths []string, err error)
+	// Discover, when set, lists every installation the search finds, in
+	// order, with how it was found, including the launcher scripts it skips
+	// (the settings show them, R84). It must be the same search as
+	// Candidates. Without it the runtime lists Candidates, or the matches of
+	// Commands on PATH and the InstallPaths that exist.
+	Discover func() []Found
+	// ResolvePath, when set, maps a configured CLI path to the CLI to run
+	// (Codex: an npm launcher to the native binary of its installation).
+	ResolvePath func(path string) string
 	// PathEnv, when set, returns variables the CLI at path needs, merged into
 	// the environment of each of its processes (the checks too), e.g. a PATH
 	// on which a script finds its interpreter.

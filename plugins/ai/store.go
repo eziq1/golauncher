@@ -38,8 +38,12 @@ type Message struct {
 	// Stopped marks an answer the user stopped.
 	Stopped bool `json:"stopped,omitzero"`
 	// Notice is what the backend said about the conversation before the
-	// answer (a backend.Notice code, e.g. that it started a new session).
+	// answer (backend.Notice codes, e.g. that it started a new session,
+	// separated by commas).
 	Notice string `json:"notice,omitempty"`
+	// Program is the program the backend ran when the answer failed in a way
+	// that another installation may avoid (R84), shown with the error.
+	Program string `json:"program,omitempty"`
 }
 
 // ToolStep is a tool call of an answer, shown as one line: e.g. a search

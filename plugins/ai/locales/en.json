@@ -167,5 +167,7 @@
   "error.notInstalled.gemini": "Gemini CLI is not installed. Install it (it needs Node.js; see https://github.com/google-gemini/gemini-cli), sign in by running `gemini` in a terminal, then try again.",
   "error.notLoggedIn.gemini": "Gemini CLI is not signed in. Run `gemini` in a terminal and sign in with your Google account, then try again.",
   "error.version.gemini": "This version of Gemini CLI is too old. Update it (`npm install -g @google/gemini-cli`), then try again.",
-  "error.quota.gemini": "Your Gemini usage limit was reached. Gemini CLI says:"
+  "error.quota.gemini": "Your Gemini usage limit was reached. Gemini CLI says:",
+  "notice.programMissing": "The program chosen for {{.backend}} in Settings › Plugins › AI no longer exists, so golauncher uses the one it finds automatically.",
+  "error.program": "golauncher ran `{{.path}}`. If {{.backend}} is installed more than once, choose another installation under Backends in Settings › Plugins › AI."
 }

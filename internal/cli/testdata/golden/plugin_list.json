@@ -841,6 +841,14 @@
           {
             "value": "claude-code",
             "title": "Claude Code"
+          },
+          {
+            "value": "codex",
+            "title": "Codex (ChatGPT)"
+          },
+          {
+            "value": "gemini",
+            "title": "Gemini CLI"
           }
         ]
       },

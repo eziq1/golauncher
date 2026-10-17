@@ -122,7 +122,11 @@
     Backend*. Each runs isolated from your own setup of that CLI (no other
     MCP servers, hooks, extensions or memory files, no file or shell tools),
     each chat stays on the backend it started with, and when Gemini asks for
-    permission to use a tool you answer in the same dialog. Copy an answer,
+    permission to use a tool you answer in the same dialog. *Settings ›
+    Plugins › AI › Backends* shows, for each backend, whether it is
+    available, which installed program it runs (path, version, where it was
+    found) and the other installations it found; when one is installed more
+    than once you can pick which one, or enter a path. Copy an answer,
     paste it elsewhere and reopen the launcher: you are back in the chat,
     with your unsent draft (within 10 minutes by default; *Settings ›
     General › Return to the main screen*).

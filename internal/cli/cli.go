@@ -73,6 +73,9 @@ Commands:
                                      validate prints errors, warnings and contrast
   attach show|hide|type|key|select|snapshot [arg]
                                      drive the running GUI through its control socket
+  ai backends [--real]               the AI chat's backends and the installations of their
+                                     programs (docs/ai.md §22): made up unless --real, which
+                                     runs their version commands
   mcp [--confirm deny|allow|session] [--ask-open]
                                      serve the AI tools as an MCP server on stdio
                                      (docs/ai.md §4); confirmations get --confirm
@@ -85,7 +88,7 @@ Commands:
   bench [--n N] [queries...]         measure root search latency
   version                            print the glctl version
 
-Environment flags (query, run, session new, tasks, plugin, mcp, bench):
+Environment flags (query, run, session new, tasks, plugin, ai, mcp, bench):
   --real           use the real configuration, database, apps and clipboard
                    (default: an isolated in-memory environment)
   --exec           with --real, perform action side effects and run the programs of
@@ -219,6 +222,8 @@ func (c *cli) run(ctx context.Context, args []string) error {
 		return c.bench(ctx, rest)
 	case "mcp":
 		return c.mcp(ctx, rest)
+	case "ai":
+		return c.ai(ctx, rest)
 	case "version":
 		return c.version(rest)
 	case "update":

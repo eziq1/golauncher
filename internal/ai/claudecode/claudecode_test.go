@@ -480,6 +480,12 @@ func TestVersionGate(t *testing.T) {
 }
 
 func TestNotInstalled(t *testing.T) {
+	// A configured CLI that is missing falls back to the automatic choice
+	// (R84), which finds nothing here either.
+	empty := t.TempDir()
+	for _, k := range []string{"PATH", "HOME", "USERPROFILE", "APPDATA"} {
+		t.Setenv(k, empty)
+	}
 	f := newFake(t, nil, func(o *Options) { o.Path = filepath.Join(t.TempDir(), "missing", "claude.exe") })
 	if _, err := f.b.Check(context.Background()); backend.KindOf(err) != backend.ErrNotInstalled {
 		t.Fatalf("Check = %v", err)

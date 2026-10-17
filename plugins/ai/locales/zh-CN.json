@@ -167,5 +167,7 @@
   "error.notInstalled.gemini": "没有安装 Gemini CLI。请先安装（需要 Node.js，见 https://github.com/google-gemini/gemini-cli），在终端运行 `gemini` 登录，然后再试。",
   "error.notLoggedIn.gemini": "Gemini CLI 还没有登录。请在终端运行 `gemini`，用你的 Google 账号登录，然后再试。",
   "error.version.gemini": "Gemini CLI 版本太旧。请更新（`npm install -g @google/gemini-cli`），然后再试。",
-  "error.quota.gemini": "已达到 Gemini 的用量上限。Gemini CLI 的提示："
+  "error.quota.gemini": "已达到 Gemini 的用量上限。Gemini CLI 的提示：",
+  "notice.programMissing": "在 设置 › 插件 › AI 里为 {{.backend}} 选的程序已经不存在，golauncher 改用自动找到的那个。",
+  "error.program": "golauncher 运行的是 `{{.path}}`。如果电脑上装了不止一个 {{.backend}}，可以在 设置 › 插件 › AI 的“后端”里换一个。"
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eziq1/golauncher/internal/ai/agentrt"
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
@@ -383,5 +384,73 @@ func TestParseVersion(t *testing.T) {
 		if got := parseVersion(in); got != want {
 			t.Errorf("parseVersion(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// foundRels describes what discover found: path relative to root, source
+// and "launcher" for the launchers.
+func foundRels(t *testing.T, root string, found []agentrt.Found) []string {
+	t.Helper()
+	out := make([]string, len(found))
+	for i, f := range found {
+		out[i] = rels(t, root, []string{f.Path})[0] + ":" + string(f.Source)
+		if f.Launcher {
+			out[i] += ":launcher"
+		}
+	}
+	return out
+}
+
+// TestDiscover: how each Windows installation was found (R84): PATH, the
+// desktop app, the npm package's native binary, and the npm launchers
+// (one per folder, never run), in the order candidates prefers them.
+func TestDiscover(t *testing.T) {
+	const x64Old = "node_modules/@openai/codex/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
+	root := t.TempDir()
+	touch(t, root, "bin/codex.exe", "local/OpenAI/Codex/bin/codex.exe", "local/OpenAI/Codex/bin/26.1/codex.exe",
+		"node/codex.cmd", "node/codex.ps1", "node/"+x64Old, "roaming/npm/codex.cmd", "lone/codex.cmd")
+	e := findEnv{OS: "windows", Arch: "amd64", LocalAppData: filepath.Join(root, "local"), AppData: filepath.Join(root, "roaming"),
+		Path: []string{filepath.Join(root, "bin"), filepath.Join(root, "node"), filepath.Join(root, "lone")}}
+	want := []string{
+		"bin/codex.exe:path",
+		"local/OpenAI/Codex/bin/codex.exe:app",
+		"local/OpenAI/Codex/bin/26.1/codex.exe:app",
+		"node/" + x64Old + ":npmVendor",
+		"node/codex.cmd:path:launcher",
+		"lone/codex.cmd:path:launcher",
+		"roaming/npm/codex.cmd:installDir:launcher",
+	}
+	if got := foundRels(t, root, discover(e)); !slices.Equal(got, want) {
+		t.Errorf("discover =\n %q\nwant\n %q", got, want)
+	}
+	// candidates is the same search without the launchers.
+	got, err := candidates(e)
+	if err != nil || len(got) != 4 {
+		t.Fatalf("candidates = %q, %v", got, err)
+	}
+}
+
+// TestDiscoverDarwin: the same on macOS: PATH, the usual folders
+// (installDir), the app, the npm package's binary and its launcher.
+func TestDiscoverDarwin(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("not on Windows")
+	}
+	const (
+		pkg     = "npm/lib/node_modules/@openai/codex"
+		armNest = pkg + "/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"
+		app     = "Applications/Codex.app/Contents/Resources/codex"
+	)
+	root := realTempDir(t)
+	for _, n := range []string{"bin/codex", "brew/codex", app, armNest} {
+		put(t, root, n, machO)
+	}
+	put(t, root, pkg+"/bin/codex.js", launcher)
+	link(t, root, "npm/bin/codex", "../lib/node_modules/@openai/codex/bin/codex.js")
+	e := findEnv{OS: "darwin", Arch: "arm64", Path: []string{filepath.Join(root, "bin"), filepath.Join(root, "npm/bin")},
+		Dirs: []string{filepath.Join(root, "brew")}, Apps: []string{filepath.Join(root, app)}}
+	want := []string{"bin/codex:path", "brew/codex:installDir", app + ":app", armNest + ":npmVendor", "npm/bin/codex:path:launcher"}
+	if got := foundRels(t, root, discover(e)); !slices.Equal(got, want) {
+		t.Errorf("discover =\n %q\nwant\n %q", got, want)
 	}
 }
