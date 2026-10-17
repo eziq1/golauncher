@@ -28,10 +28,12 @@ import (
 )
 
 // Environment variables of `golauncher mcp` set by the launcher for its own
-// AI chat: the process token and the chat's session ID.
+// AI chat: the process token, the chat's session ID and the name of the
+// agent CLI that answers in the chat (e.g. "Gemini CLI").
 const (
 	EnvToken   = "GOLAUNCHER_AGENT_TOKEN"
 	EnvSession = "GOLAUNCHER_AGENT_SESSION"
+	EnvAgent   = "GOLAUNCHER_AGENT_NAME"
 )
 
 // ServerName is the MCP server's name; Claude Code calls the tools
@@ -132,6 +134,9 @@ type Client struct {
 	// chat's ID.
 	Chat        bool
 	ChatSession string
+	// ChatAgent names the agent CLI of the chat ("" for Claude Code, also
+	// in older launchers).
+	ChatAgent string
 }
 
 // external reports whether the client is an AI app outside the launcher,
@@ -141,6 +146,8 @@ func (c Client) external() bool { return !c.Chat }
 // DisplayName is how the client is named to the user ("Claude Desktop").
 func (a *Agent) DisplayName(c Client) string {
 	switch {
+	case c.Chat && c.ChatAgent != "" && c.ChatAgent != "Claude Code":
+		return a.loc.T("agent.client.chatOf", "agent", c.ChatAgent)
 	case c.Chat:
 		return a.loc.T("agent.client.chat")
 	case c.Name == "claude-ai" || c.Name == "Claude Desktop" || c.Name == "claude-desktop":

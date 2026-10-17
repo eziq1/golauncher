@@ -141,5 +141,26 @@
   "selection.reply": "Suggest Replies",
   "selection.reply.keywords": "reply, replies, respond, answer, 回复",
   "action.replaceSelection": "Replace Selected Text",
-  "off.selection": "Once it is on, you are back at the search, where you choose what AI does with the selected text. Nothing is sent before you choose."
+  "off.selection": "Once it is on, you are back at the search, where you choose what AI does with the selected text. Nothing is sent before you choose.",
+
+  "pref.model.codex.title": "Model (Codex)",
+  "pref.model.codex.description": "The model Codex answers with. Default: the default of your Codex CLI version (your own Codex settings are not used).",
+  "pref.model.gemini.title": "Model (Gemini CLI)",
+  "pref.model.gemini.description": "The Gemini model that answers when Gemini CLI is the backend.",
+  "history.subtitle": "{{.time}} · {{.backend}}",
+  "chat.assistant.codex": "Codex",
+  "chat.assistant.gemini": "Gemini",
+  "chat.backendGone": "This chat was started with {{.backend}}, which this version of golauncher does not have. Start a new chat (Ctrl+N) to continue.",
+  "notice.newSession": "{{.backend}} could not continue the earlier conversation, so this answer starts a new one: it does not know the messages above.",
+  "permission.client": "{{.backend}} (AI Chat)",
+  "permission.tool": "Tool: {{.tool}}",
+  "error.chatUnavailable": "This chat was started with {{.backend}}, which is not available in this version of golauncher. Start a new chat (Ctrl+N).",
+  "error.notInstalled.codex": "Codex is not installed. golauncher runs the native codex.exe: install or update the Codex app, or put codex.exe from https://github.com/openai/codex/releases on PATH, sign in by running `codex login` in a terminal, then try again.",
+  "error.notLoggedIn.codex": "Codex is not signed in. Run `codex login` in a terminal and sign in with your ChatGPT account, then try again.",
+  "error.version.codex": "This version of Codex is too old for golauncher. Update it (the Codex app updates itself; or install the latest codex.exe), then try again.",
+  "error.quota.codex": "Your ChatGPT usage limit was reached. Codex says:",
+  "error.notInstalled.gemini": "Gemini CLI is not installed. Install it (it needs Node.js; see https://github.com/google-gemini/gemini-cli), sign in by running `gemini` in a terminal, then try again.",
+  "error.notLoggedIn.gemini": "Gemini CLI is not signed in. Run `gemini` in a terminal and sign in with your Google account, then try again.",
+  "error.version.gemini": "This version of Gemini CLI is too old. Update it (`npm install -g @google/gemini-cli`), then try again.",
+  "error.quota.gemini": "Your Gemini usage limit was reached. Gemini CLI says:"
 }

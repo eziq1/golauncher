@@ -1,0 +1,1585 @@
+{
+  "cases": [
+    {
+      "name": ".cmd resume=false tools=false web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=false web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=false tools=true web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=false web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".cmd resume=true tools=true web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\npm\\gemini.cmd",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=false web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=false tools=true web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=false web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=false model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=false model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=false model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=false model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-6d8a5e4ffeff.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-6d8a5e4ffeff.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=true model=\"\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=true model=\"\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=true model=\"gemini-2.5-flash\" prompt=false",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    },
+    {
+      "name": ".exe resume=true tools=true web=true model=\"gemini-2.5-flash\" prompt=true",
+      "argv": [
+        "C:\\bin\\gemini.exe",
+        "--acp",
+        "--approval-mode",
+        "default",
+        "-e",
+        "none",
+        "--allowed-mcp-server-names",
+        "golauncher",
+        "-m",
+        "gemini-2.5-flash"
+      ],
+      "env": [
+        "GEMINI_CLI_SYSTEM_SETTINGS_PATH=<dir>\\golauncher-system-settings-5604df4f0d3d.json",
+        "GEMINI_CLI_SYSTEM_DEFAULTS_PATH=C:\\ProgramData\\gemini-cli\\system-defaults.json",
+        "GEMINI_SANDBOX=false"
+      ],
+      "files": [
+        "golauncher-system-settings-5604df4f0d3d.json"
+      ]
+    }
+  ],
+  "settings": {
+    "golauncher-system-settings-5604df4f0d3d.json": {
+      "agents": {
+        "overrides": {
+          "cli_help": {
+            "enabled": false
+          },
+          "codebase_investigator": {
+            "enabled": false
+          },
+          "generalist": {
+            "enabled": false
+          }
+        }
+      },
+      "context": {
+        "fileName": "golauncher-no-context-file.md",
+        "loadMemoryFromIncludeDirectories": false
+      },
+      "experimental": {
+        "enableAgents": false,
+        "jitContext": false,
+        "plan": false,
+        "taskTracker": false
+      },
+      "general": {
+        "checkpointing": {
+          "enabled": false
+        },
+        "defaultApprovalMode": "default",
+        "enableAutoUpdate": false,
+        "enableAutoUpdateNotification": false
+      },
+      "hooksConfig": {
+        "enabled": false
+      },
+      "ide": {
+        "enabled": false
+      },
+      "mcp": {
+        "allowed": [
+          "golauncher"
+        ],
+        "serverCommand": ""
+      },
+      "security": {
+        "disableYoloMode": true
+      },
+      "skills": {
+        "enabled": false
+      },
+      "tools": {
+        "callCommand": "",
+        "core": [
+          "google_web_search",
+          "web_fetch"
+        ],
+        "discoveryCommand": "",
+        "exclude": [
+          "run_shell_command",
+          "read_file",
+          "read_many_files",
+          "write_file",
+          "replace",
+          "glob",
+          "grep_search",
+          "list_directory",
+          "save_memory",
+          "ask_user",
+          "activate_skill",
+          "write_todos",
+          "enter_plan_mode",
+          "exit_plan_mode",
+          "get_internal_docs",
+          "tracker_create_task",
+          "tracker_update_task",
+          "tracker_get_task",
+          "tracker_list_tasks",
+          "tracker_add_dependency",
+          "tracker_visualize",
+          "codebase_investigator",
+          "cli_help",
+          "generalist"
+        ]
+      },
+      "useWriteTodos": false
+    },
+    "golauncher-system-settings-6d8a5e4ffeff.json": {
+      "agents": {
+        "overrides": {
+          "cli_help": {
+            "enabled": false
+          },
+          "codebase_investigator": {
+            "enabled": false
+          },
+          "generalist": {
+            "enabled": false
+          }
+        }
+      },
+      "context": {
+        "fileName": "golauncher-no-context-file.md",
+        "loadMemoryFromIncludeDirectories": false
+      },
+      "experimental": {
+        "enableAgents": false,
+        "jitContext": false,
+        "plan": false,
+        "taskTracker": false
+      },
+      "general": {
+        "checkpointing": {
+          "enabled": false
+        },
+        "defaultApprovalMode": "default",
+        "enableAutoUpdate": false,
+        "enableAutoUpdateNotification": false
+      },
+      "hooksConfig": {
+        "enabled": false
+      },
+      "ide": {
+        "enabled": false
+      },
+      "mcp": {
+        "allowed": [
+          "golauncher"
+        ],
+        "serverCommand": ""
+      },
+      "security": {
+        "disableYoloMode": true
+      },
+      "skills": {
+        "enabled": false
+      },
+      "tools": {
+        "callCommand": "",
+        "core": [],
+        "discoveryCommand": "",
+        "exclude": [
+          "run_shell_command",
+          "read_file",
+          "read_many_files",
+          "write_file",
+          "replace",
+          "glob",
+          "grep_search",
+          "list_directory",
+          "save_memory",
+          "ask_user",
+          "activate_skill",
+          "write_todos",
+          "enter_plan_mode",
+          "exit_plan_mode",
+          "get_internal_docs",
+          "tracker_create_task",
+          "tracker_update_task",
+          "tracker_get_task",
+          "tracker_list_tasks",
+          "tracker_add_dependency",
+          "tracker_visualize",
+          "codebase_investigator",
+          "cli_help",
+          "generalist",
+          "google_web_search",
+          "web_fetch"
+        ]
+      },
+      "useWriteTodos": false
+    }
+  }
+}

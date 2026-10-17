@@ -10,6 +10,24 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **AI chat with Codex and Gemini CLI** (R72): Settings › Plugins › AI ›
+  *Backend* offers *Codex (ChatGPT)* and *Gemini CLI* next to Claude Code,
+  each with its own *Model* setting. Codex runs as the native `codex.exe`
+  (on PATH, the one the Codex app installs, or the binary inside an npm
+  install; never through Node.js), one process per answer with
+  `codex exec --json` and `resume`, without your `config.toml`, rules,
+  shell or other tools, in a read-only sandbox. Gemini CLI runs over the
+  Agent Client Protocol (`gemini --acp`; Gemini CLI itself needs Node.js)
+  with golauncher's own system settings: no local file or shell tools, no
+  other MCP servers, extensions, hooks, skills or GEMINI.md memory. Both
+  get golauncher's MCP tools. When Gemini asks for permission to use a
+  tool, the launcher's confirmation dialog asks you (*Allow*, *Allow for
+  this session* when offered and not destructive, *Deny*; no answer in 60
+  seconds or stopping the answer denies), and AI Activity records it.
+  Each chat stays on the backend it was started with; the history shows
+  which; a chat whose backend is gone says so; deleting a chat (or pruning
+  it) also forgets the CLI's session ID. When a CLI cannot continue an
+  earlier conversation, the chat says that the answer starts a new one.
 - **Background tasks as administrator** (R68): the SDK's
   `ProcessSpec.Elevate` (JSON `elevate`, also for external plugins) runs a
   task's program as administrator through a UAC prompt, while golauncher
@@ -25,9 +43,9 @@ Before 1.0.0, minor versions may contain breaking changes.
 ### Changed
 
 - **AI chat: Backend setting** (R71): Settings › Plugins › AI has a
-  *Backend* choice, with one option for now (Claude Code, the default). A
-  configuration naming a backend this version does not have explains that
-  in the chat.
+  *Backend* choice (Claude Code, the default; Codex and Gemini CLI since
+  R72). A configuration naming a backend this version does not have
+  explains that in the chat. Since R72 changing it affects new chats only.
 - **AI chat internals** (R71, docs/ai.md §20): the Claude Code backend is
   now the first adapter of a shared agent runtime (`internal/ai/agentrt`:
   processes, fallback to one process per turn, idle release, process limit,

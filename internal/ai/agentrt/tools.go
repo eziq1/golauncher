@@ -54,6 +54,24 @@ func MCPConfigName(sessionID string) string {
 	return "mcp-" + safe + ".json"
 }
 
+// writeFiles writes an adapter's files (Command.Files) into dir, skipping
+// those whose content did not change.
+func writeFiles(dir string, files map[string][]byte) error {
+	for name, b := range files {
+		if name == "" || filepath.Base(name) != name {
+			return errors.New("agentrt: invalid file name " + name)
+		}
+		path := filepath.Join(dir, name)
+		if old, err := os.ReadFile(path); err == nil && string(old) == string(b) {
+			continue
+		}
+		if err := os.WriteFile(path, b, 0o600); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // launcherTools reports whether the conversation's model gets golauncher's
 // tools.
 func (c *conversation) launcherTools() bool {

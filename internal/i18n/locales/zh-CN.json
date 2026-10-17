@@ -20,6 +20,7 @@
   "confirm.tasksInterrupted": { "other": "{{.Count}} 个后台任务将被中断。" },
   "confirm.cancel": "取消",
   "agent.client.chat": "Claude（AI 对话）",
+  "agent.client.chatOf": "{{.agent}}（AI 对话）",
   "agent.client.desktop": "Claude 桌面版",
   "agent.client.code": "Claude Code",
   "agent.client.unknown": "一个 AI 应用",

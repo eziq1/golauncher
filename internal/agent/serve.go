@@ -15,7 +15,7 @@ import (
 // open (internal/winapi/pipe). Every connection starts with one hello line
 // from the bridge, then speaks MCP:
 //
-//	{"golauncher":"hello","token":"…","session":"…"}
+//	{"golauncher":"hello","token":"…","session":"…","agent":"…"}
 //
 // A token equal to the launcher's process token marks the launcher's own AI
 // chat, whose session ID names the chat; other connections are AI apps,
@@ -26,6 +26,8 @@ type hello struct {
 	Golauncher string `json:"golauncher"`
 	Token      string `json:"token,omitempty"`
 	Session    string `json:"session,omitempty"`
+	// Agent names the agent CLI of the launcher's chat (EnvAgent).
+	Agent string `json:"agent,omitempty"`
 }
 
 const helloKind = "hello"
@@ -75,7 +77,7 @@ func (a *Agent) serveConn(ctx context.Context, conn net.Conn) error {
 	}
 	c := Client{}
 	if tok := a.o.Token; tok != "" && subtle.ConstantTimeCompare([]byte(h.Token), []byte(tok)) == 1 {
-		c.Chat, c.ChatSession = true, h.Session
+		c.Chat, c.ChatSession, c.ChatAgent = true, h.Session, h.Agent
 	}
 	a.log.Info("ai client connected", "chat", c.Chat)
 	defer a.log.Info("ai client disconnected", "chat", c.Chat)
