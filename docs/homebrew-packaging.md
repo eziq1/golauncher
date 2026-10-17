@@ -2,6 +2,8 @@
 
 > 对应需求 R98（为本项目增加 brew 的安装方式）。见 [requirements.md](requirements.md)。
 >
+> 状态：✅ 已合并到 main，尚未发布（由 Homebrew 管理时的检测从下一个版本起才有，0.8.0 没有）；tap 仓库 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap) 已创建，含 v0.8.0 的 cask（2026-10-17，R101）。
+>
 > 这一篇讲**把 golauncher 发布成 Homebrew cask**。内置的 Homebrew 插件（在启动器里搜索、安装别的软件）是另一回事，见 [homebrew.md](homebrew.md)。Windows 上的对应做法见 [winget-packaging.md](winget-packaging.md)。只支持 macOS，Linux 不是目标平台。
 
 ## 1. 结论
@@ -197,7 +199,7 @@ golauncher.app 只有 ad hoc 签名，没有 Developer ID 签名，也没有经�
 
 ## 7. 还没做 / 待定
 
-- **创建 `eziq1/homebrew-tap` 仓库并推送第一个 cask**：由你来做（§5.1）。在那之前 `brew install --cask eziq1/tap/golauncher` 找不到。
+- ~~创建 `eziq1/homebrew-tap` 仓库并推送第一个 cask~~：✅ 2026-10-17 已完成（§5.1）；还没在 Mac 上实际跑过 `brew install`。
 - 是否打开自动推送（§5.3）。
 - "退出并升级"按钮：在设置里运行 `brew upgrade --cask golauncher` 后自动重新打开，这一期不做。
 - `brew style` / `brew audit` 没有在本机运行过（这台电脑是 Windows），第一次发布后看 `homebrew` 任务的日志；如果它对 `on_arm`/`on_intel` 写法提出建议（另一种写法是 `arch arm: "arm64", intel: "amd64"` 加 `sha256 arm: ..., intel: ...`），改生成器即可。

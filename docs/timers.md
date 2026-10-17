@@ -1,6 +1,6 @@
 # 计时器与提醒插件设计方案
 
-> 状态：已实现（待合并），见 §9 · 2026-10-15 · 对应需求 R48（见 [requirements.md](requirements.md)）
+> 状态：已实现并发布，见 §9 · 2026-10-15 · 对应需求 R48（见 [requirements.md](requirements.md)）
 >
 > 需求：新增插件：计时器与提醒，如 `timer 25m`，结束时发通知。
 

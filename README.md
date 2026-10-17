@@ -21,7 +21,7 @@
   compress to ZIP, copy a SHA-256, search the folder with Everything or
   Spotlight. Works with Windows 11 tabs, and with any window whose title (or,
   on a Mac, whose document) shows a path. Nothing is stored, and it can be
-  turned off in Settings.
+  turned off in Settings ([docs/context-awareness.md](docs/context-awareness.md)).
 - **Selected text**: select some text in any app, press Alt+Space, and the
   top of the list offers actions for it: translate, ask AI (explain,
   summarize, rewrite, suggest replies, or type an instruction), search the
@@ -32,54 +32,72 @@
   apps that do not support it. The text is
   never stored and is sent to AI only when you pick an AI action
   ([docs/selected-text.md](docs/selected-text.md)).
+- **Files in the main search**: drop files onto the launcher, paste copied
+  files or an image with `Ctrl+V`, or choose them with `Ctrl+O` or *Choose
+  Files…*. They show as chips, and a **Files** section at the top offers
+  what you can do with them: *Ask AI about…*, *Open*, *Open With…*
+  (Windows), *Show in File Explorer* or *Show in Finder*, copy the paths or
+  names, *Compress to ZIP*, copy the SHA-256 checksum, *Copy Image*. Type to
+  filter the actions. A chip's × removes one file; `Esc` removes them all.
+  The files are never recorded or shown to AI unless you pick *Ask AI*
+  ([docs/root-files.md](docs/root-files.md)).
 - **Built-in plugins**
   - **Applications**: Start menu apps, including Store apps, on Windows; the
     apps in Applications and the system folders, with their localized names,
-    on macOS. Pinyin matching (`wx` finds 微信).
+    on macOS. Pinyin matching (`wx` finds 微信)
+    ([docs/app-names.md](docs/app-names.md)).
   - **Calculator**: exact decimal arithmetic, functions, and base conversion
     (`255 in hex`), plus **unit conversion**: `10 km in mi`, `30 ℃`,
     `5 GB / 100 Mbps`, `3 斤 to kg`, `8 L/100km in mpg`, `16 px in rem`,
     currencies (`100 usd in cny`, free rates without an API key, cached for
     offline use), timestamps (`1700000000 to date`, `now in unix`), colors
     (`#ff8800 to hsl`) and clothing/shoe sizes (`US 9 shoe in EU`). Units have
-    English, Chinese and pinyin names (`10 公里 换成 英里`).
+    English, Chinese and pinyin names (`10 公里 换成 英里`)
+    ([docs/unit-conversion.md](docs/unit-conversion.md)).
   - **Clipboard History** (`Alt+Shift+V`, `⌥⇧V`): text, images and files, with
     full-text search. Copies from password managers are skipped.
   - **Files**: the context actions above (`builtin.files`).
   - **File Search**: powered by [Everything](https://www.voidtools.com/) on
-    Windows, when it is installed, and by Spotlight on macOS.
+    Windows, when it is installed, and by Spotlight on macOS
+    ([docs/everything.md](docs/everything.md)).
   - **Scoop** (Windows): search, install, update and remove
-    [Scoop](https://scoop.sh) packages, when Scoop is installed.
+    [Scoop](https://scoop.sh) packages, when Scoop is installed
+    ([below](#scoop), [docs/scoop.md](docs/scoop.md)).
   - **WinGet** (Windows): search, install, upgrade and remove packages with
-    the Windows Package Manager (`winget`), when it is installed.
+    the Windows Package Manager (`winget`), when it is installed
+    ([below](#winget), [docs/winget.md](docs/winget.md)).
   - **Homebrew** (macOS): search formulae and casks, install, upgrade and
     uninstall them, and list installed and outdated packages, when
-    [Homebrew](https://brew.sh) is installed.
+    [Homebrew](https://brew.sh) is installed
+    ([docs/homebrew.md](docs/homebrew.md)).
   - **System**: Lock, Sleep, Restart, Shut Down, Sign Out, Empty Recycle Bin
     or Trash, Toggle Dark Mode, volume and Turn Off Display (plus Hibernate
     and Show Desktop on Windows), with about 150 Windows Settings pages and
     the classic tools (Device Manager, Services, Registry Editor, …) on
     Windows, or the System Settings panes and utilities on macOS; searchable
     in English, Chinese and pinyin (`蓝牙`, `wifi`, `关机`, `gj`). Restart,
-    Shut Down, Sign Out and emptying the bin ask first.
+    Shut Down, Sign Out and emptying the bin ask first
+    ([docs/system-commands.md](docs/system-commands.md)).
   - **Terminal**: on Windows, your Windows Terminal profiles (including
     fragments such as Git Bash) and WSL distributions with their running
     state; open one in a new window or tab, as administrator or in the
     current folder, set the default distribution, stop it, shut down or
     update WSL. On macOS, Terminal, iTerm2, Ghostty, WezTerm, Alacritty, kitty
     and Warp: a new window or tab, in the current folder, or running a
-    command, with a default terminal of your choice.
+    command, with a default terminal of your choice
+    ([docs/terminal-wsl.md](docs/terminal-wsl.md)).
   - **World Clock**: type `time` for your local time and major cities, or
     `time tokyo`, `time bj`, `time 北京`, `time utc+8`, `time pst` to find
     one of about 32,000 cities (every city of 15,000 people or more, from
-    GeoNames). The clocks tick; favorite cities stay on top.
+    GeoNames). The clocks tick; favorite cities stay on top
+    ([docs/world-clock.md](docs/world-clock.md)).
   - **Timers & Reminders**: `timer 25m`, `timer 1h30m tea`, `计时 半小时`
     start a countdown; `remind 15:30 meeting`, `remind tomorrow 9am`,
     `提醒 明天 9点 交周报`, `remind in 20m` set a reminder. `timer` lists
     the running ones with the time left (pause, resume, +5 min, restart,
     cancel and undo); a notification comes when they end. Timers survive
     restarts, and reminders missed while golauncher was not running are
-    announced when it starts.
+    announced when it starts ([docs/timers.md](docs/timers.md)).
   - **Quicklinks & Web Search**: `g golang generics`, `bd 天气`, `gh`, `yt`,
     `wiki`, `zhihu`, `bili`… (20 built-in engines) search the web (add
     your own engines, change keywords); a typed URL (`github.com/foo`,
@@ -88,30 +106,24 @@
     links to websites, files, folders and programs with `{query}`,
     `{clipboard}` and `{date}` placeholders, created with a form and
     imported or exported as JSON. Search suggestions are off by default.
-    Google Translate's web search is `gt` (the translator took `tr`).
+    Google Translate's web search is `gt` (the translator took `tr`)
+    ([docs/quicklinks.md](docs/quicklinks.md)).
   - **Translator**: `tr hello`, `fy …` or `翻译 …` translates as you type,
-    with each engine on its own row: Google Translate's web endpoint (no
-    key, unofficial; MyMemory when it cannot be reached), MyMemory, and with
-    your own keys DeepL, Azure AI Translator, Youdao and Baidu (asked
-    first). A single word also gets a dictionary entry (phonetics, parts
-    of speech, meanings); translations and originals can be read aloud
-    with the system's voices, or handed to the AI chat (*Translate with
-    AI*). Name the languages with
-    `tr ja 你好`, `tr >de thanks`, `tr 日 你好` or `tr en>zh apple`;
-    otherwise text goes into the interface language (or English when it is
-    already in it). Enter copies, Ctrl+Enter pastes into the previous
-    window; swap the languages or open Google Translate, DeepL or Youdao.
-    Text is sent only after the prefix; an instant translation of selected
-    text is off by default. Add your own engines as HTTP templates, or
-    translate offline with a local model through Ollama; an optional
-    history of the translations you copy (off by default, local only).
+    with each engine on its own row. Without a key it uses Google
+    Translate's web endpoint (unofficial), and MyMemory when that fails.
+    With your own keys, DeepL, Azure AI Translator, Youdao and Baidu are
+    asked first. A single word also gets a dictionary entry; translations
+    can be read aloud or handed to the AI chat (*Translate with AI*). Add
+    your own HTTP engines, or translate offline with Ollama
+    ([below](#translator), [docs/translator.md](docs/translator.md)).
   - **Network Tools**: `ip` shows your adapters' addresses, gateway, DNS,
     Wi-Fi network and signal, and your public IP; `ping <host>` pings live
     with statistics; `dns <domain> [@server]` looks up records;
     `port 8080` shows (and can end) the process listening on a port, and
     `port host:443` checks whether a port can be reached; `wifi` copies the
     password of a saved network; `tracert <host>`, Flush DNS Cache and
-    (on Windows) Renew IP Address run in the background.
+    (on Windows) Renew IP Address run in the background
+    ([docs/network-tools.md](docs/network-tools.md)).
   - **Processes**: `ps ` (with a space), `kill` or `进程` lists running apps
     and processes grouped by app, with live CPU and memory bars; search by
     name, window title, pinyin or PID. Enter switches to the window; End
@@ -119,7 +131,8 @@
     elevated processes are ended through a one-off UAC prompt (on macOS,
     the administrator password prompt). Critical
     system processes and golauncher itself cannot be ended. *Quit <app>*
-    acts on the app in front, and *Force Quit* is offered when it hangs.
+    acts on the app in front, and *Force Quit* is offered when it hangs
+    ([docs/process-manager.md](docs/process-manager.md)).
   - **AI Chat** (off until you turn it on): press `Tab` after typing a
     question, or pick *Ask AI* when nothing matches, to chat with Claude
     through your installed [Claude Code](https://claude.com/product/claude-code)
@@ -146,14 +159,17 @@
     than once you can pick which one, or enter a path. Copy an answer,
     paste it elsewhere and reopen the launcher: you are back in the chat,
     with your unsent draft (within 10 minutes by default; *Settings ›
-    General › Return to the main screen*). **Attach images and text files**
-    to a message: drop files onto the launcher (onto the root search it opens
-    a new chat with them), paste a screenshot or copied files with `Ctrl+V`
-    in a chat, or choose them with *Add Attachment…* (`Ctrl+O`). Images (PNG,
-    JPEG, GIF, WebP; BMP and TIFF are converted) are scaled down to at most
-    2000 px, text files (up to 200 KB) are sent inline; up to 10 per message.
-    PDF, Office documents, video and audio show as unsupported and keep the
-    message from being sent until you remove them.
+    General › Return to the main screen*;
+    [docs/keep-view.md](docs/keep-view.md)). **Attach images and text files**
+    to a message: drop files onto a chat, paste an image or copied files
+    with `Ctrl+V` in a chat (an image copied from a browser or a chat app
+    works too), or choose them with *Add Attachment…* (`Ctrl+O`). From the
+    main search, *Ask AI about…* opens a new chat with the files you gave
+    it. Images (PNG, JPEG, GIF, WebP; BMP and TIFF are converted) are
+    scaled down to at most 2000 px, text files (up to 200 KB) are sent
+    inline; up to 10 per message. PDF, Office documents, video and audio
+    show as unsupported and keep the message from being sent until you
+    remove them ([docs/ai.md](docs/ai.md)).
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
     `golauncher mcp` is an MCP server for your plugins. The settings
@@ -161,7 +177,7 @@
     a backup) and shows the `claude mcp add` command for Claude Code. You
     choose which plugins AI may use (clipboard history and third-party
     plugins are off by default); *AI Activity* lists every tool call of the
-    last 30 days.
+    last 30 days ([docs/ai.md](docs/ai.md)).
 - **Settings window** (`Ctrl+,`, `⌘,`): set hotkeys, aliases, plugin
   preferences, the appearance and the language, and, on macOS, see which
   permissions golauncher has (*Settings › Permissions*).
@@ -185,7 +201,10 @@
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.7 is an early public release, the first for macOS. See the
+> **Status:** v0.8 is an early public release for Windows and macOS. Some
+> features above (the translator, files in the main search, attachments in
+> the AI chat, the fixed image paste) are on `main` and come with the next
+> release; see the [changelog](CHANGELOG.md). See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 
 ## Install
@@ -201,11 +220,14 @@ newer or older download later offers to upgrade or downgrade; the same version
 just starts the installed copy. Choose *Run without installing* (or pass
 `--portable`) to run it from where it is. golauncher lives in the system tray.
 
-**winget** (after the package is accepted into the winget community
+**winget** (once the package is accepted into the winget community
 repository): `winget install eziq1.golauncher`, and later
-`winget upgrade eziq1.golauncher`. A copy installed with winget does not offer
-to install itself and leaves updates to winget (*Settings › About* says so);
-quit golauncher before upgrading. See
+`winget upgrade eziq1.golauncher`. The package is under review: the pull
+request [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732)
+passed the automated checks and waits for a human reviewer. Quit golauncher
+before upgrading. From the next release on, a copy installed with winget
+does not offer to install itself and leaves updates to winget (*Settings ›
+About* says so); 0.8.0 does not know about winget yet. See
 [docs/winget-packaging.md](docs/winget-packaging.md).
 
 **Automatic updates**: the installed copy checks GitHub Releases for a new
@@ -259,15 +281,20 @@ Accessibility permission after each update: remove golauncher from the list
 and add it again. Automatic updates work as on Windows. Requires macOS 13 or
 later. See [docs/macos-port.md](docs/macos-port.md).
 
-**Homebrew** (once the tap repository is published):
-`brew install --cask eziq1/tap/golauncher`, and later
-`brew upgrade --cask golauncher` (then quit and reopen golauncher). It installs
-golauncher.app into `/Applications` and links `glctl` into Homebrew's `bin`. A
-copy installed with Homebrew does not offer to install itself and leaves
-updates to Homebrew (*Settings › About* says so). The app is not notarized,
-so macOS still blocks its first start: allow it in *System Settings › Privacy &
-Security › Open Anyway*. `brew uninstall --zap --cask golauncher` also removes
-your settings and data. See [docs/homebrew-packaging.md](docs/homebrew-packaging.md).
+**Homebrew**: `brew install --cask eziq1/tap/golauncher`, and later
+`brew upgrade --cask golauncher` (then quit and reopen golauncher). The cask
+comes from the tap [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap).
+It installs golauncher.app into `/Applications` and links `glctl` into
+Homebrew's `bin`. The app is ad hoc signed, not notarized, so macOS blocks
+its first start: open it once, then choose *System Settings › Privacy &
+Security › Open Anyway*. You may have to do this again after an upgrade.
+From the next release on, a copy installed with Homebrew does not offer to
+install itself and leaves updates to Homebrew (*Settings › About* says so);
+0.8.0 does not know about Homebrew yet. If golauncher already installed
+itself into `/Applications`, quit it and remove that copy first (your
+settings are kept), or use `brew install --cask --adopt` for the same
+version. `brew uninstall --zap --cask golauncher` also removes your settings
+and data. See [docs/homebrew-packaging.md](docs/homebrew-packaging.md).
 
 | What | Where |
 |------|-------|
@@ -285,8 +312,12 @@ On a Mac, press ⌥ for Alt and ⌘ for Ctrl (`⌥Space`, `⌘K`, `⌘,`); `⌃N
 | `↑` `↓`, `Ctrl+N` `Ctrl+P` | Move the selection |
 | `Enter` / `Ctrl+Enter` | Run the primary / secondary action |
 | `Ctrl+K` | Open all actions of the selected item |
-| `Esc` | Clear the search, go back, or hide |
+| `Ctrl+O` | Main search: choose files to act on. AI chat: *Add Attachment…* |
+| `Ctrl+V` | Main search and AI chat: paste copied files or an image as files (text still pastes as text) |
+| `Esc` | Clear the search, go back, or hide. In the main search with files: clear the text first, then the files, then hide |
 | `Ctrl+,` | Open Settings |
+
+When the selected item has its own `Ctrl+O` action, that action wins.
 
 ## Build from source
 
@@ -389,6 +420,44 @@ ipconfig /flushdns | Select-Object -Last 1
 
 Modes `silent`, `compact` and `fullOutput` are supported (`inline` runs as
 `compact`). See the [plugin guide](docs/plugin-guide.md#script-commands).
+
+## Translator
+
+Type `tr`, `fy` or `翻译` and a space, then the text. Nothing is sent before
+you type a prefix.
+
+| Input | Result |
+|-------|--------|
+| `tr hello world` | Into the interface language (into English if the text is already in it) |
+| `tr ja good morning`, `tr >ja …`, `tr 日 …` | Into Japanese: a language code, `>` and a code, or a Chinese name |
+| `tr en>zh apple` | From English into Chinese |
+| `tr serendipity` | A single word also gets a *Dictionary* row (phonetics, parts of speech, meanings) |
+
+`Enter` copies the translation; `Ctrl+Enter` pastes it into the previous
+window. More actions: *Copy Original Text* (`Ctrl+Shift+C`), *Swap
+Languages*, *Read Translation Aloud* and *Read Original Aloud* (SAPI on
+Windows, `say` on macOS), *Translate with AI* (opens an AI chat), and open
+the text in Google Translate, DeepL or Youdao. The *Translate* command
+opens the same as a view.
+
+Engines, in the translator's settings:
+
+- Without a key: Google Translate's web endpoint (unofficial, may stop
+  working, usually unreachable in mainland China). When every engine fails,
+  MyMemory is asked instead.
+- With your own key: DeepL, Azure AI Translator, Youdao and Baidu. They are
+  asked first. Keys are stored in the Windows Credential Manager or the
+  macOS Keychain.
+- *Custom engines*: one HTTP template per line
+  (`name | GET or POST | URL | JSON path [| body [| headers]]`, with
+  `{text}`, `{from}` and `{to}`).
+- A local model through Ollama, offline.
+
+Two options are off by default: *Translate selected text at once* (a row in
+the *Selected Text* section, with *Replace Selected Text*) and *Keep a
+translation history* (the translations you copy or paste, on this computer
+only; see *Translation History*). Google Translate's web search moved to
+`gt`. See [docs/translator.md](docs/translator.md).
 
 ## Scoop
 
