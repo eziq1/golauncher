@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"time"
 
@@ -62,11 +64,42 @@ func All() []plugin.Plugin {
 		quicklinks.New(), // its fallback comes after ai's: FallbackOrderLast (docs/quicklinks.md §3)
 		ai.NewWithOptions(ai.Options{Backends: aiBackends()}),
 	}
-	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
+	return assemble(runtime.GOOS, builtins, extproc.DefaultRoots(), extproc.Options{HostVersion: HostVersion})
+}
+
+// FakePlatform is the platform of the fake environment (Fake): it imitates
+// a Windows machine on every system, so its results are the same
+// everywhere.
+const FakePlatform = plugin.PlatformWindows
+
+// assemble returns the built-ins that run on platform (see
+// plugin.Manifest.Platforms) followed by the external plugins under roots
+// for platform. All and FakeOn go through it, so it is the one place that
+// filters plugins by platform: the built-ins here, the external plugins in
+// extproc.Load (given o.Platform). The IDs of all built-ins stay reserved,
+// even of those left out.
+func assemble(platform string, builtins []plugin.Plugin, roots []string, o extproc.Options) []plugin.Plugin {
+	o.Platform = platform
+	return append(ForPlatform(platform, builtins), External(roots, builtins, o)...)
+}
+
+// ForPlatform returns the plugins of ps whose manifest supports platform
+// (a GOOS name), logging the others at debug level.
+func ForPlatform(platform string, ps []plugin.Plugin) []plugin.Plugin {
+	out := ps[:0:0]
+	for _, p := range ps {
+		if m := p.Manifest(); !m.SupportsPlatform(platform) {
+			slog.Debug("built-in plugin skipped: not for this platform", "plugin", m.ID, "platforms", m.Platforms, "platform", platform)
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // External returns the external plugins under roots (see extproc.Find),
-// leaving out those whose ID is taken by one of loaded.
+// leaving out those whose ID is taken by one of loaded and those whose
+// platforms leave out o.Platform (runtime.GOOS when empty).
 func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugin.Plugin {
 	var ids []string
 	for _, p := range loaded {
@@ -100,7 +133,17 @@ func External(roots []string, loaded []plugin.Plugin, o extproc.Options) []plugi
 // External plugins are loaded from pluginRoots and GOLAUNCHER_PLUGIN_PATH
 // (never from the user's plugin directory). They start eagerly, so results
 // do not depend on how fast a plugin process starts.
+//
+// Plugins are chosen for FakePlatform (Windows) whatever the system, so
+// Scoop and WinGet are there on macOS too.
 func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
+	return FakeOn(FakePlatform, dir, pluginRoots...)
+}
+
+// FakeOn is Fake with the plugins chosen for platform (a GOOS name, see
+// plugin.Manifest.Platforms) instead of FakePlatform. The plugins
+// themselves stay those of the fake environment.
+func FakeOn(platform, dir string, pluginRoots ...string) []plugin.Plugin {
 	appsSrc := apps.Source(func(context.Context) ([]shell.App, error) { return nil, nil })
 	if f := fixture(dir, "apps.json"); f != "" {
 		appsSrc = apps.FixtureSource(f)
@@ -125,7 +168,7 @@ func Fake(dir string, pluginRoots ...string) []plugin.Plugin {
 		fakeAI(),
 	}
 	roots := append(slices.Clone(pluginRoots), extproc.EnvDirs()...)
-	return append(builtins, External(roots, builtins, extproc.Options{Eager: true})...)
+	return assemble(platform, builtins, roots, extproc.Options{Eager: true})
 }
 
 // fakeCalc is the calculator with the exchange rates of dir/rates.json, or

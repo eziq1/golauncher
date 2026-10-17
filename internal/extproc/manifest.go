@@ -11,6 +11,7 @@
 package extproc
 
 import (
+	"cmp"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing/fstest"
@@ -63,6 +65,9 @@ func ReadManifest(dir string) (Manifest, error) {
 	}
 	if m.ID == "" {
 		return m, fmt.Errorf("%s: missing id", filepath.Join(dir, ManifestFile))
+	}
+	if err := m.CheckPlatforms(); err != nil {
+		return m, fmt.Errorf("%s: platforms: %w", filepath.Join(dir, ManifestFile), err)
 	}
 	return m, nil
 }
@@ -129,12 +134,15 @@ func isPluginDir(dir string) bool {
 
 // Load creates proxies for the plugins under roots (see Find). Plugins whose
 // manifest cannot be read, and plugins whose ID is in reserved or was
-// already loaded, are skipped with a warning to log. Other problems make
+// already loaded, are skipped with a warning to log. Plugins whose
+// manifest's platforms leave out o.Platform are skipped (logged at debug
+// level): no proxy is made and no process ever starts. Other problems make
 // the plugin unavailable with a reason the settings page shows.
 func Load(roots []string, reserved []string, o Options, log *slog.Logger) []*Proxy {
 	if log == nil {
 		log = slog.Default()
 	}
+	platform := cmp.Or(o.Platform, runtime.GOOS)
 	seen := map[string]bool{}
 	for _, id := range reserved {
 		seen[id] = true
@@ -144,6 +152,10 @@ func Load(roots []string, reserved []string, o Options, log *slog.Logger) []*Pro
 		m, err := ReadManifest(dir)
 		if err != nil {
 			log.Warn("external plugin skipped", "dir", dir, "err", err)
+			continue
+		}
+		if !m.SupportsPlatform(platform) {
+			log.Debug("external plugin skipped: not for this platform", "dir", dir, "plugin", m.ID, "platforms", m.Platforms, "platform", platform)
 			continue
 		}
 		if seen[m.ID] {

@@ -47,6 +47,10 @@ type Options struct {
 	Eager bool
 	// HostVersion is sent in initialize.
 	HostVersion string
+	// Platform is the GOOS name Load matches against the manifests'
+	// platforms (runtime.GOOS when empty). glctl's fake environment passes
+	// "windows" on every system.
+	Platform string
 }
 
 func (o Options) withDefaults() Options {

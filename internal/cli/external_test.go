@@ -95,6 +95,11 @@ func TestPluginValidate(t *testing.T) {
 	if code != 1 || !strings.Contains(out, "nope.exe") || !strings.Contains(out, "en.json is missing") {
 		t.Fatalf("bad plugin: %d\n%s", code, out)
 	}
+	os.WriteFile(filepath.Join(bad, "plugin.json"), []byte(`{"id":"x","name":"X","version":"1","protocol":1,"run":{"command":"nope.exe"},"platforms":["macos"]}`), 0o644)
+	out, code = glctl(t, "plugin", "validate", "--format", "text", bad)
+	if code != 1 || !strings.Contains(out, `error: platforms: unknown platform "macos" (valid: windows, darwin, linux)`) {
+		t.Fatalf("bad platform: %d\n%s", code, out)
+	}
 	if _, code := glctl(t, "plugin", "validate"); code != 2 {
 		t.Fatalf("usage: %d", code)
 	}

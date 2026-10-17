@@ -375,18 +375,19 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 | 当前文件夹的动作 | `files` 插件在 Mac 上（`Options.Mac`，只有真实环境打开）用"在终端中打开"（`open -a Terminal <文件夹>`）代替 Windows Terminal/PowerShell/命令提示符，不提供"以管理员身份运行"，复制多个路径用 `\n` 分隔；VS Code 项在 PATH 上有 `code` 时出现 | `TestMacItems` |
 | 权限提示 | `internal/darwin/ax`（AXUIElement 的 purego 封装）。读选区遇到没有辅助功能权限、读访达遇到 -1743 时，启动器显示一次提示（每次运行每种一次），辅助功能还会调用 `AXIsProcessTrustedWithOptions(prompt)` 让系统弹出"打开系统设置"的对话框 | `TestPermissionHints` |
 | 时钟 | 顺带修了一个 Windows 上的 bug：Go 自带的 zoneinfo 在年末给出不是真实切换的边界，"下次切换"曾显示"1 月 1 日 → UTC+11"（偏移没变），现在跳过这种边界；golden 随之更新 | `TestNextChangeSlimZoneinfo` |
+| 插件平台 | `plugin.Manifest.Platforms`（`plugin.json` 的 `"platforms": ["windows"]`，GOOS 名，空表示全部平台；未知名字是 manifest 错误，`glctl plugin validate` 报错）。不匹配的插件完全不加载：内置插件在 `builtin.All`/`FakeOn` 共用的 `assemble` 里过滤，外部插件在 `extproc.Load` 里跳过、不起进程，都不出现在插件列表和设置里（debug 日志记一条）。`scoop`、`winget` 标为 `windows`，所以 macOS 上不注册；其余内置插件都是"一个插件、分平台实现"，不设。真实环境按 `runtime.GOOS`，glctl 假环境按 `builtin.FakePlatform`（windows） | `TestFakePlatforms`、`TestLoadPlatforms`、`TestValidatePlatforms` |
 | CI | Windows job 加 `GOOS=darwin` 的 build/vet；新增 `macos-latest` job：vet、test、构建、`glctl i18n check`、Windows 交叉编译 | — |
 
 ### 10.2 测试的平台约定
 
-- glctl 的假环境（`app.Build(Fake: true)`、`builtin.Fake`）在所有平台上都模拟一台 Windows 机器：剪贴板默认值、Everything 文案、系统插件（`system.Fake.Mac` 默认 false）、消息变体都按 Windows 走，所以绝大多数 golden 在 macOS 上逐字节相同。
+- glctl 的假环境（`app.Build(Fake: true)`、`builtin.Fake`）在所有平台上都模拟一台 Windows 机器：剪贴板默认值、Everything 文案、系统插件（`system.Fake.Mac` 默认 false）、消息变体、插件的 `platforms` 过滤（`builtin.FakePlatform`，所以 Scoop、WinGet 照样在）都按 Windows 走，所以绝大多数 golden 在 macOS 上逐字节相同。要测别的平台用 `builtin.FakeOn(platform, …)`。
 - 夹具本身就是 Windows 路径、而代码按本机规则解析路径的测试，在非 Windows 上跳过并写明原因：`internal/cli` 的 11 个 golden（`windowsGoldens`，命令照样运行，只是不比对输出）、Windows Terminal、Scoop 的 PowerShell 脚本、进程管理器的 Windows 进程树、开始菜单过滤、Windows 解释器规则（`TestInterpreter`）。
 - macOS 首次运行刚编译出的可执行文件会被系统检查（空闲时约 0.7 秒，机器繁忙时可能超过插件 5 秒的启动时限），`extproctest.BuildExample` 编译完先空跑一次。
 
 ### 10.3 还没做
 
 - 进程管理器（`winapi/process`）、网络工具（`winapi/network`）仍是 `ErrUnsupported` 桩。环境感知只认访达和带 `AXDocument` 的窗口：桌面有焦点但访达还开着窗口时，没有辅助功能权限就当作前窗；其他文件管理器（ForkLift、Path Finder）、打开/存储对话框不识别。浏览器网页里的选区多数没有 `AXSelectedText`，要靠"读不到时改用复制"（默认关闭，和 Windows 一样）。
-- **终端插件**的 macOS 版（Terminal/iTerm2/Warp；`files` 插件目前只会开 Terminal.app）、**Homebrew 插件**；`scoop`、`winget`、`terminal`、`processes` 在 macOS 上照常注册，只是不可用（§5.2 建议的 `builtin_darwin.go` 分平台列表没做）。
+- **终端插件**的 macOS 版（Terminal/iTerm2/Warp；`files` 插件目前只会开 Terminal.app）、**Homebrew 插件**；`terminal`、`processes` 在 macOS 上照常注册，只是不可用（`scoop`、`winget` 已用 manifest 的 `platforms` 排除，代替 §5.2 建议的 `builtin_darwin.go` 分平台列表）。
 - **权限引导页**（辅助功能、自动化的状态与跳转）：目前只有启动器里的一次性提示；没有权限时粘贴只会失败并报错，还没有退化成"已复制，请按 ⌘V"。设置页"读不到时改用复制"等文案仍写 Ctrl+C、UI Automation（没有 `@darwin` 变体）；默认排除的应用列表仍是 Windows 的 `.exe` 名（密码框靠 `AXSecureTextField` 识别）。
 - 再次双击 `.app` 时的 `applicationShouldHandleReopen` → `--show`、菜单栏单色模板图标、Vibrancy 材质挑选。
 - 平台文案：还没处理的只剩并行分支负责的范围（终端、files、进程、网络工具、Scoop/WinGet/Homebrew、自安装和自动更新、环境感知/选中文本/权限），见 §10.6；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。

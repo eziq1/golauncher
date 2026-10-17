@@ -3,6 +3,9 @@ package plugin
 import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"fmt"
+	"slices"
+	"strings"
 )
 
 // Payload is opaque plugin data carried through actions and views.
@@ -30,6 +33,42 @@ type Manifest struct {
 	Permissions   []Permission `json:"permissions,omitempty"`
 	Commands      []Command    `json:"commands,omitempty"`
 	Preferences   []Preference `json:"preferences,omitempty"`
+	// Platforms lists the operating systems the plugin runs on, as GOOS
+	// names (PlatformWindows, PlatformDarwin, PlatformLinux), for example
+	// []string{plugin.PlatformWindows} or "platforms": ["windows"]. Empty
+	// means every platform. On any other platform the host does not load
+	// the plugin at all: a built-in is not registered and an external
+	// plugin's process is never started, so it is missing from the plugin
+	// list and the settings. The host checks the platform of its
+	// environment (glctl's fake environment counts as Windows everywhere).
+	Platforms []string `json:"platforms,omitempty"`
+}
+
+// Platform names accepted in Manifest.Platforms (GOOS values).
+const (
+	PlatformWindows = "windows"
+	PlatformDarwin  = "darwin"
+	PlatformLinux   = "linux"
+)
+
+// Platforms are the valid values of Manifest.Platforms.
+var Platforms = []string{PlatformWindows, PlatformDarwin, PlatformLinux}
+
+// SupportsPlatform reports whether the plugin runs on goos: Platforms is
+// empty or lists it.
+func (m Manifest) SupportsPlatform(goos string) bool {
+	return len(m.Platforms) == 0 || slices.Contains(m.Platforms, goos)
+}
+
+// CheckPlatforms reports the first entry of Platforms that is not one of
+// the valid names (see Platforms).
+func (m Manifest) CheckPlatforms() error {
+	for _, p := range m.Platforms {
+		if !slices.Contains(Platforms, p) {
+			return fmt.Errorf("unknown platform %q (valid: %s)", p, strings.Join(Platforms, ", "))
+		}
+	}
+	return nil
 }
 
 // Permission names a group of Host APIs a plugin may use.

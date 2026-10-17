@@ -169,6 +169,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Icon:          icon,
 		DefaultLocale: "en",
 		Permissions:   []plugin.Permission{plugin.PermExec},
+		Platforms:     []string{plugin.PlatformWindows}, // WinGet exists on Windows only
 		Commands: []plugin.Command{
 			{Name: cmdSearch, Title: "%command.search.title%", Subtitle: "%command.subtitle%", Mode: plugin.ModeView, Icon: icon,
 				Keywords: []string{"winget", "%command.search.keyword.install%", "%command.search.keyword.package%"}},

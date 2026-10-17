@@ -4,6 +4,9 @@
 // package only; they never import golauncher internals. A plugin describes
 // what to show (items, views, actions) and the host decides how to render it
 // and how to carry out each action.
+//
+// A plugin that exists on some operating systems only lists them in
+// Manifest.Platforms; the host does not load it anywhere else.
 package plugin
 
 import (

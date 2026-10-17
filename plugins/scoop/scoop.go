@@ -134,6 +134,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		Icon:          icon,
 		DefaultLocale: "en",
 		Permissions:   []plugin.Permission{plugin.PermExec},
+		Platforms:     []string{plugin.PlatformWindows}, // Scoop is a Windows package manager
 		Commands: []plugin.Command{
 			{Name: cmdSearch, Title: "%command.search.title%", Subtitle: "%command.subtitle%", Mode: plugin.ModeView, Icon: icon,
 				Keywords: []string{"scoop", "%command.search.keyword.install%", "%command.search.keyword.package%"}},
