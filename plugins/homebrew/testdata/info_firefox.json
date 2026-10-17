@@ -1,0 +1,107 @@
+{
+  "formulae": [],
+  "casks": [
+    {
+      "token": "firefox",
+      "full_token": "firefox",
+      "old_tokens": [],
+      "tap": "homebrew/cask",
+      "name": [
+        "Mozilla Firefox"
+      ],
+      "desc": "Web browser",
+      "homepage": "https://www.mozilla.org/firefox/",
+      "url": "https://download-installer.cdn.mozilla.net/pub/firefox/releases/158.0/mac/zh-CN/Firefox%20158.0.dmg",
+      "version": "158.0",
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "installed": "132.0.2",
+      "installed_time": 1732352610,
+      "bundle_version": "13324.12.9",
+      "bundle_short_version": "133.0.3",
+      "pinned": false,
+      "pinned_version": null,
+      "outdated": false,
+      "sha256": "d0daa923ac5962e1ef0f3f94700e52f2d4ccbba79ae42faa3d76e5bfe5b74370",
+      "artifacts": [
+        {
+          "uninstall": [
+            {
+              "quit": "org.mozilla.firefox"
+            }
+          ]
+        },
+        {
+          "app": [
+            "Firefox.app"
+          ],
+          "target": "/Applications/Firefox.app"
+        },
+        {
+          "command_wrapper": [
+            "firefox",
+            {
+              "executable": "/Applications/Firefox.app/Contents/MacOS/firefox"
+            }
+          ],
+          "target": "/usr/local/bin/firefox"
+        },
+        {
+          "zap": [
+            {
+              "trash": [
+                "/Library/Logs/DiagnosticReports/firefox_*",
+                "~/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments/org.mozilla.firefox.sfl*",
+                "~/Library/Application Support/CrashReporter/firefox_*",
+                "~/Library/Application Support/Firefox",
+                "~/Library/Caches/Firefox",
+                "~/Library/Caches/Mozilla/updates/Applications/Firefox",
+                "~/Library/Caches/org.mozilla.crashreporter",
+                "~/Library/Caches/org.mozilla.firefox",
+                "~/Library/Preferences/org.mozilla.crashreporter.plist",
+                "~/Library/Preferences/org.mozilla.firefox.plist",
+                "~/Library/Saved Application State/org.mozilla.firefox.savedState",
+                "~/Library/WebKit/org.mozilla.firefox"
+              ],
+              "rmdir": [
+                "~/Library/Application Support/Mozilla",
+                "~/Library/Caches/Mozilla",
+                "~/Library/Caches/Mozilla/updates",
+                "~/Library/Caches/Mozilla/updates/Applications"
+              ]
+            }
+          ]
+        }
+      ],
+      "caveats": null,
+      "caveats_rosetta": null,
+      "depends_on": {
+        "macos": {}
+      },
+      "conflicts_with": {
+        "cask": [
+          "firefox@beta",
+          "firefox@cn",
+          "firefox@esr"
+        ]
+      },
+      "container": null,
+      "rename": [],
+      "auto_updates": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "ruby_source_path": "Casks/f/firefox.rb"
+    }
+  ]
+}

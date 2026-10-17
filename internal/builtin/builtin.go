@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/eziq1/golauncher/plugins/clock"
 	"github.com/eziq1/golauncher/plugins/everything"
 	"github.com/eziq1/golauncher/plugins/files"
+	"github.com/eziq1/golauncher/plugins/homebrew"
 	"github.com/eziq1/golauncher/plugins/network"
 	"github.com/eziq1/golauncher/plugins/processes"
 	"github.com/eziq1/golauncher/plugins/quicklinks"
@@ -62,8 +64,17 @@ func All() []plugin.Plugin {
 		quicklinks.New(), // its fallback comes after ai's: FallbackOrderLast (docs/quicklinks.md §3)
 		ai.NewWithOptions(ai.Options{Backends: aiBackends()}),
 	}
+	if runtime.GOOS == "darwin" { // TODO(platforms): replace with Manifest.Platforms = ["darwin"]
+		builtins = append(builtins, PlatformPlugins()...)
+	}
 	return append(builtins, External(extproc.DefaultRoots(), builtins, extproc.Options{HostVersion: HostVersion})...)
 }
+
+// PlatformPlugins returns new instances of the built-in plugins that All
+// registers on macOS only and Fake (a Windows machine) never: Homebrew.
+// glctl i18n check reads their catalogs from here.
+// TODO(platforms): replace with Manifest.Platforms = ["darwin"]
+func PlatformPlugins() []plugin.Plugin { return []plugin.Plugin{homebrew.New()} }
 
 // External returns the external plugins under roots (see extproc.Find),
 // leaving out those whose ID is taken by one of loaded.

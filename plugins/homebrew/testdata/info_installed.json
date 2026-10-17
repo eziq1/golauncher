@@ -1,0 +1,393 @@
+{
+  "formulae": [
+    {
+      "name": "abseil",
+      "full_name": "abseil",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [],
+      "versioned_formulae": [],
+      "desc": "C++ Common Libraries",
+      "license": "Apache-2.0",
+      "homepage": "https://abseil.io",
+      "versions": {
+        "stable": "20260817.0",
+        "head": "HEAD",
+        "bottle": true
+      },
+      "revision": 0,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [
+        "cmake",
+        "googletest"
+      ],
+      "dependencies": [],
+      "test_dependencies": [
+        "cmake"
+      ],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [],
+      "caveats": null,
+      "installed": [
+        {
+          "version": "20260107.0",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1769413479,
+          "runtime_dependencies": [],
+          "installed_on_request": false
+        }
+      ],
+      "linked_keg": "20260107.0",
+      "pinned": false,
+      "outdated": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "post_install_steps": [],
+      "post_install_defined": false,
+      "ruby_source_path": "Formula/a/abseil.rb"
+    },
+    {
+      "name": "ripgrep",
+      "full_name": "ripgrep",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [
+        "rg"
+      ],
+      "versioned_formulae": [],
+      "desc": "Search tool like grep and The Silver Searcher",
+      "license": "Unlicense",
+      "homepage": "https://github.com/BurntSushi/ripgrep",
+      "versions": {
+        "stable": "15.2.0",
+        "head": "HEAD",
+        "bottle": true
+      },
+      "revision": 0,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [
+        "asciidoctor",
+        "pkgconf",
+        "rust"
+      ],
+      "dependencies": [
+        "pcre2"
+      ],
+      "test_dependencies": [],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [],
+      "caveats": null,
+      "installed": [
+        {
+          "version": "15.1.0",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1781859187,
+          "runtime_dependencies": [
+            {
+              "full_name": "pcre2",
+              "version": "10.47",
+              "revision": 1,
+              "bottle_rebuild": 0,
+              "pkg_version": "10.47_1",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": true
+        }
+      ],
+      "linked_keg": "15.1.0",
+      "pinned": false,
+      "outdated": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "post_install_steps": [],
+      "post_install_defined": false,
+      "ruby_source_path": "Formula/r/ripgrep.rb"
+    },
+    {
+      "name": "wget",
+      "full_name": "wget",
+      "tap": "homebrew/core",
+      "oldnames": [],
+      "aliases": [],
+      "versioned_formulae": [],
+      "desc": "Internet file retriever",
+      "license": "GPL-3.0-or-later",
+      "homepage": "https://www.gnu.org/software/wget/",
+      "versions": {
+        "stable": "1.25.0",
+        "head": "HEAD",
+        "bottle": false
+      },
+      "revision": 2,
+      "version_scheme": 0,
+      "compatibility_version": null,
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "pour_bottle_only_if": null,
+      "keg_only": false,
+      "keg_only_reason": null,
+      "options": [],
+      "build_dependencies": [
+        "pkgconf"
+      ],
+      "dependencies": [
+        "libidn2",
+        "libpsl",
+        "openssl@4",
+        "gettext",
+        "libunistring"
+      ],
+      "test_dependencies": [],
+      "recommended_dependencies": [],
+      "optional_dependencies": [],
+      "uses_from_macos": [],
+      "conflicts_with": [],
+      "conflicts_with_reasons": [],
+      "link_overwrite": [],
+      "caveats": null,
+      "installed": [
+        {
+          "version": "1.25.0",
+          "used_options": [],
+          "built_as_bottle": true,
+          "poured_from_bottle": true,
+          "time": 1731670009,
+          "runtime_dependencies": [
+            {
+              "full_name": "libunistring",
+              "version": "1.3",
+              "revision": 0,
+              "pkg_version": "1.3",
+              "declared_directly": true
+            },
+            {
+              "full_name": "gettext",
+              "version": "0.22.5",
+              "revision": 0,
+              "pkg_version": "0.22.5",
+              "declared_directly": true
+            }
+          ],
+          "installed_on_request": true
+        }
+      ],
+      "linked_keg": "1.25.0",
+      "pinned": false,
+      "outdated": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "post_install_steps": [],
+      "post_install_defined": false,
+      "ruby_source_path": "Formula/w/wget.rb"
+    }
+  ],
+  "casks": [
+    {
+      "token": "firefox",
+      "full_token": "firefox",
+      "old_tokens": [],
+      "tap": "homebrew/cask",
+      "name": [
+        "Mozilla Firefox"
+      ],
+      "desc": "Web browser",
+      "homepage": "https://www.mozilla.org/firefox/",
+      "url": "https://download-installer.cdn.mozilla.net/pub/firefox/releases/158.0/mac/zh-CN/Firefox%20158.0.dmg",
+      "version": "158.0",
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "installed": "132.0.2",
+      "installed_time": 1732352610,
+      "bundle_version": "13324.12.9",
+      "bundle_short_version": "133.0.3",
+      "pinned": false,
+      "pinned_version": null,
+      "outdated": false,
+      "caveats": null,
+      "caveats_rosetta": null,
+      "depends_on": {
+        "macos": {}
+      },
+      "conflicts_with": {
+        "cask": [
+          "firefox@beta",
+          "firefox@cn",
+          "firefox@esr"
+        ]
+      },
+      "container": null,
+      "rename": [],
+      "auto_updates": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "ruby_source_path": "Casks/f/firefox.rb"
+    },
+    {
+      "token": "visual-studio-code",
+      "full_token": "visual-studio-code",
+      "old_tokens": [],
+      "tap": "homebrew/cask",
+      "name": [
+        "Microsoft Visual Studio Code",
+        "VS Code"
+      ],
+      "desc": "Open-source code editor",
+      "homepage": "https://code.visualstudio.com/",
+      "url": "https://update.code.visualstudio.com/1.142.0/darwin/stable",
+      "version": "1.142.0",
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "installed": "1.34.0,a622c65b2c713c890fcf4fbf07cf34049d5fe758",
+      "installed_time": 1559329085,
+      "bundle_version": "1.108.2",
+      "bundle_short_version": "1.108.2",
+      "pinned": false,
+      "pinned_version": null,
+      "outdated": true,
+      "caveats": null,
+      "caveats_rosetta": null,
+      "depends_on": {
+        "macos": {}
+      },
+      "conflicts_with": null,
+      "container": null,
+      "rename": [],
+      "auto_updates": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "ruby_source_path": "Casks/v/visual-studio-code.rb"
+    },
+    {
+      "token": "wechat",
+      "full_token": "wechat",
+      "old_tokens": [],
+      "tap": "homebrew/cask",
+      "name": [
+        "WeChat for Mac",
+        "\u5fae\u4fe1 Mac \u7248"
+      ],
+      "desc": "Free messaging and calling application",
+      "homepage": "https://mac.weixin.qq.com/",
+      "url": "https://dldir1.qq.com/weixin/Universal/Mac/xWeChatMac_universal_4.1.15.55_270135.dmg",
+      "version": "4.1.15.55,270135",
+      "autobump": true,
+      "no_autobump_message": null,
+      "skip_livecheck": false,
+      "installed": "latest",
+      "installed_time": 1605313160,
+      "bundle_version": "23551",
+      "bundle_short_version": "3.5.5.19",
+      "pinned": false,
+      "pinned_version": null,
+      "outdated": true,
+      "caveats": null,
+      "caveats_rosetta": null,
+      "depends_on": {
+        "macos": {
+          ">=": [
+            "12"
+          ]
+        }
+      },
+      "conflicts_with": null,
+      "container": null,
+      "rename": [],
+      "auto_updates": true,
+      "deprecated": false,
+      "deprecation_date": null,
+      "deprecation_reason": null,
+      "deprecation_replacement_formula": null,
+      "deprecation_replacement_cask": null,
+      "deprecate_args": null,
+      "disabled": false,
+      "disable_date": null,
+      "disable_reason": null,
+      "disable_replacement_formula": null,
+      "disable_replacement_cask": null,
+      "disable_args": null,
+      "ruby_source_path": "Casks/w/wechat.rb"
+    }
+  ]
+}

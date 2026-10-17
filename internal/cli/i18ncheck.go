@@ -12,7 +12,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/eziq1/golauncher/internal/builtin"
 	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // i18nReport is the result of glctl i18n check.
@@ -47,6 +49,16 @@ func (c *cli) i18n(ctx context.Context, args []string) error {
 		return err
 	}
 	defer e.Close()
+	// Plugins that only some platforms register are not in the fake
+	// environment; their catalogs are checked all the same.
+	for _, p := range builtin.PlatformPlugins() {
+		lp, ok := p.(plugin.LocaleProvider)
+		if id := p.Manifest().ID; ok && !slices.Contains(e.I18n.Namespaces(), id) {
+			if err := e.I18n.Register(id, lp.Locales()); err != nil {
+				return err
+			}
+		}
+	}
 	rep := checkCatalogs(e.I18n)
 	if err := checkReferences(e.I18n, *src, &rep); err != nil {
 		return err
