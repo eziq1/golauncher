@@ -1,0 +1,122 @@
+{
+  "step": "reopen \"\"",
+  "snapshot": {
+    "depth": 1,
+    "title": "why is the sky blue",
+    "layout": "detail",
+    "placeholder": "Ask a follow-up…",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "chat",
+            "title": "why is the sky blue",
+            "icon": {
+              "name": "sparkles"
+            },
+            "actions": [
+              {
+                "id": "send",
+                "title": "Send",
+                "do": {
+                  "kind": "Callback",
+                  "target": "send",
+                  "payload": {
+                    "instance": "v1"
+                  }
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy Answer",
+                "shortcut": "Ctrl+Shift+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "You asked: why is the sky blue"
+                }
+              },
+              {
+                "id": "paste",
+                "title": "Paste Answer",
+                "shortcut": "Ctrl+Shift+V",
+                "do": {
+                  "kind": "Paste",
+                  "target": "You asked: why is the sky blue"
+                }
+              },
+              {
+                "id": "claude",
+                "title": "Continue in Claude",
+                "do": {
+                  "kind": "Callback",
+                  "target": "claude",
+                  "payload": {
+                    "instance": "v1"
+                  }
+                }
+              },
+              {
+                "id": "chatgpt",
+                "title": "Continue in ChatGPT",
+                "do": {
+                  "kind": "Callback",
+                  "target": "chatgpt",
+                  "payload": {
+                    "instance": "v1"
+                  }
+                }
+              },
+              {
+                "id": "new",
+                "title": "New Chat",
+                "shortcut": "Ctrl+N",
+                "do": {
+                  "kind": "Callback",
+                  "target": "new",
+                  "payload": {
+                    "instance": "v1"
+                  }
+                }
+              },
+              {
+                "id": "history",
+                "title": "AI Chat History",
+                "do": {
+                  "kind": "Push",
+                  "target": "history"
+                }
+              },
+              {
+                "id": "copy-id",
+                "title": "Copy Session ID",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "00000000-0000-4000-8000-000000000001"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/chat"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "detail": {
+      "markdown": "**You**\n\nwhy is the sky blue\n\n**Claude**\n\nYou asked: why is the sky blue",
+      "metadata": [
+        {
+          "label": "Claude Code",
+          "value": "fake-model"
+        },
+        {
+          "label": "Last answer",
+          "value": "19 tokens in, 30 out"
+        }
+      ]
+    },
+    "emptyText": "No results",
+    "hint": "Back to main screen"
+  }
+}

@@ -411,7 +411,7 @@ type instancePayload struct {
 func (p *Plugin) View(_ context.Context, req plugin.ViewRequest) (plugin.View, error) {
 	switch req.ID {
 	case viewChat:
-		return p.chatView(req), nil
+		return p.chatView(req)
 	case viewHistory:
 		return p.historyView(), nil
 	}

@@ -53,6 +53,9 @@ type Controller struct {
 
 	instances int // view instances opened so far, for their IDs
 
+	// keep is the stack kept across a hide and its restore (keep.go).
+	keep keepState
+
 	// Invalidations gathered while invTimer runs; invAfter asks for one more
 	// refresh once the searches in flight have finished.
 	inv      []invalidation
@@ -85,6 +88,10 @@ type frame struct {
 	pushed    *plugin.View
 	pushTimer bool
 	lastPush  time.Time
+
+	// restoring is set while the view of a restored stack is requested
+	// again (plugin.ViewRequest.Restore): an error goes back to the root.
+	restoring bool
 }
 
 // panel is the open action panel.
@@ -167,6 +174,7 @@ func (c *Controller) truncate(n int) []*Nav {
 func (c *Controller) toRoot() []*Nav {
 	navs := c.truncate(0)
 	c.stack = append(c.stack, &frame{})
+	c.keep.restored, c.keep.fresh = nil, false
 	return navs
 }
 
@@ -174,9 +182,10 @@ func (c *Controller) toRoot() []*Nav {
 func (c *Controller) closed(navs []*Nav) { c.eng.viewsClosed(navs) }
 
 // Reset pops to the root, clears the text and closes the panel. Front ends
-// call it when the window is shown.
+// call it (or Show, which may restore a kept stack) when the window is shown.
 func (c *Controller) Reset(ctx context.Context) {
 	c.mu.Lock()
+	c.keep = keepState{}
 	navs := c.toRoot()
 	c.panel = nil
 	c.confirm = nil
@@ -204,6 +213,7 @@ func (c *Controller) SetText(ctx context.Context, text string) {
 		c.mu.Unlock()
 		return
 	}
+	c.keep.fresh = false
 	f.text = text
 	f.sel, f.selKey = 0, ""
 	f.moved = false
@@ -233,7 +243,7 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 	if !quiet {
 		f.loading = true
 	}
-	text, nav := f.text, f.nav
+	text, nav, restore := f.text, f.nav, f.restoring
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	c.cancel = cancel
 	c.running++
@@ -251,6 +261,7 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 		} else {
 			req := nav.Request
 			req.Query = plugin.Query{Text: text}
+			req.Restore = restore
 			var v plugin.View
 			v, err = c.eng.View(ctx, Nav{Plugin: nav.Plugin, Request: req})
 			if err == nil {
@@ -259,12 +270,24 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 		}
 		// Notify outside the lock but before counting the search as done, so
 		// Wait returns only after the front end has been told.
-		var notify func()
+		var (
+			notify  func()
+			refused []*Nav // the kept views dropped when the plugin refused the restore
+		)
 		c.mu.Lock()
 		if gen == c.gen && ctx.Err() == nil {
 			f.loading = false
 			f.err = ""
+			if f.restoring && slices.Contains(c.stack, f) {
+				f.restoring = false
+				if err != nil {
+					c.eng.log.Info("view not restored", "plugin", nav.Plugin, "view", nav.Request.ID, "err", err)
+					refused = c.toRoot()
+					err = nil
+				}
+			}
 			switch {
+			case refused != nil:
 			case err != nil:
 				// Don't leave the previous results selectable under an error.
 				f.err = err.Error()
@@ -280,6 +303,11 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 			notify = c.onChange
 		}
 		c.mu.Unlock()
+		if refused != nil {
+			// Before this search counts as done, so that Wait covers the root's.
+			c.closed(refused)
+			c.refresh(ctx)
+		}
 		if notify != nil {
 			notify()
 		}
@@ -389,6 +417,9 @@ func (c *Controller) affected(inv invalidation) bool {
 // is only told, for the context chip.
 func (c *Controller) contextChanged(pulled bool) {
 	c.mu.Lock()
+	if c.selectionOverRestore() {
+		return // unlocked
+	}
 	if f := c.top(); pulled && f.nav == nil {
 		if !f.moved {
 			// The context section appears above the results the user
@@ -577,6 +608,7 @@ func (c *Controller) Select(i int) {
 	}
 	c.setSel(c.top(), i)
 	c.top().moved = true
+	c.keep.fresh = false
 }
 
 // Hover selects row i under the mouse pointer. Unlike Select (a click) it
@@ -624,6 +656,7 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		c.waitSearches()
 	}
 	c.mu.Lock()
+	c.keep.fresh = false // the user acts on the restored view (keep.go)
 	if len(c.external) > 0 {
 		c.externalKey(key) // unlocks
 		return Outcome{}, nil
@@ -1020,6 +1053,10 @@ type Snapshot struct {
 	// Tasks is the footer's background task indicator; nil when no task is
 	// queued or running and no failure is unseen.
 	Tasks *TasksSnapshot `json:"tasks,omitempty"`
+	// Hint is the footer's hint on a view restored after a hide, e.g. "Esc:
+	// back to main screen" (docs/keep-view.md §5); a click goes to the root
+	// (Controller.PopToRoot).
+	Hint string `json:"hint,omitempty"`
 }
 
 // ContextSnapshot is the context captured when the launcher opened.
@@ -1116,6 +1153,7 @@ func (c *Controller) Snapshot() Snapshot {
 	if f.form != nil {
 		s.Form = f.form.snapshot(f.view.Form.Submit.Title)
 	}
+	s.Hint = c.keepHint()
 	if n := countItems(sections); n > 0 {
 		s.Selected = clamp(f.sel, n)
 		e, _ := itemAt(sections, s.Selected)

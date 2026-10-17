@@ -141,7 +141,10 @@ they are created without a console window.
   put what an action needs into the action.
 - `view` is called when a view opens and again for every change of the
   search text, unless the view sets `filterLocally`.
-  `request.instance` identifies the open view for `ui/render`.
+  `request.instance` identifies the open view for `ui/render`. A view
+  returned with `keepOnHide: true` is kept when the window hides and
+  requested again on the next show with `request.restore: true`; an error
+  then sends the user to the root search (docs/keep-view.md).
 - `handleAction` runs `RunCommand` actions (no-view commands) and
   `Callback` actions. For a form submit, `action.values` holds the field
   values; for an item or command with arguments, the argument values. A

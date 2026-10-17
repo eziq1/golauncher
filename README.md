@@ -109,7 +109,10 @@
     Backend*. Each runs isolated from your own setup of that CLI (no other
     MCP servers, hooks, extensions or memory files, no file or shell tools),
     each chat stays on the backend it started with, and when Gemini asks for
-    permission to use a tool you answer in the same dialog.
+    permission to use a tool you answer in the same dialog. Copy an answer,
+    paste it elsewhere and reopen the launcher: you are back in the chat,
+    with your unsent draft (within 10 minutes by default; *Settings ›
+    General › Return to the main screen*).
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
     `golauncher.exe mcp` is an MCP server for your plugins. The settings

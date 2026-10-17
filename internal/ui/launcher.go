@@ -144,16 +144,9 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 }
 
 // Shown prepares the launcher for being shown: back to the root search with
-// an empty field that has the keyboard focus. Call it on the UI thread.
-func (l *Launcher) Shown() {
-	l.text, l.sent, l.panelText, l.panelSent = "", "", "", ""
-	l.hoverRow, l.armed = -1, false
-	l.input.Focus()
-	l.work.Do(func(ctx context.Context) {
-		l.ctrl.Reset(ctx)
-		l.host.Invalidate()
-	})
-}
+// an empty field that has the keyboard focus, or to the views kept by the
+// last hide (keep.go). Call it on the UI thread.
+func (l *Launcher) Shown() { l.ShownWith(core.ShowOptions{}) }
 
 // Wait blocks until the queued input has been handled and the searches it
 // started have finished.
@@ -781,6 +774,9 @@ func (l *Launcher) footer(c *mui.Context, s core.Snapshot) {
 			}
 			if s.Selection != nil && s.Depth == 0 {
 				l.selectionChip(c, s.Selection)
+			}
+			if s.Hint != "" {
+				l.keepHint(c, s.Hint)
 			}
 			mui.Box(c).Grow(1)
 		}

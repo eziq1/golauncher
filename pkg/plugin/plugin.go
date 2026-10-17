@@ -126,4 +126,9 @@ type ViewRequest struct {
 	Instance string `json:"instance,omitempty"`
 	// Arguments are the values of the opening command's arguments.
 	Arguments map[string]string `json:"arguments,omitempty"`
+	// Restore is set when the host shows a view kept across a hide again
+	// (View.KeepOnHide), with the same Instance, Payload and Query: returning
+	// an error then (e.g. the chat was deleted meanwhile) makes the host go
+	// back to the root search and close the kept views instead.
+	Restore bool `json:"restore,omitzero"`
 }
