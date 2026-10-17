@@ -33,6 +33,8 @@ func (system) CopyImage(path string) error {
 
 // Paste puts the content on the clipboard, hides the launcher (waiting until
 // it is hidden) and pastes into the window that was active before it showed.
+// Without the permission to paste (macOS Accessibility) the error wraps
+// core.ErrNotPasted: the content stays copied (pasteError).
 func (sy system) Paste(text string, content plugin.PasteContent) error {
 	var err error
 	switch {
@@ -51,7 +53,7 @@ func (sy system) Paste(text string, content plugin.PasteContent) error {
 	if hwnd == 0 {
 		return errNoTarget
 	}
-	return clip.PasteTo(hwnd)
+	return pasteError(clip.PasteTo(hwnd))
 }
 
 // clipboard is the system clipboard for plugins.

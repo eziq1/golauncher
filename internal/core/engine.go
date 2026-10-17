@@ -31,9 +31,21 @@ type System interface {
 	CopyImage(path string) error
 	CopyFiles(paths []string) error
 	// Paste puts content on the clipboard, hides the launcher, and pastes it
-	// into the window that was active before the launcher was shown.
+	// into the window that was active before the launcher was shown. When
+	// the content is on the clipboard but pasting is not allowed (macOS
+	// without Accessibility), it returns an error wrapping ErrNotPasted.
 	Paste(text string, content plugin.PasteContent) error
 }
+
+// ErrNotPasted is wrapped by System.Paste when the content was copied but
+// could not be pasted for lack of a permission (macOS: Accessibility, which
+// sending ⌘V needs). The action then succeeds: the user is told to paste
+// themselves (toast.pasteManual) and where to grant the permission.
+var ErrNotPasted = errors.New("core: copied, but not allowed to paste")
+
+// SettingsPermissions is the settings page a Notice about a missing
+// permission opens (ui.PagePermissions).
+const SettingsPermissions = "permissions"
 
 // Options configure an Engine.
 type Options struct {
@@ -68,6 +80,9 @@ type Notice struct {
 	Toast  plugin.Toast `json:"toast"`
 	Plugin string       `json:"plugin,omitempty"`
 	TaskID string       `json:"taskId,omitempty"`
+	// Settings is the settings page clicking the notification opens
+	// (SettingsPermissions), "" for none.
+	Settings string `json:"settings,omitempty"`
 }
 
 // Engine runs plugins and actions. It is safe for concurrent use.
@@ -411,7 +426,7 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 				return Outcome{}, err
 			}
 		}
-		return Outcome{Hide: true}, e.sys.Paste(do.Target, content)
+		return e.paste(do.Target, content)
 	case plugin.ActionPush:
 		req := plugin.ViewRequest{ID: do.Target, Payload: do.Payload, Arguments: stringValues(do.Values)}
 		return Outcome{Push: &Nav{Plugin: entry.Plugin, Request: req}}, nil
@@ -437,6 +452,23 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 	default:
 		return Outcome{}, fmt.Errorf("core: unknown action kind %q", do.Kind)
 	}
+}
+
+// paste carries out ActionPaste. When pasting is not allowed (ErrNotPasted)
+// the content is still on the clipboard: the launcher hides as usual and a
+// notice, which shows while the launcher is hidden, says to press ⌘V.
+func (e *Engine) paste(text string, content plugin.PasteContent) (Outcome, error) {
+	err := e.sys.Paste(text, content)
+	if errors.Is(err, ErrNotPasted) {
+		e.log.Info("paste: copied only", "err", err)
+		e.Notify(Notice{
+			Toast: plugin.Toast{Style: plugin.ToastInfo, Title: e.core.T("toast.pasteManual"),
+				Message: e.core.T("toast.pasteManual.message")},
+			Settings: SettingsPermissions,
+		})
+		return Outcome{Hide: true}, nil
+	}
+	return Outcome{Hide: true}, err
 }
 
 func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo) (Outcome, error) {

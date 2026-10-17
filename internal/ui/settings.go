@@ -97,6 +97,8 @@ type Settings struct {
 	appearance appearanceState // the Appearance page
 
 	updates updatesState // the Updates section of the About page
+
+	perms permissionsState // the Permissions page (macOS)
 }
 
 // optionsResult is the outcome of loading the dynamic options of a preference.
@@ -200,6 +202,9 @@ func (s *Settings) ShowPage(page string) {
 		s.appearance.dragging = ""
 		s.env.Themes.SetPreview(nil)
 	}
+	if page == PagePermissions {
+		s.checkPermissions()
+	}
 }
 
 // SetHotkeyError reports that the launcher hotkey could not be registered
@@ -291,6 +296,9 @@ func (s *Settings) View(c *mui.Context) {
 			mui.SidebarItem(c, PageGeneral, builtinIcon("settings"), s.loc.T("settings.nav.general"))
 			mui.SidebarItem(c, PageAppearance, builtinIcon("contrast"), s.loc.T("settings.nav.appearance"))
 			mui.SidebarItem(c, PagePlugins, builtinIcon("app"), s.loc.T("settings.nav.plugins"))
+			if _, ok := s.permissionsHost(); ok {
+				mui.SidebarItem(c, PagePermissions, builtinIcon("shield"), s.loc.T("settings.nav.permissions"))
+			}
 			mui.SidebarItem(c, PageAdvanced, builtinIcon("wrench"), s.loc.T("settings.nav.advanced"))
 			mui.SidebarItem(c, PageAbout, builtinIcon("info"), s.loc.T("settings.nav.about"))
 		}).FillHeight().Padding(8).Changed() {
@@ -311,6 +319,8 @@ func (s *Settings) View(c *mui.Context) {
 					}
 				case PageAppearance:
 					s.appearancePage(c, cfg)
+				case PagePermissions:
+					s.permissionsPage(c)
 				case PageAdvanced:
 					s.advancedPage(c, cfg)
 				case PageAbout:

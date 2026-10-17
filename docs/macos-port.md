@@ -206,7 +206,7 @@ macOS 的约定和 Windows 的"exe 自己安装自己"完全不同，建议**不
 | 完全磁盘访问 | 一般不需要；只有想读 `~/Library/Mail` 之类受保护目录时 | — |
 | 输入监控 | 不需要：MyGo 的全局热键用 Carbon `RegisterEventHotKey`，不需要授权（§3.1） | — |
 
-建议在首次运行时加一个"权限引导"页：逐项说明用途、显示当前状态（`AXIsProcessTrusted()` 等）、一键打开对应的系统设置页（`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`）。
+建议在首次运行时加一个"权限引导"页：逐项说明用途、显示当前状态（`AXIsProcessTrusted()` 等）、一键打开对应的系统设置页（`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`）。已实现为设置里的"权限"页，见 §10.1。
 
 ## 5. 跨平台设计要点
 
@@ -375,7 +375,10 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 | 环境感知 | `winapi/context` 的 darwin 实现：`Detect` 拿到按热键时记下的前台应用 pid（`clip.ForegroundWindow` 在面板显示之前取，面板不激活本应用，所以访达始终在前）。访达用 `osascript` 读前窗的 `target` 和 `selection`（POSIX 路径），没有窗口或桌面有焦点时取桌面，Kind 沿用 `ContextExplorer`/`ContextDesktop`，`files`、`everything` 等插件不用改；"最近使用"、AirDrop、无选中的搜索结果等没有文件夹的窗口只报应用；脚本 0.9 秒超时（darwin 上 `contextBudget` 相应放宽到 1 秒，结果本来就在后台到达）；-1743/-10004 映射为 `ErrNotAuthorized`。有辅助功能权限时还读焦点窗口的 `AXTitle`/`AXDocument`：访达拿不到自动化权限时仍能从 `AXDocument` 得到文件夹，终端、预览、文本编辑等报 `ContextPathInTitle`（文件夹 + `Extra["file"]`） | 输出解析、错误码、`Detect` 各分支用假实现测试；真机测试需 `GOLAUNCHER_FINDER_TESTS=1` |
 | 选中文本 | `winapi/selection` 的 darwin 后端，对应 UI Automation：`Begin` 先查辅助功能权限（没有就什么都不读，`Pending.Err()` 返回 `ax.ErrNotTrusted`），再在 50ms 内取系统焦点元素，读 `AXRole`/`AXSubrole`（`AXSecureTextField` 视为密码框，从不读）和是否有 `AXSelectedText`；`Read` 在后台读 `AXSelectedText`、`AXValue` 可写即"可编辑"。Electron/Chromium 首次没有焦点元素时，给应用设一次 `AXManualAccessibility` 再试。"读不到时改用复制"开着时，`clip.CopySelection` 的 darwin 版：保存粘贴板所有条目的所有类型（超过 16MB 或 50ms 则不发按键）→ 只带 ⌘ 标志发 ⌘C → 等 `changeCount` 变化并稳定 → 读文本（带 Concealed 等标记的内容不算选区）→ 若期间无人再写则恢复原内容，期间的变化对剪贴板历史隐藏。应用列表在 macOS 上用 bundle ID（`windowInfo.Class`）：VS Code（可执行文件叫 Electron）、Cursor、Sublime、JetBrains 视为"无选区时复制整行"的编辑器，Excel 从不复制 | 复制流程在 `pbAPI` 假实现上测试（所有平台）；`decide` 的 bundle 规则、`axKind`、无权限分支有单元测试；真机测试需 `GOLAUNCHER_AX_TESTS=1`（只读）和 `GOLAUNCHER_COPY_TESTS=1`（会发一次 ⌘C） |
 | 当前文件夹的动作 | `files` 插件在 Mac 上（`Options.Mac`，只有真实环境打开）用"在终端中打开"（`open -a Terminal <文件夹>`）代替 Windows Terminal/PowerShell/命令提示符，不提供"以管理员身份运行"，复制多个路径用 `\n` 分隔；VS Code 项在 PATH 上有 `code` 时出现 | `TestMacItems` |
-| 权限提示 | `internal/darwin/ax`（AXUIElement 的 purego 封装）。读选区遇到没有辅助功能权限、读访达遇到 -1743 时，启动器显示一次提示（每次运行每种一次），辅助功能还会调用 `AXIsProcessTrustedWithOptions(prompt)` 让系统弹出"打开系统设置"的对话框 | `TestPermissionHints` |
+| 权限提示 | `internal/darwin/ax`（AXUIElement 的 purego 封装）。读选区遇到没有辅助功能权限、读访达遇到 -1743 时，启动器显示一次提示（每次运行每种一次），辅助功能还会调用 `AXIsProcessTrustedWithOptions(prompt)` 让系统弹出"打开系统设置"的对话框。toast 不支持动作，所以提示文字末尾指向"设置 › 权限"。macOS 上第一次运行、且没有辅助功能权限时，第一次呼出显示一条"授予几项 macOS 权限后更好用"的提示（数据目录旁的 `permissions-hint-shown` 标记文件，只显示一次） | `TestPermissionHints` |
+| 权限页 | 新包 `internal/darwin/tcc`：`Check` 不弹任何窗口地读状态——辅助功能用 `AXIsProcessTrusted`；自动化 › 访达用 purego 调 `AEDeterminePermissionToAutomateTarget`（`typeApplicationBundleID` 'bund' + `****`/`****`，`askUserIfNeeded=false`）：0 → 已允许，-1743 → 未允许，-1744 → 尚未询问，-600（访达没运行）和其他 → 未知（"首次使用时 macOS 会询问"）；完全磁盘访问权限（可选，只有废纸篓大小用）读 `~/.Trash`，EPERM/EACCES → 未允许。设置页的"权限"（`ui.PagePermissions`）只在 host 实现 `ui.PermissionsHost` 时出现（`shell/permissions_darwin.go`，与 `ClipboardHistoryHost` 同样的做法），所以 Windows 和 glctl 假环境里没有。每项显示用途、状态和"打开系统设置"（`/usr/bin/open x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`/`Privacy_Automation`/`Privacy_AllFiles`；辅助功能先调一次 `AXIsProcessTrustedWithOptions(prompt)`，否则系统设置的列表里还没有 golauncher 或终端）；辅助功能未允许、自动化尚未询问时另有"请求权限"（自动化用 `askUserIfNeeded=true`，在后台等用户回答）。打开该页、点"重新检查"、设置窗口重新获得焦点（从系统设置切回来）时重新读状态。页面说明从终端运行时权限属于终端：`$TERM_PROGRAM`/`__CFBundleIdentifier` 能认出终端时直接写出名字（"golauncher 是从 iTerm2 启动的……"） | 状态映射、URL、终端名在所有平台上测；页面用假 host 测（显示/隐藏、状态文字、按钮、刷新、中文）；真机只读测试需 `GOLAUNCHER_TCC_TESTS=1`（本机：辅助功能 denied、自动化 notDetermined、完全磁盘访问 granted，不弹窗）。测试从不打开系统设置 |
+| 粘贴退化 | 所有粘贴（剪贴板历史、片段、AI 的"粘贴"等）都走 `ActionPaste` → `core.Engine.paste` → `System.Paste`。shell 的 `Paste` 先写剪贴板、隐藏启动器，`clip.PasteTo` 返回 `ErrNotTrusted` 时包成 `core.ErrNotPasted`；Engine 见到它就当作成功（启动器照常隐藏，内容留在剪贴板上），并发一条 Notice："已复制，请按 ⌘V 粘贴 / 授予辅助功能权限后即可自动粘贴（设置 › 权限）"。启动器已隐藏，所以 Notice 走系统通知，点击打开设置的权限页（`Notice.Settings`）。不在 `.app` 里运行时 MyGo 的通知不可用（`UNUserNotificationCenter` 需要 bundle），这时 shell 改用 `osascript display notification`（显示为"脚本编辑器"，点击无动作；后台任务的通知同样受益） | `core` 的 `TestPasteNotAllowed`/`TestPasteFails`（`app.Recorder.PasteErr` 假实现）；shell 的 `TestPasteError` |
+| 以管理员身份运行 | `tasks.ProcessRunner` 的 `Elevated`/`StartElevated` 移到 `runner_windows.go`：只有 Windows 上它是 `Elevator`。macOS/Linux 上 `Elevate` 任务直接报 `tasks.error.noElevation`（不再先打印"正在请求管理员权限（UAC）…"再失败于 `ErrUnsupported`）；`NeedsElevation` 也只在 runner 是 `Elevator` 时判断，所以输出里碰巧有"requires elevation"等字样也不会出现"以管理员身份重试"。`FakeRunner` 仍是 `Elevator`，glctl 假环境和 Windows 行为不变 | `TestProcessRunnerElevator`、`TestElevateUnsupportedReal`（非 Windows）、`TestNoElevatorNoRetry` |
 | 时钟 | 顺带修了一个 Windows 上的 bug：Go 自带的 zoneinfo 在年末给出不是真实切换的边界，"下次切换"曾显示"1 月 1 日 → UTC+11"（偏移没变），现在跳过这种边界；golden 随之更新 | `TestNextChangeSlimZoneinfo` |
 | 插件平台 | `plugin.Manifest.Platforms`（`plugin.json` 的 `"platforms": ["windows"]`，GOOS 名，空表示全部平台；未知名字是 manifest 错误，`glctl plugin validate` 报错）。不匹配的插件完全不加载：内置插件在 `builtin.All`/`FakeOn` 共用的 `assemble` 里过滤，外部插件在 `extproc.Load` 里跳过、不起进程，都不出现在插件列表和设置里（debug 日志记一条）。`scoop`、`winget` 标为 `windows`，所以 macOS 上不注册；其余内置插件都是"一个插件、分平台实现"，不设。真实环境按 `runtime.GOOS`，glctl 假环境按 `builtin.FakePlatform`（windows） | `TestFakePlatforms`、`TestLoadPlatforms`、`TestValidatePlatforms` |
 | Homebrew | 新增独立插件 `builtin.homebrew`（[homebrew.md](homebrew.md)，与 scoop/winget 不共享代码）：读 brew 缓存里的 API 索引（新版 `api/internal/packages.*.jws.json`、旧版 `formula/cask.jws.json`、退路 `*_names.txt`）搜索 formula 和 cask；`brew info --json=v2 --installed` 列出已安装/可升级（后台、缓存）；⌘D 详情（`brew info`）；安装/升级/卸载/zap/全部升级/`brew update` 走后台任务队列 `homebrew`，实时输出；brew 按 `/opt/homebrew`、`/usr/local`、PATH 查找，找不到时显示"没有安装 Homebrew"并链接 brew.sh。manifest 声明 `platforms: ["darwin"]`，只在 macOS 加载；假环境不含它，`glctl i18n check` 经 `builtin.NotFaked()` 检查其翻译 | 夹具来自本机 Homebrew 7.0.9；只读真机测试需 `GOLAUNCHER_HOMEBREW_TESTS=1`；测试从不安装或卸载 |
@@ -397,7 +400,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 
 - 进程管理器（`winapi/process`）、网络工具（`winapi/network`）仍是 `ErrUnsupported` 桩（并行分支在做）。
 - 环境感知只认访达和带 `AXDocument` 的窗口：桌面有焦点但访达还开着窗口时，没有辅助功能权限就当作前窗；其他文件管理器（ForkLift、Path Finder）、打开/存储对话框不识别。浏览器网页里的选区多数没有 `AXSelectedText`，要靠"读不到时改用复制"（默认关闭，和 Windows 一样）。
-- **权限引导页**（辅助功能、自动化的状态与跳转）和"没有辅助功能权限时退化成已复制、请按 ⌘V"：并行分支在做；目前只有启动器里的一次性提示。
+- 权限页只列访达的自动化；System Events（重启/关机/注销/深浅色）、Terminal、iTerm2 的自动化仍在首次使用时由系统询问。toast 没有动作按钮，权限提示只能用文字指向设置页。macOS 需要 `.app` 才能把 MyGo 的通知交给通知中心，开发时的 `osascript` 通知点击无动作。设置页"读不到时改用复制"等文案仍写 Ctrl+C、UI Automation（没有 `@darwin` 变体）；默认排除的应用列表仍是 Windows 的 `.exe` 名（密码框靠 `AXSecureTextField` 识别）。
 - Vibrancy 材质挑选。
 - **Developer ID 签名、公证、DMG**：不在本期范围。ad-hoc 签名意味着首次打开要过 Gatekeeper，且每次更新后辅助功能授权失效（[self-install.md §9.4](self-install.md)）。
 - 安装窗口里几条 Windows 措辞（`install.welcome`、`install.perUser`、`install.errorInvalidDir`、`install.errorRunning`、`install.step.shortcuts`）还没有 `@darwin` 变体；设置里没有"卸载"按钮（只能 `--uninstall`）；App Translocation 时不单独提示"移到应用程序文件夹"。
@@ -408,7 +411,7 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 
 - 启动窗：⌥Space 呼出、非激活面板的焦点、⌘C/⌘V 在搜索框里、中文输入法、无 Dock 图标、关闭/失焦隐藏。
 - 应用：启动和切到前台、"在访达中显示"、`open -a … --args` 是否收到参数、中英文系统下的名称、Retina 下的图标清晰度、应用很多时的扫描耗时（本机约 1.2 秒）。
-- 剪贴板：授予**辅助功能**后粘贴到 TextEdit/Safari/终端/Electron 应用（激活时序、热键残留的修饰键）；未授权时的报错；来源应用是否正确；1Password/Bitwarden/KeePassXC 的 Concealed 跳过；预览/截图只有 TIFF 的图片；访达里的文件复制粘贴。
+- 剪贴板：授予**辅助功能**后粘贴到 TextEdit/Safari/终端/Electron 应用（激活时序、热键残留的修饰键）；未授权时应只复制并出现"已复制，请按 ⌘V 粘贴"的通知（§10.8）；来源应用是否正确；1Password/Bitwarden/KeePassXC 的 Concealed 跳过；预览/截图只有 TIFF 的图片；访达里的文件复制粘贴。
 - 系统命令：锁屏（`SACLockScreenImmediate` 在 13–15 上是否可用，退回方案是否锁屏）；注销/重启/关机、清空废纸篓、切换深浅色首次触发的**自动化**授权弹窗；废纸篓计数在有/无**完全磁盘访问**时；音量、静音、关闭显示器；45 个系统设置面板抽查（尤其 `Privacy_*`）。
 - 钥匙串：Set/Get/Delete；签名身份变化后是否弹授权（本次在无界面的会话里写入被拒绝：`-25308 User interaction is not allowed`，属环境原因）。
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
@@ -477,3 +480,14 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - **待接**：`files` 只对 `ContextExplorer/Desktop/PathInTitle/FileDialog` 出条目；访达的环境感知若用新的 Kind，要加进 `files.applies`。
 - **需手动验证**：首次用 AppleScript 控制 Terminal/iTerm2 时的**自动化**授权弹窗及拒绝后的提示；Terminal 新标签页需要**辅助功能**（System Events 按 ⌘T）；应用未运行时是否只开一个窗口；Ghostty/WezTerm/Alacritty/kitty/Warp 的参数（本机未安装，按文档写成）；Cursor、Zed 的 bundle id；`qlmanage -p` 的窗口是否到前台。
 
+### 10.8 权限页、粘贴退化与提权的真机测试
+
+同 §10.5，从终端运行时权限记在终端名下。
+
+1. 设置 › **权限**（只在 macOS 上有）：应列出 辅助功能、自动化 › 访达、完全磁盘访问权限（可选），各有状态和"打开系统设置"；从终端运行时页面写出终端的名字（Terminal、iTerm2……）。
+2. 辅助功能为"未允许"时点"打开系统设置"：系统设置应停在 隐私与安全性 › 辅助功能，列表里有该终端（或 golauncher）；系统可能同时弹出它自己的对话框。打开开关后切回设置窗口：状态应自动变为"已允许"（个别版本要重启 golauncher）。
+3. 自动化从未询问过时（可用 `tccutil reset AppleEvents <终端的 bundle ID>` 重置）应显示"尚未询问——首次使用时 macOS 会询问"并有"请求权限"：点它应弹出"“终端”想要控制“访达”"，点"好"后状态变为"已允许"；在系统设置里关掉后切回，应为"未允许"。打开该页本身不应弹出任何系统对话框。
+4. 完全磁盘访问权限：没开时为"未允许"（灰色，可选）；"打开系统设置"应停在 完全磁盘访问权限。
+5. 粘贴退化：在辅助功能里关掉开关并重启 golauncher，在 TextEdit 里呼出，从剪贴板历史选一条按 Enter（粘贴）：启动器隐藏，不发 ⌘V，右上角出现"已复制，请按 ⌘V 粘贴"的通知（不在 `.app` 里时显示为"脚本编辑器"的通知）；在 TextEdit 里按 ⌘V 应贴出该条。`.app` 版本点通知应打开设置的权限页。片段、AI 回答的"粘贴"同样如此。
+6. 首次运行提示：删掉 `~/Library/Application Support/golauncher/permissions-hint-shown`（与 `data` 同级），在没有辅助功能权限时启动并呼出：底部出现一次"授予几项 macOS 权限后，golauncher 更好用"；再次呼出、重启后都不再出现。
+7. 提权：运行一个要求管理员身份的后台任务（例如网络工具里需要管理员的条目，或脚本命令里 `elevate` 的脚本）：任务应立即失败，日志只有"这里不支持以管理员身份运行程序。"，没有"正在请求管理员权限（UAC）…"，任务页也没有"以管理员身份重试"。

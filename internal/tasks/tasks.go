@@ -379,7 +379,9 @@ func (m *Manager) run(t *task) {
 	default:
 		t.info.State = plugin.TaskSucceeded
 	}
-	if t.info.State == plugin.TaskFailed && t.info.Kind == KindProcess && !t.info.Cmd.Elevate {
+	// Only a runner that can elevate offers to retry as administrator.
+	if _, canElevate := m.o.Runner.(Elevator); canElevate &&
+		t.info.State == plugin.TaskFailed && t.info.Kind == KindProcess && !t.info.Cmd.Elevate {
 		t.info.NeedsElevation = errors.Is(err, proc.ErrorElevationRequired) ||
 			(err == nil && code != 0 && elevationRequired(t.out))
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/i18n"
+	"github.com/eziq1/golauncher/internal/ui"
 )
 
 // Background tasks on the desktop (docs/background-tasks.md §3, §4.1): the
@@ -46,15 +47,21 @@ func (s *Shell) notify(n core.Notice) {
 		s.env.Controller.ShowToast(n.Toast)
 		return
 	}
+	if !mygo.NotificationsSupported() && scriptNotify(n.Toast.Title, n.Toast.Message, s.log) {
+		return // macOS outside a .app bundle
+	}
 	id := ""
 	if n.TaskID != "" {
 		id = "task-" + n.TaskID
 	}
 	notification := mygo.NewNotification(mygo.NotificationOptions{ID: id, Title: n.Toast.Title, Body: n.Toast.Message, Silent: n.Toast.Silent})
 	notification.OnClick(func() {
-		if n.TaskID != "" {
+		switch {
+		case n.TaskID != "":
 			s.showTask(n.TaskID)
-		} else {
+		case n.Settings == core.SettingsPermissions:
+			s.showSettings(ui.PagePermissions)
+		default:
 			s.showLauncher()
 		}
 	})
