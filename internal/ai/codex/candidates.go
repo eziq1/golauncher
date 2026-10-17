@@ -156,18 +156,24 @@ func shimIn(dir string) string {
 // vendored returns the paths where an npm installation whose launcher is in
 // dir keeps the native binary (whether they exist or not), preferred first:
 // inside the @openai/codex package (older releases), in its platform package
-// installed under it, or hoisted next to it.
+// installed under it, or hoisted next to it; each in the layout of 0.150 and
+// later (vendor/<triple>/bin/codex.exe), then in the older one
+// (vendor/<triple>/codex/codex.exe).
 func vendored(dir string, e findEnv) []string {
 	nm := filepath.Join(dir, "node_modules", "@openai")
 	var out []string
 	for _, t := range e.triples() {
-		rel := filepath.Join("vendor", t, "codex", exeName)
 		pkg := platformPackage(t)
-		out = append(out,
-			filepath.Join(nm, "codex", rel),
-			filepath.Join(nm, "codex", "node_modules", "@openai", pkg, rel),
-			filepath.Join(nm, pkg, rel),
-		)
+		for _, base := range []string{
+			filepath.Join(nm, "codex"),
+			filepath.Join(nm, "codex", "node_modules", "@openai", pkg),
+			filepath.Join(nm, pkg),
+		} {
+			out = append(out,
+				filepath.Join(base, "vendor", t, "bin", exeName),
+				filepath.Join(base, "vendor", t, "codex", exeName),
+			)
+		}
 	}
 	return out
 }

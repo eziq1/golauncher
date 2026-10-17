@@ -49,6 +49,9 @@ func TestCandidates(t *testing.T) {
 		x64Nest  = "node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
 		x64Hoist = "node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
 		armHoist = "node_modules/@openai/codex-win32-arm64/vendor/aarch64-pc-windows-msvc/codex/codex.exe"
+		// The layout of 0.150 and later.
+		x64NestBin  = "node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
+		x64HoistBin = "node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
 	)
 	for _, tt := range []struct {
 		name  string
@@ -82,6 +85,12 @@ func TestCandidates(t *testing.T) {
 			files: []string{"node/codex", "node/" + x64Old, "node/" + armOld, "node/" + armHoist},
 			path:  []string{"node"}, arch: "arm64",
 			want: []string{"node/" + armOld, "node/" + armHoist, "node/" + x64Old},
+		},
+		{
+			name:  "npm 0.150 and later: vendor/<triple>/bin",
+			files: []string{"node/codex.cmd", "node/" + x64NestBin, "node/" + x64HoistBin, "node/" + x64Hoist},
+			path:  []string{"node"}, arch: "amd64",
+			want: []string{"node/" + x64NestBin, "node/" + x64HoistBin, "node/" + x64Hoist},
 		},
 		{
 			name:  "%APPDATA%\\npm",
