@@ -44,6 +44,9 @@ type Message struct {
 	// Program is the program the backend ran when the answer failed in a way
 	// that another installation may avoid (R84), shown with the error.
 	Program string `json:"program,omitempty"`
+	// Attachments are the files attached to a message of the user (R91);
+	// their copies are in the chat's attachment directory.
+	Attachments []Attached `json:"attachments,omitempty"`
 }
 
 // ToolStep is a tool call of an answer, shown as one line: e.g. a search
@@ -76,6 +79,8 @@ type Session struct {
 	// Started is set once the backend has the session (an answer came), so
 	// that it is resumed rather than started again.
 	Started bool `json:"started,omitzero"`
+	// Attachments is the number of files attached to the chat's messages.
+	Attachments int `json:"attachments,omitzero"`
 }
 
 const (

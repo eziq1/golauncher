@@ -7,3 +7,6 @@ func SetDesktop(configPath, exe string) func() {
 	executable = func() (string, error) { return exe, nil }
 	return func() { desktopConfigPath, executable = oldPath, oldExe }
 }
+
+// LocalImagePath is localImagePath, the Markdown images' path check.
+var LocalImagePath = localImagePath

@@ -134,6 +134,7 @@ var (
 	_ plugin.FallbackProvider  = (*Plugin)(nil)
 	_ plugin.TabProvider       = (*Plugin)(nil)
 	_ plugin.SelectionProvider = (*Plugin)(nil)
+	_ plugin.FileReceiver      = (*Plugin)(nil)
 )
 
 // New returns the plugin answering with be.
@@ -251,6 +252,9 @@ func (p *Plugin) Close() error {
 	}
 	chats := p.chats
 	p.chats = map[string]*chat{}
+	for _, ch := range chats {
+		p.discardDraft(ch) // drafts do not outlive the plugin
+	}
 	p.mu.Unlock()
 	for _, ch := range chats {
 		p.stopChat(ch)
@@ -285,8 +289,10 @@ func (p *Plugin) prune() {
 		return live
 	})
 	for _, s := range removed {
-		p.be.forget(s) // the CLI's session ID of the chat (R72)
+		p.be.forget(s)            // the CLI's session ID of the chat (R72)
+		p.removeAttachments(s.ID) // and the copies of its attachments (R91)
 	}
+	p.pruneAttachments()
 	if err != nil {
 		p.h.Logger().Warn("prune chats", "err", err)
 	} else if len(removed) > 0 {
@@ -343,6 +349,7 @@ func (p *Plugin) releaseIdle() {
 			continue
 		}
 		closeConv = append(closeConv, ch.conv)
+		p.discardDraft(ch)
 		delete(p.chats, id)
 	}
 	p.mu.Unlock()
@@ -476,6 +483,8 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		return r, nil
 	case "delete", "clear":
 		return p.historyAction(a)
+	case "detach":
+		return p.detach(a)
 	}
 	var ip instancePayload
 	_ = json.Unmarshal(a.Payload, &ip)

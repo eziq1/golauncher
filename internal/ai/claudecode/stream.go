@@ -433,6 +433,34 @@ func userLine(text string) any {
 	}{"user", msg{"user", promptText(text)}}
 }
 
+// inBlock is a content block of a user message with attachments (R91):
+// text, or an image with its base64 source.
+type inBlock struct {
+	Type   string       `json:"type"`
+	Text   string       `json:"text,omitempty"`
+	Source *imageSource `json:"source,omitempty"`
+}
+
+// imageSource is the source of an image block.
+type imageSource struct {
+	Type      string `json:"type"`
+	MediaType string `json:"media_type"`
+	Data      string `json:"data"`
+}
+
+// userBlocksLine is the stream-json input line of a user message whose
+// content is a list of blocks.
+func userBlocksLine(blocks []inBlock) any {
+	type msg struct {
+		Role    string    `json:"role"`
+		Content []inBlock `json:"content"`
+	}
+	return struct {
+		Type    string `json:"type"`
+		Message msg    `json:"message"`
+	}{"user", msg{"user", blocks}}
+}
+
 // promptText is text as sent to the CLI.
 func promptText(text string) string {
 	if strings.HasPrefix(text, "/") {

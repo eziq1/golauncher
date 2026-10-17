@@ -126,6 +126,9 @@ func Custom(name, command string, args []string) Config {
 		},
 		TestedMajor: -1,
 		WorkDir:     "acp-" + safeName(name),
+		// Static: whether the agent takes images is known from its
+		// promptCapabilities at the handshake (MessageWith refuses them then).
+		Attachments: backend.AllAttachments(),
 	}
 	if filepath.IsAbs(command) {
 		info.InstallPaths = []string{command}

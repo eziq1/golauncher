@@ -104,6 +104,11 @@ type logEntry struct {
 	// Help: a --help run; Permission: the answer to a permission request.
 	Help       bool   `json:"help"`
 	Permission string `json:"permission"`
+	// After a message with content blocks: what the fake found in them.
+	Images     *int     `json:"images"`
+	ImageBytes []int    `json:"imageBytes"`
+	ImageTypes []string `json:"imageTypes"`
+	Files      int      `json:"files"`
 }
 
 // mcpMeta is what testdata/fakemcp echoes in a tool result's _meta.

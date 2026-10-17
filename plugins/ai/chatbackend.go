@@ -165,7 +165,13 @@ func (p *Plugin) transcript(ch *chat) string {
 		}
 		switch m.Role {
 		case RoleUser:
-			b.WriteString("**" + l.T("chat.you") + "**\n\n" + m.Text + "\n\n")
+			b.WriteString("**" + l.T("chat.you") + "**\n\n")
+			if md := p.attachmentsMarkdown(ch.sess.ID, m.Attachments); md != "" {
+				b.WriteString(md + "\n\n")
+			}
+			if m.Text != "" {
+				b.WriteString(m.Text + "\n\n")
+			}
 		case RoleAssistant:
 			answer(m.Text, m.Notice, m.Tools, m.Steps)
 			if m.Stopped {
@@ -221,6 +227,8 @@ func (p *Plugin) errorMarkdown(sess Session, recorded, program string) string {
 		text = backendText(l, kind, id)
 	case string(backend.ErrUnavailable):
 		text = l.T("error.unavailable")
+	case string(backend.ErrAttachment):
+		text = l.T("error.attachment", "backend", p.backendName(sess))
 	case recordedChatUnavailable:
 		text, msg = l.T("error.chatUnavailable", "backend", p.backendName(sess)), ""
 	default:

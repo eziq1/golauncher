@@ -41,6 +41,26 @@ func TestFileURLPath(t *testing.T) {
 	}
 }
 
+func TestProbeTypes(t *testing.T) {
+	for _, tc := range []struct {
+		types []string
+		want  bool
+	}{
+		{nil, false},
+		{[]string{typeText}, false},
+		{[]string{typeFileURL, typeText}, true},
+		{[]string{typePNG}, true},
+		{[]string{typeTIFF}, true},
+		{[]string{typePNG, typeText}, false},
+		{[]string{typeFileURL, typeConcealed}, false},
+		{[]string{"public.html"}, false},
+	} {
+		if got := probeTypes(tc.types); got != tc.want {
+			t.Errorf("probeTypes(%q) = %v, want %v", tc.types, got, tc.want)
+		}
+	}
+}
+
 func TestBlank(t *testing.T) {
 	if !blank("") || !blank(" \n\t") || blank(" x ") {
 		t.Error("blank")

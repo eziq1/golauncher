@@ -121,6 +121,9 @@ func New(a Adapter, o Options) *Runtime {
 // Name implements backend.Backend.
 func (r *Runtime) Name() string { return r.info.Name }
 
+// Attachments implements backend.AttachmentCapser: Info.Attachments.
+func (r *Runtime) Attachments() backend.AttachmentCaps { return r.info.Attachments }
+
 // errorf is an internal error of this backend, prefixed with its ID.
 func (r *Runtime) errorf(format string, args ...any) error {
 	return fmt.Errorf(r.info.ID+": "+format, args...)
@@ -317,10 +320,19 @@ func (r *Runtime) CommandAt(o backend.OpenOptions, path, version string, persist
 // CommandFor is Command for a CLI of the given version and probed flags
 // (nil: unknown).
 func (r *Runtime) CommandFor(o backend.OpenOptions, path, version string, flags Flags, persistent, resume bool) (Command, error) {
+	return r.CommandWith(o, path, version, flags, persistent, resume, nil)
+}
+
+// CommandWith is CommandFor for a per-turn process whose message has the
+// attachments atts (Launch.Attachments).
+func (r *Runtime) CommandWith(o backend.OpenOptions, path, version string, flags Flags, persistent, resume bool, atts []backend.Attachment) (Command, error) {
 	c := &conversation{r: r, oo: o}
 	dir := r.o.Dir
 	l := c.launch(path, dir, persistent, resume, "")
 	l.Version, l.Flags = version, flags
+	if !persistent {
+		l.Attachments = atts
+	}
 	if l.Tools != nil {
 		if b, err := r.a.MCPConfig(*l.Tools); err == nil && b != nil {
 			l.MCPConfig = filepath.Join(dir, MCPConfigName(o.SessionID))

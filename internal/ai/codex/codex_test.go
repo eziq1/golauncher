@@ -87,6 +87,8 @@ func (f *fake) open(o backend.OpenOptions) backend.Conversation {
 type logEntry struct {
 	Argv  []string `json:"argv"`
 	Stdin *string  `json:"stdin"`
+	// ImageSizes are the sizes of the --image files.
+	ImageSizes []int64 `json:"imageSizes"`
 }
 
 func (f *fake) entries() []logEntry {

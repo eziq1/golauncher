@@ -3,6 +3,7 @@ package acp
 import (
 	"bufio"
 	"cmp"
+	"encoding/base64"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 //
 //	ACP_FAKE_PROTO=<n>     initialize reports protocol version n (default 1)
 //	ACP_FAKE_NOLOAD=1      no loadSession capability
+//	ACP_FAKE_NOIMAGE=1     no image prompt capability
 //	ACP_FAKE_LOADFAIL=1    session/load fails
 //	ACP_FAKE_NEWERR=auth   session/new fails: authentication required
 //	ACP_FAKE_NEWERR=quota  session/new fails with 429
@@ -56,7 +58,7 @@ type fake struct {
 // read queues the lines of stdin, logging each.
 func (f *fake) read() {
 	sc := bufio.NewScanner(os.Stdin)
-	sc.Buffer(nil, 1<<20)
+	sc.Buffer(nil, 64<<20) // a prompt with images is one long line
 	for sc.Scan() {
 		line := sc.Text()
 		if lf, err := os.OpenFile(f.log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
@@ -109,8 +111,9 @@ func (f *fake) handle(m message) {
 		proto := 1
 		fmt.Sscan(os.Getenv("ACP_FAKE_PROTO"), &proto)
 		f.result(m.ID, map[string]any{"protocolVersion": proto,
-			"agentCapabilities": map[string]any{"loadSession": os.Getenv("ACP_FAKE_NOLOAD") != "1"},
-			"authMethods":       []any{map[string]any{"id": "fake-login", "name": "Log in"}}})
+			"agentCapabilities": map[string]any{"loadSession": os.Getenv("ACP_FAKE_NOLOAD") != "1",
+				"promptCapabilities": map[string]any{"image": os.Getenv("ACP_FAKE_NOIMAGE") != "1", "audio": false, "embeddedContext": false}},
+			"authMethods": []any{map[string]any{"id": "fake-login", "name": "Log in"}}})
 	case "session/new":
 		switch os.Getenv("ACP_FAKE_NEWERR") {
 		case "auth":
@@ -191,13 +194,31 @@ func (f *fake) await(id string) (message, bool) {
 func (f *fake) prompt(m message) {
 	var p struct {
 		Prompt []struct {
-			Text string `json:"text"`
+			Type     string `json:"type"`
+			Text     string `json:"text"`
+			MimeType string `json:"mimeType"`
+			Data     string `json:"data"`
 		} `json:"prompt"`
 	}
 	json.Unmarshal(m.Params, &p)
 	text := ""
 	if n := len(p.Prompt); n > 0 {
 		text = p.Prompt[n-1].Text
+	}
+	// Images: their count, media types and decoded sizes, after the echo.
+	var images []string
+	for _, b := range p.Prompt {
+		if b.Type == "image" {
+			data, err := base64.StdEncoding.DecodeString(b.Data)
+			if err != nil {
+				data = nil
+			}
+			images = append(images, fmt.Sprintf("%s %d", b.MimeType, len(data)))
+		}
+	}
+	summary := ""
+	if len(images) > 0 {
+		summary = fmt.Sprintf(" [images: %d: %s]", len(images), strings.Join(images, ", "))
 	}
 	end := func(reason string) { f.result(m.ID, map[string]any{"stopReason": reason}) }
 	switch text {
@@ -288,7 +309,7 @@ func (f *fake) prompt(m message) {
 	default:
 		f.chunk("agent_message_chunk", "echo: ")
 		f.chunk("agent_thought_chunk", "thinking")
-		f.chunk("agent_message_chunk", strings.TrimPrefix(text, "\u200b"))
+		f.chunk("agent_message_chunk", strings.TrimPrefix(text, "\u200b")+summary)
 		end("end_turn")
 	}
 }

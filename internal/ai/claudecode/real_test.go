@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"image/color"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,6 +45,40 @@ func TestRealCLI(t *testing.T) {
 			t.Fatalf("turn %d: answer %q, final %+v", i, a.text, a.final)
 		}
 		t.Logf("turn %d: %q, usage %+v", i, a.text, a.final.Usage)
+	}
+}
+
+// TestRealCLIAttachments sends a red image and a text file to the installed
+// Claude Code CLI, in persistent and in per-turn mode (stream-json input on
+// a per-turn process). It only runs with GOLAUNCHER_AI_TESTS=1.
+func TestRealCLIAttachments(t *testing.T) {
+	if os.Getenv("GOLAUNCHER_AI_TESTS") != "1" {
+		t.Skip("set GOLAUNCHER_AI_TESTS=1 to chat with the real Claude Code CLI")
+	}
+	dir := t.TempDir()
+	img := writePNG(t, dir, 16, 16, color.RGBA{R: 255, A: 255})
+	txt := writeText(t, dir, "secret.txt", "The secret word is pineapple.")
+	for _, perTurn := range []bool{false, true} {
+		t.Run(fmt.Sprint("perTurn=", perTurn), func(t *testing.T) {
+			b := New(Options{Dir: filepath.Join(dir, fmt.Sprint("work-", perTurn)), PerTurn: perTurn})
+			defer b.Close()
+			if _, err := b.Check(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			var u [16]byte
+			rand.Read(u[:])
+			u[6], u[8] = u[6]&0x0f|0x40, u[8]&0x3f|0x80
+			id := fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
+			c, err := b.Open(context.Background(), backend.OpenOptions{SessionID: id, Model: "haiku", SystemPrompt: "Answer as briefly as possible."})
+			if err != nil {
+				t.Fatal(err)
+			}
+			a := sendWith(t, c, "What color is the image, and what is the secret word in the attached file? Reply with two words.", img, txt)
+			low := strings.ToLower(a.text)
+			if a.final.Kind != backend.EventDone || !strings.Contains(low, "red") || !strings.Contains(low, "pineapple") {
+				t.Fatalf("answer %q, final %+v", a.text, a.final)
+			}
+		})
 	}
 }
 

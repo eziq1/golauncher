@@ -25,12 +25,17 @@ func (p *Plugin) historyView() plugin.View {
 			continue
 		}
 		del := plugin.MustPayload(s.ID)
+		var clips []plugin.Accessory
+		if s.Attachments > 0 {
+			clips = []plugin.Accessory{{Text: "📎 " + l.Number(float64(s.Attachments))}}
+		}
 		items = append(items, plugin.Item{
-			ID:        s.ID,
-			Title:     s.Title,
-			Subtitle:  l.T("history.subtitle", "time", l.RelativeTime(s.Updated, now), "backend", p.backendName(s)),
-			Icon:      plugin.Icon{Name: "message-square"},
-			Accessory: l.N("history.messages", s.Messages),
+			Accessories: clips,
+			ID:          s.ID,
+			Title:       s.Title,
+			Subtitle:    l.T("history.subtitle", "time", l.RelativeTime(s.Updated, now), "backend", p.backendName(s)),
+			Icon:        plugin.Icon{Name: "message-square"},
+			Accessory:   l.N("history.messages", s.Messages),
 			Actions: []plugin.Action{
 				{ID: "open", Title: l.T("history.open"),
 					Do: plugin.ActionDo{Kind: plugin.ActionPush, Target: viewChat, Payload: plugin.MustPayload(chatPayload{Session: s.ID})}},
@@ -81,6 +86,9 @@ func (p *Plugin) historyAction(a plugin.ActionDo) (plugin.Result, error) {
 	} else if err := p.st.Delete(ids[0]); err != nil {
 		return plugin.Result{}, err
 	}
+	for _, id := range ids {
+		p.removeAttachments(id) // the copies of the chat's attachments (R91)
+	}
 	return plugin.Result{Refresh: true, Toast: &plugin.Toast{Style: plugin.ToastSuccess, Title: l.N("toast.deleted", n)}}, nil
 }
 
@@ -93,6 +101,9 @@ func (p *Plugin) forget(id string) {
 		if sid == id {
 			delete(p.views, inst)
 		}
+	}
+	if ch != nil {
+		ch.draft = nil // its files go with the chat's directory
 	}
 	p.mu.Unlock()
 	if ch == nil {

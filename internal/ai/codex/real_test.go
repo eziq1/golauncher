@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,6 +57,37 @@ func TestRealCLI(t *testing.T) {
 		t.Fatalf("turn 2: answer %q, notices %q, final %+v (err %v)", a.text, a.notices, a.final, a.final.Err)
 	}
 	t.Logf("turn 2: %q, usage %+v", a.text, a.final.Usage)
+}
+
+// TestRealCLIAttachments sends a red image and a text file to the installed
+// Codex CLI, then a blue image on the resumed thread (--image after
+// "resume"). It only runs with GOLAUNCHER_AI_TESTS=1.
+func TestRealCLIAttachments(t *testing.T) {
+	if os.Getenv("GOLAUNCHER_AI_TESTS") != "1" {
+		t.Skip("set GOLAUNCHER_AI_TESTS=1 to chat with the real Codex CLI")
+	}
+	dir := t.TempDir()
+	red := writePNG(t, dir, "red.png", 16, 16, color.RGBA{R: 255, A: 255})
+	blue := writePNG(t, dir, "blue.png", 16, 16, color.RGBA{B: 255, A: 255})
+	txt := writeText(t, dir, "secret.txt", "The secret word is pineapple.")
+	b := New(Options{Dir: filepath.Join(dir, "work")})
+	defer b.Close()
+	if _, err := b.Check(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	c, err := b.Open(context.Background(), backend.OpenOptions{SessionID: realChatID(), SystemPrompt: "Answer as briefly as possible."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := sendWith(t, c, "What color is the image, and what is the secret word in the attached file? Reply with two words.", red, txt)
+	low := strings.ToLower(a.text)
+	if a.final.Kind != backend.EventDone || !strings.Contains(low, "red") || !strings.Contains(low, "pineapple") {
+		t.Fatalf("turn 1: answer %q, final %+v (err %v)", a.text, a.final, a.final.Err)
+	}
+	a = sendWith(t, c, "What color is this new image? Reply with one word.", blue)
+	if a.final.Kind != backend.EventDone || !strings.Contains(strings.ToLower(a.text), "blue") || len(a.notices) != 0 {
+		t.Fatalf("turn 2: answer %q, notices %q, final %+v (err %v)", a.text, a.notices, a.final, a.final.Err)
+	}
 }
 
 // TestRealCLITools lets the real CLI use golauncher's tools: glctl mcp on

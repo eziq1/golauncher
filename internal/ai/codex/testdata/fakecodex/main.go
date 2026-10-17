@@ -64,12 +64,17 @@ func main() {
 	if args[len(args)-1] != "-" {
 		fail("fakecodex: the prompt is not read from stdin")
 	}
+	images := checkImages(args)
 	thread := ""
 	if i := slices.Index(args, "resume"); i >= 0 {
-		if i+1 >= len(args) {
+		j := i + 1
+		for j < len(args) && strings.HasPrefix(args[j], "--image=") {
+			j++
+		}
+		if j >= len(args)-1 {
 			fail("fakecodex: resume without an ID")
 		}
-		thread = args[i+1]
+		thread = args[j]
 		if !known(thread) {
 			fail("Error: thread/resume: thread/resume failed: no rollout found for thread id " + thread + " (code -32600)")
 		}
@@ -142,10 +147,46 @@ func main() {
 		fmt.Println("2026-01-01T00:00:00Z WARN fake: this is not JSON")
 		emit(itemEv("item.completed", map[string]any{"id": "item_0", "type": "agent_message", "text": "still fine"}))
 	default:
-		emit(itemEv("item.completed", map[string]any{"id": "item_0", "type": "agent_message", "text": "echo: " + prompt}))
+		text := "echo: " + prompt
+		if images > 0 {
+			text += fmt.Sprintf(" [images: %d]", images)
+		}
+		emit(itemEv("item.completed", map[string]any{"id": "item_0", "type": "agent_message", "text": text}))
 	}
 	emit(map[string]any{"type": "turn.completed", "usage": map[string]any{"input_tokens": 100, "cached_input_tokens": 40,
 		"cache_write_input_tokens": 0, "output_tokens": 7, "reasoning_output_tokens": 3}})
+}
+
+// checkImages returns the number of --image=<file> arguments, which must
+// come right after "exec" or right after "resume" (before the thread ID)
+// and name files that exist; the log gets their sizes.
+func checkImages(args []string) int {
+	var sizes []int64
+	for i, a := range args {
+		path, ok := strings.CutPrefix(a, "--image=")
+		if !ok {
+			if a == "-i" || a == "--image" {
+				fail("fakecodex: --image without '='")
+			}
+			continue
+		}
+		j := i - 1
+		for j >= 0 && strings.HasPrefix(args[j], "--image=") {
+			j--
+		}
+		if j < 0 || args[j] != "exec" && args[j] != "resume" {
+			fail("fakecodex: --image in the wrong place")
+		}
+		fi, err := os.Stat(path)
+		if err != nil {
+			fail("fakecodex: image: " + err.Error())
+		}
+		sizes = append(sizes, fi.Size())
+	}
+	if len(sizes) > 0 {
+		logEntry(map[string]any{"imageSizes": sizes})
+	}
+	return len(sizes)
 }
 
 func itemEv(typ string, it map[string]any) map[string]any {

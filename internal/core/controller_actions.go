@@ -115,7 +115,18 @@ func (c *Controller) exec(ctx context.Context, entry Entry, action plugin.Action
 
 // execFrom is exec; fromRoot records the use of the entry for ranking.
 func (c *Controller) execFrom(ctx context.Context, entry Entry, action plugin.Action, fromRoot bool) (Outcome, error) {
+	if action.Do.Kind == plugin.ActionChooseFiles {
+		// The open dialog, for the view the action runs from (files.go).
+		return c.chooseFiles(ctx, entry, action)
+	}
 	out, err := c.eng.Run(ctx, entry, action, fromRoot)
+	return c.applyOutcome(ctx, out, err)
+}
+
+// applyOutcome applies the outcome of an action (or of files received) to
+// the navigation state: its toast, a form's field errors, the views pushed
+// or popped, a refresh.
+func (c *Controller) applyOutcome(ctx context.Context, out Outcome, err error) (Outcome, error) {
 	if err != nil {
 		c.setToast(&plugin.Toast{Style: plugin.ToastFailure, Title: c.eng.core.T("toast.actionFailed"), Message: err.Error()})
 		return out, err

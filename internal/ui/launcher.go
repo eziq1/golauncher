@@ -5,6 +5,7 @@
 package ui
 
 import (
+	"context"
 	"log/slog"
 	"sync/atomic"
 	"time"
@@ -43,6 +44,10 @@ type Host interface {
 	OpenSettings()
 	// Invalidate redraws the launcher window.
 	Invalidate()
+	// ChooseFiles shows the system's open dialog for the launcher window
+	// (plugin.ActionChooseFiles) and returns the files chosen, none when
+	// cancelled. It blocks until the dialog closes.
+	ChooseFiles(o plugin.ChooseFilesOptions) ([]string, error)
 }
 
 // Launcher is the launcher panel's view: a search field, the results with
@@ -50,6 +55,7 @@ type Host interface {
 // Controller through a Dispatcher, never on the UI thread.
 type Launcher struct {
 	ctrl   *core.Controller
+	clip   plugin.Clipboard // probed on Ctrl+V (core.FilesClipboard)
 	loc    *i18n.Localizer
 	host   Host
 	work   *Dispatcher
@@ -101,6 +107,7 @@ type Launcher struct {
 func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 	l := &Launcher{
 		ctrl:     env.Controller,
+		clip:     env.Services.Clipboard,
 		loc:      env.I18n.Localizer(i18n.CoreNamespace),
 		host:     host,
 		work:     work,
@@ -108,6 +115,12 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 		hoverRow: -1,
 	}
 	l.images = newImageCache(host.Invalidate)
+	l.md.LoadImage = localImage
+	// ActionChooseFiles runs on the Dispatcher's goroutine, which waits for
+	// the dialog.
+	env.Engine.SetFileChooser(func(_ context.Context, o plugin.ChooseFilesOptions) ([]string, error) {
+		return host.ChooseFiles(o)
+	})
 	l.themes = env.Themes
 	a := env.Config.Get().Appearance
 	l.appearance.Store(&a)
@@ -206,6 +219,9 @@ func (l *Launcher) View(c *mui.Context) {
 						l.detail(c, s.Detail)
 					}
 				})
+			}
+			if len(s.Chips) > 0 {
+				l.chips(c, s.Chips)
 			}
 			mui.Divider(c)
 			l.footer(c, s)

@@ -3,11 +3,14 @@ package acp
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -138,25 +141,56 @@ type (
 		Value string `json:"value"`
 	}
 	promptParams struct {
-		SessionID string      `json:"sessionId"`
-		Prompt    []textBlock `json:"prompt"`
+		SessionID string        `json:"sessionId"`
+		Prompt    []promptBlock `json:"prompt"`
 	}
-	textBlock struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+	// promptBlock is a block of a prompt: text ({"type":"text","text":…})
+	// or an image ({"type":"image","mimeType":…,"data":<base64>}, R91).
+	promptBlock struct {
+		Type     string `json:"type"`
+		Text     string `json:"text"`
+		MimeType string `json:"mimeType,omitempty"`
+		Data     string `json:"data,omitempty"`
 	}
 	sessionIDParams struct {
 		SessionID string `json:"sessionId"`
 	}
 )
 
+// textBlock is a text block of a prompt.
+func textBlock(text string) promptBlock { return promptBlock{Type: "text", Text: text} }
+
+// MarshalJSON marshals a text block as {"type":"text","text":…} (also with
+// an empty text) and an image block without a text.
+func (b promptBlock) MarshalJSON() ([]byte, error) {
+	if b.Type == "image" {
+		return json.Marshal(struct {
+			Type     string `json:"type"`
+			MimeType string `json:"mimeType"`
+			Data     string `json:"data"`
+		}{b.Type, b.MimeType, b.Data})
+	}
+	return json.Marshal(struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}{b.Type, b.Text})
+}
+
 // The results golauncher reads.
 type (
 	initializeResult struct {
 		ProtocolVersion   int `json:"protocolVersion"`
 		AgentCapabilities struct {
-			LoadSession bool `json:"loadSession"`
+			LoadSession        bool               `json:"loadSession"`
+			PromptCapabilities promptCapabilities `json:"promptCapabilities"`
 		} `json:"agentCapabilities"`
+	}
+	// promptCapabilities are the content blocks the agent takes in a prompt
+	// besides text (ACP: image, audio, embedded resources).
+	promptCapabilities struct {
+		Image           bool `json:"image"`
+		Audio           bool `json:"audio"`
+		EmbeddedContext bool `json:"embeddedContext"`
 	}
 	sessionResult struct {
 		SessionID string `json:"sessionId"`
@@ -193,12 +227,15 @@ type codec struct {
 	lost      bool   // a resume was asked for, a new session started
 	system    string // the system prompt, sent with the first prompt
 	promptID  int64  // the running turn's session/prompt request
+	// caps are the agent's promptCapabilities (initialize).
+	caps promptCapabilities
 }
 
 var (
-	_ agentrt.Codec       = (*codec)(nil)
-	_ agentrt.Handshaker  = (*codec)(nil)
-	_ agentrt.ResumeLoser = (*codec)(nil)
+	_ agentrt.AttachmentCodec = (*codec)(nil)
+	_ agentrt.Codec           = (*codec)(nil)
+	_ agentrt.Handshaker      = (*codec)(nil)
+	_ agentrt.ResumeLoser     = (*codec)(nil)
 )
 
 // ResumeLost implements agentrt.ResumeLoser.
@@ -226,6 +263,7 @@ func (c *codec) Handshake(ctx context.Context, conn agentrt.Conn) (string, error
 		return "", &backend.Error{Kind: backend.ErrFailed, Message: fmt.Sprintf(
 			"%s speaks version %d of the Agent Client Protocol; golauncher speaks version %d", c.cfg.Info.Name, init.ProtocolVersion, ProtocolVersion)}
 	}
+	c.caps = init.AgentCapabilities.PromptCapabilities
 	servers := mcpServers(c.l.Tools)
 	if c.l.Resume && c.l.SessionID != "" {
 		if !init.AgentCapabilities.LoadSession {
@@ -346,18 +384,88 @@ func (c *codec) Message(text string) ([]byte, error) {
 	if c.sessionID == "" {
 		return nil, errors.New("acp: no session")
 	}
-	var blocks []textBlock
+	var blocks []promptBlock
 	if c.system != "" {
-		blocks = append(blocks, textBlock{"text", c.system})
+		blocks = append(blocks, textBlock(c.system))
 		c.system = ""
 	}
-	blocks = append(blocks, textBlock{"text", text})
+	blocks = append(blocks, textBlock(text))
 	if !c.cfg.Commands && looksLikeCommand(blocks[0].Text) {
 		blocks[0].Text = "\u200b" + blocks[0].Text
 	}
+	return c.prompt(blocks), nil
+}
+
+// prompt is the session/prompt request of a turn with blocks.
+func (c *codec) prompt(blocks []promptBlock) []byte {
 	c.nextID++
 	c.promptID = c.nextID
-	return request(c.promptID, "session/prompt", promptParams{SessionID: c.sessionID, Prompt: blocks}), nil
+	return request(c.promptID, "session/prompt", promptParams{SessionID: c.sessionID, Prompt: blocks})
+}
+
+// MessageWith implements agentrt.AttachmentCodec: session/prompt with the
+// system prompt still to be sent, then a block per attachment in order (an
+// image block, which needs the agent's image prompt capability; a text file
+// as a backend.FileBlock text block), then the message's text. Unless
+// Config.Commands is set, a text block that looks like a command gets the
+// leading zero width space (as in Message).
+func (c *codec) MessageWith(text string, atts []backend.Attachment) ([]byte, error) {
+	if c.sessionID == "" {
+		return nil, errors.New("acp: no session")
+	}
+	var blocks []promptBlock
+	if c.system != "" {
+		blocks = append(blocks, textBlock(c.system))
+	}
+	for _, a := range atts {
+		switch a.Kind {
+		case backend.AttachImage:
+			if !c.caps.Image {
+				return nil, backend.AttachmentError(c.cfg.Info.Name, "does not accept images")
+			}
+			data, err := c.readAttachment(a)
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, promptBlock{Type: "image", MimeType: a.MediaType, Data: base64.StdEncoding.EncodeToString(data)})
+		case backend.AttachText:
+			data, err := c.readAttachment(a)
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, textBlock(backend.FileBlock(a.Name, string(data))))
+		default:
+			return nil, backend.AttachmentError(c.cfg.Info.Name, "%s attachments cannot be sent", a.Kind)
+		}
+	}
+	blocks = append(blocks, textBlock(text))
+	if !c.cfg.Commands {
+		for i := range blocks {
+			if blocks[i].Type == "text" && looksLikeCommand(blocks[i].Text) {
+				blocks[i].Text = "\u200b" + blocks[i].Text
+			}
+		}
+	}
+	c.system = ""
+	return c.prompt(blocks), nil
+}
+
+// PromptWith implements agentrt.AttachmentCodec (there is no per-turn mode).
+func (c *codec) PromptWith(string, []backend.Attachment) ([]byte, error) {
+	return nil, fmt.Errorf("%s: no per-turn mode", c.cfg.Info.Name)
+}
+
+// readAttachment reads the file of a; an error does not name the file
+// (errors are logged, docs/ai.md \u00a79).
+func (c *codec) readAttachment(a backend.Attachment) ([]byte, error) {
+	data, err := os.ReadFile(a.Path)
+	if err != nil {
+		if pe, ok := errors.AsType[*fs.PathError](err); ok {
+			err = pe.Err
+		}
+		return nil, backend.AttachmentError(c.cfg.Info.Name, "reading an attachment: %v", err)
+	}
+	return data, nil
 }
 
 // looksLikeCommand reports whether an agent may take text for a slash

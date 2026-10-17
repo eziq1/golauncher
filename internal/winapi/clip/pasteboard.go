@@ -62,5 +62,19 @@ func fileURLPath(s string) (string, bool) {
 	return p, true
 }
 
+// probeTypes is HasFilesOrImage for pasteboard content with the types:
+// file URLs, or an image and no text, unless the content is excluded.
+func probeTypes(types []string) bool {
+	switch {
+	case excludedTypes(types):
+		return false
+	case contains(types, typeFileURL):
+		return true
+	case contains(types, typeText):
+		return false
+	}
+	return contains(types, typePNG) || contains(types, typeTIFF)
+}
+
 // blank reports whether s is empty or only white space.
 func blank(s string) bool { return strings.TrimSpace(s) == "" }

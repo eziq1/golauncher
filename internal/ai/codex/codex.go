@@ -193,6 +193,7 @@ func (adapter) Info() agentrt.Info {
 		// A configured npm launcher runs the native binary next to it.
 		ResolvePath: func(path string) string { return nativePath(path, candidateEnv()) },
 		LoginArgs:   []string{"login", "status"},
+		Attachments: backend.AllAttachments(),
 	}
 }
 
@@ -212,9 +213,26 @@ func parseVersion(out string) string {
 
 // Command implements agentrt.Adapter (see the package documentation for the
 // isolation flags).
+//
+// The images of the message (Launch.Attachments, R91) are passed as
+// --image=<path>, one per image: `codex exec --image` takes several values
+// (it would swallow the arguments after it) and resume's may split a value
+// at ',', so they go right after "exec", or right after "resume" before the
+// thread ID, in the equals form; a path with a ',' is refused.
 func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
-	a := []string{l.Path, "exec", "--json", "--color", "never", "--skip-git-repo-check",
-		"--ignore-user-config", "--ignore-rules", "--sandbox", "read-only"}
+	var images []string
+	for _, img := range backend.Images(l.Attachments) {
+		if strings.Contains(img.Path, ",") {
+			return agentrt.Command{}, backend.AttachmentError("Codex", "an image whose path has a ',' cannot be sent")
+		}
+		images = append(images, "--image="+img.Path)
+	}
+	a := []string{l.Path, "exec"}
+	if !l.Resume {
+		a = append(a, images...)
+	}
+	a = append(a, "--json", "--color", "never", "--skip-git-repo-check",
+		"--ignore-user-config", "--ignore-rules", "--sandbox", "read-only")
 	cfg := func(kv string) { a = append(a, "-c", kv) }
 	for _, kv := range isolationConfig {
 		cfg(kv)
@@ -262,7 +280,9 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 		if l.SessionID == "" {
 			return agentrt.Command{}, errors.New("codex: no session to resume")
 		}
-		a = append(a, "resume", l.SessionID)
+		a = append(a, "resume")
+		a = append(a, images...)
+		a = append(a, l.SessionID)
 	}
 	a = append(a, "-")
 	return agentrt.Command{Argv: a}, nil
@@ -321,6 +341,22 @@ func (codec) Message(string) ([]byte, error) { return nil, errNoPersistent }
 
 // Prompt implements agentrt.Codec: the message is read from stdin ("-").
 func (codec) Prompt(text string) []byte { return []byte(text) }
+
+var _ agentrt.AttachmentCodec = codec{}
+
+// MessageWith implements agentrt.AttachmentCodec; it is never used
+// (Info.PerTurnOnly).
+func (codec) MessageWith(string, []backend.Attachment) ([]byte, error) { return nil, errNoPersistent }
+
+// PromptWith implements agentrt.AttachmentCodec: the text files go inline
+// before the message; the images are on the command line (Command).
+func (codec) PromptWith(text string, atts []backend.Attachment) ([]byte, error) {
+	s, err := backend.InlineText(text, atts)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(s), nil
+}
 
 // Interrupt implements agentrt.Codec: a stopped answer kills the process.
 func (codec) Interrupt() []byte { return nil }

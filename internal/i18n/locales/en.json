@@ -13,6 +13,8 @@
   "action.openCommand": "Open Command",
   "toast.copied": "Copied to clipboard",
   "toast.actionFailed": "Action failed",
+  "toast.filesNotTaken": "These files can't be used here",
+  "ui.chip.remove": "Remove {{.name}}",
   "confirm.title": "{{.action}} “{{.item}}”?",
   "confirm.titleCommand": "{{.item}}?",
   "confirm.message": "This cannot be undone.",

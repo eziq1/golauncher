@@ -35,3 +35,10 @@ func commandWith(b *Backend, oo backend.OpenOptions, path, version string, flags
 	cmd, err := b.CommandFor(oo, path, version, flags, persistent, resume)
 	return cmd.Argv, cmd.Env, err
 }
+
+// commandAtts is commandWith for a per-turn process whose message has the
+// attachments atts.
+func commandAtts(b *Backend, oo backend.OpenOptions, path, version string, flags agentrt.Flags, resume bool, atts []backend.Attachment) (argv, extraEnv []string, err error) {
+	cmd, err := b.CommandWith(oo, path, version, flags, false, resume, atts)
+	return cmd.Argv, cmd.Env, err
+}

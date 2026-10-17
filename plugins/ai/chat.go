@@ -35,6 +35,8 @@ type chat struct {
 	// toRoot goes back to the root search once AI is turned on from this
 	// chat's prompt (opened from the selected text).
 	toRoot bool
+	// draft are the attachments of the next message (R91).
+	draft []draftAttachment
 
 	// The answer being written.
 	busy    bool
@@ -130,7 +132,7 @@ func (p *Plugin) chatView(req plugin.ViewRequest) (plugin.View, error) {
 	ch := p.chatOf(req)
 	if text := ch.pending; text != "" && p.enabled() && !ch.busy {
 		ch.pending = ""
-		run := p.startTurn(ch, text)
+		run := p.startTurn(ch, text, ch.takeDraft())
 		p.mu.Unlock()
 		p.runTurn(run)
 		p.mu.Lock()
@@ -144,44 +146,59 @@ func (p *Plugin) chatView(req plugin.ViewRequest) (plugin.View, error) {
 // while AI is off.
 var errChatGone = errors.New("ai: the chat is no longer available")
 
-// send sends the message typed in the search field of a chat view.
+// send sends the message typed in the search field of a chat view, with the
+// draft's attachments. Attachments the chat's backend cannot send keep the
+// message from being sent (the toast names them; the user removes them).
 func (p *Plugin) send(instance, text string) plugin.Result {
 	text = strings.TrimSpace(text)
-	if text == "" || !p.enabled() {
+	if !p.enabled() {
 		return plugin.Result{}
 	}
 	p.mu.Lock()
 	ch := p.chats[p.views[instance]]
-	if ch == nil {
+	if ch == nil || text == "" && len(ch.draft) == 0 {
 		p.mu.Unlock()
 		return plugin.Result{}
 	}
+	l := p.h.I18n()
 	if ch.busy {
 		p.mu.Unlock()
-		l := p.h.I18n()
 		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastInfo, Title: l.T("toast.busy")}}
 	}
-	run := p.startTurn(ch, text)
+	if bad := p.draftBlocked(ch); bad != "" {
+		p.mu.Unlock()
+		return plugin.Result{Toast: &plugin.Toast{Style: plugin.ToastFailure, Title: l.T("attach.blocked"), Message: bad}}
+	}
+	run := p.startTurn(ch, text, ch.takeDraft())
 	p.mu.Unlock()
 	p.runTurn(run)
 	return plugin.Result{ClearText: true}
 }
 
-// startTurn records the user's message and marks the chat as answering. It
-// returns the function writing the answer. p.mu must be held.
-func (p *Plugin) startTurn(ch *chat, text string) func() {
+// startTurn records the user's message, with its attachments, and marks the
+// chat as answering. It returns the function writing the answer. p.mu must
+// be held.
+func (p *Plugin) startTurn(ch *chat, text string, atts []Attached) func() {
 	now := p.h.Now()
 	if len(ch.msgs) == 0 {
 		// A chat takes the backend chosen when its first message is sent.
 		ch.sess.BackendID, ch.sess.Backend = p.be.id(), p.be.Name()
 		ch.sess.Created = now
 		ch.sess.Title = titleOf(text)
+		if text == "" {
+			names := make([]string, len(atts))
+			for i, a := range atts {
+				names[i] = a.Name
+			}
+			ch.sess.Title = titleOf(strings.Join(names, ", "))
+		}
 		if ch.title != "" {
 			ch.sess.Title = ch.title
 		}
 	}
 	ch.sess.Updated = now
-	ch.msgs = append(ch.msgs, Message{Role: RoleUser, Text: text, Time: now})
+	ch.sess.Attachments += len(atts)
+	ch.msgs = append(ch.msgs, Message{Role: RoleUser, Text: text, Time: now, Attachments: atts})
 	p.save(ch)
 	ch.stopIdle()
 	ch.busy = true
@@ -191,10 +208,14 @@ func (p *Plugin) startTurn(ch *chat, text string) func() {
 	ctx, cancel := context.WithCancel(context.Background())
 	ch.cancel = cancel
 	p.turns.Add(1)
+	sent := p.backendAttachments(ch.sess.ID, atts)
+	if text == "" {
+		text = attachmentsOnlyPrompt
+	}
 	return func() {
 		defer p.turns.Done()
 		defer cancel()
-		p.turn(ctx, ch, text)
+		p.turn(ctx, ch, text, sent)
 	}
 }
 
@@ -216,12 +237,12 @@ func (p *Plugin) save(ch *chat) {
 }
 
 // turn asks the backend and follows the answer until it ends.
-func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
+func (p *Plugin) turn(ctx context.Context, ch *chat, text string, atts []backend.Attachment) {
 	start := time.Now()
 	conv, err := p.conversation(ctx, ch)
 	var events <-chan backend.Event
 	if err == nil {
-		events, err = conv.Send(ctx, text)
+		events, err = conv.Send(ctx, text, atts...)
 	}
 	if err != nil {
 		p.finish(ch, backend.Event{Kind: backend.EventError, Err: err}, start)
@@ -493,6 +514,8 @@ func (p *Plugin) render(ch *chat, instance string) plugin.View {
 	if ch.busy {
 		actions = append(actions, cb("stop", l.T("action.stop"), ""))
 	}
+	actions = append(actions, plugin.Action{ID: "attach", Title: l.T("action.attach"), Shortcut: "Ctrl+O",
+		Do: plugin.ActionDo{Kind: plugin.ActionChooseFiles, Payload: plugin.MustPayload(plugin.ChooseFilesOptions{Title: l.T("attach.dialogTitle"), Multiple: true})}})
 	if answer := ch.lastAnswer(); answer != "" {
 		paste := l.T("action.paste")
 		if ch.editable {
@@ -520,6 +543,11 @@ func (p *Plugin) render(ch *chat, instance string) plugin.View {
 		Sections:    []plugin.Section{{Items: []plugin.Item{{ID: "chat", Title: title, Icon: plugin.Icon{Name: "sparkles"}, Actions: actions}}}},
 		// Copy the answer, paste it elsewhere, come back to the chat (R75).
 		KeepOnHide: true,
+		// Attachments (R91): dropped, pasted or chosen files join the draft,
+		// shown as chips; with some, the view holds a draft (R76).
+		AcceptFiles: true,
+		Chips:       p.chips(ch, instance),
+		Draft:       len(ch.draft) > 0,
 	}
 	if len(ch.msgs) > 0 {
 		v.Placeholder = l.T("chat.placeholderFollowUp")
@@ -538,6 +566,9 @@ func (p *Plugin) offView(ch *chat, instance string) plugin.View {
 	if ch.pending != "" {
 		md += "\n\n" + l.T("off.pending") + "\n\n> " + strings.ReplaceAll(ch.pending, "\n", "\n> ")
 	}
+	if n := len(ch.draft); n > 0 {
+		md += "\n\n" + l.N("off.attachments", n)
+	}
 	enable := plugin.Action{ID: "enable", Title: l.T("action.enable"), Do: plugin.ActionDo{Kind: plugin.ActionCallback, Target: "enable"}}
 	if ch.toRoot {
 		md += "\n\n" + l.T("off.selection")
@@ -549,6 +580,9 @@ func (p *Plugin) offView(ch *chat, instance string) plugin.View {
 		Placeholder: l.T("off.placeholder"),
 		Detail:      &plugin.Detail{Markdown: md},
 		Sections:    []plugin.Section{{Items: []plugin.Item{{ID: "chat", Title: l.T("action.enable"), Icon: plugin.Icon{Name: "sparkles"}, Actions: []plugin.Action{enable}}}}},
+		// Files dropped meanwhile join the draft, kept for when AI is on.
+		AcceptFiles: true,
+		Draft:       len(ch.draft) > 0,
 	}
 }
 

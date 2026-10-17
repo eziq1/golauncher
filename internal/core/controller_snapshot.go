@@ -48,6 +48,12 @@ type Snapshot struct {
 	// back to main screen" (docs/keep-view.md §5); a click goes to the root
 	// (Controller.PopToRoot).
 	Hint string `json:"hint,omitempty"`
+	// AcceptFiles is set when the view takes files (plugin.View.AcceptFiles):
+	// dropped, pasted with Ctrl+V (Controller.PasteFiles) or chosen.
+	AcceptFiles bool `json:"acceptFiles,omitzero"`
+	// Chips are the view's chips, shown in a row above the footer; their ×
+	// runs Controller.RemoveChip.
+	Chips []plugin.Chip `json:"chips,omitempty"`
 }
 
 // ContextSnapshot is the context captured when the launcher opened.
@@ -136,6 +142,8 @@ func (c *Controller) Snapshot() Snapshot {
 		s.ShowDetail = f.view.ShowDetail
 		s.EmptyText = cmp.Or(f.view.EmptyText, s.EmptyText)
 		s.Detail = f.view.Detail
+		s.AcceptFiles = f.view.AcceptFiles
+		s.Chips = f.view.Chips
 		if f.view.Kind == plugin.ViewDetail {
 			s.Layout = string(plugin.ViewDetail)
 			s.ShowDetail = false

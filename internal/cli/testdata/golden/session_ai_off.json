@@ -49,6 +49,7 @@
     "detail": {
       "markdown": "## Chat with Claude in the launcher\n\ngolauncher can send your questions to Claude through Claude Code, the Claude Code CLI installed on this computer, and your Claude subscription. No API key is needed; the usage counts toward your subscription.\n\nOnly what you type in an AI chat is sent, and only after you turn this on. Chats stay on this computer, for 30 days by default (Settings › Plugins › AI). Press Enter to turn it on.\n\nYour question will be sent then:\n\n> why is the sky blue"
     },
-    "emptyText": "No results"
+    "emptyText": "No results",
+    "acceptFiles": true
   }
 }

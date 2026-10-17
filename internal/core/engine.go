@@ -122,6 +122,10 @@ type Engine struct {
 
 	// ctx is the context of the current show (context.go).
 	ctx contextState
+
+	// chooser shows the open dialog of ActionChooseFiles (files.go).
+	chooserMu sync.Mutex
+	chooser   FileChooser
 }
 
 // unavailableReason strips the ErrUnavailable suffix from a wrapped error:
@@ -508,6 +512,11 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 		}
 		id, req := e.tasks.View(do.Target)
 		return Outcome{Push: &Nav{Plugin: id, Request: req}}, nil
+	case plugin.ActionChooseFiles:
+		// Only the Controller runs it, for the user, in a view that accepts
+		// files (files.go): never an open dialog for anybody else (AI tools,
+		// a Result.Do).
+		return Outcome{}, ErrChooseFilesHere
 	default:
 		return Outcome{}, fmt.Errorf("core: unknown action kind %q", do.Kind)
 	}
@@ -543,6 +552,14 @@ func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo
 	if err != nil {
 		return Outcome{}, err
 	}
+	return e.result(ctx, l, r)
+}
+
+// result turns the Result of a call into plugin l (an action's callback,
+// files received) into an Outcome, storing the preferences it sets and
+// running its follow-up action.
+func (e *Engine) result(ctx context.Context, l *loaded, r plugin.Result) (Outcome, error) {
+	pluginID := l.m.ID
 	out := Outcome{Hide: r.Hide, Push: navOf(pluginID, r.Push), PopToRoot: r.PopToRoot, Refresh: r.Refresh, Toast: r.Toast,
 		FieldErrors: r.FieldErrors, ClearText: r.ClearText}
 	if len(r.Preferences) > 0 {

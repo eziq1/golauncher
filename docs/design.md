@@ -398,6 +398,9 @@ glctl run <plugin>/<command> [--text t]    # 运行命令，输出 outcome、eff
 glctl session new -s FILE [env flags]      # 开始多步会话
 glctl session type|key|select|action|show -s FILE [args]
 glctl session hide|reopen [root] -s FILE  # 模拟窗口隐藏再呼出（keep-view.md）
+glctl session drop -s FILE <path>...      # 把文件拖到窗口上（R91，ai.md §24）
+glctl session choose -s FILE [<path>...]  # 下一次选择文件对话框的结果（不带路径即取消）
+glctl session remove-chip -s FILE <id>    # 点卡片的 ×
 glctl plugin list | plugin info <id>
 glctl config path | get [key] | set <key> <value>   # 总是读写真实配置文件；key 是点分路径
 glctl i18n check [--src DIR]               # 检查消息目录和代码里的 key 引用（§10.5）

@@ -241,6 +241,9 @@ type env struct {
 	// runner is the fake task runner (fake mode). It holds tasks until a
 	// wait-tasks step, so that snapshots do not depend on timing.
 	runner *tasks.FakeRunner
+	// chosen are the answers of the next open dialogs (session step
+	// choose); with none left the dialog is cancelled.
+	chosen [][]string
 }
 
 // build creates the environment described by ef.
@@ -293,6 +296,9 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 	var err error
 	if e.Env, err = app.Build(ctx, opts); err != nil {
 		return nil, err
+	}
+	if !ef.Real {
+		e.Engine.SetFileChooser(e.choose)
 	}
 	if !ef.Real && ef.Fixtures != "" {
 		if err := loadClipboardFixture(e, ef.Fixtures); err != nil {
@@ -540,6 +546,19 @@ func writeStep(w io.Writer, r stepResult) {
 		writeSections(w, s.Sections, s.Selected)
 	} else {
 		writeSections(w, s.Sections, s.Selected)
+	}
+	if len(s.Chips) > 0 {
+		chips := make([]string, len(s.Chips))
+		for i, ch := range s.Chips {
+			chips[i] = ch.Title
+			if ch.Subtitle != "" {
+				chips[i] += " (" + ch.Subtitle + ")"
+			}
+			if ch.Error {
+				chips[i] += " [error]"
+			}
+		}
+		fmt.Fprintf(w, "chips: %s\n", strings.Join(chips, ", "))
 	}
 	if a := s.Arguments; a != nil {
 		fmt.Fprintf(w, "arguments of %s:\n", a.Entry)

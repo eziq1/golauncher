@@ -13,6 +13,8 @@
   "action.openCommand": "打开命令",
   "toast.copied": "已复制到剪贴板",
   "toast.actionFailed": "操作失败",
+  "toast.filesNotTaken": "这里不能使用这些文件",
+  "ui.chip.remove": "移除 {{.name}}",
   "confirm.title": "{{.action}}“{{.item}}”？",
   "confirm.titleCommand": "{{.item}}？",
   "confirm.message": "此操作无法撤销。",

@@ -133,6 +133,9 @@ func config(h host) acp.Config {
 			Candidates:  func() ([]string, error) { return candidates(h) },
 			Discover:    func() []agentrt.Found { return discover(h) },
 			PathEnv:     pathEnv,
+			// Gemini CLI declares the image prompt capability; text files go
+			// inline (acp's MessageWith).
+			Attachments: backend.AllAttachments(),
 		},
 		Args:       func(l agentrt.Launch) (agentrt.Command, error) { return args(l, h) },
 		Tool:       tool,
