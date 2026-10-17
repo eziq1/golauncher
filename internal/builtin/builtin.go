@@ -285,9 +285,15 @@ func fakeQuicklinks() *quicklinks.Plugin {
 // fakeTranslator is the translator with fake engines that answer "[to] text"
 // at once and offline (engines.Fake); it never goes online.
 func fakeTranslator() *translator.Plugin {
-	return translator.NewWithOptions(translator.Options{Offline: true, Sync: true,
+	return translator.NewWithOptions(translator.Options{Offline: true, Sync: true, Speaker: silentSpeaker{},
 		Engine: func(id string) engines.Engine { return &engines.Fake{EngineID: id} }})
 }
+
+// silentSpeaker stands in for reading aloud in the fake environment: it
+// never makes a sound.
+type silentSpeaker struct{}
+
+func (silentSpeaker) Speak(context.Context, string, string) error { return nil }
 
 // noOpen stands in for opening files in fake mode.
 func noOpen(string, plugin.OpenOptions) error { return nil }

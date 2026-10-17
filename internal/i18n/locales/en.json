@@ -449,6 +449,8 @@
   "toast.permission.automation": "golauncher may not control Finder",
   "toast.permission.automation.message": "To act on Finder's folder, allow golauncher (or the terminal it runs in) to control Finder in System Settings › Privacy & Security › Automation. Settings › Permissions shows the status.",
   "toast.pasteManual": "Copied — press ⌘V to paste",
+  "toast.aiUnavailable": "AI is not available",
+  "toast.aiUnavailable.message": "Turn on the AI plugin in Settings › Plugins.",
   "toast.pasteManual.message": "Grant Accessibility to paste automatically (Settings › Permissions).",
   "toast.permission.onboarding": "golauncher works best with a few macOS permissions",
   "toast.permission.onboarding.message": "Settings › Permissions shows what each one is for and opens System Settings for it.",

@@ -88,6 +88,15 @@ func (p *Plugin) rowItems(j job, rows []row, o origin) []plugin.Item {
 		it.Transient = true
 		items = append(items, it)
 	}
+	if !o.selection {
+		if it, ok := p.dictItem(j, rows); ok {
+			it.Group, it.Transient = group, true
+			if o.root {
+				it.Score = 1 - 0.001*float64(len(items))
+			}
+			items = append(items, it)
+		}
+	}
 	return items
 }
 
@@ -158,6 +167,8 @@ func (p *Plugin) resultActions(tr, text, from, to string, o origin) []plugin.Act
 	}
 	acts = append(acts, plugin.Action{ID: "copy-original", Title: l.T("action.copyOriginal"), Shortcut: "Ctrl+Shift+C",
 		Do: plugin.ActionDo{Kind: plugin.ActionCopyText, Target: text}})
+	acts = append(acts, p.speakActions(tr, to, text, from)...)
+	acts = append(acts, p.askAIAction(text, to))
 	return append(acts, p.webActions(text, from, to)...)
 }
 

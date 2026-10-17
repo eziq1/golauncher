@@ -108,6 +108,9 @@ func newEnv(t *testing.T, o Options, setup ...func(*hostfake.Host)) *env {
 	if o.Engine == nil && o.BaseURLs == nil {
 		o.Engine = f.engine
 	}
+	if o.Speaker == nil {
+		o.Speaker = &fakeSpeaker{} // tests never speak
+	}
 	p := NewWithOptions(o)
 	h, err := hostfake.New(p, t.TempDir())
 	if err != nil {

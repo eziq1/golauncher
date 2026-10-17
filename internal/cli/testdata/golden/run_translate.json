@@ -66,6 +66,44 @@
                 }
               },
               {
+                "id": "speak",
+                "title": "Read Translation Aloud",
+                "readOnly": true,
+                "do": {
+                  "kind": "Callback",
+                  "target": "speak",
+                  "payload": {
+                    "text": "[de] thank you",
+                    "lang": "de"
+                  }
+                }
+              },
+              {
+                "id": "speak-original",
+                "title": "Read Original Aloud",
+                "readOnly": true,
+                "do": {
+                  "kind": "Callback",
+                  "target": "speak",
+                  "payload": {
+                    "text": "thank you",
+                    "lang": "en"
+                  }
+                }
+              },
+              {
+                "id": "ai",
+                "title": "Translate with AI",
+                "do": {
+                  "kind": "AskAI",
+                  "payload": {
+                    "instruction": "Translate the quoted text into German. Output only the translation.",
+                    "text": "thank you",
+                    "title": "Translate: thank you"
+                  }
+                }
+              },
+              {
                 "id": "web-google",
                 "title": "Open in Google Translate",
                 "do": {

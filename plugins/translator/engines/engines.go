@@ -46,21 +46,71 @@ type Result struct {
 
 // Dict is a dictionary entry for a single word.
 type Dict struct {
-	// Phonetic is the word's pronunciation, e.g. "/ˌserənˈdipədē/".
+	// Phonetic is the word's pronunciation, e.g. "ˌserənˈdipədē".
 	Phonetic string `json:"phonetic,omitempty"`
-	// Entries are the meanings by part of speech.
+	// Entries are the word's translations by part of speech.
 	Entries []DictEntry `json:"entries,omitempty"`
+	// Definitions explain the word in its own language, by part of speech.
+	Definitions []DictEntry `json:"definitions,omitempty"`
 }
 
 // DictEntry is one part of speech of a word with its meanings.
 type DictEntry struct {
-	// POS is the part of speech as the engine names it ("noun", "n.").
+	// POS is the part of speech as the engine names it ("noun", "adj.").
 	POS      string   `json:"pos,omitempty"`
 	Meanings []string `json:"meanings"`
 }
 
+// Dictionary limits: a few meanings are shown, not a dictionary page.
+const (
+	maxDictEntries  = 4
+	maxDictMeanings = 5
+	// maxWordRunes is the longest text looked up as a word.
+	maxWordRunes = 40
+	// maxCJKWordRunes is the longest Chinese, Japanese or Korean text looked
+	// up as a word.
+	maxCJKWordRunes = 4
+)
+
 // Empty reports whether d holds nothing to show.
-func (d *Dict) Empty() bool { return d == nil || d.Phonetic == "" && len(d.Entries) == 0 }
+func (d *Dict) Empty() bool {
+	return d == nil || d.Phonetic == "" && len(d.Entries) == 0 && len(d.Definitions) == 0
+}
+
+// IsWord reports whether text is a single word worth a dictionary lookup:
+// no spaces, at most a few dozen characters, some letters. Chinese and
+// Japanese have no spaces between words: there it is a short text.
+func IsWord(text string) bool {
+	t := strings.TrimSpace(text)
+	n := utf8.RuneCountInString(t)
+	if t == "" || n > maxWordRunes || strings.ContainsFunc(t, unicode.IsSpace) || !strings.ContainsFunc(t, unicode.IsLetter) {
+		return false
+	}
+	if strings.ContainsFunc(t, func(r rune) bool {
+		return unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul)
+	}) {
+		return n <= maxCJKWordRunes
+	}
+	return !strings.ContainsFunc(t, unicode.IsPunct) || strings.ContainsAny(t, "-'")
+}
+
+// addEntry appends a part of speech with its first meanings, up to the
+// limits; empty meanings are dropped.
+func addEntry(list []DictEntry, pos string, meanings []string) []DictEntry {
+	if len(list) >= maxDictEntries {
+		return list
+	}
+	var m []string
+	for _, s := range meanings {
+		if s = strings.TrimSpace(s); s != "" && len(m) < maxDictMeanings {
+			m = append(m, s)
+		}
+	}
+	if len(m) == 0 {
+		return list
+	}
+	return append(list, DictEntry{POS: strings.TrimSpace(pos), Meanings: m})
+}
 
 // Engine translates text.
 type Engine interface {

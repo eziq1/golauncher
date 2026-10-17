@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/winapi/tts"
 	"github.com/eziq1/golauncher/pkg/plugin"
 	"github.com/eziq1/golauncher/plugins/translator/engines"
 )
@@ -36,6 +37,12 @@ const (
 	prefSelection = "selection"
 	prefDeepLKey  = "deeplKey"
 	prefEmail     = "mymemoryEmail"
+	prefAzureKey  = "azureKey"
+	prefAzureRgn  = "azureRegion"
+	prefYoudaoApp = "youdaoAppKey"
+	prefYoudaoKey = "youdaoSecret"
+	prefBaiduApp  = "baiduAppID"
+	prefBaiduKey  = "baiduSecret"
 )
 
 // Engine IDs.
@@ -43,18 +50,26 @@ const (
 	engGoogle   = "google"
 	engMyMemory = "mymemory"
 	engDeepL    = "deepl"
+	engAzure    = "azure"
+	engYoudao   = "youdao"
+	engBaidu    = "baidu"
 )
 
 // knownEngines are the IDs of the engines.
-var knownEngines = []string{engGoogle, engMyMemory, engDeepL}
+var knownEngines = []string{engGoogle, engMyMemory, engDeepL, engAzure, engYoudao, engBaidu}
 
 // defaultEngines is the default of prefEngines: engines that need a key are
-// skipped while it is not set, so DeepL comes first once it is
-// (docs/translator.md §3).
-var defaultEngines = []string{engDeepL, engGoogle}
+// skipped while it is not set, so DeepL and Azure come first once theirs
+// is (docs/translator.md §3), then Youdao and Baidu.
+var defaultEngines = []string{engDeepL, engAzure, engYoudao, engBaidu, engGoogle}
 
-// keyPrefs are the password preferences an engine needs, by engine ID.
-var keyPrefs = map[string][]string{engDeepL: {prefDeepLKey}}
+// keyPrefs are the preferences an engine needs, by engine ID.
+var keyPrefs = map[string][]string{
+	engDeepL:  {prefDeepLKey},
+	engAzure:  {prefAzureKey},
+	engYoudao: {prefYoudaoApp, prefYoudaoKey},
+	engBaidu:  {prefBaiduApp, prefBaiduKey},
+}
 
 const (
 	defaultDebounce = 300 * time.Millisecond
@@ -87,6 +102,9 @@ type Options struct {
 	// Sync translates before RootItems, View and SelectionItems return, so
 	// that results are deterministic (glctl, tests).
 	Sync bool
+	// Speaker reads text aloud (default: the system's voices, tts.New);
+	// tests and the fake environment never speak.
+	Speaker tts.Speaker
 }
 
 // Plugin is the translator plugin.
@@ -101,6 +119,9 @@ type Plugin struct {
 	cfg    settings
 	seen   map[string]bool // view instances rendered once
 	unsubs []func()
+	// speaking stops the speech going on; speech waits for it.
+	speaking context.CancelFunc
+	speech   sync.WaitGroup
 }
 
 // settings is a snapshot of the preferences, read when they change (keys
@@ -118,6 +139,7 @@ var (
 	_ plugin.ViewCloser        = (*Plugin)(nil)
 	_ plugin.SelectionProvider = (*Plugin)(nil)
 	_ plugin.LocaleProvider    = (*Plugin)(nil)
+	_ plugin.ActionHandler     = (*Plugin)(nil)
 )
 
 // New returns the plugin for the real network.
@@ -139,6 +161,9 @@ func NewWithOptions(o Options) *Plugin {
 	}
 	if o.After == nil {
 		o.After = time.After
+	}
+	if o.Speaker == nil {
+		o.Speaker = tts.New()
 	}
 	p := &Plugin{opts: o, seen: map[string]bool{}}
 	p.typing = newRunner(p, "typing")
@@ -172,6 +197,18 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			{Name: prefDeepLKey, Type: plugin.PrefPassword, Title: "%pref.deeplKey.title%", Description: "%pref.deeplKey.description%",
 				Group: "%group.keys%"},
 			{Name: prefEmail, Type: plugin.PrefText, Title: "%pref.mymemoryEmail.title%", Description: "%pref.mymemoryEmail.description%",
+				Group: "%group.keys%"},
+			{Name: prefAzureKey, Type: plugin.PrefPassword, Title: "%pref.azureKey.title%", Description: "%pref.azureKey.description%",
+				Group: "%group.keys%"},
+			{Name: prefAzureRgn, Type: plugin.PrefText, Title: "%pref.azureRegion.title%", Description: "%pref.azureRegion.description%",
+				Group: "%group.keys%"},
+			{Name: prefYoudaoApp, Type: plugin.PrefText, Title: "%pref.youdaoAppKey.title%", Description: "%pref.youdaoAppKey.description%",
+				Group: "%group.keys%"},
+			{Name: prefYoudaoKey, Type: plugin.PrefPassword, Title: "%pref.youdaoSecret.title%", Description: "%pref.youdaoSecret.description%",
+				Group: "%group.keys%"},
+			{Name: prefBaiduApp, Type: plugin.PrefText, Title: "%pref.baiduAppID.title%", Description: "%pref.baiduAppID.description%",
+				Group: "%group.keys%"},
+			{Name: prefBaiduKey, Type: plugin.PrefPassword, Title: "%pref.baiduSecret.title%", Description: "%pref.baiduSecret.description%",
 				Group: "%group.keys%"},
 		},
 	}
@@ -230,6 +267,8 @@ func (p *Plugin) Close() error {
 	}
 	p.typing.close()
 	p.sel.close()
+	p.stopSpeaking()
+	p.speech.Wait()
 	return nil
 }
 
@@ -301,6 +340,12 @@ func (p *Plugin) newEngine(id string, env engines.Env) engines.Engine {
 		return &engines.MyMemory{Env: env, Email: prefs.String(prefEmail), BaseURL: base}
 	case engDeepL:
 		return &engines.DeepL{Env: env, Key: prefs.String(prefDeepLKey), BaseURL: base}
+	case engAzure:
+		return &engines.Azure{Env: env, Key: prefs.String(prefAzureKey), Region: prefs.String(prefAzureRgn), BaseURL: base}
+	case engYoudao:
+		return &engines.Youdao{Env: env, AppKey: prefs.String(prefYoudaoApp), Secret: prefs.String(prefYoudaoKey), BaseURL: base}
+	case engBaidu:
+		return &engines.Baidu{Env: env, AppID: prefs.String(prefBaiduApp), Secret: prefs.String(prefBaiduKey), BaseURL: base}
 	}
 	return nil
 }

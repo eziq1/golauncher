@@ -27,6 +27,17 @@ Before 1.0.0, minor versions may contain breaking changes.
   default) adds a row to the *Selected Text* section, with *Replace
   Selected Text*. Text is sent only after a prefix; rows are never recorded
   in Recent; logs have lengths and timings only.
+  More engines with your own keys: Azure AI Translator (key and region),
+  Youdao AI Cloud (app ID and secret, SHA-256 signature) and Baidu
+  Translate (APP ID and secret, MD5 signature); secrets are stored like
+  the DeepL key and only used to sign. A single word gets a *Dictionary*
+  row (phonetics, parts of speech, meanings) from Google or Youdao.
+  *Read Translation Aloud* / *Read Original Aloud* use the system's voices
+  (SAPI on Windows, `say` on macOS), only when picked. *Translate with AI*
+  opens an AI chat with the text.
+- **Plugin SDK: `ActionAskAI`** (`plugin.AskAI`, `plugin.AIAsker`): any
+  plugin's action can hand text with an instruction to the AI chat; with AI
+  off the chat asks to turn it on first (docs/plugin-guide.md "Asking AI").
 
 - **Attachments in the AI chat** (R91): attach images and text files to a
   message by dropping files onto the launcher (onto the root search, a new

@@ -54,6 +54,44 @@
               }
             },
             {
+              "id": "speak",
+              "title": "Read Translation Aloud",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "[ja] good morning",
+                  "lang": "ja"
+                }
+              }
+            },
+            {
+              "id": "speak-original",
+              "title": "Read Original Aloud",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "good morning",
+                  "lang": "en"
+                }
+              }
+            },
+            {
+              "id": "ai",
+              "title": "Translate with AI",
+              "do": {
+                "kind": "AskAI",
+                "payload": {
+                  "instruction": "Translate the quoted text into Japanese. Output only the translation.",
+                  "text": "good morning",
+                  "title": "Translate: good morning"
+                }
+              }
+            },
+            {
               "id": "web-google",
               "title": "Open in Google Translate",
               "do": {

@@ -512,6 +512,8 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 		}
 		id, req := e.tasks.View(do.Target)
 		return Outcome{Push: &Nav{Plugin: id, Request: req}}, nil
+	case plugin.ActionAskAI:
+		return e.askAI(ctx, do) // askai.go
 	case plugin.ActionChooseFiles:
 		// Only the Controller runs it, for the user, in a view that accepts
 		// files (files.go): never an open dialog for anybody else (AI tools,

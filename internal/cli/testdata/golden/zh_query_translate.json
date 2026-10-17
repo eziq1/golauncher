@@ -54,6 +54,44 @@
               }
             },
             {
+              "id": "speak",
+              "title": "朗读译文",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "[en] 你好",
+                  "lang": "en"
+                }
+              }
+            },
+            {
+              "id": "speak-original",
+              "title": "朗读原文",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "你好",
+                  "lang": "zh-CN"
+                }
+              }
+            },
+            {
+              "id": "ai",
+              "title": "用 AI 翻译",
+              "do": {
+                "kind": "AskAI",
+                "payload": {
+                  "instruction": "Translate the quoted text into English. Output only the translation.",
+                  "text": "你好",
+                  "title": "翻译：你好"
+                }
+              }
+            },
+            {
               "id": "web-google",
               "title": "在Google 翻译中打开",
               "do": {

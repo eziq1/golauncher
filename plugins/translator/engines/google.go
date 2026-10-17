@@ -30,14 +30,26 @@ const (
 // ID implements Engine.
 func (g *Google) ID() string { return "google" }
 
-// googleResponse is the answer with dj=1.
+// googleResponse is the answer with dj=1: the translation by sentence
+// (a last "sentence" holds the transliterations), with dt=bd the
+// translations of a word by part of speech, with dt=md its definitions.
 type googleResponse struct {
 	Sentences []struct {
 		Trans       string `json:"trans"`
 		Orig        string `json:"orig"`
 		SrcTranslit string `json:"src_translit"`
 	} `json:"sentences"`
-	Src string `json:"src"`
+	Src  string `json:"src"`
+	Dict []struct {
+		Pos   string   `json:"pos"`
+		Terms []string `json:"terms"`
+	} `json:"dict"`
+	Definitions []struct {
+		Pos   string `json:"pos"`
+		Entry []struct {
+			Gloss string `json:"gloss"`
+		} `json:"entry"`
+	} `json:"definitions"`
 }
 
 // Translate implements Engine.
@@ -58,6 +70,14 @@ func (g *Google) one(ctx context.Context, r Request) (Result, error) {
 	q.Set("ie", "UTF-8")
 	q.Set("oe", "UTF-8")
 	q.Add("dt", "t")
+	word := IsWord(r.Text)
+	if word {
+		// Dictionary data for a single word: translations by part of speech,
+		// definitions, transliteration (the phonetics).
+		q.Add("dt", "bd")
+		q.Add("dt", "md")
+		q.Add("dt", "rm")
+	}
 	u := base + "/translate_a/single"
 	var req *http.Request
 	var err error
@@ -79,13 +99,32 @@ func (g *Google) one(ctx context.Context, r Request) (Result, error) {
 		return Result{}, err
 	}
 	var b strings.Builder
+	phonetic := ""
 	for _, s := range resp.Sentences {
 		b.WriteString(s.Trans)
+		phonetic = firstNonEmpty(phonetic, s.SrcTranslit)
 	}
 	if b.Len() == 0 {
 		return Result{}, errors.New("google: no translation in the response")
 	}
-	return Result{Text: b.String(), From: firstNonEmpty(Canon(resp.Src), r.From)}, nil
+	res := Result{Text: b.String(), From: firstNonEmpty(Canon(resp.Src), r.From)}
+	if word {
+		d := &Dict{Phonetic: phonetic}
+		for _, e := range resp.Dict {
+			d.Entries = addEntry(d.Entries, e.Pos, e.Terms)
+		}
+		for _, e := range resp.Definitions {
+			var glosses []string
+			for _, x := range e.Entry {
+				glosses = append(glosses, x.Gloss)
+			}
+			d.Definitions = addEntry(d.Definitions, e.Pos, glosses)
+		}
+		if !d.Empty() {
+			res.Dict = d
+		}
+	}
+	return res, nil
 }
 
 // googleCode is the code Google takes: canonical codes are Google's, and

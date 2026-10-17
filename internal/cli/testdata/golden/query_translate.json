@@ -54,6 +54,44 @@
               }
             },
             {
+              "id": "speak",
+              "title": "Read Translation Aloud",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "[zh-CN] hello world",
+                  "lang": "zh-CN"
+                }
+              }
+            },
+            {
+              "id": "speak-original",
+              "title": "Read Original Aloud",
+              "readOnly": true,
+              "do": {
+                "kind": "Callback",
+                "target": "speak",
+                "payload": {
+                  "text": "hello world",
+                  "lang": "en"
+                }
+              }
+            },
+            {
+              "id": "ai",
+              "title": "Translate with AI",
+              "do": {
+                "kind": "AskAI",
+                "payload": {
+                  "instruction": "Translate the quoted text into Simplified Chinese. Output only the translation.",
+                  "text": "hello world",
+                  "title": "Translate: hello world"
+                }
+              }
+            },
+            {
               "id": "web-google",
               "title": "Open in Google Translate",
               "do": {

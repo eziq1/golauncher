@@ -1,6 +1,6 @@
 # 翻译插件方案（GitHub issue #3）
 
-> 状态：方案 v1 · 已确认，按三期顺序开发（R99；§9 的问题按建议执行）· 第一期已实现（§10）· 2026-10-17 · 对应需求 R94（见 [requirements.md](requirements.md)）
+> 状态：方案 v1 · 已确认，按三期顺序开发（R99；§9 的问题按建议执行）· 第一、二期已实现（§10）· 2026-10-17 · 对应需求 R94（见 [requirements.md](requirements.md)）
 >
 > 来源：外部用户在 [issue #3](https://github.com/eziq1/golauncher/issues/3) 提出"Feature request: Translator plugin"，正文没有更多细节。本方案按启动器现有的能力补全需求。
 
@@ -141,3 +141,33 @@
 
 - HTTP 客户端用 Go 默认的代理设置（环境变量），没有读取 Windows 的系统代理——仓库里还没有这样的工具函数，其他插件（汇率、网页搜索建议）也是这样。
 - 默认引擎列表里没有 MyMemory 的独立一行，它是回退引擎（§3 的“访问失败时自动改用 MyMemory”）；想同时看两行就把 `mymemory` 加进列表。
+
+### 10.2 第二期（2026-10-17）
+
+**做了什么**
+
+- **新引擎**（都需要在偏好设置里填 Key，没填就跳过；默认引擎列表变成 `deepl, azure, youdao, baidu, google`）：
+  - Azure AI 翻译：`POST /translate?api-version=3.0&to=…[&from=…]`，请求头 `Ocp-Apim-Subscription-Key` 和（可选的）`Ocp-Apim-Subscription-Region`，中文用 `zh-Hans`/`zh-Hant`；错误码 401xxx → Key 无效，403001、429xxx → 额度，400035/400036 → 语言不支持。偏好：Key（密码）、区域（文本）。
+  - 有道智云文本翻译：`POST /api` 表单，`signType=v3`，`sign = SHA-256(appKey + input + salt + curtime + 密钥)`，`input` 是原文（不超过 20 个字符时）或“前 10 个字 + 字数 + 后 10 个字”；`errorCode` 108/110/111/202 → Key，401/411/412 → 额度，102 → 语言。单个词返回的 `basic`（音标、`explains`）做成词典。偏好：应用 ID（文本）、应用密钥（密码）。
+  - 百度翻译通用文本 API：`POST /api/trans/vip/translate` 表单，`sign = MD5(appid + q + salt + 密钥)`（用百度文档里的例子做了已知答案测试）；百度自己的语言代码（`jp`、`kor`、`fra`、`cht`……）双向换算；多行原文按行返回再拼接；`error_code` 52003/54001/58002/90107 → Key，54003/54004/54005 → 额度，58001 → 语言。偏好：APP ID（文本）、密钥（密码）。
+  - 密钥只用来签名，不随请求发送（测试检查）。中文界面的“翻译引擎”说明里加了“在中国大陆建议配置 Azure 或有道”。
+- **单词词典**：只对“一个词”查（没有空格、最多 40 个字符；中日韩文字最多 4 个字）。Google 网页接口加 `dt=bd`（按词性的译词）、`dt=md`（释义）、`dt=rm`（音标，取 `src_translit`）；有道用 `basic`。结果列表在各引擎译文之后多一行“词典”：标题“单词 /音标/”，副标题“词典 · 引擎 · 词性 释义”，详情里列出词性、译词和最多几条释义（每类最多 4 个词性、5 条），可以复制词条、朗读单词。真实请求确认过一次 Google 的字段（`definitions[].entry[].gloss`、`sentences[].src_translit`）。
+- **朗读**：新包 `internal/winapi/tts`（`Speaker` 接口）。
+  - **Windows 选 SAPI 5**（`ISpVoice`，COM 调用沿用 `internal/winapi/install` 的写法），不选 WinRT `SpeechSynthesizer`：WinRT 需要激活工厂、`IAsyncOperation` 回调和把音频流交给 `MediaPlayer` 播放，纯 syscall 写下来代码量大得多也更脆弱；SAPI 一个 COM 对象就能直接出声，不引入新依赖。用 SAPI XML 的 `<voice required="Language=411">` 按语言选语音，没有对应语音时用默认语音；异步朗读，每 50 毫秒 `WaitUntilDone` 检查一次是否取消，取消时 `Speak(NULL, SPF_PURGEBEFORESPEAK)` 立即停。**局限**：SAPI 只认经典 SAPI 注册表里的语音，Windows 设置里装的部分 OneCore 语音包它看不到，这时会用默认语音读。
+  - **macOS 用 `say`**：文字从标准输入传（`say -f -`），不放在命令行参数里（其他进程能看到参数）；按 `say -v ?` 的列表挑对应语言的语音（zh-TW 依次找 zh_TW、zh_HK、任何中文语音），列表只读一次。
+  - 插件里“朗读译文”“朗读原文”是 `ReadOnly` 的回调（AI 可以直接用，不改动任何东西），只在用户选择时朗读；新的朗读会停掉正在读的，插件关闭时也停。系统不支持时提示“这个系统不支持朗读”。测试用假的 Speaker，从不出声；glctl 的假环境用一个不出声的 Speaker。开发时在本机 Windows 上实际朗读过一次很短的词，确认能出声，也确认取消能在约 0.5 秒内停下来。
+- **宿主通用动作 `ActionAskAI`**（R83 说的第一个用例）：
+  - SDK（`pkg/plugin/askai.go`，新文件）：`ActionAskAI` 动作类型、负载 `AskAI{Instruction, Text, Title}`、接口 `AIAsker`。
+  - 核心（`internal/core/askai.go`，新文件；`engine.go` 的 `Run` 只加了一个 case）：交给第一个启用的 `AIAsker`，它的 `Result` 按动作结果处理；AI 插件被关掉时提示“AI 不可用”。
+  - AI 插件（`plugins/ai/askai.go`，新文件）：打开新对话，消息是指令加引用的原文（和选中文字的操作一样）；AI 总开关关着时先显示“打开 AI”的提示，打开后再发送。
+  - 翻译插件的“用 AI 翻译”：指令 `Translate the quoted text into <语言>. Output only the translation.`，标题“翻译：原文开头”。
+  - 对 AI 工具层来说它是“改动”类的动作（会把文字发给 AI），需要用户确认。
+  - 文档：plugin-guide 新增“Asking AI: ActionAskAI”一节。
+
+**测试**：Azure/有道/百度各自的 httptest 假服务器（请求格式、签名、语言代码、错误码、额度、没 Key 不发）、Google 词典解析、`IsWord`；插件里的 Key 组合（只填应用 ID 不算）、偏好传到真实引擎、词典行、朗读（只在选择时、取消、关闭、不支持）、“用 AI 翻译”的负载；核心的 `ActionAskAI` 路由（假的 AIAsker、AI 插件关掉、坏负载）；AI 插件收到后打开对话、AI 关着时不发送；glctl 会话 golden `session_translate_ai`（从翻译结果到 AI 对话的提示，再打开 AI 后发出的消息）。
+
+**出入**
+
+- 腾讯翻译没做（方案只写了“有道 / 百度 / 腾讯”是候选，R99 要求的是有道和百度）。
+- 词典只用 Google 和有道；Azure 的词典接口（`/dictionary/lookup`）没接。
+- 没有加“语音”偏好：按译文的语言自动选系统语音，暂时没有需要手动选的理由。

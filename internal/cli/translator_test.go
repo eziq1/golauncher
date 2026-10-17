@@ -29,6 +29,26 @@ func TestGoldenTranslator(t *testing.T) {
 	}
 }
 
+// TestSessionTranslateWithAI: "Translate with AI" (plugin.ActionAskAI) is
+// handed to builtin.ai, whose chat first asks to turn AI on (off in a new
+// session); once on, the instruction and the quoted text are sent.
+func TestSessionTranslateWithAI(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	glctl(t, "session", "type", "-s", s, "tr >ja good morning")
+	out, _ := glctl(t, "session", "action", "-s", s, "builtin.translator/result:google", "ai")
+	golden(t, "session_translate_ai", out)
+	if !strings.Contains(out, `"plugin": "builtin.ai"`) || !strings.Contains(out, "Turn On AI") {
+		t.Fatalf("no AI prompt:\n%s", out)
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	for _, want := range []string{"Translate the quoted text into Japanese.", "> good morning", "You asked: Translate the quoted text"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("no %q in:\n%s", want, out)
+		}
+	}
+}
+
 // TestSessionTranslate copies a translation with Enter; it is not recorded
 // as recently used (the text is not stored).
 func TestSessionTranslate(t *testing.T) {

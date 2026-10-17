@@ -17,6 +17,12 @@ func engineName(l plugin.Localizer, id string) string {
 		return l.T("engine.mymemory")
 	case engDeepL:
 		return l.T("engine.deepl")
+	case engAzure:
+		return l.T("engine.azure")
+	case engYoudao:
+		return l.T("engine.youdao")
+	case engBaidu:
+		return l.T("engine.baidu")
 	}
 	return id
 }
