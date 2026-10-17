@@ -8,6 +8,25 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A plugin turned off no longer runs in the background** (R88, code review
+  2.1): turning off the clipboard history in Settings › Plugins used to hide it
+  from the search while copies were still recorded; every disabled plugin
+  (timers, package managers, …) kept running. Now a plugin turned off is not
+  started at all, one turned off while the launcher runs is closed (its open
+  views close, nothing reaches it, AI cannot use it, an external plugin's
+  process stops), and turning it on again starts it again. Timers that ended
+  meanwhile are announced when it starts.
+- **Settings changed at the same moment no longer end in the older state**
+  (code review 2.2): listeners were told about two concurrent changes in any
+  order, so the engine or the appearance could keep the older one; they are
+  now told in the order the changes were saved.
+- **A plugin whose start fails is cleaned up** (code review 2.3): it is
+  closed and its event subscriptions removed; when the launcher fails to
+  start, the plugins it started are closed again, and plugins are closed in
+  the reverse order of their start.
+
 ## [0.8.0] - 2026-10-17
 
 ### Added

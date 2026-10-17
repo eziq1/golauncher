@@ -309,7 +309,7 @@ func (e *Engine) rootEmpty(ctx context.Context, cfg config.Config, cur *plugin.C
 		if err := json.Unmarshal(b, &ent); err != nil {
 			continue
 		}
-		if _, ok := e.byID[ent.Plugin]; !ok || cfg.Plugin(ent.Plugin).Disabled {
+		if _, ok := e.lookup(ent.Plugin); !ok || cfg.Plugin(ent.Plugin).Disabled {
 			continue
 		}
 		if name, ok := strings.CutPrefix(ent.ID, cmdPrefix); ok {
@@ -354,9 +354,10 @@ func (e *Engine) commandEntries(cfg config.Config) []Entry {
 	return out
 }
 
-// commandEntry builds the root entry of one command.
+// commandEntry builds the root entry of one command of a plugin that is on
+// or off, not unavailable.
 func (e *Engine) commandEntry(cfg config.Config, pluginID, name string) (Entry, bool) {
-	l, ok := e.byID[pluginID]
+	l, ok := e.registered(pluginID)
 	if !ok {
 		return Entry{}, false
 	}

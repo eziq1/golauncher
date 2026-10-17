@@ -236,6 +236,13 @@ func (p *Plugin) Locales() fs.FS {
 
 // Init implements plugin.Plugin. Nothing is sampled until the list shows.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.views = false, map[string]viewState{}
+		p.rootActive, p.pulled, p.misses = false, false, 0
+		p.bg, p.stopBG = context.WithCancel(context.Background())
+	}
+	p.mu.Unlock()
 	p.h = h
 	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.windowHidden)
 	shown := h.Events().Subscribe(plugin.EventWindowShown, p.windowShown)

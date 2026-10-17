@@ -490,12 +490,25 @@ func Save(path string, cfg Config) error {
 
 // Store holds the live configuration and notifies listeners of changes.
 // It is safe for concurrent use.
+//
+// Listeners are told in commit order (R88, review 2.2): one goroutine at a
+// time delivers, always the newest configuration, until the listeners have
+// seen the last committed one. Two concurrent Updates committing A then B
+// therefore never end with the listeners on A. Changes committed while the
+// listeners run (by another goroutine, or by a listener itself calling
+// Update) are delivered by the goroutine already delivering, after the
+// current round; several of them may be coalesced into one notification of
+// the newest configuration. Listeners may call Get and Update.
 type Store struct {
 	mu        sync.Mutex
 	path      string // "" keeps the configuration in memory only
 	cfg       Config
 	listeners []func(Config)
 	recovered error // why the file on disk could not be used, see Open
+
+	version    uint64 // incremented by every committed Update
+	delivered  uint64 // the version the listeners were last told about
+	delivering bool   // a goroutine is telling the listeners
 }
 
 // Open loads the configuration at path into a Store. A file that cannot be
@@ -533,7 +546,10 @@ func (s *Store) Get() Config {
 }
 
 // Update applies fn to a copy of the configuration, saves it and notifies
-// listeners.
+// listeners (see Store for the order). It returns after the listeners were
+// told, unless another goroutine, or the listener calling it, is telling
+// them already: that one tells them about this change too before it
+// returns.
 func (s *Store) Update(fn func(*Config)) error {
 	s.mu.Lock()
 	next := s.cfg.Clone()
@@ -545,12 +561,47 @@ func (s *Store) Update(fn func(*Config)) error {
 		}
 	}
 	s.cfg = next
-	listeners := slices.Clone(s.listeners)
-	s.mu.Unlock()
-	for _, l := range listeners {
-		l(next.Clone())
+	s.version++
+	if s.delivering {
+		s.mu.Unlock()
+		return nil
 	}
+	s.delivering = true
+	s.mu.Unlock()
+	s.deliver()
 	return nil
+}
+
+// deliver tells the listeners about the newest configuration until they
+// have seen the last committed version. Only the goroutine that set
+// s.delivering runs it.
+func (s *Store) deliver() {
+	defer func() {
+		// A panicking listener must not leave the store unable to notify.
+		if r := recover(); r != nil {
+			s.mu.Lock()
+			s.delivering = false
+			s.mu.Unlock()
+			panic(r)
+		}
+	}()
+	for {
+		s.mu.Lock()
+		if s.delivered == s.version {
+			s.delivering = false
+			s.mu.Unlock()
+			return
+		}
+		cfg, v := s.cfg.Clone(), s.version
+		listeners := slices.Clone(s.listeners)
+		s.mu.Unlock()
+		for _, l := range listeners {
+			l(cfg.Clone())
+		}
+		s.mu.Lock()
+		s.delivered = v
+		s.mu.Unlock()
+	}
 }
 
 // OnChange registers fn to run after every Update.

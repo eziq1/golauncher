@@ -290,6 +290,20 @@ type Result struct {
 
 需要插件自己处理的逻辑，用 `Kind=Callback` 回调到插件的 `HandleAction`。
 
+#### 5.3.1 插件生命周期（R88，2026-10-17）
+
+“禁用”不只是把插件从搜索里藏起来，而是让它不运行（代码审查 2.1、2.3，见 [code-review-2026-10-17.md](code-review-2026-10-17.md)）：
+
+- **启动**：Engine 先登记全部插件（manifest、消息目录，重复 ID 在任何 `Init` 之前就报错），再按顺序只对已启用的插件调用 `Init`。禁用的插件不 `Init`，但设置页照常列出它（manifest、偏好、命令都来自登记信息），可以配置、可以启用。
+- **运行中禁用**：配置变化后，Engine 在后台 goroutine 里对照配置调整（`core/lifecycle.go` 的 `syncPlugins`，按“最新配置”收敛，可重复执行）。禁用的插件先从所有调用路径里摘掉（根搜索、视图、动作、上下文/选中文本/回退/Tab、偏好选项、AI 工具），再调 `Close`（`guard` 兜底 panic，最多等 10 秒）；Controller 里该插件的视图关闭并回到根搜索，保留的视图（R75）也作废。
+- **重新启用**：对同一个插件值再次 `Init`，配一个新的 `Host`；要等上一轮彻底结束才 `Init`：`Close` 已返回，上一轮的事件回调和 Engine 放弃等待的调用都已退出（`Host.Drain`、按插件计数的调用，最多等 10 秒，否则等它结束后再启动）。所以 `Init` 必须能在 `Close` 之后重新开始（清掉 closed 标志、重建被关掉的 context 和 channel）；`internal/builtin` 的 `TestPluginsStartAgain` 把每个内置插件关了再开，比对根搜索结果。
+- **Host 吊销**：每次运行结束（`Close` 返回、`Close` 超时、`Init` 失败）后，Engine 吊销这一轮的 `Host`：通过它订阅的事件全部退订，`Invalidate`/`Render`/`Toast`/`RunProcess`/`RunTask` 变成空操作；`Go` 照常运行，免得插件在 `Close` 里等自己的 goroutine 时卡住。
+- **Init 失败**：返回错误（含 `ErrUnavailable`）或 panic 后，Engine 调一次 `Close` 并吊销 Host，插件标为不可用。约定：`Close` 必须能处理只做了一半的 `Init`。
+- **后台任务**：任务归宿主的任务管理器所有。禁用时正在运行的任务让它跑完（不中断安装等操作），结果照常出现在“后台任务”里；被吊销的 Host 不能再开新任务。
+- **退出与回滚**：`Engine.Close` 按 `Init` 的逆序关闭仍在运行的插件，并等每个 `Close` 结束；`core.New` 中途失败（例如插件数据目录建不出来）时，同样逆序关闭已经初始化的插件。
+- **外部插件**：禁用即 `Close`，停止进程；重新启用后，下一次调用时再启动新进程。
+- **等待**：`Engine.WaitPlugins` 等后台的启停做完，`Controller.Wait` 先等它，所以测试和 glctl 在修改配置后调 `Wait` 即可看到结果。
+
 ### 5.4 Host API
 
 ```go

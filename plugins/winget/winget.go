@@ -213,6 +213,16 @@ func (p *Plugin) Locales() fs.FS {
 // The index is read in the background; the installed packages come from
 // the cache and are listed again when a view needs them.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed {
+		// Init after Close starts again (docs/plugin-guide.md "Lifecycle"):
+		// as a new plugin, its background work having ended in Close.
+		p.closed, p.unsubs, p.sources, p.pins = false, nil, nil, nil
+		p.index, p.indexErr, p.indexReady, p.indexing, p.indexAgain = nil, nil, make(chan struct{}), false, false
+		p.inst, p.listReady, p.listing, p.listAgain, p.listTried = nil, make(chan struct{}), false, false, time.Time{}
+		p.shows = map[string]*Details{}
+	}
+	p.mu.Unlock()
 	p.h = h
 	t := h.I18n()
 	p.exe = p.opts.Exe

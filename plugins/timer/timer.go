@@ -193,6 +193,11 @@ func (p *Plugin) Locales() fs.FS {
 // Init implements plugin.Plugin: it reads the stored timers and starts the
 // scheduler.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.lm.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.done = false, make(chan struct{})
+	}
+	p.lm.Unlock()
 	p.h = h
 	p.mu.Lock()
 	p.load()

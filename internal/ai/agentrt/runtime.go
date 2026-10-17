@@ -286,6 +286,15 @@ func (r *Runtime) Close() error {
 	return nil
 }
 
+// Reopen lets a closed runtime start conversations again: the AI chat
+// plugin was turned off (Close) and on again (docs/plugin-guide.md
+// "Lifecycle").
+func (r *Runtime) Reopen() {
+	r.mu.Lock()
+	r.closed = false
+	r.mu.Unlock()
+}
+
 // LiveCount is the number of conversations with a persistent process.
 func (r *Runtime) LiveCount() int {
 	r.mu.Lock()

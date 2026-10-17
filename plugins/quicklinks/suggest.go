@@ -137,6 +137,13 @@ func (s *suggester) close() {
 	s.wg.Wait()
 }
 
+// reopen undoes close: the plugin is initialized again after Close.
+func (s *suggester) reopen() {
+	s.mu.Lock()
+	s.closed = false
+	s.mu.Unlock()
+}
+
 // fetchSuggestions reads an OpenSearch suggestions response:
 // ["query", ["suggestion", …], …]. A body that is not UTF-8 is decoded
 // from GBK (Baidu).

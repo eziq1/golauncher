@@ -131,3 +131,39 @@ Engine 遇到 `Init` 错误或 panic 后直接跳过该插件；`Engine.Close` �
 - **4、5**：属实（`plugins/files/ops.go` 的 `quoteArg`/`quoteArgs` 与 `cmdline.Quote`/`Join` 重复等）。
 
 修复时先为每个问题写复现测试，再改代码。顺序：生命周期 → 配置通知 → 初始化失败清理 → 脚本后台扫描 → 去重 → 拆大文件。
+
+## 9. 修复记录（R88 第一批：2.1–2.3）
+
+每条都先写复现测试，确认在修复前的代码上失败，再改代码。
+
+### 9.1 插件生命周期（2.1）
+
+契约写在 [plugin-guide.md "Lifecycle"](plugin-guide.md) 和 [design.md §5.3.1](design.md)，SDK 注释见 `pkg/plugin/plugin.go`。要点：
+
+- `core.New` 先登记全部插件，只 `Init` 已启用的；禁用的插件保留 manifest、消息目录和偏好，设置页照常显示、可以启用。
+- 配置变化后 Engine 在后台按最新配置收敛（`internal/core/lifecycle.go`）：禁用即从所有调用路径摘除再 `Close`（guard 兜底，最多等 10 秒），启用即用新 `Host` 再次 `Init`。Controller 关闭该插件的视图、回到根搜索；AI 工具层本来就按 `Enabled` 过滤，现在 Engine 层也拒绝调用。
+- 每轮运行结束后吊销 `Host`（`host.Host.Revoke`）：退订通过它订阅的事件，丢弃 `Invalidate`/`Render`/`Toast`/`RunProcess`/`RunTask`。插件忘了退订也收不到事件。
+- 后台任务：正在运行的让它跑完（不打断安装），吊销的 Host 不能再开新任务。
+- 外部插件：`Close` 停止进程；`Proxy.Init` 现在可以在 `Close` 之后重新使用。
+- 重新 `Init` 要等上一轮彻底结束：`Close` 返回、上一轮的事件回调（`Host.Drain`）和 Engine 放弃等待的调用都已退出。`-race` 在 `TestPluginsStartAgain` 里抓到过上一轮的 `config-changed` 回调与新一轮 `Init` 并发读写，这样修掉。
+- 重新 `Init` 用的是同一个插件值，所以各内置插件的 `Init` 开头都补了"从 `Close` 留下的状态重新开始"（closed 标志、context、被关掉的 channel；winget/homebrew/scoop 回到新建时的状态；AI 的后端 `Reopen`）。
+
+复现测试（修复前均失败）：
+
+- `plugins/clipboard`：`TestDisabledAtStartupRecordsNothing`（修复前历史里有"secret while off"）、`TestDisabledAtRunTimeRecordsNothing`（同上；重新启用后能继续记录）。
+- `plugins/timer`：`TestDisabledSendsNoNotifications`（修复前禁用后仍发出 1 条通知；修复后不发，重新启用时补报期间到点的计时器）。
+- `internal/core`：`TestDisabledAtStartupIsNotInitialized`（修复前 Init 了 1 次）、`TestDisabledAtRunTimeIsClosed`（修复前 0 次 Close；还检查视图关闭、事件/失效/Toast 被丢弃、重新启用后新 Host）。
+- `internal/builtin`：`TestPluginsStartAgain`，把每个内置插件关了再开、比对根搜索结果（没改插件时 winget 重新 `Init` 会 panic："close of closed channel"）。
+- 另有 `internal/ui` 的 `TestSettingsPlugins`（设置页开关真正关闭/启动插件）、`internal/agent` 的 `TestDisabledPluginNotExposed`、`internal/extproc` 的 `TestCloseStopsProcess`（关闭后能再次 Init）。
+
+### 9.2 配置通知顺序（2.2）
+
+`config.Store` 改为单一投递者：`Update` 提交后若没有别的 goroutine 正在通知，就由它循环投递"当前最新配置"，直到监听器看过最后提交的版本；投递期间其他 goroutine（或监听器自己）调用 `Update` 只提交、不通知，由正在投递的 goroutine 在本轮之后补发。因此监听器按提交顺序看到配置，最后一次一定是存储里的值；中间版本可能被合并。监听器里调用 `Get`/`Update` 不会死锁。
+
+复现测试：`internal/config` 的 `TestNotifyInCommitOrder`（修复前监听器依次收到 `["B" "A"]`，停在旧值 A），以及 `TestNotifyNestedUpdate`（监听器里嵌套 `Update`）。
+
+### 9.3 初始化失败的清理（2.3）
+
+契约：`Init` 返回错误（含 `ErrUnavailable`）或 panic 后，宿主调用一次 `Close`，并吊销这一轮的 `Host`；`Close` 必须能处理只做了一半的 `Init`。`core.New` 中途失败时，逆序关闭已初始化的插件；重复 ID 和消息目录错误在任何 `Init` 之前就报出。`Engine.Close` 按 `Init` 的逆序关闭（运行中重新启用的插件排在最后）。
+
+复现测试（`internal/core`，修复前均失败）：`TestFailedInitIsCleanedUp`（修复前 0 次 Close，失败的插件还收到事件）、`TestNewRollsBack`（插件数据目录建不出来时，修复前已 Init 的 a、b 没有 Close；重复 ID 同理）、`TestCloseReverseOrder`。

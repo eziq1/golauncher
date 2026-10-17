@@ -58,7 +58,8 @@ GUI 程序用 `-H windowsgui` 构建，没有控制台，Go 运行时把 panic �
 | 插件出的问题 | 防护方式 | 代码位置 |
 |------------|----------|----------|
 | `RootItems`、`View`、`HandleAction` 里 panic | `guard` 用 `recover` 接住，这次调用变成错误，界面显示"插件崩溃"；调用栈写进日志 | `internal/core/engine.go` 的 `guard` |
-| `Init` 或 `Close` 里 panic | 同上；`Init` 崩溃的插件标为不可用，设置页显示原因 | 同上 |
+| `Init` 或 `Close` 里 panic | 同上；`Init` 失败或崩溃的插件标为不可用，设置页显示原因，并且 Engine 随后调一次 `Close`、吊销它的 `Host`（退订事件，丢弃后续的 `Invalidate`/`Toast` 等，R88） | 同上；`internal/core/lifecycle.go` |
+| 插件被禁用后仍在后台工作 | 禁用即 `Close`，`Host` 吊销；`Close` 最多等 10 秒，超时后放弃等待，等它真正返回后才允许再次 `Init`（R88） | `internal/core/lifecycle.go`、`internal/host/host.go` 的 `Revoke` |
 | 事件回调里 panic | `Bus.Publish` 通过 `host.Go` 分发事件，接住 panic | `internal/host/events.go` |
 | 插件自己的后台 goroutine 里 panic | SDK 新增 `Host.Go(fn)`，插件的后台任务必须用它启动，由宿主兜底 | `pkg/plugin/host.go`、`internal/host/recover.go` |
 | 插件卡死，比如死循环或无视 ctx 一直阻塞 | 根搜索每个插件限时 150ms；视图限时 10s，动作限时 30s。超时就放弃这次调用并提示用户，界面和后续按键照常响应 | `callPlugin` |
@@ -71,6 +72,7 @@ GUI 程序用 `-H windowsgui` 构建，没有控制台，Go 运行时把 panic �
 - `TestHungPluginTimesOut`
 - `TestInitPanicMakesPluginUnavailable`
 - `TestEventAndGoroutinePanicsContained`
+- `TestFailedInitIsCleanedUp`、`TestNewRollsBack`、`TestDisabledAtRunTimeIsClosed`（`internal/core/lifecycle_test.go`）
 
 ### 3.2 进程内防护做不到的
 

@@ -183,7 +183,13 @@ func (p *Proxy) tr() translator {
 
 // Init implements plugin.Plugin. It does not start the process (unless
 // Options.Eager); it reports a plugin that cannot run here as unavailable.
+// After Close (the plugin was turned off) Init makes it usable again: the
+// process starts on the next call.
 func (p *Proxy) Init(ctx context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	p.closed = false
+	p.views, p.renderVer = map[string]bool{}, map[string]int64{}
+	p.mu.Unlock()
 	p.h = h
 	p.log = h.Logger()
 	if p.man.Protocol != protocol.Version {

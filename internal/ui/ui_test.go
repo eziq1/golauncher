@@ -17,6 +17,7 @@ import (
 
 	"github.com/eziq1/golauncher/internal/app"
 	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/internal/ui"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -597,6 +598,28 @@ func TestSettingsPlugins(t *testing.T) {
 	tt.Frame()
 	if !env.Config.Get().Plugin("test").Disabled {
 		t.Fatal("the plugin should be disabled")
+	}
+	// The engine closes it (R88): its views are gone, while its settings
+	// still show so it can be configured and turned on again.
+	env.Controller.Wait()
+	nav := core.Nav{Plugin: "test", Request: plugin.ViewRequest{ID: "list"}}
+	if _, err := env.Engine.View(t.Context(), nav); err == nil {
+		t.Fatal("a disabled plugin still shows its views")
+	}
+	tt.Frame()
+	if !tt.HasText("Maximum items") {
+		t.Fatalf("the disabled plugin's settings are gone: %q", tt.Texts())
+	}
+	if err := tt.Click("Enable Test"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	env.Controller.Wait()
+	if env.Config.Get().Plugin("test").Disabled {
+		t.Fatal("the plugin should be enabled")
+	}
+	if _, err := env.Engine.View(t.Context(), nav); err != nil {
+		t.Fatalf("turned on again: %v", err)
 	}
 }
 

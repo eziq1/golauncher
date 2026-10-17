@@ -99,9 +99,19 @@ type Engine struct {
 	notifyMu sync.Mutex
 	notifier func(Notice)
 
-	plugins     []*loaded
-	byID        map[string]*loaded
-	unavailable []unavailable // plugins whose Init failed
+	// plugins are the registered plugins in their order, whatever their
+	// state; neither it nor byID changes after New.
+	plugins []*loaded
+	byID    map[string]*loaded
+
+	// The plugin lifecycle (lifecycle.go). lifeMu serializes starting and
+	// stopping plugins; stateMu guards the loaded.state fields, initOrder and
+	// closed.
+	lifeMu    sync.Mutex
+	stateMu   sync.RWMutex
+	initOrder []*loaded // the plugins that are on, in the order of their Init
+	closed    bool      // Close was called: no plugin starts any more
+	syncs     syncState // the lifecycle changes waiting or running
 
 	// Controllers showing this engine's plugins, told about Host.Invalidate
 	// and Host.Render calls, and the hooks told when a view instance closes.
@@ -114,14 +124,6 @@ type Engine struct {
 	ctx contextState
 }
 
-// unavailable is a plugin that could not be initialized.
-type unavailable struct {
-	p      plugin.Plugin
-	m      plugin.Manifest
-	loc    *i18n.Localizer
-	reason string
-}
-
 // unavailableReason strips the ErrUnavailable suffix from a wrapped error:
 // "Everything is not installed: plugin unavailable" -> "Everything is not installed".
 func unavailableReason(err error) string {
@@ -132,16 +134,61 @@ func unavailableReason(err error) string {
 	return s
 }
 
-// loaded is an initialized plugin.
+// loaded is a registered plugin: one that runs on this system, on or off.
+// p, m and loc never change; the other fields are guarded by Engine.stateMu
+// (closing by Engine.lifeMu).
 type loaded struct {
-	p    plugin.Plugin
-	m    plugin.Manifest
-	host *host.Host
-	loc  *i18n.Localizer
+	p   plugin.Plugin
+	m   plugin.Manifest
+	loc *i18n.Localizer
+
+	state  pluginState
+	host   *host.Host // the Host of the current run while on
+	reason string     // why the last Init failed (stateFailed)
+	// closing is closed when the last run of the plugin has fully ended (its
+	// Close returned, and its event handlers and the engine's calls into it
+	// are done); nil before the first.
+	closing chan struct{}
+
+	calls callCount // calls into the plugin running (guard)
 }
 
-// New registers the plugins' catalogs and initializes them. A plugin whose
-// Init fails is left out and reported by Plugins as unavailable.
+// callCount counts the calls into a plugin that are running, so that it is
+// initialized again only once the calls of its last run have returned (a
+// call the engine gave up on may still run).
+type callCount struct {
+	mu   sync.Mutex
+	n    int
+	idle *sync.Cond
+}
+
+func (c *callCount) enter() {
+	c.mu.Lock()
+	c.n++
+	c.mu.Unlock()
+}
+
+func (c *callCount) leave() {
+	c.mu.Lock()
+	if c.n--; c.n == 0 {
+		c.idle.Broadcast()
+	}
+	c.mu.Unlock()
+}
+
+// wait blocks until no call runs.
+func (c *callCount) wait() {
+	c.mu.Lock()
+	for c.n > 0 {
+		c.idle.Wait()
+	}
+	c.mu.Unlock()
+}
+
+// New registers the plugins and their catalogs and initializes those not
+// turned off in the configuration, in their order. A plugin whose Init fails
+// is closed and reported by Plugins as unavailable. When New fails, the
+// plugins it initialized are closed again, the last first.
 func New(ctx context.Context, o Options) (*Engine, error) {
 	e := &Engine{
 		svc:         o.Services,
@@ -159,7 +206,9 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 	o.Services.OnInvalidate = e.invalidate
 	o.Services.OnRender = e.render
 	o.Services.OnToast = func(pluginID string, t plugin.Toast) { e.Notify(Notice{Toast: t, Plugin: pluginID}) }
-	cfg := o.Config.Get()
+	e.syncs.idle = sync.NewCond(&e.syncs.mu)
+	// Every plugin is registered before the first Init, so a duplicate ID or
+	// a bad catalog fails New before any plugin runs.
 	for _, p := range o.Plugins {
 		m := p.Manifest()
 		if _, dup := e.byID[m.ID]; dup {
@@ -170,30 +219,32 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 				return nil, err
 			}
 		}
-		h, err := o.Services.NewHost(m, cfg.Plugin(m.ID).Preferences)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := guard(e, m.ID, func() (struct{}, error) { return struct{}{}, p.Init(ctx, h) }); err != nil {
-			loc := o.Services.I18n.Localizer(m.ID)
-			if errors.Is(err, plugin.ErrUnavailable) {
-				e.log.Info("plugin unavailable", "plugin", m.ID, "reason", err)
-				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: unavailableReason(err)})
-			} else {
-				e.log.Error("plugin init failed", "plugin", m.ID, "err", err)
-				e.unavailable = append(e.unavailable, unavailable{p: p, m: m, loc: loc, reason: err.Error()})
-			}
-			continue
-		}
-		l := &loaded{p: p, m: m, host: h, loc: o.Services.I18n.Localizer(m.ID)}
+		l := &loaded{p: p, m: m, loc: o.Services.I18n.Localizer(m.ID)}
+		l.calls.idle = sync.NewCond(&l.calls.mu)
 		e.plugins = append(e.plugins, l)
 		e.byID[m.ID] = l
 	}
+	cfg := o.Config.Get()
+	e.lifeMu.Lock()
+	for _, l := range e.plugins {
+		if cfg.Plugin(l.m.ID).Disabled {
+			continue // off: not initialized until it is turned on
+		}
+		if err := e.start(ctx, l, cfg); err != nil {
+			e.lifeMu.Unlock()
+			// Roll back: close what was initialized, the last first.
+			if cerr := e.Close(); cerr != nil {
+				e.log.Warn("closing plugins after a failed start", "err", cerr)
+			}
+			return nil, err
+		}
+	}
+	e.lifeMu.Unlock()
 	// Tell plugins that track open views (plugin.ViewCloser: external plugin
 	// proxies, timers of in-process ones) when a view closes, so they can
 	// free its state and an idle process can stop.
 	e.OnViewClosed(func(pluginID, instance string) {
-		if l, ok := e.byID[pluginID]; ok {
+		if l, ok := e.lookup(pluginID); ok {
 			if vc, ok := l.p.(plugin.ViewCloser); ok {
 				vc.ViewClosed(instance)
 			}
@@ -201,10 +252,15 @@ func New(ctx context.Context, o Options) (*Engine, error) {
 	})
 	o.Config.OnChange(func(c config.Config) {
 		for _, l := range e.plugins {
-			l.host.Prefs().SetValues(c.Plugin(l.m.ID).Preferences)
+			if h := e.hostOf(l); h != nil {
+				h.Prefs().SetValues(c.Plugin(l.m.ID).Preferences)
+			}
 		}
 		e.svc.Bus.Publish(plugin.EventConfigChanged)
 		e.clearContextIfOff(c)
+		// Turning plugins on and off runs Init and Close, which may take a
+		// while: not on the goroutine that changed the settings (the UI's).
+		e.syncLater()
 	})
 	return e, nil
 }
@@ -295,22 +351,12 @@ func (e *Engine) viewsClosed(closed []*Nav) {
 
 // isRootProvider reports whether plugin id contributes to the root search.
 func (e *Engine) isRootProvider(id string) bool {
-	l, ok := e.byID[id]
+	l, ok := e.lookup(id)
 	if !ok {
 		return false
 	}
 	_, ok = l.p.(plugin.RootProvider)
 	return ok
-}
-
-// Close closes all plugins.
-func (e *Engine) Close() error {
-	var errs []error
-	for _, l := range e.plugins {
-		_, err := guard(e, l.m.ID, func() (struct{}, error) { return struct{}{}, l.p.Close() })
-		errs = append(errs, err)
-	}
-	return errors.Join(errs...)
 }
 
 // Core returns the localizer of the host's own messages.
@@ -319,11 +365,18 @@ func (e *Engine) Core() *i18n.Localizer { return e.core }
 // Now returns the engine's clock.
 func (e *Engine) Now() time.Time { return e.svc.Now() }
 
-// enabled returns the plugins not disabled in the configuration.
+// enabled returns the plugins that are on and not turned off in cfg (which
+// the engine may not have applied yet).
 func (e *Engine) enabled(cfg config.Config) []*loaded {
-	return slices.DeleteFunc(slices.Clone(e.plugins), func(l *loaded) bool {
-		return cfg.Plugin(l.m.ID).Disabled
-	})
+	e.stateMu.RLock()
+	defer e.stateMu.RUnlock()
+	var out []*loaded
+	for _, l := range e.plugins {
+		if l.state == stateOn && !cfg.Plugin(l.m.ID).Disabled {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 // Entry is an item together with the plugin it came from.
@@ -364,9 +417,9 @@ type Nav struct {
 
 // View renders a plugin view.
 func (e *Engine) View(ctx context.Context, nav Nav) (plugin.View, error) {
-	l, ok := e.byID[nav.Plugin]
-	if !ok {
-		return plugin.View{}, fmt.Errorf("core: unknown plugin %q", nav.Plugin)
+	l, err := e.running(nav.Plugin)
+	if err != nil {
+		return plugin.View{}, err
 	}
 	vp, ok := l.p.(plugin.ViewProvider)
 	if !ok {
@@ -436,6 +489,12 @@ func (e *Engine) Run(ctx context.Context, entry Entry, a plugin.Action, fromRoot
 		if e.tasks == nil {
 			return Outcome{}, errors.New("core: background tasks are not available")
 		}
+		if entry.Plugin != "" {
+			// A row of a plugin turned off since it was listed.
+			if _, err := e.running(entry.Plugin); err != nil {
+				return Outcome{}, err
+			}
+		}
 		var p plugin.RunProcessPayload
 		if err := json.Unmarshal(do.Payload, &p); err != nil {
 			return Outcome{}, err
@@ -472,9 +531,9 @@ func (e *Engine) paste(text string, content plugin.PasteContent) (Outcome, error
 }
 
 func (e *Engine) handle(ctx context.Context, pluginID string, do plugin.ActionDo) (Outcome, error) {
-	l, ok := e.byID[pluginID]
-	if !ok {
-		return Outcome{}, fmt.Errorf("core: unknown plugin %q", pluginID)
+	l, err := e.running(pluginID)
+	if err != nil {
+		return Outcome{}, err
 	}
 	h, ok := l.p.(plugin.ActionHandler)
 	if !ok {
@@ -600,6 +659,10 @@ func FindAction(entry Entry, id string) (plugin.Action, bool) {
 // guard calls into a plugin, turning a panic into an error so a faulty
 // plugin cannot take the launcher down. The stack is logged.
 func guard[T any](e *Engine, pluginID string, fn func() (T, error)) (v T, err error) {
+	if l, ok := e.byID[pluginID]; ok {
+		l.calls.enter()
+		defer l.calls.leave()
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			e.log.Error("plugin panicked", "plugin", pluginID, "panic", r, "stack", string(debug.Stack()))

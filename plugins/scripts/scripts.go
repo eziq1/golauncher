@@ -147,6 +147,11 @@ func (p *Plugin) Locales() fs.FS {
 // Init implements plugin.Plugin. It scans the script directories, creating
 // the default one if needed.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.unsubs, p.runs = false, nil, map[string]*run{}
+	}
+	p.mu.Unlock()
 	p.h = h
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if dirs := p.directories(); len(dirs) > 0 && slices.Contains(p.opts.Directories, DefaultDirectory) &&

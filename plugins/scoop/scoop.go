@@ -176,6 +176,14 @@ func (p *Plugin) Locales() fs.FS {
 // Init implements plugin.Plugin. Without Scoop the plugin is unavailable.
 // The index is loaded from the cache (or built) in the background.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed {
+		// Init after Close starts again (docs/plugin-guide.md "Lifecycle"):
+		// as a new plugin, its background work having ended in Close.
+		p.closed, p.unsubs, p.index, p.ready, p.refreshing, p.again = false, nil, nil, make(chan struct{}), false, false
+		p.reclaim, p.reclaimIx, p.reclaimAt = Reclaim{}, nil, time.Time{}
+	}
+	p.mu.Unlock()
 	p.h = h
 	t := h.I18n()
 	if p.opts.NoDetect {
