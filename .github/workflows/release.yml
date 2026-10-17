@@ -12,8 +12,66 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  macos:
+    # The universal golauncher.app (docs/self-install.md §9), ad hoc signed:
+    # no Developer ID signing or notarization yet.
+    name: Build (macos)
+    runs-on: macos-latest
+    env:
+      TAG: ${{ github.ref_name }}
+      GOLAUNCHER_UPDATE_PUBLIC_KEY: ${{ vars.UPDATE_PUBLIC_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Version
+        id: version
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "tag $TAG is not a version (vMAJOR.MINOR.PATCH[-PRE])" >&2
+            exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: Build and package
+        run: scripts/build-macos.sh --arch universal --app --zip --version '${{ steps.version.outputs.version }}'
+
+      - name: Smoke test
+        run: |
+          app=dist/golauncher.app
+          v="$("$app/Contents/MacOS/glctl" version --format text)"
+          [ "$v" = '${{ steps.version.outputs.version }}' ] || { echo "glctl version = $v" >&2; exit 1; }
+          "$app/Contents/MacOS/glctl" i18n check
+          plutil -lint "$app/Contents/Info.plist"
+          got="$(plutil -extract GolauncherVersion raw "$app/Contents/Info.plist")"
+          [ "$got" = '${{ steps.version.outputs.version }}' ] || { echo "Info.plist version = $got" >&2; exit 1; }
+          codesign --verify --strict --deep --verbose=2 "$app"
+          codesign -dv "$app"
+          lipo -archs "$app/Contents/MacOS/golauncher"
+          zip="dist/golauncher_${{ steps.version.outputs.version }}_darwin_universal.zip"
+          unzip -Z1 "$zip" > "$RUNNER_TEMP/zip.txt"
+          grep -qx 'golauncher.app/Contents/MacOS/golauncher' "$RUNNER_TEMP/zip.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/golauncher_*_darwin_universal.zip
+          if-no-files-found: error
+
   release:
     name: Build and publish
+    needs: macos
     runs-on: windows-latest
     defaults:
       run:
@@ -83,8 +141,14 @@ jobs:
           $info | Format-List ProductName, ProductVersion, FileVersion, LegalCopyright
           if ($info.ProductVersion -ne '${{ steps.version.outputs.version }}') { throw "golauncher.exe ProductVersion = $($info.ProductVersion)" }
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos
+          path: dist
+
       - name: Checksums
         run: |
+          # The Windows zips and the macOS one; auto-update finds each by name.
           $lines = Get-ChildItem dist -Filter *.zip | Sort-Object Name | ForEach-Object {
             "$((Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant())  $($_.Name)"
           }

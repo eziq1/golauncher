@@ -121,3 +121,112 @@ Run(args)
 - **改过名的下载文件**（如 `golauncher_0.2.0.exe`）：安装后统一叫 `golauncher.exe`。等待退出时，进程名 `golauncher.exe` 和自己的文件名都算。
 - **选择文件夹**：如果用户选的文件夹不叫 `golauncher`，就装到它下面的 `golauncher` 子目录，避免和其他文件混在一起。
 - **测试**：单元测试只用临时目录和假的 `System`。Windows 集成测试（真实注册表和快捷方式）要设置 `GOLAUNCHER_INSTALL_TESTS=1` 才运行，用唯一的测试键和临时路径，结束后清理。
+
+## 9. macOS（`golauncher.app`）
+
+macOS 上同样是"程序自己安装自己"，只是安装的对象是整个 `.app` 包，而不是单个 exe。决策、代码和测试都沿用上面的结构：`internal/install` 的 `Installer` 多了 `Bundle` 模式，`internal/winapi/install` 多了 `install_darwin.go`、`update_darwin.go`。Apple Developer ID 签名和公证不在这一期的范围内。
+
+### 9.1 包的形态
+
+`scripts/build-macos.sh --app` 生成 `dist/golauncher.app`：
+
+| 位置 | 内容 |
+|------|------|
+| `Contents/MacOS/golauncher`、`Contents/MacOS/glctl` | 两个程序（`--arch universal` 时是 x86_64 + arm64 的通用二进制） |
+| `Contents/Info.plist` | 由 `install.InfoPlist` 生成（经 `scripts/macbundle` 写出，有单元测试） |
+| `Contents/Resources/golauncher.icns` | 用 `iconutil` 从 `assets/icon-{16,32,64,128,256,512}.png` 生成；1024 像素那张由 `sips` 从 512 放大 |
+| `Contents/Resources/{en,zh-Hans}.lproj/InfoPlist.strings` | 权限说明文字的英文、中文版本 |
+| `Contents/PkgInfo`、`Contents/_CodeSignature/` | `APPL????`；代码签名 |
+
+Info.plist 的要点：
+
+| 键 | 值 | 说明 |
+|----|----|------|
+| `CFBundleIdentifier` | `io.github.eziq1.golauncher` | 仓库 `github.com/eziq1/golauncher` 的反向域名。TCC 权限、登录项、钥匙串都按它识别应用；**以后不要改**（常量 `install.BundleID`）。glctl 的签名标识是 `io.github.eziq1.golauncher.glctl` |
+| `CFBundleShortVersionString`、`CFBundleVersion` | `MAJOR.MINOR.PATCH` | macOS 要求只有数字，所以 `0.7.0-rc.1`、`0.6.0-3-gabc` 写成 `0.7.0`、`0.6.0`；没有版本号时 `0.0.0` |
+| `GolauncherVersion` | 完整版本号 | 自安装和自动更新比较版本时读它（`install.PlistVersion`），没有时退回 `CFBundleShortVersionString` |
+| `LSUIElement` | `true` | 菜单栏应用：没有 Dock 图标、没有自己的菜单栏（运行时也会 `SetActivationPolicy(Accessory)`） |
+| `LSMinimumSystemVersion` | `13.0` | Ventura 起有 `SMAppService`（开机自启） |
+| `NSAppleEventsUsageDescription` | 说明向访达、System Events、终端发 Apple 事件的用途 | 第一次控制某个应用时，"自动化"授权弹窗里显示的文字 |
+| `NSDesktop/Documents/DownloadsFolderUsageDescription`、`NSRemovableVolumesUsageDescription`、`NSNetworkVolumesUsageDescription` | 文件搜索、打开文件 | 访问受保护的文件夹时的弹窗文字 |
+| `NSLocalNetworkUsageDescription` | 网络工具的 Ping、端口检测 | macOS 15 的"本地网络"权限 |
+| `NSLocationWhenInUseUsageDescription`、`NSLocationUsageDescription` | 显示当前 Wi-Fi 名称 | macOS 14 起读 SSID 需要定位权限 |
+| `NSSystemAdministrationUsageDescription` | 刷新 DNS 缓存需要管理员 | — |
+| 其他 | `CFBundleExecutable`、`CFBundleIconFile`、`CFBundlePackageType=APPL`、`NSHighResolutionCapable`、`NSPrincipalClass`、`CFBundleLocalizations=[en, zh-Hans]`、`LSApplicationCategoryType`、版权 | — |
+
+辅助功能（Accessibility，粘贴要用）**没有**对应的 Info.plist 文字，系统用自己的提示。
+
+MyGo 的 `mygo build` 也能打 `.app`，但它在 `cmd/mygo` 的 `package main` 里，要 `mygo.config.ts`（需要 Node/Bun 解析），不能当库用；这里借鉴了它的 Info.plist 写法和"先签内层代码、再签整个包"的顺序，自己写了一个小脚本。
+
+### 9.2 安装位置与"已安装/便携"的判断
+
+| 项 | 决定 |
+|----|------|
+| 默认位置 | 当前用户能写 `/Applications`（管理员账户能写）就装到 `/Applications`，否则装到 `~/Applications`，不需要输入密码（`install.ChooseAppsDir`）。安装位置指的是**放 `golauncher.app` 的文件夹**；选择别的文件夹时不再套一层 `golauncher` 子目录 |
+| 安装记录（相当于卸载项） | `~/Library/Application Support/golauncher/install.json`：`dir`、`version`、`installDate`。没有记录时，在 `/Applications`、`~/Applications` 里找 `CFBundleIdentifier` 是我们的 `golauncher.app`，所以用户自己拖进"应用程序"的也算已安装 |
+| 已安装的版本 | 每次读包里的 `Info.plist`（用户可能直接拖了新版本覆盖），读不到再用记录里的版本。二进制格式的 plist 用 `plutil -convert xml1` 转 |
+| 判断 | 和 Windows 相同（§3）：运行的就是已安装包里的程序 → 正常启动；版本相同 → 用 `open` 启动已安装的那个，本进程退出；版本不同 → 升级/降级界面；没有安装 → 安装界面 |
+| 不进入安装流程 | §2 的条件之外：**不在 `.app` 里的裸二进制**（`dist/golauncher`、`go run`）不安装自己，当作便携运行 |
+| App Translocation | 从"下载"文件夹直接打开带隔离属性的应用时，macOS 会把它挂到一个只读的随机路径运行。这时它不是已安装的副本，安装界面会把它复制到"应用程序"文件夹——正好就是"移到应用程序文件夹"。`install.Translocated` 能识别这种路径 |
+
+### 9.3 安装、升级与卸载
+
+安装（`Installer.Install`，`Bundle` 模式）：
+
+1. 校验目录、让正在运行的 golauncher 退出（同 §5.2 第 1、2 步；进程用 `sysctl kern.proc.uid` 按名字 `golauncher` 枚举，排除自己）。
+2. **整体替换包**（`install.ReplaceBundle`）：先把运行中的包完整复制到目标文件夹里的 `.golauncher.app.new`（隐藏，访达里看不到），再把已有的 `golauncher.app` 改名为 `.golauncher.app.old`，最后把 `.new` 改名为 `golauncher.app`。两次改名都在同一个文件夹里，是原子的；任何时候 `golauncher.app` 都不会是写了一半的。复制保留权限和包内的相对链接，**不复制扩展属性**，所以新包没有隔离属性。
+   - 只能整体替换：代码签名覆盖包里的所有文件，单换一个可执行文件签名就坏了。
+   - 运行中的程序所在的包可以被改名、删除，macOS 不像 Windows 那样锁文件。
+3. 没有快捷方式（包本身就是应用）。全新安装时把"开机时启动"写进 `config.json`（同 Windows）。
+4. 写安装记录。失败就把 `.old` 改回来；成功后删除 `.old`（删不掉的由已安装的程序下次启动时 `install.Cleanup` 清理）。
+5. 用 `open -n -a <包> --args …` 启动安装好的应用：由 Launch Services 启动，它不是安装程序的子进程，TCC 把权限记在它自己名下。
+
+卸载：`/Applications/golauncher.app/Contents/MacOS/golauncher --uninstall`（终端里运行；macOS 上用户通常直接把应用拖到废纸篓，那样不会删开机自启和数据）。步骤同 §6：确认框（可勾选"同时删除我的设置和数据"，即 `~/Library/Application Support/golauncher` 和 `~/Library/Caches/golauncher`，日志也在后者里）→ 让其他实例退出 → 关闭开机自启（登录项和 LaunchAgent）→ 删除安装记录和 `update` 文件夹 → 一个分离的 `/bin/sh` 等本进程退出（最多 30 秒）后 `rm -rf` 掉 `golauncher.app`（以及残留的 `.old`、`.new`）。路径作为参数传给脚本，不拼进脚本；拒绝删除 `/`、`/Applications`、家目录。**不删除**钥匙串里的密码类偏好（`golauncher/<插件>/<偏好>`），需要时在"钥匙串访问"里搜 `golauncher` 删除。
+
+### 9.4 签名、Gatekeeper 与 TCC
+
+- **只做 ad-hoc 签名**（`codesign -s -`）：先签 `Contents/MacOS/glctl`（标识 `io.github.eziq1.golauncher.glctl`），再签整个包（标识 `io.github.eziq1.golauncher`），然后 `codesign --verify --strict --deep`。不开 Hardened Runtime（那需要为 Apple 事件等加 entitlements，ad-hoc 签名也得不到它的好处）。
+- **Gatekeeper**：从网上下载的 zip 解压出来的应用带隔离属性，第一次打开会被拦下。处理办法（任选其一）：
+  - 在访达里按住 Control 点应用（或右键）→"打开"→ 在对话框里再点"打开"；macOS 15 起这一步没有了，要先双击一次，再去"系统设置 › 隐私与安全性"，在页面底部点"仍要打开"。
+  - 或者在终端里去掉隔离属性：`xattr -dr com.apple.quarantine ~/Downloads/golauncher.app`。
+  之后安装程序复制出来的 `/Applications/golauncher.app` 不带隔离属性，自动更新写入的文件也会主动清除这个属性（[auto-update.md §12](auto-update.md)）。
+- **TCC 权限（辅助功能、自动化）按签名身份记录**。ad-hoc 签名没有证书，它的"指定要求"（designated requirement）就是代码哈希（`cdhash`），**每次构建都不同**。所以：
+  - 每次升级（包括自动更新）后，"系统设置 › 隐私与安全性 › 辅助功能"里的 golauncher 虽然还显示为打开，但已经不生效：要先用"−"删掉，再重新添加或重新授权。"自动化"的授权会在下次使用时重新弹窗。
+  - 包的标识符是固定的，所以列表里不会出现多个 golauncher，只是授权要重给。
+  - **让授权在本机重新构建后保留**：在"钥匙串访问 › 证书助理 › 创建证书"里建一个自签名的"代码签名"证书（例如叫 `golauncher local`），然后 `scripts/build-macos.sh --app --sign "golauncher local"`（或设置环境变量 `GOLAUNCHER_CODESIGN_IDENTITY`）。这时指定要求是"标识符 + 这张证书"，换构建不变。这只对自己构建的版本有效；发布版本（CI 构建）仍是 ad-hoc。
+  - 根本的解决办法是 Developer ID 签名和公证（docs/macos-port.md §6.3），不在本期范围。
+- 钥匙串：签名身份变化后，读取以前存的密码时 macOS 可能弹"允许访问"，点"始终允许"。
+
+### 9.5 开机自启
+
+- 主路径不变：`mygo.App.SetOpenAtLogin`。MyGo 在 macOS 13+ 用 `SMAppService.mainAppService`（纯 Go 的 purego 调用，"系统设置 › 通用 › 登录项"里显示 golauncher），12 用 LaunchAgent。它要求以 `.app` 运行。
+- 后备（`winstall.LoginItem`）：如果 `SMAppService` 报错（例如需要用户在"登录项"里批准、或者 ad-hoc 签名的应用被拒绝），就写一个 LaunchAgent `~/Library/LaunchAgents/io.github.eziq1.golauncher.login.plist`，内容是 `open -a <包> --args --background`（只在 Aqua 会话、登录时运行）。它不立即加载（那会马上再启动一个 golauncher），下次登录生效。两种方式都开着时多启动一次也没关系，第二个实例会交给第一个。关闭开机自启时两者都删除。macOS 13+ 加 LaunchAgent 时会显示"已添加后台项目"的通知。
+- 同 §5.3：已安装另一个副本时，便携副本不碰登录项。
+
+### 9.6 再次打开、菜单栏图标
+
+- **再次打开**：应用已经在运行时，双击 `golauncher.app` 或执行 `open -a golauncher`，macOS 不会启动第二个进程，而是给运行中的实例发 reopen 事件（`applicationShouldHandleReopen`）。MyGo 把它转成 `App.OnActivate`，shell 把它当作 `--show`：显示启动器。真的启动了第二个进程时（`open -n`、终端直接运行可执行文件），仍由 MyGo 的单实例锁把参数转给第一个（`OnSecondInstance`），各平台一样。
+- **菜单栏图标**：Windows 托盘用彩色的 32×32 应用图标；macOS 菜单栏用 `assets/icon-menubar.png`：`icon-small.svg` 里的圆弧和箭头，黑色加透明度、去掉底色，44×36 像素（2 倍下 22×18 点），作为模板图片（`IconIsTemplate`）由系统按浅色/深色菜单栏着色。由 `go run ./scripts/genmenubaricon` 生成。
+
+### 9.7 代码与测试
+
+| 位置 | 内容 |
+|------|------|
+| `internal/install/bundle.go` | `BundleID` 等常量、`BundleOf`、`ChooseAppsDir`、`Translocated`、`ReplaceBundle`、`CopyTree` |
+| `internal/install/plist.go` | `InfoPlist`、`InfoPlistStrings`、`LaunchAgentPlist`、读取 `PlistStrings`/`PlistVersion` |
+| `internal/install/ops.go` | `Installer.Bundle` 模式的安装（`installBundle`）、卸载、`Cleanup` |
+| `internal/install/quarantine_*.go` | `ClearQuarantine`（只在 macOS 上做事） |
+| `internal/winapi/install/install_darwin.go` | `System`：安装记录、在 `/Applications`/`~/Applications` 里查找、`FileVersion`、进程枚举和 `StopInstances`、`open` 启动、延迟删除 |
+| `internal/winapi/install/update_darwin.go` | 更新助手的 `HelperSystem`、`scutil --proxy` 系统代理、开机自启的 LaunchAgent 后备 |
+| `scripts/build-macos.sh --app`、`scripts/macbundle` | 打包、图标、签名 |
+| `internal/shell` | `newInstaller` 用 `Bundle` 模式、登录项走 `winstall.SetLoginItem`、`OnActivate` → `--show`、模板托盘图标 |
+| `internal/ui/installer.go` | `InstallerInfo.Bundle`：不提供桌面快捷方式，选的文件夹就是安装位置 |
+
+测试只用临时目录和假的 `System`：包路径的判断、默认位置的选择、Info.plist/InfoPlist.strings/LaunchAgent 的内容（在 Mac 上还过一遍 `plutil -lint`）、`ReplaceBundle`（替换、撤销、提交、可执行位、链接、越界链接被拒绝）、`Bundle` 模式的安装/升级/失败回滚/原地安装/卸载、清理残留、清除隔离属性；darwin 上的 `System`：从安装记录或候选文件夹读安装、别的应用的同名包不算、读版本、`open` 的参数、删除脚本的参数和拒绝的路径、登录项失败时写 LaunchAgent、进程枚举不含自己。**测试从不安装到 `/Applications`、不注册登录项、不替换正在运行的应用。**
+
+### 9.8 还没做
+
+- **安装界面的措辞**：安装窗口已经按平台取消息变体（`id@darwin`），但这几条还没有 macOS 版：`install.welcome`（提到 Windows 和开始菜单）、`install.perUser`（装到 `/Applications` 时并非“只为当前用户”）、`install.errorInvalidDir`（示例是 `C:\Apps\golauncher`）、`install.errorRunning`（“托盘图标”→ 菜单栏图标）、`install.step.shortcuts`（macOS 上没有快捷方式，这一步一闪而过）。留给消息目录的平台措辞工作一起加。
+- 设置里没有“卸载”按钮，只能在终端运行 `--uninstall`；拖到废纸篓的卸载方式不会删除登录项、LaunchAgent 和数据。
+- DMG（拖到“应用程序”的窗口）没有做，只发 zip。
+- 运行在 App Translocation 路径时不会主动提示“移到应用程序文件夹”，只是照常弹安装界面。

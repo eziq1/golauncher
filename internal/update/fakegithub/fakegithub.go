@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/eziq1/golauncher/internal/install"
 	"github.com/eziq1/golauncher/internal/update"
 )
 
@@ -36,6 +38,8 @@ type Options struct {
 	SigningKey string
 	// Published is the release date (default 2026-10-01).
 	Published time.Time
+	// Darwin adds the macOS archive (universal, with golauncher.app).
+	Darwin bool
 }
 
 // Server is the fake. Its fields may be changed between requests (under
@@ -101,6 +105,9 @@ func (s *Server) SetLatest(o Options) {
 			"glctl.exe":      []byte("fake glctl " + o.Version + " " + arch),
 			"README.md":      []byte("# golauncher\n"),
 		})
+	}
+	if o.Darwin {
+		files[update.BundleArchiveName(o.Version, update.Universal)] = BundleArchive(o.Version, o.Exe(update.Universal))
 	}
 	names := make([]string, 0, len(files))
 	for n := range files {
@@ -174,6 +181,39 @@ func Archive(files map[string][]byte) []byte {
 			panic(err)
 		}
 		_, _ = w.Write(files[n])
+	}
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+// BundleArchive returns a macOS release archive of version, the same bytes
+// every time: golauncher.app with its Info.plist, the executable exe and
+// glctl, and a LICENSE beside it.
+func BundleArchive(version string, exe []byte) []byte {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	app := install.BundleName + "/Contents/"
+	for _, f := range []struct {
+		name string
+		mode os.FileMode
+		data []byte
+	}{
+		{install.BundleName + "/", os.ModeDir | 0o755, nil},
+		{app + "Info.plist", 0o644, install.InfoPlist(install.BundleInfo{Version: version})},
+		{app + "MacOS/golauncher", 0o755, exe},
+		{app + "MacOS/glctl", 0o755, []byte("fake glctl " + version + " universal")},
+		{app + "Resources/golauncher.icns", 0o644, []byte("icns")},
+		{"LICENSE", 0o644, []byte("MIT\n")},
+	} {
+		h := &zip.FileHeader{Name: f.name, Method: zip.Deflate, Modified: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)}
+		h.SetMode(f.mode)
+		w, err := zw.CreateHeader(h)
+		if err != nil {
+			panic(err)
+		}
+		_, _ = w.Write(f.data)
 	}
 	if err := zw.Close(); err != nil {
 		panic(err)

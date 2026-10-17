@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !darwin
 
 package install
 
@@ -13,9 +13,8 @@ import (
 )
 
 // System is install.System where self-installation is not supported: every
-// method fails with errors.ErrUnsupported. On macOS golauncher is installed
-// as an .app bundle dragged to /Applications instead (docs/macos-port.md
-// §4.3).
+// method fails with errors.ErrUnsupported (Linux and other systems; macOS
+// has its own, install_darwin.go).
 type System struct{}
 
 var _ install.System = (*System)(nil)

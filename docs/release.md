@@ -134,3 +134,14 @@
   - 第一个：测试释放选中文字的时间超过了 250ms 预算。改为 glctl 和测试用的假环境不受这个预算限制（`core.Options.SelectionBudget`），真实环境仍是 250ms。
   - 第二个：测试断言了插件"最后一次"收到的查询，而设置选中文字引起的刷新可能晚到。改为检查收到的查询里是否有输入的文字。
 - **结果**：2026-10-16 打了 `v0.6.0` 标签，CI 和发布工作流都通过。Release 为正式版，`/releases/latest` 指向它。产物：amd64（21.9MB）、arm64（20.1MB）两个 zip 和 `checksums.txt`。<https://github.com/eziq1/golauncher/releases/tag/v0.6.0>
+
+## 12. macOS 产物（2026-10-16，`macos-support` 分支）
+
+- **新产物**：`golauncher_<版本>_darwin_universal.zip`，根目录是 `golauncher.app`（x86_64 + arm64 通用二进制，ad-hoc 签名，[self-install.md §9](self-install.md)），旁边是 LICENSE、两份 README、CHANGELOG。它和 Windows 的两个 zip 一起列在 `checksums.txt` 里（有签名密钥时一起被签名）。
+- **工作流**（`.github/workflows/release.yml`）：
+  - 新增 `macos` job（`macos-latest`）：`go vet`、`go test`，`scripts/build-macos.sh --arch universal --app --zip --version <版本>`（构建时同样写入 `UPDATE_PUBLIC_KEY`），冒烟测试（`glctl version`、`glctl i18n check`、`plutil -lint`、`Info.plist` 里的版本、`codesign --verify --strict --deep`、`lipo -archs`、zip 里有 `golauncher.app/Contents/MacOS/golauncher`），把 zip 作为 artifact 上传。
+  - 原来的 Windows job（`release`）改为 `needs: macos`：构建 Windows 的 zip 后下载这个 artifact 到 `dist/`，再一起算 `checksums.txt`、签名、`gh release create`。所以 macOS 构建失败时不会发出缺 macOS 产物的 Release。
+  - CI（`ci.yml`）的 macOS job 也会打一次 `.app`（不打 zip），提早发现打包问题。
+- **和 §9 一样不能随便改**：产物名（`golauncher_<版本>_darwin_universal.zip`）、zip 里 `golauncher.app/` 在根目录、包内 `Contents/MacOS/golauncher` 和 `Contents/Info.plist` 的 `GolauncherVersion`、`CFBundleIdentifier`（`io.github.eziq1.golauncher`）。已安装的 macOS 版本靠它们自动更新。
+- **不做**：Developer ID 签名、公证（`notarytool`、`stapler`）、DMG。用户第一次打开要过 Gatekeeper（右键 →“打开”，或 macOS 15 起在“隐私与安全性”里点“仍要打开”，或 `xattr -dr com.apple.quarantine golauncher.app`），每次更新后要重新授予辅助功能权限（self-install.md §9.4）。Release 说明里应该写上这两点。
+- **本地打包**：`scripts/build-macos.sh --arch universal --app --zip`；只要 `.app` 用 `--app`；用自己的证书签名用 `--sign <名称>`。

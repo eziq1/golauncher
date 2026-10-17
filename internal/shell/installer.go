@@ -62,8 +62,13 @@ func selfInstall(o *Options) (done bool, err error) {
 	return false, nil
 }
 
-// newInstaller returns the installer of the running copy.
+// newInstaller returns the installer of the running copy. On macOS that
+// is an app bundle; a bare executable (a development build) does not
+// install itself.
 func newInstaller(self, version string) (*install.Installer, error) {
+	if _, ok := install.BundleOf(self); winstall.Bundled && !ok {
+		return nil, errors.New("shell: not in an app bundle")
+	}
 	paths, err := winstall.Paths()
 	if err != nil {
 		return nil, err
@@ -79,15 +84,19 @@ func newInstaller(self, version string) (*install.Installer, error) {
 		paths.UpdateDir = dir
 	}
 	return &install.Installer{
-		Sys:             winstall.New(),
-		Self:            self,
-		Version:         version,
-		Paths:           paths,
-		RemoveLoginItem: func() error { return mygo.App.SetOpenAtLogin(false) },
+		Sys:     winstall.New(),
+		Self:    self,
+		Version: version,
+		Paths:   paths,
+		RemoveLoginItem: func() error {
+			return winstall.SetLoginItem(false, mygo.App.SetOpenAtLogin, mygo.App.OpenAtLogin)
+		},
+		Bundle: winstall.Bundled,
 	}, nil
 }
 
-// installerLocalizer returns the core messages in the configured language.
+// installerLocalizer returns the core messages in the configured language,
+// with the platform's message variants (id@darwin).
 func installerLocalizer() *i18n.Localizer {
 	lang := "system"
 	if dir, err := app.DefaultConfigDir(); err == nil {
@@ -96,6 +105,7 @@ func installerLocalizer() *i18n.Localizer {
 		}
 	}
 	m := i18n.NewManager(i18n.Source, nil)
+	m.SetPlatform(messagePlatform())
 	if err := m.Register(i18n.CoreNamespace, i18n.CoreLocales()); err == nil {
 		m.SetLocale(lang)
 	}
@@ -107,7 +117,7 @@ func runInstaller(in *install.Installer, st install.State, args []string) error 
 	loc := installerLocalizer()
 	mygo.App.SetName(AppName)
 	h := &installerHost{in: in, args: args, loc: loc}
-	view := ui.NewInstaller(loc, h, ui.InstallerInfo{Version: in.Version, State: st, Dir: in.Paths.DefaultDir})
+	view := ui.NewInstaller(loc, h, ui.InstallerInfo{Version: in.Version, State: st, Dir: in.Paths.DefaultDir, Bundle: in.Bundle})
 	mygo.App.WhenReady(func() {
 		h.win = mygo.NewWindow(mygo.WindowOptions{
 			Page:            mygo.PageOptions{DevTools: devTools()},

@@ -34,6 +34,17 @@ func ArchiveName(version, arch string) string {
 	return "golauncher_" + version + "_windows_" + arch + ".zip"
 }
 
+// Universal is the "architecture" of the macOS release archive, whose
+// golauncher.app runs on both Apple silicon and Intel Macs.
+const Universal = "universal"
+
+// BundleArchiveName is the macOS release archive of version for arch
+// (Universal, amd64 or arm64), as scripts/build-macos.sh --app --zip names
+// it; it holds golauncher.app.
+func BundleArchiveName(version, arch string) string {
+	return "golauncher_" + version + "_darwin_" + arch + ".zip"
+}
+
 // Assets are the files of a release that an update downloads.
 type Assets struct {
 	Archive   Asset
@@ -44,6 +55,12 @@ type Assets struct {
 // SelectAssets finds the archive of the release for arch, its checksums and
 // its signature. The archive and checksums.txt must both be there.
 func SelectAssets(r Release, arch string) (Assets, error) {
+	return SelectAssetsFor(r, arch, false)
+}
+
+// SelectAssetsFor is SelectAssets for the Windows archive, or with bundle
+// for the macOS one: the universal archive, else the one of arch.
+func SelectAssetsFor(r Release, arch string, bundle bool) (Assets, error) {
 	if arch == "" {
 		arch = runtime.GOARCH
 	}
@@ -51,10 +68,19 @@ func SelectAssets(r Release, arch string) (Assets, error) {
 	if err != nil {
 		return Assets{}, err
 	}
+	names := []string{ArchiveName(v, arch)}
+	if bundle {
+		names = []string{BundleArchiveName(v, Universal), BundleArchiveName(v, arch)}
+	}
 	var a Assets
 	var ok bool
-	if a.Archive, ok = r.Asset(ArchiveName(v, arch)); !ok {
-		return Assets{}, fmt.Errorf("%w (%s)", ErrNoAsset, ArchiveName(v, arch))
+	for _, name := range names {
+		if a.Archive, ok = r.Asset(name); ok {
+			break
+		}
+	}
+	if !ok {
+		return Assets{}, fmt.Errorf("%w (%s)", ErrNoAsset, names[0])
 	}
 	if a.Checksums, ok = r.Asset(ChecksumsName); !ok {
 		return Assets{}, fmt.Errorf("%w (%s)", ErrNoAsset, ChecksumsName)

@@ -115,7 +115,13 @@ func (h *Helper) Apply(ctx context.Context, p Plan) Result {
 		}
 	}
 	save()
-	installed := filepath.Join(p.InstallDir, install.ExeName)
+	bundle := p.Staged.Bundle
+	installed := programIn(p.InstallDir, bundle)
+	newInstaller := func(self, version string) *install.Installer {
+		in := h.NewInstaller(self, version)
+		in.Bundle = in.Bundle || bundle
+		return in
+	}
 	restartOld := func() {
 		if _, err := h.Sys.Start(installed, args, nil); err != nil {
 			log.Error("update: starting golauncher again", "err", err)
@@ -139,12 +145,12 @@ func (h *Helper) Apply(ctx context.Context, p Plan) Result {
 	}
 	// 2. A copy of the installed program, to roll back to.
 	prev := filepath.Join(p.UpdateDir, previousDir)
-	if err := backup(p.InstallDir, prev); err != nil {
+	if err := backup(p.InstallDir, prev, bundle); err != nil {
 		return fail(fmt.Errorf("keeping a copy of the installed version: %w", err))
 	}
 	// 3. Install with the self-installer (it restores the files itself on
 	// failure).
-	if _, err := h.NewInstaller(p.Staged.Exe(), p.To).Install(install.Options{Dir: p.InstallDir, Upgrade: true}, nil); err != nil {
+	if _, err := newInstaller(p.Staged.Exe(), p.To).Install(install.Options{Dir: p.InstallDir, Upgrade: true}, nil); err != nil {
 		return fail(err)
 	}
 	log.Info("update: installed", "from", p.From, "to", p.To)
@@ -174,7 +180,7 @@ func (h *Helper) Apply(ctx context.Context, p Plan) Result {
 		case <-time.After(5 * time.Second):
 		}
 	}
-	if _, rerr := h.NewInstaller(filepath.Join(prev, install.ExeName), p.From).Install(install.Options{Dir: p.InstallDir, Upgrade: true}, nil); rerr != nil {
+	if _, rerr := newInstaller(programIn(prev, bundle), p.From).Install(install.Options{Dir: p.InstallDir, Upgrade: true}, nil); rerr != nil {
 		res.Error += "; rolling back: " + rerr.Error()
 		log.Error("update: rolling back", "err", rerr)
 	}
@@ -210,14 +216,21 @@ func waitHealthy(ctx context.Context, proc Process, marker string, timeout, poll
 	}
 }
 
-// backup copies the program files of dir into prev, replacing what was
-// there.
-func backup(dir, prev string) error {
+// backup copies the program files of dir (with bundle, its
+// golauncher.app) into prev, replacing what was there.
+func backup(dir, prev string, bundle bool) error {
 	if err := removeAll(prev); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(prev, 0o755); err != nil {
 		return err
+	}
+	if bundle {
+		app := install.BundleIn(dir)
+		if !exists(install.BundleExe(app)) {
+			return fmt.Errorf("%s is missing", install.BundleExe(app))
+		}
+		return install.CopyTree(app, install.BundleIn(prev))
 	}
 	for _, name := range []string{install.ExeName, install.CtlName} {
 		src := filepath.Join(dir, name)

@@ -93,6 +93,21 @@ func TestInstallerFresh(t *testing.T) {
 	}
 }
 
+func TestInstallerBundle(t *testing.T) {
+	h := &fakeInstallerHost{folder: "/Users/me/Applications"}
+	_, tt := newInstaller(t, h, ui.InstallerInfo{Version: "0.7.0", State: install.State{Kind: install.KindFresh}, Dir: "/Applications", Bundle: true})
+	wantTexts(t, tt, "Install golauncher 0.7.0", "Launch at login")
+	if tt.HasText("Create a desktop shortcut") {
+		t.Fatal("a desktop shortcut is offered on macOS")
+	}
+	click(t, tt, "Browse…")
+	click(t, tt, "Install")
+	// The folder that gets golauncher.app, not a golauncher folder in it.
+	if o := h.installs[0]; o.Dir != "/Users/me/Applications" || !o.LaunchAtLogin || o.DesktopShortcut {
+		t.Fatalf("options = %+v", o)
+	}
+}
+
 func TestInstallerErrors(t *testing.T) {
 	h := &fakeInstallerHost{err: install.ErrStillRunning}
 	in, tt := newInstaller(t, h, ui.InstallerInfo{Version: "0.2.0", State: install.State{Kind: install.KindFresh}, Dir: `C:\x\golauncher`})

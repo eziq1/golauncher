@@ -26,7 +26,14 @@ type updateFlags struct {
 	arch    string
 	latest  string // the fake's latest version
 	dryRun  bool
+	// system is the archive's system: "windows" (the default, whatever
+	// glctl runs on, so that the output is the same everywhere) or
+	// "darwin" (the universal golauncher.app archive).
+	system string
 }
+
+// bundle reports whether the macOS archive is chosen.
+func (f updateFlags) bundle() bool { return f.system == "darwin" }
 
 // updateCheckResult is the output of glctl update check.
 type updateCheckResult struct {
@@ -67,11 +74,15 @@ func (c *cli) update(ctx context.Context, args []string) error {
 	fs.StringVar(&f.arch, "arch", runtime.GOARCH, "the architecture whose archive is chosen")
 	fs.StringVar(&f.latest, "latest", "1.0.0", "the fake GitHub's latest version (fake mode)")
 	fs.BoolVar(&f.dryRun, "dry-run", false, "download and verify without installing")
+	fs.StringVar(&f.system, "os", "windows", "the system whose archive is chosen: windows or darwin")
 	key := fs.String("key", "", "the base64 public key for verify (default: the program's)")
 	_ = fs.Bool("json", false, "print JSON (the default)")
 	pos, err := parse(fs, rest)
 	if err != nil {
 		return err
+	}
+	if f.system != "windows" && f.system != "darwin" {
+		return usagef("update: --os must be windows or darwin")
 	}
 	switch sub {
 	case "check":
@@ -110,7 +121,7 @@ func (f updateFlags) client() (*upd.Client, string, func()) {
 		}
 		return c, "github", func() {}
 	}
-	fake := fakegithub.New(fakegithub.Options{Version: f.latest})
+	fake := fakegithub.New(fakegithub.Options{Version: f.latest, Darwin: f.bundle()})
 	return &upd.Client{HTTP: fake.Client(), API: fake.API(), UserAgent: "glctl/" + Version}, "fake", fake.Close
 }
 
@@ -142,7 +153,7 @@ func (f updateFlags) latestRelease(ctx context.Context, cl *upd.Client, source s
 	}
 	res.Latest = v
 	res.Newer = upd.Newer(v, res.Current)
-	if a, err := upd.SelectAssets(r, f.arch); err == nil {
+	if a, err := upd.SelectAssetsFor(r, f.arch, f.bundle()); err == nil {
 		res.Archive, res.Size, res.Checksums, res.Signature = a.Archive.Name, a.Archive.Size, true, a.Signature != nil
 	} else {
 		res.Error = err.Error()
@@ -194,7 +205,7 @@ func (c *cli) updateDownload(ctx context.Context, f updateFlags) error {
 		if err == nil {
 			defer os.RemoveAll(dir)
 			var pr upd.PrepareResult
-			pr, err = cl.Prepare(ctx, r, upd.PrepareOptions{Arch: f.arch, Dir: dir, PublicKey: upd.PublicKey})
+			pr, err = cl.Prepare(ctx, r, upd.PrepareOptions{Arch: f.arch, Dir: dir, PublicKey: upd.PublicKey, Bundle: f.bundle()})
 			if err == nil {
 				res.SHA256, res.Verified, res.Signed, res.Files = pr.SHA256, true, pr.Signed, pr.Files
 			}

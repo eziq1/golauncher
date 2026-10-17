@@ -183,6 +183,8 @@ MyGo 覆盖了 golauncher 在 macOS 上需要的窗口、热键、托盘、单�
 
 macOS 的约定和 Windows 的"exe 自己安装自己"完全不同，建议**不移植自安装流程**，改用标准做法：
 
+> 实现时（§10）自安装还是移植了，但按 macOS 的方式：安装的是整个 `.app`，"安装"就是把它复制到"应用程序"文件夹（正好解决从"下载"或 App Translocation 路径运行的问题），拖进去的也算已安装；升级和自动更新整包替换。构建没有用 `mygo build`，用 `scripts/build-macos.sh --app`。见 [self-install.md §9](self-install.md)。
+
 | 项 | 方案 |
 |----|------|
 | 形态 | `golauncher.app`：`Contents/MacOS/golauncher`、`Contents/Info.plist`（`CFBundleIdentifier`、`LSUIElement=true` 不显示 Dock 图标、`LSMinimumSystemVersion`、`NSAppleEventsUsageDescription` 等权限说明文字）、`Contents/Resources/golauncher.icns`（从 `assets/` 的 512/1024 PNG 用 `iconutil` 生成）。`glctl` 放进 `Contents/MacOS/` 或 `Contents/Helpers/`，安装时提示用户软链到 `/usr/local/bin` 或 `~/.local/bin` |
@@ -371,7 +373,13 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 | 脚本命令 | Unix 规则：shebang 的绝对路径存在就直接用，`#!/usr/bin/env prog` 在 PATH 和 Homebrew 等目录里找；按扩展名默认 bash/zsh/python3/node/ruby/swift/osascript/pwsh，额外扫描 `.zsh .rb .swift .applescript`；默认目录 `~/Library/Application Support/golauncher/scripts` | `TestInterpreterUnix` |
 | 平台文案 | `i18n` 支持平台变体 key `id@darwin`（用户语言的通用译文优先于未翻译的变体；`glctl i18n check` 认得变体）；先改了 8 条核心文案（钥匙串、跟随 macOS 深浅色、关于等）。只有真实的 shell 打开变体，glctl 的假环境在任何平台上都保持 Windows 文案 | `TestPlatformVariants` |
 | 时钟 | 顺带修了一个 Windows 上的 bug：Go 自带的 zoneinfo 在年末给出不是真实切换的边界，"下次切换"曾显示"1 月 1 日 → UTC+11"（偏移没变），现在跳过这种边界；golden 随之更新 | `TestNextChangeSlimZoneinfo` |
-| CI | Windows job 加 `GOOS=darwin` 的 build/vet；新增 `macos-latest` job：vet、test、构建、`glctl i18n check`、Windows 交叉编译 | — |
+| CI | Windows job 加 `GOOS=darwin` 的 build/vet；新增 `macos-latest` job：vet、test、构建、`glctl i18n check`、打 `.app`、Windows 交叉编译 | — |
+| `.app` 打包 | `scripts/build-macos.sh --app`：`golauncher.app`（`Contents/MacOS/golauncher` 和 `glctl`；Info.plist 由 `install.InfoPlist` 生成：`CFBundleIdentifier` = `io.github.eziq1.golauncher`、数字版本号 + 完整版本 `GolauncherVersion`、`LSUIElement`、`LSMinimumSystemVersion` 13.0、Apple 事件/受保护文件夹/本地网络/定位等权限说明，英文和中文 `InfoPlist.strings`；`iconutil` 从 `assets/icon-*.png` 生成 `.icns`）；ad-hoc 签名（先 glctl、后整个包，标识固定；`--sign` 可换成自己的证书以保留 TCC 授权）。`--zip` 时打成 `golauncher_<版本>_darwin_<arch>.zip`。没有用 `mygo build`：它在 `package main` 里且要 `mygo.config.ts`（[self-install.md §9](self-install.md)） | Info.plist、InfoPlist.strings、LaunchAgent 的生成有单元测试（含 `plutil -lint`）；真机跑过 `--arch universal --app --zip`，`plutil -lint`、`codesign --verify --strict --deep`、`file` 检查通过 |
+| 自安装 | `winapi/install/install_darwin.go`：安装位置是放 `golauncher.app` 的文件夹（`/Applications` 可写时用它，否则 `~/Applications`）；安装记录 `~/Library/Application Support/golauncher/install.json`，没有时在这两个文件夹里找本应用的包（拖进去的也算已安装）；版本读 `Info.plist`；整包复制、改名替换（`install.ReplaceBundle`，失败回滚）；`sysctl` 枚举进程让旧实例退出；`open -n -a` 启动；`--uninstall` 由分离的 `sh` 在退出后删除包。裸二进制不安装自己（便携） | `Installer.Bundle` 的安装、升级、回滚、卸载、原地安装；darwin 上的 `System` 只用临时目录测试 |
+| 开机自启 | MyGo 的 `SMAppService`（purego）不变；它报错（需要批准、被拒绝）时写 LaunchAgent `~/Library/LaunchAgents/io.github.eziq1.golauncher.login.plist`（`open -a <包> --args --background`），关闭时两者都删 | 后备逻辑用假的 MyGo 函数和临时目录测试 |
+| 自动更新 | 产物 `golauncher_<版本>_darwin_universal.zip`；下载、SHA-256、ed25519 签名校验不变；只解压 `golauncher.app/`（拒绝路径穿越、链接），清除隔离属性；助手 `golauncher-update` 整包备份和替换（先改名旧包、再放新包），`open -n -W --env` 启动新版本做健康检查，失败回滚；系统代理读 `scutil --proxy`。release 工作流新增 macOS job，产物和 Windows 的 zip 一起进 `checksums.txt`（[auto-update.md §12](auto-update.md)、[release.md §12](release.md)） | 产物选择、带签名的下载解压、拒绝的 zip、助手的更新和回滚（临时 Applications 文件夹、测试现编的假程序）、代理解析、glctl golden |
+| 再次打开 | 已运行时双击应用或 `open -a`：MyGo 的 `OnActivate`（`applicationShouldHandleReopen`）→ 同 `--show`，显示启动器 | 待实测 |
+| 菜单栏图标 | `assets/icon-menubar.png`：`icon-small.svg` 的圆弧和箭头，黑色 + 透明度，44×36 像素，`IconIsTemplate`；`scripts/genmenubaricon` 生成。Windows 托盘仍用彩色图标 | `TestTrayIcon` 检查尺寸和"只有黑色" |
 
 ### 10.2 测试的平台约定
 
@@ -384,10 +392,11 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - **环境感知**（Finder 当前文件夹/选中项、AX 窗口标题）：`winapi/context` 在 macOS 上仍恒为 false；选中文本（`winapi/selection`）、进程管理器（`winapi/process`）、网络工具（`winapi/network`）仍是 `ErrUnsupported` 桩。
 - **终端插件**的 macOS 版（Terminal/iTerm2/Warp）、`files` 插件的 macOS 打开方式（目前仍是 `wt.exe`、`Code.exe` 等）、**Homebrew 插件**；`scoop`、`winget`、`terminal`、`processes` 在 macOS 上照常注册，只是不可用（§5.2 建议的 `builtin_darwin.go` 分平台列表没做）。
 - **权限引导页**（辅助功能、自动化的状态与跳转）：只有 `clip.Trusted()` 可用于检测辅助功能权限，界面没做；没有权限时粘贴只会失败并报错，还没有退化成"已复制，请按 ⌘V"。
-- 再次双击 `.app` 时的 `applicationShouldHandleReopen` → `--show`、菜单栏单色模板图标、Vibrancy 材质挑选。
+- Vibrancy 材质挑选。
 - 插件和设置页里其余约 45 条 Windows 措辞（资源管理器、回收站、以管理员身份运行、Win+V……）还没加 `@darwin` 变体；`OpenOptions.Reveal` 等注释仍写 Explorer。`glctl i18n check` 对 everything 插件用 `msg("…")` 拼出的 key 报"未引用"警告（不是错误）。
-- 自安装、自动更新：macOS 上一律跳过（显示为 portable）；`.app` 打包、签名、公证、DMG、release 流水线（第三期）都没做。
-- 自动更新用的系统代理在 macOS 上只读环境变量（没有读 `scutil --proxy`）。
+- **Developer ID 签名、公证、DMG**：不在本期范围。ad-hoc 签名意味着首次打开要过 Gatekeeper，且每次更新后辅助功能授权失效（[self-install.md §9.4](self-install.md)）。
+- 安装窗口里几条 Windows 措辞（`install.welcome`、`install.perUser`、`install.errorInvalidDir`、`install.errorRunning`、`install.step.shortcuts`）还没有 `@darwin` 变体；设置里没有"卸载"按钮（只能 `--uninstall`）；App Translocation 时不单独提示"移到应用程序文件夹"。
+- 自动更新的系统代理不支持 PAC（只读 `scutil --proxy` 里手动设置的代理）。
 
 ### 10.4 需要在真机上手动验证
 
@@ -398,4 +407,5 @@ internal/darwin/objc/       # purego + objc 的小封装：NSPasteboard、NSWork
 - 钥匙串：Set/Get/Delete；签名身份变化后是否弹授权（本次在无界面的会话里写入被拒绝：`-25308 User interaction is not allowed`，属环境原因）。
 - 文件搜索：每次查询 0.5–1.2 秒，打字时的体感；关闭索引的磁盘；排序是否合理。
 - 系统语言（本机返回 `zh-Hans-CN`、`en-CN`，解析为 zh-CN）、登录 shell PATH（从访达启动后脚本能否找到 Homebrew 的 python3/node）、`golauncher mcp` 在启动器未运行时能否把它拉起来。
+- 打包与分发（[self-install.md §9](self-install.md)）：从 zip 解压的 `golauncher.app` 第一次打开时的 Gatekeeper（右键 →"打开"；macOS 15 在"隐私与安全性"里"仍要打开"；或 `xattr -dr com.apple.quarantine`）；无 Dock 图标；菜单栏模板图标在浅色/深色菜单栏下的样子；安装窗口装到 `/Applications`（非管理员账户装到 `~/Applications`）后从新位置启动；已运行时双击应用/`open -a golauncher` 显示启动器；"开机时启动"在"系统设置 › 通用 › 登录项"里出现（或需要批准时写了 LaunchAgent），重新登录后启动且不弹启动器；`--uninstall` 删除包和登录项；Apple Silicon 上从包里复制出来的助手 `golauncher-update` 能运行；两个带 macOS 产物的版本之间的自动更新（看 `~/Library/Caches/golauncher/logs/update.log`），以及更新后辅助功能授权需要重给。
 

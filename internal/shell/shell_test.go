@@ -71,7 +71,30 @@ func TestTrayIcon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b := img.Bounds(); b.Dx() != 32 || b.Dy() != 32 {
+	w, h := 32, 32
+	if trayIconTemplate {
+		w, h = 44, 36 // 22×18 points, the menu bar's height
+	}
+	if b := img.Bounds(); b.Dx() != w || b.Dy() != h {
 		t.Fatalf("size = %v", b)
+	}
+	if !trayIconTemplate {
+		return
+	}
+	// A template image: black, with only its alpha drawing the shape.
+	opaque := 0
+	for y := range h {
+		for x := range w {
+			r, g, b, a := img.At(x, y).RGBA()
+			if a > 0 && (r != 0 || g != 0 || b != 0) {
+				t.Fatalf("pixel %d,%d is not black", x, y)
+			}
+			if a == 0xffff {
+				opaque++
+			}
+		}
+	}
+	if opaque < w*h/10 {
+		t.Fatalf("only %d opaque pixels", opaque)
 	}
 }

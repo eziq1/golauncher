@@ -4,7 +4,7 @@
 
 > 增加自动升级：自动连接 GitHub 检测新版本，有的话直接下载并升级。
 
-本文先写设计（§1–§10），实现完成后在 §11 记录实现情况和与设计的差异。
+本文先写设计（§1–§10），实现完成后在 §11 记录实现情况和与设计的差异；§12 是 macOS 上的做法。
 
 ## 1. 目标与范围
 
@@ -220,3 +220,28 @@ Windows 不能覆盖正在运行的 exe，而 `Install` 会先让正在运行的
 - `internal/install`：卸载删除 `update` 文件夹。`internal/config`：`updates` 的默认值、旧文件、导出导入。
 - 手动验证：`glctl update check --real` 和 `glctl update download --dry-run --real` 对真实的 v0.4.0 Release 成功（找到 amd64 zip，SHA-256 与 `checksums.txt` 一致，zip 根目录有两个 exe）；用临时生成的一对密钥（只在临时目录，未提交）跑了 `build.ps1 -UpdatePublicKey` → `glctl update sign` → `verify`，换一把密钥签名则验证失败。
 - 没有在真机上跑完整的“下载 → 退出 → 助手安装 → 重启 → 回滚”：那会改真实的卸载项、开始菜单和正在运行的 golauncher。这部分逻辑由上面的助手测试覆盖；第一次真实验证要等下一个版本发布后，在已安装的上一版本上观察（`%LOCALAPPDATA%\golauncher\logs\update.log`）。也可以用 `GOLAUNCHER_UPDATE_API` 指向本机的假服务器演练。
+
+## 12. macOS（2026-10-16）
+
+流程和 Windows 完全相同（检查、下载、校验、安全时刻、助手、健康检查、回滚），只是下载和替换的对象是整个 `golauncher.app`（[self-install.md §9](self-install.md)）。Windows 的代码路径没有变：`Bundle` 为假时一切照旧。
+
+| 项 | macOS |
+|----|-------|
+| 产物 | `golauncher_<版本>_darwin_universal.zip`（`update.BundleArchiveName`），根目录是 `golauncher.app/`（旁边还有 LICENSE、README、CHANGELOG，忽略）。选择时先找 `darwin_universal`，没有再找 `darwin_<GOARCH>`（`SelectAssetsFor(…, bundle=true)`）。它和 Windows 的 zip 列在同一个 `checksums.txt` 里，同样受 ed25519 签名保护 |
+| 校验 | 不变：`checksums.txt`（有公钥时先验签名）→ SHA-256 → 解压 → 读解压出来的 `Info.plist` 里的 `GolauncherVersion`，必须等于要安装的版本 |
+| 解压（`ExtractBundle`） | 只取 `golauncher.app/` 下的条目；拒绝 `..`、绝对路径、反斜杠、符号链接和其他非普通文件、重复条目；单个文件 200MB、整个包 400MB 的上限；保留可执行位；必须有 `Contents/MacOS/golauncher` 和 `Contents/Info.plist`。解压后**清除隔离属性**（`com.apple.quarantine`，`install.ClearQuarantine`）：这些是 golauncher 自己下载并校验过的文件。Go 写文件本来就不会加隔离属性，这一步是保险 |
+| 位置 | `~/Library/Caches/golauncher/update/`（`downloads/<版本>/files/golauncher.app`、`helper/`、`previous/golauncher.app`、`state.json`、`result.json`）；日志 `~/Library/Caches/golauncher/logs/update.log` |
+| 助手 | 当前版本包里的可执行文件复制成 `update/helper/golauncher-update`（`BundleHelperName`），用 `--apply-update plan.json` 在新会话里分离启动（`setsid`）。进程名不是 `golauncher`，所以“让其他 golauncher 退出”不会算到它 |
+| 备份 | 把 `/Applications/golauncher.app` 整个复制到 `update/previous/golauncher.app` |
+| 替换 | 自安装的 `Installer.Install(Upgrade)`，`Bundle` 模式：新包先复制成同一文件夹里的 `.golauncher.app.new`，旧包改名为 `.golauncher.app.old`，新包改名就位，成功后删除旧包；失败时把旧包改回来。安装位置是记录里的文件夹（`/Applications` 或 `~/Applications`）；如果它不可写（例如用户拖进了 `/Applications` 但不是管理员），更新失败，按“安装失败”计数（§11.2），设置里显示原因 |
+| 重新启动 | `open -n -W --env GOLAUNCHER_UPDATE_HEALTH=<标记> -a /Applications/golauncher.app --args --background`：由 Launch Services 启动新版本（不是助手的子进程，TCC 把权限记在应用自己名下，Launch Services 也会重新登记新包的版本和图标）。`open -W` 等到应用退出才返回，所以“新版本在报告健康之前退出”仍能检测到。回滚时结束新版本：按进程名结束本用户的 `golauncher` 进程（助手名字不同，不受影响） |
+| 回滚 | 不变：从 `previous/golauncher.app` 再整体替换回去，启动旧版本 |
+| 系统代理 | 环境变量优先；否则读 `scutil --proxy`（“系统设置 › 网络 › 代理”里手动设置的 HTTP/HTTPS 代理和例外，“排除简单主机名”算 `<local>`），`update.ParseScutilProxy`。PAC 自动配置不支持 |
+| 只更新已安装的副本 | 同 §1：运行的是安装位置里的 `golauncher.app` 才自动更新；从“下载”文件夹或 App Translocation 路径运行的、裸二进制都只能手动检查 |
+| `glctl` | `glctl update check/download --dry-run --os darwin` 选 macOS 的产物（默认 `--os windows`，所以 golden 在各平台相同）；假 GitHub 的 `Darwin` 选项会加上一个通用 zip |
+
+**TCC 的代价**：发布版本是 ad-hoc 签名，每次更新代码哈希都变，“辅助功能”的授权更新后失效，需要在系统设置里删掉 golauncher 再重新授权（[self-install.md §9.4](self-install.md)）。在有 Developer ID 签名之前，这是 macOS 自动更新最大的体验问题；如果它太烦人，可以在设置里把自动更新改成“只通知”。
+
+测试（全部在临时目录、假 GitHub，不碰 `/Applications`、不启动真的 golauncher）：产物选择（通用优先、按架构退回、缺失时的错误、Windows 不受影响）；带签名的 `Prepare`（包里的程序、可执行位、`Info.plist` 版本、不解压包外的文件、zip 被换后拒绝）；`ExtractBundle` 拒绝路径穿越、链接、缺程序、缺 `Info.plist`、重复条目；助手在临时 `Applications` 里成功更新（新包就位、旧包备份、启动的是包里的程序、没有残留的隐藏包）和新版本崩溃后回滚；`ParseScutilProxy`；`glctl update download --dry-run --os darwin` 的 golden。另外手动用 `scripts/build-macos.sh --arch universal --app --zip` 打出的真实 zip 跑过一次 `ExtractBundle`：解压出的包 `codesign --verify --strict --deep` 通过，`FileVersion` 读到正确的版本。
+
+没有在真机上跑完整的自动更新（会替换正在运行的应用）。第一次真实验证要等有两个带 macOS 产物的版本之后，看 `~/Library/Caches/golauncher/logs/update.log`；也可以用 `GOLAUNCHER_UPDATE_API` 指向本机的假服务器演练。

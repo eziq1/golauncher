@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 
 	"github.com/eziq1/golauncher/assets"
@@ -58,6 +59,16 @@ func setLevel(v *slog.LevelVar, level string) {
 	}
 }
 
-// trayIcon returns the tray icon: the app icon (a magnifying glass in a
-// rounded blue tile) as a 32×32 PNG, the same image the executable carries.
-func trayIcon() []byte { return assets.Icon32 }
+// trayIcon returns the tray icon: the app icon as a 32×32 PNG, the same
+// image the executable carries; on macOS the monochrome menu bar icon
+// (trayIconTemplate).
+func trayIcon() []byte {
+	if trayIconTemplate {
+		return assets.MenuBarIcon
+	}
+	return assets.Icon32
+}
+
+// trayIconTemplate is set where the tray icon is a template image that the
+// system tints: the macOS menu bar.
+const trayIconTemplate = runtime.GOOS == "darwin"

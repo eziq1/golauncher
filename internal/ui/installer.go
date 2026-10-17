@@ -39,6 +39,9 @@ type InstallerInfo struct {
 	State install.State
 	// Dir is the suggested install location of a new installation.
 	Dir string
+	// Bundle is set on macOS: the location is the folder that gets
+	// golauncher.app (/Applications), and there are no shortcuts.
+	Bundle bool
 }
 
 // Installer is the installer window's view (docs/self-install.md): a new
@@ -131,6 +134,9 @@ func (in *Installer) freshForm(c *mui.Context) {
 					switch {
 					case err != nil:
 						in.err = in.loc.T("install.error", "err", err.Error())
+					case dir != "" && in.info.Bundle:
+						in.dir = dir
+						in.err = ""
 					case dir != "":
 						in.dir = install.FolderFor(dir)
 						in.err = ""
@@ -141,7 +147,9 @@ func (in *Installer) freshForm(c *mui.Context) {
 	})
 	mui.Text(c, in.loc.T("install.perUser")).FontSize(12).TextColor(t.TextMuted)
 	mui.Checkbox(c, &in.launchAtLogin, in.loc.T("install.launchAtLogin")).Disabled(in.busy)
-	mui.Checkbox(c, &in.desktop, in.loc.T("install.desktopShortcut")).Disabled(in.busy)
+	if !in.info.Bundle {
+		mui.Checkbox(c, &in.desktop, in.loc.T("install.desktopShortcut")).Disabled(in.busy)
+	}
 }
 
 func (in *Installer) changeForm(c *mui.Context) {

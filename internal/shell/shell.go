@@ -33,6 +33,7 @@ import (
 	"github.com/eziq1/golauncher/internal/update"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
+	winstall "github.com/eziq1/golauncher/internal/winapi/install"
 	"github.com/eziq1/golauncher/internal/winapi/process"
 	winselection "github.com/eziq1/golauncher/internal/winapi/selection"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
@@ -238,6 +239,15 @@ func Run(o Options) error {
 	mygo.App.OnSecondInstance(func(args []string, _ string) {
 		log.Info("second instance", "args", args)
 		s.handle(parseArgs(args))
+	})
+	// macOS: opening the app while it runs (double-clicking it, open -a)
+	// reopens it instead of starting a second instance; that shows the
+	// launcher, as --show does.
+	mygo.App.OnActivate(func(bool) {
+		if s.panel != nil {
+			log.Info("reopen")
+			s.handle(actionShow)
+		}
 	})
 	// Closing a window only hides it, except when quitting.
 	// Quitting while background tasks run asks first.
@@ -585,10 +595,10 @@ func (s *Shell) localeChanged() {
 }
 
 func (s *Shell) syncLoginItem(c config.Config) {
-	if s.keepLoginItem || c.LaunchAtLogin == mygo.App.OpenAtLogin() {
+	if s.keepLoginItem || c.LaunchAtLogin == winstall.LoginItemOn(mygo.App.SetOpenAtLogin, mygo.App.OpenAtLogin) {
 		return
 	}
-	if err := mygo.App.SetOpenAtLogin(c.LaunchAtLogin); err != nil {
+	if err := winstall.SetLoginItem(c.LaunchAtLogin, mygo.App.SetOpenAtLogin, mygo.App.OpenAtLogin); err != nil {
 		s.log.Error("launch at login", "err", err)
 	}
 }
@@ -719,7 +729,7 @@ func (s *Shell) configRecovered(err error) {
 }
 
 func (s *Shell) setUpTray() {
-	tray, err := mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), ToolTip: trayToolTip(s.loc, s.env.Tasks.Active())})
+	tray, err := mygo.NewTray(mygo.TrayOptions{Icon: trayIcon(), IconIsTemplate: trayIconTemplate, ToolTip: trayToolTip(s.loc, s.env.Tasks.Active())})
 	if err != nil {
 		s.log.Error("tray icon", "err", err)
 		return

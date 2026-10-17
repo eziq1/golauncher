@@ -24,6 +24,7 @@ func TestUpdateGolden(t *testing.T) {
 		{"update_check_no_arch", []string{"update", "check", "--current", "0.4.0", "--arch", "386"}, 0},
 		{"update_check_dev", []string{"update", "check", "--current", "0.4.0-3-gabc1234", "--latest", "0.5.0", "--arch", "amd64", "--format", "text"}, 0},
 		{"update_download_dry_run", []string{"update", "download", "--dry-run", "--current", "0.4.0", "--arch", "amd64"}, 0},
+		{"update_download_dry_run_darwin", []string{"update", "download", "--dry-run", "--os", "darwin", "--current", "0.4.0", "--arch", "arm64"}, 0},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			out, code := glctl(t, tt.args...)
@@ -35,6 +36,9 @@ func TestUpdateGolden(t *testing.T) {
 	}
 	if _, code := glctl(t, "update", "download", "--current", "0.4.0"); code != 2 {
 		t.Errorf("download without --dry-run: exit %d", code)
+	}
+	if _, code := glctl(t, "update", "check", "--os", "linux"); code != 2 {
+		t.Errorf("--os linux: exit %d", code)
 	}
 	if _, code := glctl(t, "update"); code != 2 {
 		t.Errorf("no subcommand: exit %d", code)
