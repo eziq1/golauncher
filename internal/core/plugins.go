@@ -87,11 +87,27 @@ type CommandInfo struct {
 	HideFromRoot bool   `json:"hideFromRoot,omitzero"`
 }
 
-// Plugins describes all loaded plugins.
+// Plugins describes the registered plugins, those that are on or off first
+// and the unavailable ones after them, each in their order.
 func (e *Engine) Plugins() []PluginInfo {
 	cfg := e.cfg.Get()
 	out := make([]PluginInfo, 0, len(e.plugins))
+	var unavailable []PluginInfo
 	for _, l := range e.plugins {
+		if state, reason := e.stateOf(l); state == stateFailed {
+			info := PluginInfo{
+				ID:          l.m.ID,
+				Name:        l.loc.Resolve(l.m.Name),
+				Description: l.loc.Resolve(l.m.Description),
+				Version:     l.m.Version,
+				Icon:        l.m.Icon,
+				Unavailable: reason,
+				Permissions: l.m.Permissions,
+			}
+			origin(&info, l.p)
+			unavailable = append(unavailable, info)
+			continue
+		}
 		pc := cfg.Plugin(l.m.ID)
 		info := PluginInfo{
 			ID:          l.m.ID,
@@ -124,20 +140,7 @@ func (e *Engine) Plugins() []PluginInfo {
 		origin(&info, l.p)
 		out = append(out, info)
 	}
-	for _, u := range e.unavailable {
-		info := PluginInfo{
-			ID:          u.m.ID,
-			Name:        u.loc.Resolve(u.m.Name),
-			Description: u.loc.Resolve(u.m.Description),
-			Version:     u.m.Version,
-			Icon:        u.m.Icon,
-			Unavailable: u.reason,
-			Permissions: u.m.Permissions,
-		}
-		origin(&info, u.p)
-		out = append(out, info)
-	}
-	return out
+	return append(out, unavailable...)
 }
 
 // resolveOptions returns a copy of options with localized titles.
@@ -168,6 +171,9 @@ func (e *Engine) preference(id, name string) (*loaded, plugin.Preference, error)
 func (e *Engine) PreferenceOptions(ctx context.Context, id, name string) ([]plugin.Option, error) {
 	l, pref, err := e.preference(id, name)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := e.running(id); err != nil {
 		return nil, err
 	}
 	pp, ok := l.p.(plugin.PreferenceOptionsProvider)

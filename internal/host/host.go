@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/i18n"
@@ -37,13 +39,22 @@ type Services struct {
 	CacheRoot string
 }
 
-// Host is the plugin.Host given to one plugin.
+// Host is the plugin.Host given to one Init of one plugin. The engine
+// revokes it (Revoke) when that run of the plugin ends: after Close, or
+// after a failed Init.
 type Host struct {
 	s     *Services
 	id    string
 	prefs *Prefs
 	data  string
 	cache string
+
+	revoked  atomic.Bool
+	subMu    sync.Mutex
+	nextSub  int
+	subs     map[int]func() // the Bus subscriptions made through Events
+	handling int            // event handlers running
+	idle     *sync.Cond     // on subMu: handling dropped to 0
 }
 
 var _ plugin.Host = (*Host)(nil)
@@ -57,7 +68,9 @@ func (s *Services) NewHost(m plugin.Manifest, prefs map[string]jsontext.Value) (
 		prefs: NewPrefs(m.Preferences, prefs),
 		data:  filepath.Join(s.DataRoot, m.ID),
 		cache: filepath.Join(s.CacheRoot, m.ID),
+		subs:  map[int]func(){},
 	}
+	h.idle = sync.NewCond(&h.subMu)
 	if s.Secrets != nil {
 		h.prefs = newSecretPrefs(m.ID, m.Preferences, prefs, s.Secrets, s.Log)
 	}
@@ -78,24 +91,101 @@ func (h *Host) Now() time.Time                  { return h.s.Now() }
 func (h *Host) Storage() plugin.KV              { return h.s.DB.KV(h.id) }
 func (h *Host) Preferences() plugin.Preferences { return h.prefs }
 func (h *Host) Clipboard() plugin.Clipboard     { return h.s.Clipboard }
-func (h *Host) Events() plugin.Events           { return h.s.Bus }
+func (h *Host) Events() plugin.Events           { return hostEvents{h} }
 func (h *Host) I18n() plugin.Localizer          { return h.s.I18n.Localizer(h.id) }
 func (h *Host) DataDir() string                 { return h.data }
 func (h *Host) CacheDir() string                { return h.cache }
+
+// Revoke ends this run of the plugin (docs/plugin-guide.md "Lifecycle"):
+// the event subscriptions made through Events are removed, and Invalidate,
+// Render, Toast, RunProcess and RunTask are dropped from now on. Go still
+// runs functions, so that a plugin waiting for its own goroutines in Close
+// cannot hang. Revoke is idempotent.
+func (h *Host) Revoke() {
+	h.subMu.Lock()
+	if h.revoked.Swap(true) {
+		h.subMu.Unlock()
+		return
+	}
+	subs := h.subs
+	h.subs = map[int]func(){}
+	h.subMu.Unlock()
+	for _, unsub := range subs {
+		unsub()
+	}
+}
+
+// Revoked reports whether Revoke was called.
+func (h *Host) Revoked() bool { return h.revoked.Load() }
+
+// Drain waits until no event handler subscribed through this Host runs.
+// After Revoke none starts any more, so the plugin can be initialized again
+// without a handler of the last run still touching it.
+func (h *Host) Drain() {
+	h.subMu.Lock()
+	for h.handling > 0 {
+		h.idle.Wait()
+	}
+	h.subMu.Unlock()
+}
+
+// handle runs fn, an event handler, unless the Host is revoked.
+func (h *Host) handle(fn func()) {
+	h.subMu.Lock()
+	if h.revoked.Load() {
+		h.subMu.Unlock()
+		return
+	}
+	h.handling++
+	h.subMu.Unlock()
+	defer func() {
+		h.subMu.Lock()
+		if h.handling--; h.handling == 0 {
+			h.idle.Broadcast()
+		}
+		h.subMu.Unlock()
+	}()
+	fn()
+}
+
+// hostEvents is the plugin.Events of one Host: it records the subscriptions
+// so that Revoke can remove those the plugin left behind, and drops events
+// once the Host is revoked.
+type hostEvents struct{ h *Host }
+
+func (e hostEvents) Subscribe(name string, fn func()) (unsubscribe func()) {
+	h := e.h
+	h.subMu.Lock()
+	defer h.subMu.Unlock()
+	if h.revoked.Load() {
+		h.Logger().Warn("event subscription after the plugin was closed", "event", name)
+		return func() {}
+	}
+	unsub := h.s.Bus.Subscribe(name, func() { h.handle(fn) })
+	id := h.nextSub
+	h.nextSub++
+	h.subs[id] = unsub
+	return func() {
+		h.subMu.Lock()
+		delete(h.subs, id)
+		h.subMu.Unlock()
+		unsub()
+	}
+}
 
 // Go implements plugin.Host: fn runs on a new goroutine with panics contained.
 func (h *Host) Go(fn func()) { Go(h.Logger(), "plugin "+h.id, fn) }
 
 // Invalidate implements plugin.Host.
 func (h *Host) Invalidate(viewID string) {
-	if fn := h.s.OnInvalidate; fn != nil {
+	if fn := h.s.OnInvalidate; fn != nil && !h.revoked.Load() {
 		fn(h.id, viewID)
 	}
 }
 
 // Render implements plugin.Host.
 func (h *Host) Render(instance string, v plugin.View) {
-	if fn := h.s.OnRender; fn != nil {
+	if fn := h.s.OnRender; fn != nil && !h.revoked.Load() {
 		fn(h.id, instance, v)
 	}
 }
@@ -109,6 +199,10 @@ type TaskRunner interface {
 
 // RunProcess implements plugin.Host.
 func (h *Host) RunProcess(spec plugin.TaskSpec, cmd plugin.ProcessSpec) string {
+	if h.revoked.Load() {
+		h.Logger().Warn("RunProcess after the plugin was closed", "title", spec.Title)
+		return ""
+	}
 	if h.s.Tasks == nil {
 		h.Logger().Warn("RunProcess: background tasks are not available")
 		return ""
@@ -118,6 +212,10 @@ func (h *Host) RunProcess(spec plugin.TaskSpec, cmd plugin.ProcessSpec) string {
 
 // RunTask implements plugin.Host.
 func (h *Host) RunTask(spec plugin.TaskSpec, fn plugin.TaskFunc) string {
+	if h.revoked.Load() {
+		h.Logger().Warn("RunTask after the plugin was closed", "title", spec.Title)
+		return ""
+	}
 	if h.s.Tasks == nil {
 		h.Logger().Warn("RunTask: background tasks are not available")
 		return ""
@@ -127,7 +225,7 @@ func (h *Host) RunTask(spec plugin.TaskSpec, fn plugin.TaskFunc) string {
 
 // Toast implements plugin.Host.
 func (h *Host) Toast(t plugin.Toast) {
-	if fn := h.s.OnToast; fn != nil {
+	if fn := h.s.OnToast; fn != nil && !h.revoked.Load() {
 		fn(h.id, t)
 	}
 }

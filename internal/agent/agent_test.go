@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -204,6 +205,33 @@ func TestListPluginsExposure(t *testing.T) {
 	}
 	if r, isErr := w.call(s, agent.ToolSearch, map[string]any{"query": "code", "plugin": "builtin.apps"}); !isErr || r["status"] != "refused" {
 		t.Errorf("search in apps off: %v", r)
+	}
+}
+
+// TestDisabledPluginNotExposed: a plugin turned off in the settings is not
+// offered to AI even when AI may use it, its results are not searched, and
+// its commands do not run (R88: it is closed).
+func TestDisabledPluginNotExposed(t *testing.T) {
+	w := newWorld(t, func(c *config.Config) {
+		c.Agent.Plugins = map[string]bool{"builtin.winget": true}
+		c.Plugins = map[string]config.PluginConfig{"builtin.winget": {Disabled: true}}
+	})
+	w.env.Controller.Wait() // the engine closes it
+	s := w.chat()
+	r := w.mustCall(s, agent.ToolListPlugins, map[string]any{})
+	for _, p := range r["plugins"].([]any) {
+		if id := p.(map[string]any)["id"]; id == "builtin.winget" {
+			t.Fatalf("disabled plugin listed: %v", r)
+		}
+	}
+	if r, isErr := w.call(s, agent.ToolRunCommand, map[string]any{"plugin": "builtin.winget", "command": "search", "query": "textpad"}); !isErr || r["status"] != "refused" {
+		t.Errorf("run_command of a disabled plugin: %v", r)
+	}
+	r = w.mustCall(s, agent.ToolSearch, map[string]any{"query": "winget"})
+	for _, it := range items(r) {
+		if strings.HasPrefix(fmt.Sprint(it["handle"]), "builtin.winget") || strings.Contains(fmt.Sprint(it["title"]), "WinGet") {
+			t.Errorf("search shows the disabled plugin: %v", it)
+		}
 	}
 }
 

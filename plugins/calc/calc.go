@@ -151,6 +151,9 @@ func (p *Plugin) Manifest() plugin.Manifest {
 // Init implements plugin.Plugin. The unit table is built in the background
 // so that the first search does not wait for it.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.ratesMu.Lock()
+	p.closed = false // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+	p.ratesMu.Unlock()
 	p.h = h
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.wg.Add(1)

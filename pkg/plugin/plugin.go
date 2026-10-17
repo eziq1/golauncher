@@ -16,13 +16,27 @@ import (
 )
 
 // Plugin is implemented by every plugin.
+//
+// Lifecycle (docs/plugin-guide.md "Lifecycle"): the host calls Init only
+// while the plugin is turned on in the settings, and Close when it is turned
+// off or the launcher quits. A plugin turned on again gets Init again, on the
+// same value and with a new Host, so Init must start from what Close left:
+// reset what Close ended (a closed flag, a cancelled context, a closed
+// channel). Nothing but Manifest and LocaleProvider.Locales is called before
+// Init or after Close.
 type Plugin interface {
 	Manifest() Manifest
-	// Init is called once before any other call. The Host stays valid until
-	// Close. Returning an error wrapping ErrUnavailable leaves the plugin
-	// disabled without treating it as a failure; the error text is shown to
-	// the user as the reason (e.g. "Everything is not installed").
+	// Init is called before any other call except Manifest and Locales. The
+	// Host stays valid until Close returns; the host then revokes it: its
+	// event subscriptions are removed and Invalidate, Render, Toast,
+	// RunProcess and RunTask do nothing. Returning an error wrapping
+	// ErrUnavailable leaves the plugin disabled without treating it as a
+	// failure; the error text is shown to the user as the reason (e.g.
+	// "Everything is not installed"). When Init returns an error or panics,
+	// the host calls Close, so Close must cope with a partial Init.
 	Init(ctx context.Context, h Host) error
+	// Close stops the plugin's background work and waits for it, and
+	// releases what Init acquired. It is called once per Init.
 	Close() error
 }
 

@@ -213,8 +213,15 @@ func (p *Plugin) Locales() fs.FS {
 	return sub
 }
 
-// Init implements plugin.Plugin.
+// Init implements plugin.Plugin. After Close it starts again
+// (docs/plugin-guide.md "Lifecycle").
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed {
+		p.closed, p.unsubs, p.views = false, nil, map[string]string{}
+		p.be.reopen()
+	}
+	p.mu.Unlock()
 	p.h = h
 	p.st = &store{kv: h.Storage()}
 	ev := h.Events()

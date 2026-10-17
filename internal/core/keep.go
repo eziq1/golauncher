@@ -92,7 +92,7 @@ func (c *Controller) restorable(hiddenAt time.Time) bool {
 		if f.nav == nil {
 			continue
 		}
-		if _, ok := c.eng.byID[f.nav.Plugin]; !ok || cfg.Plugin(f.nav.Plugin).Disabled {
+		if _, ok := c.eng.lookup(f.nav.Plugin); !ok || cfg.Plugin(f.nav.Plugin).Disabled {
 			return false
 		}
 	}

@@ -146,6 +146,16 @@ func (c *chooser) Close() error {
 	return errors.Join(errs...)
 }
 
+// reopen undoes Close for the backends that can be reopened (the plugin is
+// initialized again after Close).
+func (c *chooser) reopen() {
+	for _, o := range c.opts {
+		if r, ok := o.Backend.(interface{ Reopen() }); ok {
+			r.Reopen()
+		}
+	}
+}
+
 // unavailable is the backend of an ID that no backend has (a configuration
 // or a chat of another version): it explains that in the chat.
 type unavailable struct {

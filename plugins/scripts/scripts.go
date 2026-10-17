@@ -159,6 +159,11 @@ func (p *Plugin) Locales() fs.FS {
 // or disconnected network directory must not hold up the launcher's start
 // (with Options.Sync the scan runs here).
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.unsubs, p.runs = false, nil, map[string]*run{}
+	}
+	p.mu.Unlock()
 	p.h = h
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if p.opts.Sync {

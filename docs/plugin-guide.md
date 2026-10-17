@@ -609,6 +609,49 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
   (`[{"match": "scoop update", "output": "…", "exitCode": 1}]`) sets their
   output.
 
+### Lifecycle
+
+A plugin runs only while it is turned on in Settings › Plugins (R88):
+
+- **At startup** the host calls `Init` only for plugins that are on, in their
+  order. A plugin turned off is not initialized at all; Settings still lists
+  it with its manifest, catalogs and preferences, so it can be configured and
+  turned on.
+- **Turned off while the launcher runs**, the plugin is closed: no more root
+  items, views, actions, context or selection items, fallback or Tab calls,
+  and no AI tool calls (the tool layer only offers plugins that are on). Views
+  of it that are open close and the launcher goes back to the root search.
+  `Close` gets 10 s; a plugin that takes longer is left to finish on its own.
+- **Turned on again**, the host calls `Init` again, **on the same plugin value
+  and with a new `Host`**, once the last run has ended: its `Close` returned
+  and none of its event handlers, nor a call the host gave up waiting for,
+  still runs. `Init` must therefore start from the state `Close`
+  left: clear a `closed` flag, make a new context and the channels `Close`
+  closed, forget the unsubscribe functions of the last run. Built-in plugins
+  do this at the top of `Init`; `internal/builtin`'s `TestPluginsStartAgain`
+  turns each of them off and on and compares their results.
+- **The `Host` of a run is revoked when the run ends**: after `Close`
+  returns (or after the time limit), its event subscriptions are removed,
+  so a plugin that forgets to unsubscribe still stops getting events, and
+  `Invalidate`, `Render`, `Toast`, `RunProcess` and `RunTask` do nothing.
+  `Host.Go` still runs functions, so `Close` can wait for its goroutines.
+- **A failed `Init`** (an error, `ErrUnavailable` included, or a panic) is
+  followed by `Close`, and the Host is revoked. Clean up in `Close` what
+  `Init` may already have started; `Close` must cope with a partial `Init`
+  (nil contexts, nothing subscribed yet).
+- **Background tasks** (`RunProcess`, `RunTask`) belong to the host: those
+  running when the plugin is turned off are left to finish (an installation
+  is never cut off halfway) and still notify through Background Tasks; the
+  plugin's own `OnDone` callbacks may still run, so they must not assume the
+  plugin is initialized. New tasks of a closed run are refused.
+- **At quit** the host closes the plugins that are on in the reverse order of
+  their `Init`, waiting for each. When the engine fails to start (a
+  duplicate plugin ID, a catalog that does not load, a data directory that
+  cannot be made), the plugins it initialized are closed again, the last
+  first.
+- External plugins: turning one off stops its process (`shutdown`, then a
+  kill after 2 s); turning it on again starts a new one on the next call.
+
 ### Robustness
 
 The host contains panics in every call into your plugin and gives up on

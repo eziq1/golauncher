@@ -179,6 +179,14 @@ func (p *Plugin) Locales() fs.FS {
 // Init implements plugin.Plugin. The city index is not built here but on
 // first use (load.go).
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.hidden = false, false
+		p.gen++
+		p.loaded.Store(false)
+		clear(p.open)
+	}
+	p.mu.Unlock()
 	p.h = h
 	p.loops.Host = h
 	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.windowHidden)

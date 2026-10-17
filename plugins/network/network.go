@@ -210,6 +210,12 @@ func (p *Plugin) Locales() fs.FS {
 
 // Init implements plugin.Plugin.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.pings = false, map[string]*pingSession{}
+		p.bg, p.stopBG = context.WithCancel(context.Background())
+	}
+	p.mu.Unlock()
 	p.h = h
 	p.unsub = h.Events().Subscribe(plugin.EventWindowHidden, p.stopPings)
 	return nil

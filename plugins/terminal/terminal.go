@@ -219,6 +219,11 @@ func systemWhich(localAppData string) func(string) string {
 // Init implements plugin.Plugin. The plugin is unavailable when neither
 // Windows Terminal nor a WSL distribution is installed.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	if p.closed { // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+		p.closed, p.states, p.listedAt, p.listing = false, nil, time.Time{}, false
+	}
+	p.mu.Unlock()
 	p.h = h
 	if p.o.Mac {
 		return p.initMac(h)

@@ -451,6 +451,22 @@ func TestCloseStopsProcess(t *testing.T) {
 	if _, err := callback(p, t.Context(), "ok"); !errors.Is(err, ErrClosed) {
 		t.Fatalf("call after Close: %v", err)
 	}
+
+	// Turned on again (docs/plugin-guide.md "Lifecycle"): Init makes it
+	// usable, and the next call starts a new process.
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := callback(p, withTimeout(t, 10*time.Second), "ok"); err != nil {
+		t.Fatalf("call after Init again: %v", err)
+	}
+	if state(p) != StateRunning {
+		t.Fatalf("state = %q", state(p))
+	}
 }
 
 func TestPythonHello(t *testing.T) {

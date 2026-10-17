@@ -169,6 +169,8 @@ func (p *Plugin) Locales() fs.FS {
 
 // Init implements plugin.Plugin.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.sug.reopen() // Init after Close starts again (docs/plugin-guide.md "Lifecycle")
+	p.unsubs = nil
 	p.h = h
 	p.mu.Lock()
 	p.load()

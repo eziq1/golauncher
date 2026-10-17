@@ -152,8 +152,12 @@ type index struct {
 }
 
 // Init implements plugin.Plugin. It loads the cached index, so results are
-// available at once, and refreshes it in the background.
+// available at once, and refreshes it in the background. After Close it
+// starts again (docs/plugin-guide.md "Lifecycle").
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
+	p.mu.Lock()
+	p.closed = false
+	p.mu.Unlock()
 	p.h = h
 	p.iconDir = filepath.Join(h.CacheDir(), "icons")
 	p.ctx, p.cancel = context.WithCancel(context.Background())

@@ -126,8 +126,10 @@ func (c *Controller) OnChange(fn func()) {
 func (c *Controller) top() *frame { return c.stack[len(c.stack)-1] }
 
 // Wait blocks until pending searches have finished, including the refreshes
-// of coalesced invalidations and the views pushed by plugins.
+// of coalesced invalidations and the views pushed by plugins, and the
+// plugins turned on or off by a change of the settings (Engine.WaitPlugins).
 func (c *Controller) Wait() {
+	c.eng.WaitPlugins()
 	c.mu.Lock()
 	for c.running > 0 || c.pending > 0 {
 		c.idle.Wait()
@@ -410,6 +412,32 @@ func (c *Controller) affected(inv invalidation) bool {
 		return c.eng.isRootProvider(inv.plugin)
 	}
 	return f.nav.Plugin == inv.plugin && (inv.view == "" || inv.view == f.nav.Request.ID)
+}
+
+// pluginsChanged follows plugins turned on or off (off lists the latter):
+// when a view of a plugin turned off is open, the launcher goes back to the
+// root search, dropping the action panel or confirmation too; otherwise the
+// root search is refreshed for the commands and results that came or went.
+func (c *Controller) pluginsChanged(off []string) {
+	ofOff := func(id string) bool { return slices.Contains(off, id) }
+	c.mu.Lock()
+	if slices.ContainsFunc(c.stack, func(f *frame) bool { return f.nav != nil && ofOff(f.nav.Plugin) }) {
+		c.keep = keepState{}
+		navs := c.toRoot()
+		c.panel, c.confirm = nil, nil
+		c.mu.Unlock()
+		c.closed(navs)
+		c.refresh(context.Background())
+		return
+	}
+	if c.panel != nil && ofOff(c.panel.entry.Plugin) {
+		c.panel = nil
+	}
+	if c.confirm != nil && ofOff(c.confirm.entry.Plugin) {
+		c.confirm = nil
+	}
+	c.mu.Unlock()
+	c.invalidate("", "") // refreshes the root search when it shows
 }
 
 // contextChanged handles a new context of the show: the root search is
