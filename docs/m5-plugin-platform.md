@@ -575,3 +575,32 @@ func main() { rpcserve.Serve(hello.New()) }
 2. 用 GitHub 仓库做插件清单，在启动器里搜索和安装；
 3. `glctl plugin new` 生成模板；
 4. （可选）签名校验。
+## 编译时打包插件：独立插件仓库 + 名单（R83，方案）
+
+**思路**：参照 CoreDNS 的 `plugin.cfg` 和 Caddy 的 `xcaddy`，插件放在单独的仓库里，主仓库用一份名单决定把哪些插件编译进 exe。
+
+```
+golauncher
+├─ plugins.cfg                     名单：模块路径@版本
+├─ go generate → internal/builtin/zz_bundled.go
+│     import 各插件模块，bundled() 返回它们的实例，和 builtin.All 合并
+└─ go build → 单个 exe
+```
+
+- **版本**：名单里的版本写进 `go.mod`/`go.sum`，构建可复现；本地联调用 `go.work`。
+- **好处**：
+  - 编进去的插件跑在主进程，能用完整的 SDK（兜底、Tab、选中文字等外部协议还没有的能力）；
+  - 发行包仍是单个 exe；
+  - 核心仓库更小，平台插件（Scoop、WinGet、Homebrew）可以独立维护和发版；
+  - 可以按名单出不同的发行版（Windows、mac、精简版）；
+  - 插件在构建时经过审查。
+- **代价**：
+  - 崩溃隔离变弱：插件自己开的 goroutine panic、并发写 map 等致命错误会带走整个进程，所以只适合可信插件，插件仓库也要执行同样的 lint；
+  - SDK（`pkg/plugin`）要拆成独立模块，避免主仓库和插件仓库互相依赖，之后按语义化版本管理；
+  - 插件不能导入 `internal/...`，要搬出去的插件依赖的 Windows 包需要整理成公开包，这是主要工作量；
+  - 用户不能自己加插件。第三方插件仍然走独立进程，两种方式并存。
+- **建议的步骤**：
+  1. 拆出 SDK 模块；
+  2. 加 `plugins.cfg` 和生成器；
+  3. 先拿依赖少的插件（世界时钟、计时器）试点；
+  4. 再整理公开的 Windows 包，搬平台插件。
