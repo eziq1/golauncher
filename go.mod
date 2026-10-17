@@ -4,9 +4,9 @@ go 1.27.2
 
 require (
 	github.com/ebitengine/purego v0.11.1
-	github.com/egoist/mygo v0.5.1
+	github.com/egoist/mygo v0.5.5
 	github.com/mozillazg/go-pinyin v0.21.0
-	golang.org/x/image v0.46.0
+	golang.org/x/image v0.47.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/text v0.43.0
 	modernc.org/sqlite v1.60.1
