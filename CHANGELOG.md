@@ -10,114 +10,141 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
-- **Translator** (R99, issue #3, `builtin.translator`): `tr hello`,
-  `fy …` or `翻译 …` translates as you type (after a 300 ms pause; a new
-  text cancels the last request; answers are cached in memory), one row per
-  engine with the detected source language: Google Translate's web endpoint
-  (no key, unofficial), MyMemory (no key; an optional email address raises
-  its daily quota; long text is sent in pieces of at most 500 bytes) and
-  DeepL API Free/Pro (key stored in the Credential Manager or Keychain;
-  asked first once set). When every engine fails, MyMemory is asked
-  instead. Languages: `tr ja 你好`, `tr >de …`, `tr 日 …`, `tr en>zh …`
-  (codes and Chinese names); by default the interface language, or English
-  for text already in it. Actions: copy (Enter), paste into the previous
-  window (Ctrl+Enter), swap the languages, copy the original, open in
-  Google Translate, DeepL or Youdao. A *Translate* command opens the same
-  as a view. An optional instant translation of selected text (off by
-  default) adds a row to the *Selected Text* section, with *Replace
-  Selected Text*. Text is sent only after a prefix; rows are never recorded
-  in Recent; logs have lengths and timings only.
-  More engines with your own keys: Azure AI Translator (key and region),
-  Youdao AI Cloud (app ID and secret, SHA-256 signature) and Baidu
-  Translate (APP ID and secret, MD5 signature); secrets are stored like
-  the DeepL key and only used to sign. A single word gets a *Dictionary*
-  row (phonetics, parts of speech, meanings) from Google or Youdao.
-  *Read Translation Aloud* / *Read Original Aloud* use the system's voices
-  (SAPI on Windows, `say` on macOS), only when picked. *Translate with AI*
-  opens an AI chat with the text.
-  *Custom engines*: one HTTP template per line (`name | GET/POST | URL |
-  JSON path [| body [| headers]]` with `{text}`, `{from}`, `{to}`). A local
-  model through Ollama's OpenAI-compatible endpoint (model chosen from the
-  server's list; offline). *Translation History* (off by default): the
-  translations you copy or paste, kept locally for 1–90 days, never synced;
-  *Clear History* in the settings, and turning it off deletes it.
-- **Plugin SDK: `ActionAskAI`** (`plugin.AskAI`, `plugin.AIAsker`): any
-  plugin's action can hand text with an instruction to the AI chat; with AI
-  off the chat asks to turn it on first (docs/plugin-guide.md "Asking AI").
-
-- **Attachments in the AI chat** (R91): attach images and text files to a
-  message by dropping files onto the launcher (onto the root search, a new
-  chat opens with them; with AI off, after the prompt to turn it on), by
-  pasting with `Ctrl+V` in a chat (a screenshot or copied files; other
-  clipboard content pastes as text) or with *Add Attachment…* (`Ctrl+O`).
-  They show as chips under the chat, with thumbnails, and in the transcript
-  and the history (📎 count) once sent. Images (PNG, JPEG, GIF, WebP; BMP and
-  TIFF are converted to PNG) are scaled down to at most 2000 px and 3.75 MB;
-  text files are detected by content (UTF-8, UTF-16 with BOM) up to 200 KB
-  and sent inline with their names; at most 10 attachments and 16 MB per
-  message. Claude Code gets them as stream-json content blocks, Codex images
-  as `--image` (also when resuming), Gemini CLI as ACP image blocks. Files
-  that cannot be sent (PDF and Office documents for now, video, audio,
-  archives, or a kind the chat's backend does not take) are shown in red with
-  the reason and keep the message from being sent. Copies live in the chat's
-  folder in golauncher's data and are deleted with the chat (30-day
-  retention); logs only have counts, kinds and sizes.
-- **Plugin SDK: files** — `plugin.FileReceiver`, `View.AcceptFiles`,
-  `View.Chips`, `View.Draft`, and `ActionChooseFiles` (docs/plugin-guide.md).
-- **Files in the main search** (R97): drop files onto the root search,
-  paste copied files or an image with `Ctrl+V`, or choose them with `Ctrl+O`
-  or *Choose Files…*: they show as chips above the footer, and a **Files**
-  section at the top lists what you can do with them — *Ask AI about…* (a
-  new chat with them attached; with text typed, *Ask AI: <text>* sends it
-  with them at once), open, *Open With…* (Windows), show in File Explorer or
-  Finder, copy the paths or names, compress to ZIP, copy the SHA-256
-  checksum, copy a PNG image. Typing filters the actions; a chip's × drops a
-  file, `Escape` drops them all. They are read only when an action needs
-  them, are never recorded or shown to AI, and go when the launcher hides; a
-  pasted image is kept as a temporary file in the cache for a minute after.
-  Dropping files onto the root search no longer opens an AI chat at once:
-  *Ask AI* is the first action. See `docs/root-files.md`.
-- **Plugin SDK: `plugin.FileActionsProvider` and `PermFiles`** —
-  `FileItems(ctx, FilesQuery{Files []FileInfo, Source, Text})` offers items
-  for the files handed to the root search, as `SelectionProvider` does for
-  the selected text; `FileReceiver` is no longer called for the root search
-  (docs/plugin-guide.md "Files in the root search").
-- **winget packaging** (R92, issue #2): winget manifests for the package
-  `eziq1.golauncher` (the release zip as a portable package, with the
-  `golauncher` and `glctl` commands, x64 and arm64), generated by
+- **Translator** (R99, issue #3, `builtin.translator`, docs/translator.md):
+  `tr hello`, `fy …` or `翻译 …` translates as you type (after a 300 ms
+  pause; a new text cancels the last request; answers are cached in
+  memory), one row per engine with the detected source language.
+  - Languages: `tr ja 你好`, `tr >de …`, `tr 日 …`, `tr en>zh …` (codes and
+    Chinese names); by default the interface language, or English for text
+    already in it.
+  - Engines without a key: Google Translate's web endpoint (unofficial);
+    when every engine fails, MyMemory is asked instead (an optional email
+    address raises its daily quota). With your own keys, asked first: DeepL
+    API Free/Pro, Azure AI Translator (key and region), Youdao AI Cloud (app
+    ID and secret) and Baidu Translate (APP ID and secret). Keys are stored
+    in the Credential Manager or Keychain; secrets are only used to sign.
+  - *Custom engines*: one HTTP template per line (`name | GET/POST | URL |
+    JSON path [| body [| headers]]` with `{text}`, `{from}`, `{to}`). A
+    local model through Ollama's OpenAI-compatible endpoint (model chosen
+    from the server's list; offline).
+  - A single word gets a *Dictionary* row (phonetics, parts of speech,
+    meanings) from Google or Youdao.
+  - Actions: copy (Enter), paste into the previous window (Ctrl+Enter),
+    swap the languages, copy the original, open in Google Translate, DeepL
+    or Youdao, *Read Translation Aloud* / *Read Original Aloud* (the
+    system's voices: SAPI on Windows, `say` on macOS; only when picked),
+    *Translate with AI* (opens an AI chat with the text). A *Translate*
+    command opens the same as a view.
+  - Off by default: an instant translation of selected text (a row in the
+    *Selected Text* section, with *Replace Selected Text*), and a
+    *Translation History* of the translations you copy or paste (kept
+    locally for 1–90 days, never synced; *Clear History* in the settings,
+    and turning it off deletes it).
+  - Privacy: text is sent only after a prefix; rows are never recorded in
+    Recent; logs have lengths and timings only.
+- **Files in the main search** (R97, docs/root-files.md): drop files onto
+  the main search, paste copied files or an image with `Ctrl+V`, or choose
+  them with `Ctrl+O` or *Choose Files…*. They show as chips above the
+  footer, and a **Files** section at the top lists what you can do with
+  them: *Ask AI about…* (a new chat with them attached; with text typed,
+  *Ask AI: <text>* sends it with them at once), open, *Open With…*
+  (Windows), show in File Explorer or Finder, copy the paths or names,
+  compress to ZIP, copy the SHA-256 checksum, copy a PNG image. Typing
+  filters the actions; a chip's × drops a file, `Escape` drops them all.
+  They are read only when an action needs them, are never recorded or shown
+  to AI, and go when the launcher hides; a pasted image is kept as a
+  temporary file in the cache for a minute after.
+- **Attachments in the AI chat** (R91, docs/ai.md §24): attach images and
+  text files to a message by dropping files onto a chat, by pasting with
+  `Ctrl+V` (a screenshot or copied files; other clipboard content pastes as
+  text) or with *Add Attachment…* (`Ctrl+O`). They show as chips under the
+  chat, with thumbnails, and in the transcript and the history (📎 count)
+  once sent. Images (PNG, JPEG, GIF, WebP; BMP and TIFF are converted to
+  PNG) are scaled down to at most 2000 px and 3.75 MB; text files are
+  detected by content (UTF-8, UTF-16 with BOM) up to 200 KB and sent inline
+  with their names; at most 10 attachments and 16 MB per message. Claude
+  Code gets them as stream-json content blocks, Codex images as `--image`
+  (also when resuming), Gemini CLI as ACP image blocks. Files that cannot be
+  sent (PDF and Office documents for now, video, audio, archives, or a kind
+  the chat's backend does not take) are shown in red with the reason and
+  keep the message from being sent. Copies live in the chat's folder in
+  golauncher's data and are deleted with the chat (30-day retention); logs
+  only have counts, kinds and sizes.
+- **Homebrew cask** (R98, docs/homebrew-packaging.md):
+  `brew install --cask eziq1/tap/golauncher` from the tap
+  [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap) (live, with the
+  0.8.0 cask) installs golauncher.app from the release's macOS zip for Apple
+  silicon or Intel and links `glctl`. The app is ad hoc signed, not
+  notarized: the first start needs *System Settings › Privacy & Security ›
+  Open Anyway*, maybe again after an upgrade. A copy installed with Homebrew
+  does not offer to install itself or update itself; *Settings › About* says
+  it is managed by Homebrew, and a check for updates tells you to run
+  `brew upgrade --cask golauncher`. The cask is written by
+  `scripts/release/brewcask` from the release zips and `checksums.txt`; the
+  release workflow builds it as an artifact and checks it with `brew style`
+  and `brew audit`, and pushes it to the tap only when the
+  `HOMEBREW_TAP_TOKEN` secret is set.
+- **winget packaging** (R92, issue #2, docs/winget-packaging.md): manifests
+  for the package `eziq1.golauncher` (the release zip as a portable package,
+  with the `golauncher` and `glctl` commands, x64 and arm64), generated by
   `scripts/release/wingetmanifest` from the release zips and
-  `checksums.txt`; the 0.8.0 manifests are in `packaging/winget/`. The release
-  workflow builds them as an artifact; nothing is submitted to winget-pkgs
-  automatically. A copy installed with winget does not offer to install
-  itself and does not update itself: *Settings › About* says it is managed by
-  winget, and a check for updates tells you to run
-  `winget upgrade eziq1.golauncher`. See `docs/winget-packaging.md`.
-- **Homebrew cask** (R98): `brew install --cask eziq1/tap/golauncher` from the
-  tap `eziq1/homebrew-tap` (to be created) installs golauncher.app from the
-  release's macOS zip for Apple silicon or Intel and links `glctl`. The cask is
-  written by `scripts/release/brewcask` from the release zips and
-  `checksums.txt`; the 0.8.0 cask is in `packaging/homebrew/`. The release
-  workflow builds it as an artifact and checks it with `brew style` and
-  `brew audit`; it is pushed to the tap only when the `HOMEBREW_TAP_TOKEN`
-  secret is set. A copy installed with Homebrew does not offer to install
-  itself or update itself; *Settings › About* says it is managed by Homebrew,
-  and a check for updates tells you to run `brew upgrade --cask golauncher`.
-  See `docs/homebrew-packaging.md`.
+  `checksums.txt`; the 0.8.0 manifests are in `packaging/winget/`. The
+  release workflow builds them as an artifact; nothing is submitted
+  automatically. The 0.8.0 package is under review in
+  [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732);
+  once accepted, `winget install eziq1.golauncher`. A copy installed with
+  winget does not offer to install itself and does not update itself:
+  *Settings › About* says it is managed by winget, and a check for updates
+  tells you to run `winget upgrade eziq1.golauncher`.
+- **Plugin SDK** (docs/plugin-guide.md):
+  - `ActionAskAI` (`plugin.AskAI`, `plugin.AIAsker`): any plugin's action
+    can hand text with an instruction to the AI chat; with AI off the chat
+    asks to turn it on first ("Asking AI").
+  - Files in views: `plugin.FileReceiver`, `View.AcceptFiles`, `View.Chips`,
+    `View.Draft` and `ActionChooseFiles` ("Files").
+  - `plugin.FileActionsProvider` and `PermFiles`:
+    `FileItems(ctx, FilesQuery{Files []FileInfo, Source, Text})` offers
+    items for the files handed to the main search, as `SelectionProvider`
+    does for the selected text; `FileReceiver` is no longer called for the
+    main search ("Files in the root search").
+
+### Changed
+
+- Dropping files onto the main search no longer opens an AI chat at once:
+  *Ask AI about…* is the first action of the new **Files** section (R97).
+- Web search keywords (R99): Google Translate's web search is now `gt`
+  (and still `translate`); `tr` and `翻译` (formerly Youdao's) belong to the
+  translator, and `fy` too. Youdao's web search keeps `yd` and `有道`. A
+  keyword you set yourself is kept.
+- Dependencies (R100, docs/deps-2026-10.md): MyGo v0.5.1 → v0.5.5 and
+  `golang.org/x/image` v0.46.0 → v0.47.0; no indirect version moved. MyGo
+  brings double clicks counted by the system's double-click settings,
+  Escape typed ahead into a just-opened view going to that view, the
+  Windows clipboard waiting while another program holds it, and renderer
+  fixes. No code change was needed.
+- Internal: the background refresh scheduling of the Homebrew, WinGet and
+  Scoop plugins and the whole-second refresh of the World Clock and Timers
+  share small helpers in `pkg/plugin/bg`; the Files plugin quotes command
+  lines with `internal/winapi/cmdline` (code review 5). No visible change.
+- Internal: `internal/core/controller.go`, `internal/ui/settings.go` and
+  `internal/ui/launcher.go` are split by responsibility into files of the
+  same packages (code review 4); the code was moved unchanged.
 
 ### Fixed
 
 - **Pasting an image into the AI chat works whatever it was copied from**
-  (R96): `Ctrl+V` only attached an image when nothing but the image was on
-  the clipboard, so a screenshot attached but an image copied from a browser
-  or a chat app — which put its address or a "[图片]" placeholder next to it —
-  was pasted as that text instead. Now the image is attached when the text
-  next to it only describes it (blank, a single URL without a line break, or
-  bracketed image placeholders); real text (a word, a number, several lines,
-  a spreadsheet cell) is still pasted as text. On macOS `⌘V` and *Edit ›
-  Paste* never reached the launcher's check (they paste through the Edit
-  menu) and never attached anything; they do now. With *Fall back to
-  copying* on (selected text), the user's copy put back afterwards is no
-  longer refused as "not to be recorded".
+  (R96, docs/ai.md §24.8): `Ctrl+V` only attached an image when nothing but
+  the image was on the clipboard, so a screenshot attached but an image
+  copied from a browser or a chat app — which put its address or a
+  "[图片]" placeholder next to it — was pasted as that text instead. Now
+  the image is attached when the text next to it only describes it (blank,
+  a single URL without a line break, or bracketed image placeholders); real
+  text (a word, a number, several lines, a spreadsheet cell) is still
+  pasted as text. On macOS `⌘V` and *Edit › Paste* never reached the
+  launcher's check (they paste through the Edit menu) and never attached
+  anything; they do now. With *Fall back to copying* on (selected text),
+  the user's copy put back afterwards is no longer refused as "not to be
+  recorded".
 - **A plugin turned off no longer runs in the background** (R88, code review
   2.1): turning off the clipboard history in Settings › Plugins used to hide it
   from the search while copies were still recorded; every disabled plugin
@@ -139,27 +166,6 @@ Before 1.0.0, minor versions may contain breaking changes.
   instead of during startup, so a slow or disconnected network folder cannot
   delay the launcher. A search made before the scan ends is shown again
   when the scripts are known.
-
-### Changed
-
-- Web search keywords (R99): Google Translate's web search is now `gt`
-  (and still `translate`); `tr` and `翻译` (formerly Youdao's) belong to the
-  translator, and `fy` too. Youdao's web search keeps `yd` and `有道`. A
-  keyword you set yourself is kept.
-- Internal: the background refresh scheduling of the Homebrew, WinGet and
-  Scoop plugins and the whole-second refresh of the World Clock and Timers
-  share small helpers in `pkg/plugin/bg`; the Files plugin quotes command
-  lines with `internal/winapi/cmdline` (code review 5). No visible change.
-- Internal: `internal/core/controller.go`, `internal/ui/settings.go` and
-  `internal/ui/launcher.go` are split by responsibility into files of the
-  same packages (code review 4); the code was moved unchanged.
-- Dependencies (R100): MyGo v0.5.1 → v0.5.5 and `golang.org/x/image`
-  v0.46.0 → v0.47.0; no indirect version moved. MyGo brings double clicks
-  counted by the system's double-click settings, Escape typed ahead into a
-  just-opened view going to that view, the Windows clipboard waiting while
-  another program holds it, and renderer fixes. No code change was needed;
-  a UI test now checks the footer toast's 2.5 s lifetime on the Tester's
-  clock (see `docs/deps-2026-10.md`).
 
 ## [0.8.0] - 2026-10-17
 

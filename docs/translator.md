@@ -1,6 +1,6 @@
 # 翻译插件方案（GitHub issue #3）
 
-> 状态：方案 v1 · 已确认，按三期顺序开发（R99；§9 的问题按建议执行）· 三期都已实现，待合并（§10）· 2026-10-17 · 对应需求 R94（见 [requirements.md](requirements.md)）
+> 状态：方案 v1 · 已确认，按三期顺序开发（R99；§9 的问题按建议执行）· 三期都已实现并合并到 main，尚未发布（§10）· 2026-10-17 · 对应需求 R94（见 [requirements.md](requirements.md)）
 >
 > 来源：外部用户在 [issue #3](https://github.com/eziq1/golauncher/issues/3) 提出"Feature request: Translator plugin"，正文没有更多细节。本方案按启动器现有的能力补全需求。
 

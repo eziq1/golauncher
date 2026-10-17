@@ -2,6 +2,8 @@
 
 > 对应需求 R92（GitHub issue #2：希望能用 winget 安装和更新 golauncher）。见 [requirements.md](requirements.md)。
 >
+> 状态：✅ 已合并到 main，尚未发布（由 winget 管理时的检测从下一个版本起才有，0.8.0 没有）；0.8.0 的软件包已提交 [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732)，通过了自动校验，在等人工审核（R93）。
+>
 > 这一篇讲**把 golauncher 发布成 winget 软件包**。内置的 WinGet 插件（在启动器里搜索、安装别的软件）是另一回事，见 [winget.md](winget.md)。
 
 ## 1. 结论

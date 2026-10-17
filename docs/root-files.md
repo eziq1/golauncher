@@ -1,6 +1,6 @@
 # 主界面接收文件（R97）
 
-> 状态：✅ 已实现（待合并）。需求见 [requirements.md](requirements.md) R97；AI 对话的附件见 [ai.md §24](ai.md)；做法和“选中的文字”一致（[selected-text.md](selected-text.md)）。
+> 状态：✅ 已实现并合并到 main，尚未发布。需求见 [requirements.md](requirements.md) R97；AI 对话的附件见 [ai.md §24](ai.md)；做法和“选中的文字”一致（[selected-text.md](selected-text.md)）。
 
 ## 1. 目标
 

@@ -1,6 +1,6 @@
 # 隐藏后保留界面（R75）
 
-> 状态：✅ 已实现（待合并）。需求见 [requirements.md](requirements.md) R75。
+> 状态：✅ 已实现并发布（v0.7.0）。需求见 [requirements.md](requirements.md) R75。
 
 ## 1. 问题
 
