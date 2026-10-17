@@ -15,6 +15,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"io/fs"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -147,7 +148,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 		return plugin.Preference{Name: prefPrefix + tool, Type: plugin.PrefText, Title: title,
 			Default: plugin.MustPayload(tool), Group: "%pref.group.prefixes%"}
 	}
-	return plugin.Manifest{
+	m := plugin.Manifest{
 		ID:            ID,
 		Name:          "%plugin.name%",
 		Description:   "%plugin.description%",
@@ -190,6 +191,12 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			prefixPref(toolTracert, "%pref.prefix.tracert.title%"),
 		},
 	}
+	if p.b.Mac() {
+		// Renewing a DHCP lease on macOS (ipconfig set <device> DHCP) would
+		// replace a manual configuration: not offered.
+		m.Commands = slices.DeleteFunc(m.Commands, func(c plugin.Command) bool { return c.Name == cmdRenewIP })
+	}
+	return m
 }
 
 // Locales implements plugin.LocaleProvider.
@@ -316,6 +323,9 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		case cmdFlushDNS:
 			return p.runFlushDNS(), nil
 		case cmdRenewIP:
+			if p.b.Mac() {
+				break
+			}
 			return p.runRenewIP(), nil
 		}
 		return plugin.Result{}, fmt.Errorf("network: unknown command %q", a.Target)

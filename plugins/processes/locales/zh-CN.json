@@ -156,5 +156,28 @@
   "fg.quit": "退出 {{.name}}",
   "fg.quitSubtitle": "前台应用",
   "fg.forceQuit": "强制结束 {{.name}}（未响应）",
-  "fg.forceQuitSubtitle": "前台应用未响应"
+  "fg.forceQuitSubtitle": "前台应用未响应",
+
+  "elevate.prompt": "golauncher 需要管理员权限来结束“{{.name}}”。",
+
+  "command.processes.keywords@darwin": "进程, 活动监视器, 占用, 退出, 强制退出, process, activity monitor, jc, hdjsq",
+  "pref.cpuMode.description@darwin": "占一个处理器的比例（和活动监视器一样，每个处理器最多 100%），或占所有处理器的比例。",
+  "pref.showWindows.title@darwin": "显示 macOS 进程",
+  "section.windows@darwin": "macOS 进程 ({{.count}})",
+  "action.switch@darwin": "切换到应用",
+  "action.endTask@darwin": "退出",
+  "action.forceEnd@darwin": "强制退出",
+  "action.reveal@darwin": "在访达中显示",
+  "action.taskManager@darwin": "打开活动监视器",
+  "toast.closing@darwin": "正在请 {{.name}} 退出…",
+  "toast.stillRunningHint@darwin": "它可能在询问是否保存。按 ⌘⇧X 强制退出。",
+  "toast.needsAdminHint@darwin": "按 ⌘⇧A 以管理员身份结束。",
+  "toast.protectedAdmin@darwin": "{{.name}} 受 macOS 保护，即使以管理员身份也无法结束",
+  "note.critical@darwin": "系统关键进程：结束它会导致注销或 macOS 重启。",
+  "note.kernel@darwin": "macOS 内核。",
+  "meta.memory@darwin": "内存",
+  "meta.workingSet@darwin": "实际内存",
+  "meta.peak@darwin": "峰值内存",
+  "meta.commandLineDenied@darwin": "无法读取（其他用户的进程）",
+  "meta.cpuNoteValue@darwin": "占所有处理器的比例。活动监视器显示的是占一个处理器的比例，可以在偏好设置的“CPU 占用”里切换。"
 }

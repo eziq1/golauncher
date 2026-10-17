@@ -17,6 +17,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"io/fs"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -173,7 +174,12 @@ func NewWithOptions(o Options) *Plugin {
 // Manifest implements plugin.Plugin.
 func (p *Plugin) Manifest() plugin.Manifest {
 	opt := func(v, title string) plugin.Option { return plugin.Option{Value: v, Title: title} }
-	return plugin.Manifest{
+	mac := p.b.Mac()
+	cpuDefault := "total"
+	if mac {
+		cpuDefault = "perCore" // as Activity Monitor
+	}
+	m := plugin.Manifest{
 		ID:            ID,
 		Name:          "%plugin.name%",
 		Description:   "%plugin.description%",
@@ -196,7 +202,7 @@ func (p *Plugin) Manifest() plugin.Manifest {
 			{Name: prefInterval, Type: plugin.PrefSelect, Title: "%pref.interval.title%", Default: plugin.MustPayload("1"),
 				Options: []plugin.Option{opt("1", "%pref.interval.1%"), opt("2", "%pref.interval.2%"), opt("5", "%pref.interval.5%")}},
 			{Name: prefCPUMode, Type: plugin.PrefSelect, Title: "%pref.cpuMode.title%", Description: "%pref.cpuMode.description%",
-				Default: plugin.MustPayload("total"), Options: []plugin.Option{opt("total", "%pref.cpuMode.total%"), opt("perCore", "%pref.cpuMode.perCore%")}},
+				Default: plugin.MustPayload(cpuDefault), Options: []plugin.Option{opt("total", "%pref.cpuMode.total%"), opt("perCore", "%pref.cpuMode.perCore%")}},
 			{Name: prefGroupByApp, Type: plugin.PrefBool, Title: "%pref.groupByApp.title%", Default: plugin.MustPayload(true)},
 			{Name: prefShowWindows, Type: plugin.PrefBool, Title: "%pref.showWindows.title%", Default: plugin.MustPayload(true)},
 			{Name: prefDefaultSort, Type: plugin.PrefSelect, Title: "%pref.defaultSort.title%", Default: plugin.MustPayload(sortCPU),
@@ -209,6 +215,14 @@ func (p *Plugin) Manifest() plugin.Manifest {
 				Default: plugin.MustPayload(true)},
 		},
 	}
+	if mac {
+		// macOS tells no window that is not responding, and has no Windows
+		// Explorer to restart.
+		m.Commands = slices.DeleteFunc(m.Commands, func(c plugin.Command) bool {
+			return c.Name == cmdHung || c.Name == cmdRestartExplorer
+		})
+	}
+	return m
 }
 
 // Locales implements plugin.LocaleProvider.
@@ -226,6 +240,9 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	hidden := h.Events().Subscribe(plugin.EventWindowHidden, p.windowHidden)
 	shown := h.Events().Subscribe(plugin.EventWindowShown, p.windowShown)
 	p.unsub = func() { hidden(); shown() }
+	if _, real := p.b.(interface{ realSystem() }); real && p.b.Mac() {
+		p.goBackground(warm)
+	}
 	return nil
 }
 

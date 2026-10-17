@@ -75,6 +75,10 @@ type Proc struct {
 	// IO is the bytes read and written so far (including cached I/O and
 	// named pipes, so it is not disk I/O).
 	IO uint64
+	// NoCPU reports that CPU (and the memory) could not be read yet (on
+	// macOS, another user's process before ps was read): its CPU use is
+	// unknown rather than a jump from 0.
+	NoCPU bool
 }
 
 // Snapshot is the state of every process at one time.
@@ -194,7 +198,9 @@ func Rates(prev, cur *Snapshot, mode CPUMode) map[ID]Usage {
 			var dCPU int64
 			var dIO uint64
 			known := true
-			if q, ok := before[p.ID]; ok {
+			if q, ok := before[p.ID]; p.NoCPU || ok && q.NoCPU {
+				known = false
+			} else if ok {
 				dCPU = max(p.CPU-q.CPU, 0) // counters do not go back; be safe
 				if p.IO >= q.IO {
 					dIO = p.IO - q.IO
