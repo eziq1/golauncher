@@ -60,6 +60,11 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **Flush DNS Cache** and **Renew IP Address** failed with "The requested
   operation requires elevation." They now ask for administrator rights with
   a UAC prompt (the toast says so) unless golauncher already has them.
+- The search bar no longer grows by a few pixels when the selected command
+  takes arguments (R74): moving the selection between commands with and
+  without arguments made the list under it jump. The bar now has a fixed
+  height, and the argument inputs and drop-downs fit in it, vertically
+  centered; drop-downs use the inputs' 14-DIP font.
 
 ## [0.6.0] - 2026-10-16
 
