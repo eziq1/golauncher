@@ -8,6 +8,7 @@ import (
 	mui "github.com/egoist/mygo/ui"
 
 	"github.com/eziq1/golauncher/internal/config"
+	"github.com/eziq1/golauncher/internal/install"
 	"github.com/eziq1/golauncher/internal/update"
 )
 
@@ -101,6 +102,8 @@ func (s *Settings) updatesSection(c *mui.Context, cfg config.Config) {
 			note = s.loc.T("settings.updates.disabledDev")
 		case update.DisabledEnv:
 			note = s.loc.T("settings.updates.disabledEnv")
+		case update.DisabledWinget:
+			note = s.loc.T("settings.updates.disabledWinget", "command", install.WingetUpgrade)
 		}
 		mui.Text(c, note).FontSize(12).TextColor(t.TextMuted)
 		return

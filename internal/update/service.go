@@ -19,6 +19,7 @@ const (
 	DisabledPortable = "portable" // not the installed copy
 	DisabledDev      = "dev"      // a development build
 	DisabledEnv      = "env"      // GOLAUNCHER_NO_UPDATE=1
+	DisabledWinget   = "winget"   // installed with winget, which updates it
 )
 
 // EnvNoUpdate turns automatic updates off when set to 1 (tests, E2E).

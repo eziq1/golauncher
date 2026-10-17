@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/eziq1/golauncher/internal/install"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -35,6 +36,8 @@ func Summary(l Localizer, st Status, err error, mode Mode) (title, message strin
 	}
 	title = l.T("update.result.available", "version", st.Latest)
 	switch {
+	case st.Disabled == DisabledWinget:
+		message = l.T("update.result.availableWinget", "command", install.WingetUpgrade)
 	case st.Disabled != "":
 		message = l.T("update.result.availableManual")
 	case st.Blocked:

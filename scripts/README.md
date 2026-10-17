@@ -11,6 +11,7 @@ from the repository root; output goes to `dist/` (ignored by git).
 | | `macbundle/` | Writes the bundle's `Info.plist`, `PkgInfo` and `InfoPlist.strings` (from `internal/install`); `build.sh --app` runs it |
 | | `genmenubaricon/` | Regenerates `assets/icon-menubar.png`, the menu bar template icon |
 | `release/` | `changelog.ps1` | Prints a version's section of `CHANGELOG.md`: the GitHub release notes |
+| | `wingetmanifest/` | Writes the winget manifests of a release (`-version X.Y.Z -dist dist` or `-download`) into `packaging/winget/manifests` ([docs/winget-packaging.md](../docs/winget-packaging.md)) |
 | `data/` | `gencities/` | Regenerates the world clock's city data (`plugins/clock/geonames.tsv.gz`) from GeoNames ([world-clock.md](../docs/world-clock.md)) |
 
 ```sh

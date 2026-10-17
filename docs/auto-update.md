@@ -9,7 +9,7 @@
 ## 1. 目标与范围
 
 - golauncher 定期查询 GitHub Releases 的**最新正式版**；比当前版本新，就下载对应架构的 zip，校验后替换已安装的程序，在不打扰用户的时候重启到新版本。
-- 只有**已安装的副本**（[self-install.md](self-install.md) 装到安装目录、`State.Self` 为真的那个）会更新自己。便携运行（`--portable`、没有安装或安装的是另一个副本）、开发构建（版本 `dev`，或 `git describe` 带提交数、`-dirty`、裸哈希的版本）只能手动检查，不会下载和安装；设置里写明原因。
+- 只有**已安装的副本**（[self-install.md](self-install.md) 装到安装目录、`State.Self` 为真的那个）会更新自己。便携运行（`--portable`、没有安装或安装的是另一个副本）、开发构建（版本 `dev`，或 `git describe` 带提交数、`-dirty`、裸哈希的版本）只能手动检查，不会下载和安装；设置里写明原因。由 winget 安装的副本也一样，由 winget 更新，设置里提示 `winget upgrade eziq1.golauncher`（[winget-packaging.md §3.3](winget-packaging.md)）。
 - 不更新用户数据。配置、数据库、插件数据都不在安装目录里，更新只替换 `golauncher.exe` 和 `glctl.exe`。
 - 从不自动降级。
 

@@ -165,6 +165,32 @@ jobs:
           [System.IO.File]::WriteAllText("$PWD/dist/checksums.txt", ($lines -join "`n") + "`n")
           Get-Content dist/checksums.txt
 
+      - name: winget manifests
+        # The manifests of this release for microsoft/winget-pkgs
+        # (docs/winget-packaging.md), kept as a build artifact. Nothing is
+        # submitted; a failure here never holds the release back.
+        id: winget
+        if: steps.version.outputs.prerelease == 'false'
+        continue-on-error: true
+        run: |
+          go run ./scripts/release/wingetmanifest -version '${{ steps.version.outputs.version }}' -dist dist -out dist/winget
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $dir = (Get-ChildItem dist/winget -Recurse -Filter *.installer.yaml).DirectoryName
+          if (Get-Command winget -ErrorAction SilentlyContinue) {
+            winget validate --manifest $dir
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Output 'winget is not installed on this runner: the manifests were not validated'
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: steps.winget.outcome == 'success'
+        continue-on-error: true
+        with:
+          name: winget-manifests
+          path: dist/winget
+          if-no-files-found: error
+
       - name: Sign checksums
         if: env.GOLAUNCHER_UPDATE_PUBLIC_KEY != ''
         env:

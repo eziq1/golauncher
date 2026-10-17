@@ -2,6 +2,7 @@ package ui_test
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -134,6 +135,29 @@ func TestSettingsUpdatesPortable(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no note about the portable copy: %q", tt.Texts())
+	}
+}
+
+func TestSettingsUpdatesWinget(t *testing.T) {
+	_, s, tt := newSettings(t, "en")
+	s.SetUpdater(&fakeUpdater{st: update.Status{Phase: update.PhaseIdle, Current: "0.4.0", Disabled: update.DisabledWinget, Latest: "0.5.0", Available: true}})
+	tt.SetSize(ui.SettingsWidth, 1400)
+	s.ShowPage(ui.PageAbout)
+	tt.Frame()
+	if tt.HasText("Automatic updates") || tt.HasText("Download and Install") || tt.HasText("Skip This Version") || !tt.HasText("Check for Updates") {
+		t.Fatalf("winget: %q", tt.Texts())
+	}
+	if !tt.HasText("golauncher 0.5.0 is available.") {
+		t.Fatalf("the newer version is not shown: %q", tt.Texts())
+	}
+	found := false
+	for _, txt := range tt.Texts() {
+		if strings.HasPrefix(txt, "Managed by winget") && strings.Contains(txt, "winget upgrade eziq1.golauncher") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no note about winget: %q", tt.Texts())
 	}
 }
 
