@@ -1,6 +1,6 @@
 {
   "plugin.name": "翻译",
-  "plugin.description": "在“tr”“fy”或“翻译”后面输入文字，边输边出译文（“tr hello”“tr 日 早上好”“tr en>zh apple”），使用 Google 翻译网页接口、MyMemory 或 DeepL。只有输入了这些前缀，文字才会发送出去。",
+  "plugin.description": "在“tr”“fy”或“翻译”后面输入文字，边输边出译文（“tr hello”“tr 日 早上好”“tr en>zh apple”），可用 Google 翻译网页接口（失败时改用 MyMemory）、DeepL、Azure、有道、百度、自定义 HTTP 引擎或本地 Ollama 模型。只有输入了这些前缀，文字才会发送出去。",
   "command.translate.title": "翻译",
   "command.translate.keywords": "翻译, fy, 翻译器, 译文, translate, translator, tr, deepl, google translate",
   "group": "翻译",

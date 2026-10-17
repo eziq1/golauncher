@@ -728,7 +728,7 @@
   {
     "id": "builtin.translator",
     "name": "Translator",
-    "description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint, MyMemory or DeepL. Text is sent only after one of these prefixes.",
+    "description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint (MyMemory as the fallback), DeepL, Azure, Youdao, Baidu, your own HTTP engines or a local Ollama model. Text is sent only after one of these prefixes.",
     "version": "1.0.0",
     "icon": {
       "name": "languages"

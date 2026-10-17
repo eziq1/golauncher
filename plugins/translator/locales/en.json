@@ -1,6 +1,6 @@
 {
   "plugin.name": "Translator",
-  "plugin.description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint, MyMemory or DeepL. Text is sent only after one of these prefixes.",
+  "plugin.description": "Translates as you type after “tr”, “fy” or “翻译” (“tr hello”, “tr ja good morning”, “tr en>zh apple”), with Google Translate’s web endpoint (MyMemory as the fallback), DeepL, Azure, Youdao, Baidu, your own HTTP engines or a local Ollama model. Text is sent only after one of these prefixes.",
   "command.translate.title": "Translate",
   "command.translate.keywords": "translate, translator, translation, tr, fy, deepl, google translate",
   "group": "Translator",
