@@ -9,13 +9,13 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/host"
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/tasks"
+	"github.com/eziq1/golauncher/internal/winapi/clip"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -191,16 +191,27 @@ func (c *Clipboard) Read() (plugin.ClipboardContent, error) {
 	return c.Content, nil
 }
 
-// HasFilesOrImage reports, as the real clipboard's cheap probe does
-// (core.FilesClipboard), whether the content has files, or an image and no
-// text.
+// HasFilesOrImage reports, as the real clipboard's probe does
+// (core.FilesClipboard), whether the content has files, or an image with no
+// text or text that only describes it (clip.DescribesImage).
 func (c *Clipboard) HasFilesOrImage() bool {
+	p, _ := c.ReadPaste()
+	return len(p.Files) > 0 || len(p.Image) > 0
+}
+
+// ReadPaste is Read for a paste into a view that accepts files: the image
+// only when no files come with it and its text only describes it.
+func (c *Clipboard) ReadPaste() (plugin.ClipboardContent, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.Content.Exclude {
-		return false
+	p := c.Content
+	switch {
+	case p.Exclude:
+		return plugin.ClipboardContent{SourceApp: p.SourceApp, Exclude: true}, nil
+	case len(p.Files) > 0 || !clip.DescribesImage(p.Text):
+		p.Image = nil
 	}
-	return len(c.Content.Files) > 0 || len(c.Content.Image) > 0 && strings.TrimSpace(c.Content.Text) == ""
+	return p, nil
 }
 
 // Set replaces the content, as if another app copied it.

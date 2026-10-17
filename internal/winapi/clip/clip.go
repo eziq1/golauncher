@@ -13,6 +13,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // ErrBusy is returned when another program keeps the clipboard open.
@@ -34,6 +36,18 @@ type ReadOptions struct {
 	// files. Without it no image format is requested at all, so programs
 	// that render images on demand are not asked to.
 	Images bool
+	// Paste reads for a paste into a view that accepts files (with Images):
+	// the image also when the text next to it only describes it
+	// (DescribesImage), and content that only counts as excluded because
+	// CopySelection put it back with the markers that keep clipboard
+	// history from recording it again (it was the user's own copy).
+	Paste bool
+}
+
+// ReadPaste is ReadWith(ReadOptions{Images: true, Paste: true}): what a
+// paste into a view that accepts files takes, as HasFilesOrImage predicts.
+func ReadPaste() (plugin.ClipboardContent, error) {
+	return ReadWith(ReadOptions{Images: true, Paste: true})
 }
 
 // debounceDelay is how long Watch waits for the clipboard to settle; some

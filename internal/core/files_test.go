@@ -264,7 +264,8 @@ func TestPasteFiles(t *testing.T) {
 	}
 	for _, c := range []plugin.ClipboardContent{
 		{Text: "just text"},
-		{Text: "text", Image: []byte("\x89PNG")}, // an image only without text, as the clipboards read
+		{Text: "text", Image: []byte("\x89PNG")},                          // real text: pasted as text
+		{Text: "https://example.com/a.png\r\n", Image: []byte("\x89PNG")}, // a spreadsheet cell
 		{Files: []string{"secret.txt"}, Exclude: true},
 		{},
 	} {
@@ -273,7 +274,15 @@ func TestPasteFiles(t *testing.T) {
 			t.Fatalf("%+v was taken", c)
 		}
 	}
-	if s := e.Controller.Snapshot(); !slices.Equal(chipTitles(s), []string{"x.txt", "image.png"}) {
+	// An image with text that only describes it (R96): its address, as
+	// browsers' "Copy Image" put, or a chat app's placeholder.
+	for _, text := range []string{"https://example.com/a.png", "[图片]"} {
+		e.clip.Set(plugin.ClipboardContent{Text: text, Image: []byte("\x89PNG two")})
+		if !e.clip.HasFilesOrImage() || !paste() {
+			t.Fatalf("the image next to %q was not taken", text)
+		}
+	}
+	if s := e.Controller.Snapshot(); !slices.Equal(chipTitles(s), []string{"x.txt", "image.png", "image.png", "image.png"}) {
 		t.Fatalf("chips %v", chipTitles(s))
 	}
 }

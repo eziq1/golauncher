@@ -43,20 +43,24 @@ func TestFileURLPath(t *testing.T) {
 
 func TestProbeTypes(t *testing.T) {
 	for _, tc := range []struct {
-		types []string
-		want  bool
+		types         []string
+		want, askText bool
 	}{
-		{nil, false},
-		{[]string{typeText}, false},
-		{[]string{typeFileURL, typeText}, true},
-		{[]string{typePNG}, true},
-		{[]string{typeTIFF}, true},
-		{[]string{typePNG, typeText}, false},
-		{[]string{typeFileURL, typeConcealed}, false},
-		{[]string{"public.html"}, false},
+		{nil, false, false},
+		{[]string{typeText}, false, false},
+		{[]string{typeFileURL, typeText}, true, false},
+		{[]string{typePNG}, true, false},
+		{[]string{typeTIFF}, true, false},
+		{[]string{typePNG, "public.html"}, true, false},
+		// An image and text: the text decides (R96).
+		{[]string{typePNG, typeText}, false, true},
+		{[]string{typeTIFF, typeText, "public.url"}, false, true},
+		{[]string{typeFileURL, typeConcealed}, false, false},
+		{[]string{typePNG, typeText, typeConcealed}, false, false},
+		{[]string{"public.html"}, false, false},
 	} {
-		if got := probeTypes(tc.types); got != tc.want {
-			t.Errorf("probeTypes(%q) = %v, want %v", tc.types, got, tc.want)
+		if got, ask := probeTypes(tc.types); got != tc.want || ask != tc.askText {
+			t.Errorf("probeTypes(%q) = %v, %v; want %v, %v", tc.types, got, ask, tc.want, tc.askText)
 		}
 	}
 }

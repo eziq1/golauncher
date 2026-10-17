@@ -210,7 +210,11 @@ func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
 	)
 	err := withClipboard(func() error {
 		pid = ownerPID()
-		if c.Exclude = excluded(); c.Exclude {
+		c.Exclude = excluded()
+		if opts.Paste {
+			c.Exclude = pasteExcluded()
+		}
+		if c.Exclude {
 			return nil
 		}
 		if available(cfUnicodeText) {
@@ -219,7 +223,7 @@ func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
 		if available(cfHDROP) {
 			c.Files = hdropFiles()
 		}
-		if opts.Images && len(c.Files) == 0 && utf16Blank(text) {
+		if opts.Images && len(c.Files) == 0 && (utf16Blank(text) || opts.Paste && DescribesImage(utf16String(text))) {
 			img = readRawImage()
 		}
 		return nil
@@ -248,6 +252,15 @@ func excluded() bool {
 		}
 	}
 	return false
+}
+
+// pasteExcluded is excluded for a paste (ReadOptions.Paste): the markers
+// CopySelection added when it put the user's own copy back do not count.
+func pasteExcluded() bool {
+	if ownRestore(sequenceNumber()) {
+		return available(formats().viewerIgnore)
+	}
+	return excluded()
 }
 
 // readRawImage copies the first usable image format from the open

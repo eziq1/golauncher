@@ -19,12 +19,16 @@ import (
 // none when the user cancels. It blocks until the dialog closes.
 type FileChooser func(ctx context.Context, o plugin.ChooseFilesOptions) ([]string, error)
 
-// FilesClipboard is implemented by clipboards that can tell cheaply, without
-// reading their content, whether they hold files or an image (and no text):
-// what Controller.PasteFiles would take. Front ends ask it on Ctrl+V in a
-// view that accepts files, and leave the key to the text field otherwise.
+// FilesClipboard is implemented by clipboards that can tell cheaply whether
+// they hold files or an image that a paste takes (R96): files, or an image
+// whose accompanying text, if any, only describes it (clip.DescribesImage:
+// blank, its address, "[图片]"). Front ends ask HasFilesOrImage on Ctrl+V
+// in a view that accepts files, and leave the key to the text field
+// otherwise; Controller.PasteFiles then reads with ReadPaste, which returns
+// the image only when it is to be taken, so both agree.
 type FilesClipboard interface {
 	HasFilesOrImage() bool
+	ReadPaste() (plugin.ClipboardContent, error)
 }
 
 // ErrChooseFilesHere is returned for an ActionChooseFiles that does not run
@@ -140,7 +144,11 @@ func (c *Controller) PasteFiles(ctx context.Context) (Outcome, bool, error) {
 	if !ok || cb == nil {
 		return Outcome{}, false, nil
 	}
-	content, err := cb.Read()
+	read, decides := cb.Read, false
+	if fc, ok := cb.(FilesClipboard); ok {
+		read, decides = fc.ReadPaste, true
+	}
+	content, err := read()
 	if err != nil {
 		return Outcome{}, false, err
 	}
@@ -150,8 +158,9 @@ func (c *Controller) PasteFiles(ctx context.Context) (Outcome, bool, error) {
 		return Outcome{}, false, nil
 	case len(content.Files) > 0:
 		f.Paths = content.Files
-	case len(content.Image) > 0 && strings.TrimSpace(content.Text) == "":
-		// As the system clipboards read: an image only without text.
+	case len(content.Image) > 0 && (decides || strings.TrimSpace(content.Text) == ""):
+		// ReadPaste returns the image only when it wins over the text next
+		// to it; a plain Read, only without text.
 		f.Image = content.Image
 	default:
 		return Outcome{}, false, nil

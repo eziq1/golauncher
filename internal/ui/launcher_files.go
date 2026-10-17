@@ -32,9 +32,10 @@ func (l *Launcher) DropFiles(paths []string) {
 	})
 }
 
-// pasteFiles takes Ctrl+V when the view accepts files and the clipboard
-// holds files or an image: they are pasted into the view instead of text
-// into the search field. The clipboard is only probed (not read) here, and
+// pasteFiles takes Ctrl+V (or a paste from the Edit menu, OnPaste) when the
+// view accepts files and the clipboard holds files or an image that the
+// paste takes (core.FilesClipboard): they are pasted into the view instead
+// of text into the search field. The clipboard is only probed here, and
 // only in a view that accepts files. UI thread only.
 func (l *Launcher) pasteFiles() bool {
 	probe, ok := l.clip.(core.FilesClipboard)

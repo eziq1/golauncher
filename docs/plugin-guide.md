@@ -415,9 +415,13 @@ Markdown in views may show local image files: `![name](</abs/path.png>)`
 with an absolute path (PNG, JPEG, GIF, WebP, BMP; at most 4 MB). Network
 addresses and `data:` URLs are not loaded.
 
-Privacy: the host reads the clipboard for files only when the user presses
-Ctrl+V in a view that accepts files, and then only takes files or an image
-(text is pasted into the search field as usual). Do not log file names or
+Privacy: the host reads the clipboard for files only when the user pastes
+(Ctrl+V, ⌘V, a Paste menu item) in a view that accepts files, and then only
+takes files or an image (text is pasted into the search field as usual).
+When an image comes with text, the image is taken only if the text just
+describes it — blank, the image's address (one URL, no line break), or
+placeholders such as `[图片]` — and real text is pasted as text (R96,
+docs/ai.md §24.8). Do not log file names or
 contents. Only in-process plugins can receive files: the external plugin
 protocol has no message for them.
 

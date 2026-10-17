@@ -77,7 +77,10 @@ func (l *Launcher) searchBar(c *mui.Context, s core.Snapshot) {
 			}
 			in := mui.TextInputBase(c.Key("search"), &l.text).Bind(&l.input).AutoFocus().Grow(1).FontSize(searchFontSize).TextColor(tk.SearchText).
 				Placeholder(placeholder).Label(l.loc.T("ui.search.label")).
-				OnTextKey(func(k mui.TextKey) bool { return l.textKey(k, false) })
+				OnTextKey(func(k mui.TextKey) bool { return l.textKey(k, false) }).
+				// ⌘V on macOS and the Paste menu items never reach OnTextKey:
+				// they paste through the Edit menu's command (R96).
+				OnPaste(func(string) bool { return l.pasteFiles() })
 			if in.Changed() {
 				l.setText(l.text, false)
 			}

@@ -42,6 +42,18 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Fixed
 
+- **Pasting an image into the AI chat works whatever it was copied from**
+  (R96): `Ctrl+V` only attached an image when nothing but the image was on
+  the clipboard, so a screenshot attached but an image copied from a browser
+  or a chat app — which put its address or a "[图片]" placeholder next to it —
+  was pasted as that text instead. Now the image is attached when the text
+  next to it only describes it (blank, a single URL without a line break, or
+  bracketed image placeholders); real text (a word, a number, several lines,
+  a spreadsheet cell) is still pasted as text. On macOS `⌘V` and *Edit ›
+  Paste* never reached the launcher's check (they paste through the Edit
+  menu) and never attached anything; they do now. With *Fall back to
+  copying* on (selected text), the user's copy put back afterwards is no
+  longer refused as "not to be recorded".
 - **A plugin turned off no longer runs in the background** (R88, code review
   2.1): turning off the clipboard history in Settings › Plugins used to hide it
   from the search while copies were still recorded; every disabled plugin
