@@ -9,6 +9,7 @@
   "action.open": "Open",
   "action.runAsAdmin": "Run as Administrator",
   "action.reveal": "Show in File Explorer",
+  "action.reveal@darwin": "Show in Finder",
   "action.revealFinder": "Show in Finder",
   "action.copyPath": "Copy Path",
   "action.hide": "Hide Application",

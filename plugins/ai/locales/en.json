@@ -36,6 +36,7 @@
   "chat.placeholder": "Ask anything…",
   "chat.placeholderFollowUp": "Ask a follow-up…",
   "chat.empty": "Ask {{.backend}} anything: type your question and press Enter.\n\nEnter sends, Esc stops an answer and then goes back, Ctrl+K shows more actions.",
+  "chat.empty@darwin": "Ask {{.backend}} anything: type your question and press Enter.\n\nEnter sends, Esc stops an answer and then goes back, ⌘K shows more actions.",
   "chat.you": "You",
   "chat.assistant": "Claude",
   "chat.thinking": "Thinking…",

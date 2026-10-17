@@ -9,7 +9,7 @@
   "pref.remindPrefixes.title": "Reminder prefixes",
   "pref.remindPrefixes.description": "Words that set a reminder in the main search, as in “remind 15:30 meeting”.",
   "pref.sound.title": "Play a sound",
-  "pref.sound.description": "Windows notifications of ended timers make a sound.",
+  "pref.sound.description": "Notifications of ended timers make a sound.",
   "pref.historySize.title": "History",
   "pref.historySize.description": "How many ended and cancelled timers to keep (0 to 100).",
   "pref.hour24.title": "24-hour clock",

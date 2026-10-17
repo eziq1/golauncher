@@ -776,7 +776,9 @@ func TestI18nKeys(t *testing.T) {
 		}
 	}
 	for k := range catalog {
-		if !used[k] {
+		// A platform variant ("id@darwin") is used where its id is.
+		base, _, _ := strings.Cut(k, "@")
+		if !used[base] {
 			t.Errorf("key %q in en.json is unused", k)
 		}
 	}
