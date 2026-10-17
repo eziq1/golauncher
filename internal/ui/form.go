@@ -243,8 +243,9 @@ func boolText(b bool) string {
 
 // argumentInputs shows the arguments of the selected entry next to the
 // search field (docs/m5-plugin-platform.md §3.2). search is the search
-// field's element.
-func (l *Launcher) argumentInputs(c *mui.Context, s core.Snapshot, search mui.Element) {
+// field's element; height the search bar's height inside its padding, which
+// the inputs fit in.
+func (l *Launcher) argumentInputs(c *mui.Context, s core.Snapshot, search mui.Element, height float32) {
 	a := s.Arguments
 	if a == nil {
 		if l.args.focus != "" {
@@ -262,7 +263,7 @@ func (l *Launcher) argumentInputs(c *mui.Context, s core.Snapshot, search mui.El
 	}
 	l.args.placeCaret("", search, l.text)
 	row := mui.Row(c.Key("arguments")).Gap(6).AlignItems(mui.Center)
-	row.Children(func() { l.argumentFields(c, a, apply, pending) })
+	row.Children(func() { l.argumentFields(c, a, apply, pending, height) })
 	// Tab and Shift+Tab move between the inputs in the Controller's order,
 	// also from a drop-down.
 	for _, mods := range []mui.Modifiers{0, mui.Shift} {
@@ -280,9 +281,15 @@ func (l *Launcher) argumentInputs(c *mui.Context, s core.Snapshot, search mui.El
 	}
 }
 
-// argumentFields builds the inputs of the arguments.
-func (l *Launcher) argumentFields(c *mui.Context, a *core.ArgumentsSnapshot, apply, pending bool) {
+// argumentFields builds the inputs of the arguments, height high at most: a
+// line of their text with as much of their padding (4 DIPs) as fits. The
+// drop-downs have the text inputs' font and height, whatever the theme's
+// font size.
+func (l *Launcher) argumentFields(c *mui.Context, a *core.ArgumentsSnapshot, apply, pending bool, height float32) {
 	t := c.Theme()
+	line := lineHeight(c, argumentFontSize)
+	padY := min(4, max(0, (height-line)/2))
+	selectPadY := max(0, padY-1) // within the drop-down's border
 	for _, arg := range a.Fields {
 		b := l.args.value(arg.Name, arg.Value, pending)
 		h := l.args.handle(arg.Name)
@@ -296,7 +303,8 @@ func (l *Launcher) argumentFields(c *mui.Context, a *core.ArgumentsSnapshot, app
 					chosen = titles[len(titles)-1]
 				}
 			}
-			el = mui.Select(c.Key("arg:"+arg.Name), &chosen, titles).Bind(h).Width(130).Label(arg.Placeholder)
+			el = mui.Select(c.Key("arg:"+arg.Name), &chosen, titles).Bind(h).Width(130).FontSize(argumentFontSize).
+				Padding(selectPadY, t.Space(3.5)).Label(arg.Placeholder)
 			if el.Changed() {
 				*b = ""
 				if i := slices.Index(titles, chosen); i > 0 {
@@ -306,7 +314,7 @@ func (l *Launcher) argumentFields(c *mui.Context, a *core.ArgumentsSnapshot, app
 			}
 		} else {
 			name := arg.Name
-			el = mui.TextInputBase(c.Key("arg:"+arg.Name), b).Bind(h).Width(120).FontSize(14).Padding(4, 8).Radius(6).
+			el = mui.TextInputBase(c.Key("arg:"+arg.Name), b).Bind(h).Width(120).FontSize(argumentFontSize).Padding(padY, 8).Radius(6).
 				Background(t.Text.Alpha(0.06)).Placeholder(arg.Placeholder).Label(arg.Placeholder).
 				OnTextKey(func(k mui.TextKey) bool { return l.argumentKey(name, k) })
 			if arg.Type == plugin.ArgPassword {
