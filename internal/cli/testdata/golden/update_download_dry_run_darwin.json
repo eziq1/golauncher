@@ -8,10 +8,10 @@
   "page": "https://github.com/eziq1/golauncher/releases/tag/v1.0.0",
   "publishedAt": "2026-10-01T00:00:00Z",
   "archive": "golauncher_1.0.0_darwin_universal.zip",
-  "size": 2078,
+  "size": 2073,
   "checksums": true,
   "signature": false,
-  "sha256": "17b0f02aa0faf3fde51f75541228e10980740b48280862aca61333832e7ffc8a",
+  "sha256": "96447b90626bde8a0880f53aab8a8208e61ab2eeba6c7f830f5acdf86a498140",
   "verified": true,
   "signed": false,
   "files": [
