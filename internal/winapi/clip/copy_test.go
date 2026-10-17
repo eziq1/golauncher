@@ -281,6 +281,32 @@ func TestCopyKeepsExistingMarkers(t *testing.T) {
 	}
 }
 
+// TestCopyNotesOwnRestore: the sequence number of a restore that marked the
+// user's own copy is kept, so that a paste into the launcher still takes it
+// (R96); not when the copy was marked already, or nothing was restored.
+func TestCopyNotesOwnRestore(t *testing.T) {
+	defer restoredSeq.Store(0)
+	for _, tc := range []struct {
+		name string
+		orig []savedFormat
+		want bool
+	}{
+		{"image", []savedFormat{{cfDIB, imageToDIB(testImage(2, 2))}}, true},
+		{"marked already", []savedFormat{text("secret"), {fmtExclude, []byte{7}}}, false},
+		{"empty", nil, false},
+	} {
+		restoredSeq.Store(0)
+		f := newFake(t, tc.orig...)
+		f.copyText(time.Millisecond, "x")
+		if _, err := f.run(CopyOptions{}); err != nil {
+			t.Fatal(err)
+		}
+		if got := ownRestore(f.seq()); got != tc.want {
+			t.Errorf("%s: ownRestore = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestCopyEmptyClipboard(t *testing.T) {
 	f := newFake(t)
 	f.copyText(time.Millisecond, "x")

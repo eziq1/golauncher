@@ -81,7 +81,7 @@ func ReadWith(opts ReadOptions) (plugin.ClipboardContent, error) {
 				}
 			}
 		}
-		if !opts.Images || len(c.Files) > 0 || !blank(c.Text) {
+		if !opts.Images || len(c.Files) > 0 || !blank(c.Text) && !(opts.Paste && DescribesImage(c.Text)) {
 			return
 		}
 		switch {

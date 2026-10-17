@@ -42,12 +42,12 @@ func TestHasFilesOrImage(t *testing.T) {
 		if got := HasFilesOrImage(); got != tc.want {
 			t.Errorf("%s: HasFilesOrImage() = %v, want %v", tc.name, got, tc.want)
 		}
-		c, err := Read()
+		c, err := ReadPaste()
 		if err != nil {
-			t.Fatalf("%s: Read: %v", tc.name, err)
+			t.Fatalf("%s: ReadPaste: %v", tc.name, err)
 		}
 		if read := len(c.Files) > 0 || len(c.Image) > 0; read != tc.want {
-			t.Errorf("%s: Read has files %d, image %d bytes; the probe says %v", tc.name, len(c.Files), len(c.Image), tc.want)
+			t.Errorf("%s: ReadPaste has files %d, image %d bytes; the probe says %v", tc.name, len(c.Files), len(c.Image), tc.want)
 		}
 	}
 }

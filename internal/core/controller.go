@@ -42,6 +42,9 @@ type Controller struct {
 	// keep is the stack kept across a hide and its restore (keep.go).
 	keep keepState
 
+	// files are the files handed to the root search (rootfiles.go).
+	files *rootFiles
+
 	// Invalidations gathered while invTimer runs; invAfter asks for one more
 	// refresh once the searches in flight have finished.
 	inv      []invalidation
@@ -180,6 +183,7 @@ func (c *Controller) Reset(ctx context.Context) {
 	c.toast = nil
 	c.mu.Unlock()
 	c.closed(navs)
+	c.clearFiles() // the files handed to the root search live for one show
 	c.refresh(ctx)
 }
 
@@ -231,7 +235,7 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 	if !quiet {
 		f.loading = true
 	}
-	text, nav, restore := f.text, f.nav, f.restoring
+	text, nav, restore, files := f.text, f.nav, f.restoring, c.files
 	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	c.cancel = cancel
 	c.running++
@@ -245,7 +249,7 @@ func (c *Controller) search(ctx context.Context, quiet bool) {
 			err      error
 		)
 		if nav == nil {
-			sections, err = c.eng.RootSearch(ctx, text)
+			sections, err = c.eng.rootSearch(ctx, text, files)
 		} else {
 			req := nav.Request
 			req.Query = plugin.Query{Text: text}

@@ -64,8 +64,12 @@ var (
 	_ core.FilesClipboard = clipboard{}
 )
 
-// HasFilesOrImage is the launcher's probe on Ctrl+V: no content is read.
+// HasFilesOrImage is the launcher's probe on Ctrl+V: only the text is read,
+// and only when an image comes with it (clip.DescribesImage decides).
 func (clipboard) HasFilesOrImage() bool { return clip.HasFilesOrImage() }
+
+// ReadPaste reads what the paste takes, as HasFilesOrImage predicted.
+func (clipboard) ReadPaste() (plugin.ClipboardContent, error) { return clip.ReadPaste() }
 
 func (clipboard) Read() (plugin.ClipboardContent, error) { return clip.Read() }
 func (clipboard) WriteText(text string) error            { return clip.WriteText(text) }

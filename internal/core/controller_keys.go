@@ -108,6 +108,12 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 			c.back() // unlocks
 			c.refresh(ctx)
 			return Outcome{}, nil
+		case c.files != nil:
+			// The files handed to the root search go first (rootfiles.go).
+			c.mu.Unlock()
+			c.clearFiles()
+			c.refresh(ctx)
+			return Outcome{}, nil
 		default:
 			c.mu.Unlock()
 			return Outcome{Hide: true}, nil
@@ -123,6 +129,14 @@ func (c *Controller) Key(ctx context.Context, key string) (Outcome, error) {
 		return Outcome{}, nil
 	}
 	entry, ok := itemAt(c.visible(f), f.sel)
+	if key == KeyChooseFiles && f.nav == nil && !slices.ContainsFunc(entry.Actions, func(a plugin.Action) bool {
+		return a.Shortcut != "" && normalizeShortcut(a.Shortcut) == key
+	}) {
+		// The open dialog for the root search, unless the selected entry
+		// uses the key (rootfiles.go).
+		c.mu.Unlock()
+		return c.ChooseRootFiles(ctx)
+	}
 	if !ok {
 		c.mu.Unlock()
 		return Outcome{}, nil

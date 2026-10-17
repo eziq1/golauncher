@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,8 +14,8 @@ import (
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
-// attachPlugin's "chat" view accepts files and shows them as chips; in the
-// root search it takes files by opening the chat. Its state lives in the
+// attachPlugin's "chat" view accepts files and shows them as chips (in the
+// root search its ReceiveFiles is no longer called, R97). Its state lives in the
 // process, but each glctl session invocation replays the steps on a new
 // instance: reset clears it.
 type attachPlugin struct {
@@ -89,7 +90,7 @@ func TestSessionFiles(t *testing.T) {
 		}
 		return out
 	}
-	// Dropped on the view (in the root search the AI chat would take them).
+	// Dropped on the view (in the root search they go to its Files section).
 	text("type", "attach chat")
 	text("key", "Enter")
 	out := text("drop", "notes.txt", "data.bin")
@@ -122,5 +123,55 @@ func TestSessionFiles(t *testing.T) {
 	}
 	if _, code := glctl(t, "session", "remove-chip", "-s", s, "nosuch"); code == 0 {
 		t.Fatal("removing an unknown chip succeeded")
+	}
+}
+
+// TestSessionRootFiles (R97): files dropped onto the root search show as
+// chips with the Files section at the top (AI is off in the fake
+// environment: its row turns it on); typing filters the section, Ctrl+O
+// chooses files for it, a chip's × drops one, Escape drops them all.
+func TestSessionRootFiles(t *testing.T) {
+	dir := t.TempDir()
+	notes, shot := filepath.Join(dir, "notes.txt"), filepath.Join(dir, "shot.png")
+	for _, p := range []string{notes, shot} {
+		if err := os.WriteFile(p, []byte("hello"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := filepath.Join(t.TempDir(), "s.json")
+	if _, code := glctl(t, "session", "new", "-s", s); code != 0 {
+		t.Fatal("session new failed")
+	}
+	text := func(args ...string) string {
+		t.Helper()
+		out, code := glctl(t, append(append([]string{"session"}, args[0], "-s", s, "--format", "text"), args[1:]...)...)
+		if code != 0 {
+			t.Fatalf("%v failed:\n%s", args, out)
+		}
+		// The temporary folder differs between runs.
+		for _, d := range []string{strings.ReplaceAll(dir, `\`, `\\`), dir} {
+			out = strings.ReplaceAll(out, d, "<DIR>")
+		}
+		return strings.ReplaceAll(out, `\\`, "/")
+	}
+	out := text("drop", notes)
+	golden(t, "session_root_files", out)
+	out = text("type", "zip")
+	if !strings.Contains(out, "[Files]\n> Compress to ZIP — notes.txt") || strings.Contains(out, "Turn on AI") {
+		t.Fatalf("typed:\n%s", out)
+	}
+	text("type", "")
+	text("choose", notes, shot)
+	out = text("key", "Ctrl+O")
+	if !strings.Contains(out, "chips: notes.txt (5 B), shot.png (5 B)\n") || strings.Contains(out, "Copy Image") {
+		t.Fatalf("chosen:\n%s", out)
+	}
+	out = text("remove-chip", "file:0")
+	if !strings.Contains(out, "chips: shot.png (5 B)\n") || !strings.Contains(out, "Copy Image — shot.png") {
+		t.Fatalf("removed:\n%s", out)
+	}
+	out = text("key", "Escape")
+	if strings.Contains(out, "chips:") || strings.Contains(out, "[Files]") {
+		t.Fatalf("after Escape:\n%s", out)
 	}
 }

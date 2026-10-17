@@ -52,7 +52,8 @@ type Snapshot struct {
 	// dropped, pasted with Ctrl+V (Controller.PasteFiles) or chosen.
 	AcceptFiles bool `json:"acceptFiles,omitzero"`
 	// Chips are the view's chips, shown in a row above the footer; their ×
-	// runs Controller.RemoveChip.
+	// runs Controller.RemoveChip. In the root search they are the files
+	// handed to it (R97), which it takes although AcceptFiles is not set.
 	Chips []plugin.Chip `json:"chips,omitempty"`
 }
 
@@ -148,6 +149,10 @@ func (c *Controller) Snapshot() Snapshot {
 			s.Layout = string(plugin.ViewDetail)
 			s.ShowDetail = false
 		}
+	}
+	if f.nav == nil {
+		// The files handed to the root search (rootfiles.go).
+		s.Chips = c.fileChips()
 	}
 	if f.form != nil {
 		s.Form = f.form.snapshot(f.view.Form.Submit.Title)

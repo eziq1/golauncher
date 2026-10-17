@@ -19,12 +19,16 @@ import (
 // none when the user cancels. It blocks until the dialog closes.
 type FileChooser func(ctx context.Context, o plugin.ChooseFilesOptions) ([]string, error)
 
-// FilesClipboard is implemented by clipboards that can tell cheaply, without
-// reading their content, whether they hold files or an image (and no text):
-// what Controller.PasteFiles would take. Front ends ask it on Ctrl+V in a
-// view that accepts files, and leave the key to the text field otherwise.
+// FilesClipboard is implemented by clipboards that can tell cheaply whether
+// they hold files or an image that a paste takes (R96): files, or an image
+// whose accompanying text, if any, only describes it (clip.DescribesImage:
+// blank, its address, "[图片]"). Front ends ask HasFilesOrImage on Ctrl+V
+// in a view that accepts files, and leave the key to the text field
+// otherwise; Controller.PasteFiles then reads with ReadPaste, which returns
+// the image only when it is to be taken, so both agree.
 type FilesClipboard interface {
 	HasFilesOrImage() bool
+	ReadPaste() (plugin.ClipboardContent, error)
 }
 
 // ErrChooseFilesHere is returned for an ActionChooseFiles that does not run
@@ -67,18 +71,6 @@ func (e *Engine) receiveFiles(ctx context.Context, pluginID string, f plugin.Fil
 	return e.result(ctx, l, r)
 }
 
-// fileReceivers are the plugins that are on and implement FileReceiver, in
-// their order.
-func (e *Engine) fileReceivers() []string {
-	var ids []string
-	for _, l := range e.enabled(e.cfg.Get()) {
-		if _, ok := l.p.(plugin.FileReceiver); ok {
-			ids = append(ids, l.m.ID)
-		}
-	}
-	return ids
-}
-
 // accepting returns the top frame's plugin and request when its view
 // accepts files. c.mu must be held.
 func (c *Controller) accepting() (*Nav, bool) {
@@ -91,10 +83,9 @@ func (c *Controller) accepting() (*Nav, bool) {
 
 // ReceiveFiles hands files to the current view: to its plugin when it
 // accepts files (plugin.View.AcceptFiles), with its instance and search
-// text; in the root search to the plugins implementing plugin.FileReceiver,
-// in their order, until one takes them. Anywhere else, or when nobody takes
-// them, a toast says they cannot be used here. The plugin's Result is
-// applied as an action's.
+// text; in the root search to its Files section (receiveRoot, R97).
+// Anywhere else, or when the plugin does not take them, a toast says they
+// cannot be used here. The plugin's Result is applied as an action's.
 func (c *Controller) ReceiveFiles(ctx context.Context, f plugin.Files) (Outcome, error) {
 	if len(f.Paths) == 0 && len(f.Image) == 0 {
 		return Outcome{}, nil
@@ -102,18 +93,16 @@ func (c *Controller) ReceiveFiles(ctx context.Context, f plugin.Files) (Outcome,
 	c.waitSearches()
 	c.mu.Lock()
 	f.Query = c.top().text
-	root := len(c.stack) == 1
+	if len(c.stack) == 1 {
+		c.mu.Unlock()
+		return c.receiveRoot(ctx, f)
+	}
 	var targets []string // none: a view that takes no files
 	if nav, ok := c.accepting(); ok {
 		f.Instance, f.View = nav.Request.Instance, nav.Request.ID
 		targets = []string{nav.Plugin}
-	} else {
-		f.Instance, f.View = "", ""
 	}
 	c.mu.Unlock()
-	if root {
-		targets = c.eng.fileReceivers()
-	}
 	for _, id := range targets {
 		out, err := c.eng.receiveFiles(ctx, id, f)
 		if errors.Is(err, plugin.ErrFilesNotTaken) {
@@ -135,12 +124,17 @@ func (c *Controller) ReceiveFiles(ctx context.Context, f plugin.Files) (Outcome,
 func (c *Controller) PasteFiles(ctx context.Context) (Outcome, bool, error) {
 	c.mu.Lock()
 	_, ok := c.accepting()
+	ok = ok || len(c.stack) == 1 // the root search takes files too (R97)
 	c.mu.Unlock()
 	cb := c.eng.svc.Clipboard
 	if !ok || cb == nil {
 		return Outcome{}, false, nil
 	}
-	content, err := cb.Read()
+	read, decides := cb.Read, false
+	if fc, ok := cb.(FilesClipboard); ok {
+		read, decides = fc.ReadPaste, true
+	}
+	content, err := read()
 	if err != nil {
 		return Outcome{}, false, err
 	}
@@ -150,8 +144,9 @@ func (c *Controller) PasteFiles(ctx context.Context) (Outcome, bool, error) {
 		return Outcome{}, false, nil
 	case len(content.Files) > 0:
 		f.Paths = content.Files
-	case len(content.Image) > 0 && strings.TrimSpace(content.Text) == "":
-		// As the system clipboards read: an image only without text.
+	case len(content.Image) > 0 && (decides || strings.TrimSpace(content.Text) == ""):
+		// ReadPaste returns the image only when it wins over the text next
+		// to it; a plain Read, only without text.
 		f.Image = content.Image
 	default:
 		return Outcome{}, false, nil
@@ -161,12 +156,14 @@ func (c *Controller) PasteFiles(ctx context.Context) (Outcome, bool, error) {
 }
 
 // chooseFiles runs ActionChooseFiles: the open dialog, then the files chosen
-// go to the view the action ran from, which must accept files.
+// go to the view the action ran from, which must accept files, or to the
+// root search when it ran from one of its items (R97).
 func (c *Controller) chooseFiles(ctx context.Context, entry Entry, action plugin.Action) (Outcome, error) {
 	c.mu.Lock()
 	nav, ok := c.accepting()
+	root := len(c.stack) == 1
 	c.mu.Unlock()
-	if !ok || nav.Plugin != entry.Plugin {
+	if !root && (!ok || nav.Plugin != entry.Plugin) {
 		return c.applyOutcome(ctx, Outcome{}, ErrChooseFilesHere)
 	}
 	var o plugin.ChooseFilesOptions
@@ -175,6 +172,18 @@ func (c *Controller) chooseFiles(ctx context.Context, entry Entry, action plugin
 			return c.applyOutcome(ctx, Outcome{}, fmt.Errorf("core: ChooseFiles payload: %w", err))
 		}
 	}
+	return c.choose(ctx, o)
+}
+
+// ChooseRootFiles shows the open dialog for the root search (Ctrl+O there):
+// the files chosen show in its Files section.
+func (c *Controller) ChooseRootFiles(ctx context.Context) (Outcome, error) {
+	return c.choose(ctx, plugin.ChooseFilesOptions{Title: c.eng.core.T("files.chooseTitle"), Multiple: true})
+}
+
+// choose shows the open dialog with o and hands the files chosen to the
+// current view (ReceiveFiles).
+func (c *Controller) choose(ctx context.Context, o plugin.ChooseFilesOptions) (Outcome, error) {
 	choose := c.eng.fileChooser()
 	if choose == nil {
 		return c.applyOutcome(ctx, Outcome{}, errNoFileChooser)
@@ -197,6 +206,11 @@ func (c *Controller) chooseFiles(ctx context.Context, entry Entry, action plugin
 func (c *Controller) RemoveChip(ctx context.Context, id string) (Outcome, error) {
 	c.waitSearches()
 	c.mu.Lock()
+	if len(c.stack) == 1 {
+		// A file handed to the root search (rootfiles.go).
+		c.mu.Unlock()
+		return c.removeRootFile(ctx, id)
+	}
 	f := c.top()
 	var (
 		remove   *plugin.Action
@@ -213,7 +227,12 @@ func (c *Controller) RemoveChip(ctx context.Context, id string) (Outcome, error)
 	}
 	c.mu.Unlock()
 	if remove == nil {
-		return Outcome{}, fmt.Errorf("core: no chip %q to remove in the current view", id)
+		return Outcome{}, errNoChip(id)
 	}
 	return c.run(ctx, Entry{Plugin: pluginID}, *remove)
+}
+
+// errNoChip is RemoveChip's error for an unknown chip.
+func errNoChip(id string) error {
+	return fmt.Errorf("core: no chip %q to remove in the current view", id)
 }

@@ -126,6 +126,10 @@ type Engine struct {
 	// chooser shows the open dialog of ActionChooseFiles (files.go).
 	chooserMu sync.Mutex
 	chooser   FileChooser
+
+	// temps are the pasted images' temporary files waiting to be deleted
+	// (rootfiles.go).
+	temps tempFiles
 }
 
 // unavailableReason strips the ErrUnavailable suffix from a wrapped error:
@@ -397,6 +401,9 @@ type Entry struct {
 	// Selection marks an item of a plugin.SelectionProvider (with Context):
 	// it acts on the text selected when the launcher opened.
 	Selection bool `json:"selection,omitzero"`
+	// Files marks an item of a plugin.FileActionsProvider (with Context): it
+	// acts on the files handed to the root search.
+	Files bool `json:"files,omitzero"`
 	// Fallback marks an item of a plugin.FallbackProvider (or the Tab
 	// action): it acts on this search's text and is never recorded as
 	// recently used.

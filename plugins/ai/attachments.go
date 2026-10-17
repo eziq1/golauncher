@@ -279,26 +279,14 @@ func (p *Plugin) discardDraft(ch *chat) {
 }
 
 // ReceiveFiles implements plugin.FileReceiver: files dropped onto a chat,
-// pasted or chosen there join its draft; files dropped onto the root search
-// open a new chat with them (with AI off, its prompt to turn AI on, which
-// keeps them).
+// pasted or chosen there join its draft. Files handed to the root search are
+// offered "Ask AI" in its Files section instead (FileItems, R97).
 func (p *Plugin) ReceiveFiles(_ context.Context, f plugin.Files) (plugin.Result, error) {
 	if len(f.Paths) == 0 && len(f.Image) == 0 {
 		return plugin.Result{}, nil
 	}
 	if f.Instance == "" {
-		if f.Source != plugin.FilesDropped {
-			return plugin.Result{}, plugin.ErrFilesNotTaken
-		}
-		ch := &chat{sess: p.newSession()}
-		files := p.prepareFiles(f.Paths, nil)
-		p.mu.Lock()
-		p.chats[ch.sess.ID] = ch
-		p.mu.Unlock()
-		refused := p.addDraft(ch, files)
-		r := plugin.Result{Push: &plugin.ViewRequest{ID: viewChat, Payload: plugin.MustPayload(chatPayload{Session: ch.sess.ID})}}
-		r.Toast = p.refusedToast(refused)
-		return r, nil
+		return plugin.Result{}, plugin.ErrFilesNotTaken
 	}
 	p.mu.Lock()
 	ch := p.chats[p.views[f.Instance]]

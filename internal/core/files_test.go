@@ -164,23 +164,25 @@ func chipTitles(s core.Snapshot) []string {
 	return out
 }
 
+// TestDropOnRoot: files dropped onto the root search no longer go to the
+// FileReceivers (R97): its Files section takes them, and without a plugin
+// offering actions for files a toast says they cannot be used
+// (rootfiles_test.go has the section).
 func TestDropOnRoot(t *testing.T) {
 	e := newFilesEnv(t)
 	e.typeText(t, "what is this")
-	e.drop(t, filepath.FromSlash("/tmp/report.pdf"))
-	if calls, got, _ := e.a.state(); calls != 1 || len(got) != 0 {
-		t.Fatalf("alpha: %d calls, took %v", calls, got)
+	report := filepath.Join(t.TempDir(), "report.pdf")
+	writeTestFile(t, report, "%PDF")
+	out := e.drop(t, report)
+	if calls, _, _ := e.a.state(); calls != 0 {
+		t.Fatalf("alpha: %d calls", calls)
 	}
-	_, got, req := e.b.state()
-	if len(got) != 1 || got[0].Instance != "" || got[0].Source != plugin.FilesDropped || got[0].Query != "what is this" {
-		t.Fatalf("bravo received %+v", got)
+	if calls, _, _ := e.b.state(); calls != 0 {
+		t.Fatalf("bravo: %d calls", calls)
 	}
 	s := e.Controller.Snapshot()
-	if s.Depth != 1 || s.Title != "chat" || !s.AcceptFiles || req.ID != "chat" {
-		t.Fatalf("after the drop: depth %d title %q accept %v", s.Depth, s.Title, s.AcceptFiles)
-	}
-	if got := chipTitles(s); !slices.Equal(got, []string{"report.pdf"}) {
-		t.Fatalf("chips %v", got)
+	if out.Toast == nil || s.Depth != 0 || len(s.Chips) != 0 || s.Toast == nil || s.Toast.Title != "These files can't be used here" {
+		t.Fatalf("after the drop: depth %d chips %v toast %+v", s.Depth, s.Chips, s.Toast)
 	}
 }
 
@@ -241,10 +243,14 @@ func TestPasteFiles(t *testing.T) {
 		e.Controller.Wait()
 		return ok
 	}
-	// The root search takes no paste, whatever the clipboard holds.
+	// The root search takes the paste too (R97); with nobody offering file
+	// actions, only a toast says so, and no FileReceiver sees it.
 	e.clip.Set(plugin.ClipboardContent{Files: []string{"x.txt"}})
-	if paste() {
-		t.Fatal("pasted into the root search")
+	if !paste() {
+		t.Fatal("the root search took no paste")
+	}
+	if calls, _, _ := e.b.state(); calls != 0 {
+		t.Fatalf("the paste into the root search reached bravo (%d calls)", calls)
 	}
 	e.open(t, "Bravo Chat")
 	if !paste() {
@@ -264,7 +270,8 @@ func TestPasteFiles(t *testing.T) {
 	}
 	for _, c := range []plugin.ClipboardContent{
 		{Text: "just text"},
-		{Text: "text", Image: []byte("\x89PNG")}, // an image only without text, as the clipboards read
+		{Text: "text", Image: []byte("\x89PNG")},                          // real text: pasted as text
+		{Text: "https://example.com/a.png\r\n", Image: []byte("\x89PNG")}, // a spreadsheet cell
 		{Files: []string{"secret.txt"}, Exclude: true},
 		{},
 	} {
@@ -273,7 +280,15 @@ func TestPasteFiles(t *testing.T) {
 			t.Fatalf("%+v was taken", c)
 		}
 	}
-	if s := e.Controller.Snapshot(); !slices.Equal(chipTitles(s), []string{"x.txt", "image.png"}) {
+	// An image with text that only describes it (R96): its address, as
+	// browsers' "Copy Image" put, or a chat app's placeholder.
+	for _, text := range []string{"https://example.com/a.png", "[图片]"} {
+		e.clip.Set(plugin.ClipboardContent{Text: text, Image: []byte("\x89PNG two")})
+		if !e.clip.HasFilesOrImage() || !paste() {
+			t.Fatalf("the image next to %q was not taken", text)
+		}
+	}
+	if s := e.Controller.Snapshot(); !slices.Equal(chipTitles(s), []string{"x.txt", "image.png", "image.png", "image.png"}) {
 		t.Fatalf("chips %v", chipTitles(s))
 	}
 }

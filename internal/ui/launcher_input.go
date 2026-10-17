@@ -139,6 +139,11 @@ func (l *Launcher) textKey(k mui.TextKey, panel bool) bool {
 	case mods == Primary() && (key == mui.KeyEnter || key == mui.KeyK || key == mui.KeyN || key == mui.KeyP || key == mui.KeyJ):
 		l.Key(name)
 		return true
+	case mods == Primary() && key == mui.KeyO && !panel && l.ctrl.Snapshot().Depth == 0:
+		// Choose Files… for the root search (R97), unless the selected
+		// entry's action has the key: the Controller decides.
+		l.Key(name)
+		return true
 	case core.MacKeys && mods == mui.Ctrl && (key == mui.KeyN || key == mui.KeyP):
 		// ⌃N and ⌃P move the selection on macOS too, as in its text fields.
 		l.Key(KeyString(Primary(), key))

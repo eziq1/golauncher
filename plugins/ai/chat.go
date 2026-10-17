@@ -129,7 +129,20 @@ func (p *Plugin) chatView(req plugin.ViewRequest) (plugin.View, error) {
 			return plugin.View{}, errChatGone
 		}
 	}
+	_, shown := p.chats[p.views[req.Instance]]
 	ch := p.chatOf(req)
+	if !shown && !req.Restore {
+		// A new chat opened with files (the root search's "Ask AI", R97):
+		// they join its draft before its first message goes out.
+		var pl chatPayload
+		_ = json.Unmarshal(req.Payload, &pl)
+		if len(pl.Files) > 0 && len(ch.msgs) == 0 && len(ch.draft) == 0 {
+			p.mu.Unlock()
+			files := p.prepareFiles(pl.Files, nil)
+			p.addDraft(ch, files)
+			p.mu.Lock()
+		}
+	}
 	if text := ch.pending; text != "" && p.enabled() && !ch.busy {
 		ch.pending = ""
 		run := p.startTurn(ch, text, ch.takeDraft())

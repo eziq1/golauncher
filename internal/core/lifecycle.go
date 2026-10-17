@@ -195,6 +195,11 @@ func (e *Engine) Close() error {
 	for _, l := range slices.Backward(order) {
 		errs = append(errs, e.stop(l, 0))
 	}
+	// The pasted images of the root search go now (rootfiles.go).
+	for _, c := range e.subscribers() {
+		c.clearFiles()
+	}
+	e.removeTemps()
 	return errors.Join(errs...)
 }
 

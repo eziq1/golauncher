@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -368,6 +369,7 @@ func (c copier) copy(hwnd uintptr, o CopyOptions) (CopyResult, error) {
 		if seq, ok := c.waitCopy(l, s0, sent.Add(o.Timeout)); ok {
 			restored, rerr := restoreClipboard(a, saved, true, true, seq)
 			res.Restored = restored
+			c.noteRestored(saved, restored && rerr == nil)
 			if rerr != nil {
 				err = errors.Join(err, fmt.Errorf("%w: %w", ErrNotRestored, rerr))
 			}
@@ -391,6 +393,7 @@ func (c copier) copy(hwnd uintptr, o CopyOptions) (CopyResult, error) {
 	restored, rerr := restoreClipboard(a, saved, true, true, seq)
 	res.Restore = a.now().Sub(t)
 	res.Restored = restored
+	c.noteRestored(saved, restored && rerr == nil)
 
 	res.Text, res.Truncated = truncateRunes(text, o.MaxChars)
 	var errs []error
@@ -404,6 +407,34 @@ func (c copier) copy(hwnd uintptr, o CopyOptions) (CopyResult, error) {
 		errs = append(errs, fmt.Errorf("%w: %w", ErrNotRestored, rerr))
 	}
 	return res, errors.Join(errs...)
+}
+
+// restoredSeq is the clipboard sequence number right after CopySelection
+// put back content that did not carry the history markers before (0: none):
+// the markers on it are ours, added so that clipboard history does not
+// record the user's own copy a second time. A paste into the launcher
+// (ReadOptions.Paste, HasFilesOrImage) does not take them as a request to
+// leave the content alone (R96).
+var restoredSeq atomic.Uint32
+
+// noteRestored records the sequence number of a restore that added the
+// markers to content without them.
+func (c copier) noteRestored(saved []savedFormat, ok bool) {
+	if !ok || len(saved) == 0 {
+		return // no markers were added
+	}
+	marks := c.api.markers()
+	if slices.ContainsFunc(saved, func(s savedFormat) bool { return s.format != 0 && slices.Contains(marks, s.format) }) {
+		return // the user's content was marked already
+	}
+	restoredSeq.Store(c.api.seq())
+}
+
+// ownRestore reports whether the clipboard content at sequence number seq
+// is the user's own, put back by CopySelection with our markers.
+func ownRestore(seq uint32) bool {
+	r := restoredSeq.Load()
+	return r != 0 && r == seq
 }
 
 // waitRelease waits a little for the user to release the keys of the

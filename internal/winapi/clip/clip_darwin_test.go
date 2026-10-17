@@ -134,6 +134,41 @@ func TestImageRoundTrip(t *testing.T) {
 	}
 }
 
+// TestPasteProbe (R96): an image with the text browsers and chat apps put
+// next to it is taken by a paste; with real text it is not. The probe and
+// ReadPaste agree, again and again.
+func TestPasteProbe(t *testing.T) {
+	realClipboard(t)
+	var b bytes.Buffer
+	if err := png.Encode(&b, testImage(3, 2)); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		text string
+		want bool
+	}{
+		{"https://example.com/a.png", true},
+		{"[图片]", true},
+		{"Total 42\n", false},
+	} {
+		if err := write(tc.text, true, pbData{typePNG, b.Bytes()}); err != nil {
+			t.Fatal(err)
+		}
+		for i := range 2 {
+			c, err := ReadPaste()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if probe, got := HasFilesOrImage(), c.Image != nil; probe != tc.want || got != tc.want {
+				t.Errorf("%q #%d: probe %v, ReadPaste image %v; want %v", tc.text, i, probe, got, tc.want)
+			}
+		}
+		if c, _ := Read(); c.Image != nil {
+			t.Errorf("%q: Read (the history's) took the image next to text", tc.text)
+		}
+	}
+}
+
 func TestFilesRoundTrip(t *testing.T) {
 	realClipboard(t)
 	dir := t.TempDir()
