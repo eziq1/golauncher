@@ -106,12 +106,15 @@ type testAdapter struct {
 	candidates  func() ([]string, error) // Info.Candidates
 	login       bool                     // Info.LoginArgs
 	files       bool                     // Command.Files
+	discover    func() []Found           // Info.Discover
+	commands    []string                 // Info.Commands
+	installs    []string                 // Info.InstallPaths
 }
 
 func (a testAdapter) Info() Info {
 	i := Info{ID: "fake", Name: "Fake CLI", VersionArgs: []string{"--version"}, MinVersion: "1.0.0", TestedMajor: 1,
 		PerTurnOnly: a.perTurnOnly, NoPerTurn: !a.perTurnOnly, AssignsSessionID: true, EnvDrop: []string{"AGENTRT_DROPPED"},
-		Candidates: a.candidates}
+		Candidates: a.candidates, Discover: a.discover, Commands: a.commands, InstallPaths: a.installs}
 	if a.login {
 		i.LoginArgs = []string{"login"}
 	}

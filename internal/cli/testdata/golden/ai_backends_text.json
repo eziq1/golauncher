@@ -1,0 +1,9 @@
+Claude Code (claude-code): available
+  * C:\Users\someone\.local\bin\claude.exe  [path] 2.1.296 automatic (firstFound)
+    C:\Users\someone\AppData\Roaming\npm\claude.cmd  [installDir] 2.1.120 not used: found later
+Codex (ChatGPT) (codex): available
+  * C:\Users\someone\AppData\Local\OpenAI\Codex\bin\codex.exe  [app] 0.162.0 automatic (only)
+    C:\Users\someone\AppData\Roaming\npm\node_modules\@openai\codex\vendor\x86_64-pc-windows-msvc\codex\codex.exe  [npmVendor] 0.46.0 too old (needs 0.130.0)
+    C:\Users\someone\AppData\Roaming\npm\codex.cmd  [installDir] launcher script, not used
+Gemini CLI (gemini): notSignedIn
+  * C:\Users\someone\AppData\Roaming\npm\gemini.cmd  [installDir] 0.34.0 automatic (only)

@@ -102,9 +102,12 @@ type Plugin struct {
 	idle   *time.Timer       // releases the processes after the window hid
 	unsubs []func()
 	checks map[string]checked // by backend ID: when it was last found usable
-	asker  backend.PermissionAsker
-	closed bool
-	turns  sync.WaitGroup // answers being written
+	// programs are the programs last handed to the backends, by backend ID
+	// (R84).
+	programs map[string]string
+	asker    backend.PermissionAsker
+	closed   bool
+	turns    sync.WaitGroup // answers being written
 }
 
 // checked is a successful backend check.
@@ -154,7 +157,7 @@ func NewWithOptions(o Options) *Plugin {
 	if len(opts) == 0 {
 		opts = []BackendOption{{ID: DefaultBackendID, Backend: o.Backend}}
 	}
-	p := &Plugin{o: o, chats: map[string]*chat{}, views: map[string]string{}, checks: map[string]checked{}}
+	p := &Plugin{o: o, chats: map[string]*chat{}, views: map[string]string{}, checks: map[string]checked{}, programs: map[string]string{}}
 	p.be = &chooser{p: p, opts: opts}
 	return p
 }
@@ -221,6 +224,7 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 		ev.Subscribe(plugin.EventConfigChanged, p.configChanged),
 	)
 	p.prune()
+	p.applyPrograms()
 	return nil
 }
 
@@ -356,6 +360,7 @@ func (p *Plugin) shown(id string) bool {
 // configChanged follows the preferences: turning AI off stops everything;
 // open chat views show the new state.
 func (p *Plugin) configChanged() {
+	p.applyPrograms()
 	if !p.enabled() {
 		p.mu.Lock()
 		var chats []*chat

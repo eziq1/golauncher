@@ -827,3 +827,63 @@ Windows 上的行为一字未变（Windows 的查找逻辑原样保留，`gemini
 - **测试**：假 CLI 的进程测试（`agentrt`、`acp`、`codex`）原来只在 Windows 上跑，现在 macOS 上也跑（`proc` 的 Unix 实现，进程组）；`TestCheckCandidates` 在 macOS 上用 `codex` 的布局（Homebrew 目录、Codex.app）。只在 Windows 上跑的：Gemini 的 Windows 查找（反斜杠路径）、真实 CLI 的 `TestRealIsolation`（用 cmd.exe 当探针）。
 - **没有验证**：真实的 Codex、Gemini 对话（本机 npm 装的 Codex 是 0.98，低于 0.130 的门槛，而且运行时被系统直接杀掉；Node 本身也坏了）；Codex 应用的 CLI 位置；Homebrew 的 `gemini-cli` 包装脚本的样子（只要求可执行）。
 - **顺带发现（Windows，没有改）**：新版 npm 包（0.150 起）的原生程序在 `vendor/<三元组>/bin/codex.exe`，而 Windows 的查找只看 `vendor/<三元组>/codex/codex.exe`，所以 Windows 上用 npm 装的新版 Codex 找不到原生程序（Codex 应用装的不受影响）。按"Windows 行为不变"的要求这次没有改，需要单独决定。
+
+## 22. 实现记录（R84：在设置里显示探测到的后端程序，2026-10-17）
+
+**问题**：一台电脑上常常装了同一个 CLI 的好几份（Codex 应用自带的、npm 装的、Homebrew 装的……），golauncher 按 §20、§21 的规则自动挑一份；挑错了（比如 npm 里旧版的 Codex、只剩启动脚本）时，对话只报"版本太旧"或"客户端不再支持"，用户看不到用的是哪一份，也没法换。
+
+### 22.1 用户看到的
+
+设置 › 插件 › AI 的偏好下面、"AI 工具"上面多了 **"后端"** 一节（只列能列出安装的后端：Claude Code、Codex (ChatGPT)、Gemini CLI）：
+
+- 每个后端一行：名字和**状态**（可用 / 没有安装 / 没有登录 / 版本太旧（需要 x.y.z 或更新）/ 无法检查）；后端给了原因时（比如"只找到 Node.js 的启动脚本"）显示在下面。
+- **正在使用**：程序的完整路径（可选中、可"复制路径"），下面一行"版本 0.162.0 · 在桌面应用里找到 · 自动选择：版本最高"（或"唯一能用的一份""最先找到"，用户自己选的写"你选的"）。
+- **其他安装**：每份一行，"路径 — 原因 · 在哪里找到"，原因是"版本 0.46.0，太旧""启动脚本，不使用""版本 2.1.120，不使用：另一份先被找到""无法运行：……"或只写版本。
+- **程序**下拉框：自动（推荐，默认）/ 每一份能用的安装（"路径（版本）"）/ 自定义路径…。选自定义路径时出现输入框和"使用"按钮：先在后台检查（文件存在、是程序、`--version` 能跑、版本不低于门槛），通过才保存；否则在下面说明（"这个路径下没有文件""这不是一个程序""版本 0.46.0 太旧：Codex (ChatGPT) 需要 0.130.0 或更新""它没有输出版本号：……"）。
+- 选的程序后来不存在了：这一节用红字说"选择的程序 … 已经不存在，golauncher 改用自动找到的那个"，对话在这之后的第一个回答前也提示一次（`NoticeProgramMissing`）。
+- **重新检测**按钮：重新查找并重新跑版本命令（打开页面时用缓存，第一次打开时检测一次）。检测在后台进行，页面不会卡住，旁边转圈。
+- 对话里遇到"可能是装错了那一份"的错误（版本太旧；后端的错误里有 "no longer supported""unsupported client""requires a newer version" 等），错误下面加一行"golauncher 运行的是 `<路径>`。如果电脑上装了不止一个 X，可以在 设置 › 插件 › AI 的"后端"里换一个"。路径记在这条消息里（`Message.Program`，只在本机的对话历史里）。
+
+### 22.2 结构
+
+| 部分 | 位置 | 说明 |
+|------|------|------|
+| 契约 | `plugins/ai/backend/discovery.go` | `Install`（路径、`Source`、`Launcher`、版本或 `VersionError`、`TooOld`、`Untested`、`Shadowed`）、`Discovery`（`Installs`、`Auto`+`AutoReason`、`Configured`、`ConfiguredMissing`、`InUse`、`Status`、`Message`）、`Discoverer`（`Discover`、`SetProgram`、`Probe`、`Program`）、`Reporter`（插件实现：`BackendReports`、`ProbeProgram`）、`ProgramPref`、`NoticeProgramMissing` |
+| 运行层 | `internal/ai/agentrt/discovery.go` | `Runtime` 实现 `Discoverer`；`Info.Discover`（适配器的完整查找结果，含跳过的启动脚本）、`Info.ResolvePath`（Codex：把配置的 npm 启动脚本换成旁边的原生程序，原来在 `codex.New` 里） |
+| 适配器 | `codex/candidates.go`、`gemini/gemini.go` | 原来的查找改写成 `discover`（带来源和启动脚本），`candidates` 从它得出：**规则只有一份** |
+| 插件 | `plugins/ai/programs.go` | 偏好 `program.<后端 ID>` 交给后端（`SetProgram`；变了就丢掉 5 分钟的检查缓存）、`BackendReports`（几个后端同时检测）、错误提示 |
+| 界面 | `internal/ui/backends_settings.go` | "后端"一节；`app.Env.AIBackends` 是找到的 `Reporter` |
+| glctl | `internal/cli/ai.go` | `glctl ai backends [--real] [--format text]` |
+| 假环境 | `internal/builtin/builtin.go` 的 `fakeAIBackends`、`backend.FakeInstalls` | 三个后端都是假的，安装是编的路径（`C:\Users\someone\…`） |
+
+### 22.3 查找和选择的规则（和 §20、§21 一致，只是多列出跳过的）
+
+- **来源**（`Source`）：`path`（PATH 上）、`installDir`（PATH 之后找的常见目录：`%APPDATA%\npm`、Claude 的 `~/.local/bin`、macOS 的 Homebrew、`~/.npm-global/bin`、nvm）、`app`（Codex 应用：`%LOCALAPPDATA%\OpenAI\Codex\bin`、`Codex.app`）、`npmVendor`（npm 包里的原生程序）、`custom`（用户填的、查找没找到的路径）。
+- **Claude Code**（没有 `Candidates`）：列出 PATH 上每个目录里的 `claude`（Windows 按 `PATHEXT` 的顺序，和 `exec.LookPath` 一样，所以第一个就是 `find` 选的），再加存在的 `InstallPaths`。**自动选择只用第一个**（和以前一样），后面能用的标成 `Shadowed`（"另一份先被找到"），原因是 `firstFound`。
+- **Codex**：§21.5、§21.8 的顺序不变；每个有启动脚本的目录在它的原生程序后面列一次启动脚本（`Launcher`，不探测、不选）。Windows 上 PATH 目录里的启动脚本来源是 `path`，`%APPDATA%\npm` 的是 `installDir`。
+- **Gemini CLI**：Windows 上 `gemini.exe`、`gemini.cmd`，然后是 PATH 上的 `gemini.ps1` 和无扩展名脚本（`Launcher`）；macOS 上 PATH 之后的目录是 `installDir`。
+- **自动选择**：和 `Check` 一样，在自动查找给出的候选里取版本最高且不低于门槛的（同版本取先找到的）；只有一份能用时原因是 `only`。
+- **选了程序**：存在就用它（即使它不在查找结果里，作为 `custom` 列出）；不存在就用自动选择（`ConfiguredMissing`，日志 Warn 一行，不写路径）；自动也找不到时报"没有安装"，消息是配置的路径（和以前一样）。选的程序太旧时照样报"版本太旧"（用户明确选的，不偷偷换掉）。对话已检查过的程序被删掉时，下一次对话会重新查找。
+- **探测**：每份非启动脚本的安装跑一次 `VersionArgs`（只读），同时进行，每个最多 10 秒；用的那一份能用且有 `LoginArgs`（Codex 的 `codex login status`）时再跑一次，退出码不为 0 → "没有登录"。Claude Code 和 Gemini 没有便宜的登录检查，所以只会显示"可用"。结果缓存在 `Runtime` 里，`SetProgram` 换了程序或"重新检测"时才重新探测。
+- **日志**：`Check` 选定后 Debug 一行 `agent CLI chosen source=<来源> configured=<bool> candidates=<n>`，**不写路径**；设置页、glctl 输出里的路径只给本机用户看。
+
+### 22.4 偏好的存储
+
+`program.codex` 这样的值存在 AI 插件的偏好里（`config.json` 的 `plugins["builtin.ai"].preferences`），空字符串或没有就是自动。**没有在 manifest 里声明**（设置页有自己的一节，避免在通用表单里再出现一次），宿主的 `Preferences` 对没声明的名字照样能读；旧版本不认识这个名字，直接忽略。Codex 的值如果是 npm 启动脚本，运行层按 `ResolvePath` 换成原生程序；"使用"按钮保存的是检查后的路径（即会运行的那个）。
+
+### 22.5 测试
+
+- `agentrt/discovery_test.go`：候选的探测（太旧、启动脚本不探测、选最高版本、和 `Check` 一致、缓存和刷新）、选了程序（查找里有 / 没有 → `custom`）、程序消失后回退和对话里只提示一次、都找不到时的报错、Claude 式的"PATH 上第一个 + Shadowed"（真实的 PATH 和 `PATHEXT`）、`commandsFound` 的纯路径测试（Windows 规则在任何系统上都跑）、`Probe`（不存在、目录、太旧、带引号）、状态（没安装带原因、太旧、没登录）。
+- `codex/candidates_test.go`：`TestDiscover`（Windows 布局：PATH、应用、npm 原生程序、三个启动脚本的来源）和 `TestDiscoverDarwin`（PATH、Homebrew 目录、Codex.app、npm 包、链接到 `codex.js` 的启动脚本；非 Windows 上跑）。`gemini_test.go`：两个平台的 `discover`。
+- `plugins/ai/programs_test.go`：只报告能列安装的后端、`program.<id>` 交给后端并丢掉检查缓存、程序消失时的回退、`ProbeProgram`、"装错了"的提示和判断、多个提示都显示。
+- `internal/ui/backends_test.go`（`ui.NewTester`）：各行文字、复制路径、重新检测、下拉框只列能用的安装、自定义路径的三种结果（没有文件、太旧、通过并保存）、改回自动、选的程序不存在时的警告、中文。
+- `internal/cli`：`ai_backends.json`、`ai_backends_text.json` 金样；假环境现在有三个后端（和真实注册表一样），所以 `plugin_list` 金样的"后端"偏好多了 Codex、Gemini 两个选项（§20.4 说的"只有一个选项"不再成立），其他金样不变。
+- 真机：`glctl ai backends --real` 在开发机上跑过，三个后端都列出来了（含太旧的 npm 版 Codex 和 Gemini 的启动脚本）；输出含本机路径，没有记进文档和提交。
+
+### 22.6 和要求不同的地方、遗留问题
+
+- "其他安装"只能选中复制，"复制路径"按钮只给正在使用的那一份。
+- Claude Code、Gemini 的"没有登录"检查不便宜（要启动会话），所以没做；它们的状态最多是"可用"。
+- 正在进行的对话换程序后，常驻进程（Claude Code、Gemini）要到下一次启动进程时才用新程序（释放、崩溃、换偏好重开）；新对话立即用新程序。
+- 对话历史里的旧错误不会补上路径（只有这次以后记录的才有）。
+- 假环境的路径是 Windows 风格，在 macOS 上跑 glctl 也一样（金样跨平台一致）。

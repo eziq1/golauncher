@@ -79,14 +79,42 @@ func platformPackage(triple string) string {
 //
 // The npm launcher itself is never returned: it needs Node.js. When it is
 // all there is, the error says so (ErrNotInstalled); when nothing is found,
-// both are nil. This is Windows (e.OS); elsewhere see unixCandidates.
+// both are nil. This is Windows (e.OS); elsewhere see unixDiscover. The
+// search is discover's; candidates leaves out the launchers.
 func candidates(e findEnv) ([]string, error) {
-	if e.OS != "windows" {
-		return unixCandidates(e)
-	}
+	found := discover(e)
 	var out []string
+	shim := ""
+	for _, f := range found {
+		switch {
+		case !f.Launcher:
+			out = append(out, f.Path)
+		case shim == "":
+			shim = f.Path
+		}
+	}
+	if len(out) == 0 && shim != "" {
+		if e.OS != "windows" {
+			return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: "Only the Node.js launcher of Codex was found (" + shim +
+				"). golauncher runs the native codex binary: install Codex with Homebrew (brew install --cask codex), or put codex from a Codex CLI release on PATH."}
+		}
+		return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: "Only the Node.js launcher of Codex was found (" + shim +
+			"). golauncher runs the native codex.exe: install or update the Codex app, or put codex.exe from a Codex CLI release on PATH."}
+	}
+	return out, nil
+}
+
+// discover is the search of candidates, with how each CLI was found (R84):
+// the native CLIs in order of preference, and the npm launchers (Launcher,
+// one per folder, after the native binaries of their installation), which
+// are never run.
+func discover(e findEnv) []agentrt.Found {
+	if e.OS != "windows" {
+		return unixDiscover(e)
+	}
+	var out []agentrt.Found
 	seen := map[string]bool{}
-	add := func(p string) {
+	add := func(p string, src backend.Source, launcher bool) {
 		if !isFile(p) {
 			return
 		}
@@ -98,7 +126,7 @@ func candidates(e findEnv) ([]string, error) {
 			return
 		}
 		seen[k] = true
-		out = append(out, p)
+		out = append(out, agentrt.Found{Path: p, Source: src, Launcher: launcher})
 	}
 	var dirs []string // PATH, cleaned
 	for _, d := range e.Path {
@@ -108,39 +136,39 @@ func candidates(e findEnv) ([]string, error) {
 		}
 	}
 	for _, d := range dirs {
-		add(filepath.Join(d, exeName))
+		add(filepath.Join(d, exeName), backend.SourcePath, false)
 	}
 	if e.LocalAppData != "" {
 		bin := filepath.Join(e.LocalAppData, "OpenAI", "Codex", "bin")
-		add(filepath.Join(bin, exeName))
+		add(filepath.Join(bin, exeName), backend.SourceApp, false)
 		matches, _ := filepath.Glob(filepath.Join(bin, "*", exeName))
 		slices.Sort(matches)
 		for _, m := range matches {
-			add(m)
+			add(m, backend.SourceApp, false)
 		}
 	}
-	shimDirs := slices.Clone(dirs)
-	if e.AppData != "" {
-		shimDirs = append(shimDirs, filepath.Join(e.AppData, "npm"))
+	type shimDir struct {
+		dir string
+		src backend.Source
 	}
-	shim := ""
+	var shimDirs []shimDir
+	for _, d := range dirs {
+		shimDirs = append(shimDirs, shimDir{d, backend.SourcePath})
+	}
+	if e.AppData != "" {
+		shimDirs = append(shimDirs, shimDir{filepath.Join(e.AppData, "npm"), backend.SourceInstallDir})
+	}
 	for _, d := range shimDirs {
-		s := shimIn(d)
+		s := shimIn(d.dir)
 		if s == "" {
 			continue
 		}
-		if shim == "" {
-			shim = s
+		for _, p := range vendored(d.dir, e) {
+			add(p, backend.SourceNpmVendor, false)
 		}
-		for _, p := range vendored(d, e) {
-			add(p)
-		}
+		add(s, d.src, true)
 	}
-	if len(out) == 0 && shim != "" {
-		return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: "Only the Node.js launcher of Codex was found (" + shim +
-			"). golauncher runs the native codex.exe: install or update the Codex app, or put codex.exe from a Codex CLI release on PATH."}
-	}
-	return out, nil
+	return out
 }
 
 // shimIn returns the npm launcher in dir, "" when there is none.
@@ -231,7 +259,7 @@ func unixDirs(home string) (dirs, apps []string) {
 	return agentrt.UnixBinDirs(home), apps
 }
 
-// unixCandidates is candidates outside Windows, in order of preference:
+// unixDiscover is discover outside Windows, in order of preference:
 //
 //  1. a native codex in a directory of PATH, then of e.Dirs (Homebrew, a
 //     release binary, …);
@@ -240,57 +268,63 @@ func unixDirs(home string) (dirs, apps []string) {
 //     is a script, usually a link to bin/codex.js) is in one of those
 //     directories, in every layout the launcher looks at.
 //
-// As on Windows, the launcher itself is never returned: it needs Node.js.
-func unixCandidates(e findEnv) ([]string, error) {
-	var out []string
+// As on Windows, the launcher itself is never returned: it needs Node.js
+// (unixDiscover lists it as a Launcher; candidates leaves it out).
+func unixDiscover(e findEnv) []agentrt.Found {
+	var out []agentrt.Found
 	seen := map[string]bool{}
-	add := func(p string) {
-		if !isExecutable(p) || isScript(p) {
+	add := func(p string, src backend.Source, launcher bool) {
+		if launcher {
+			if !isFile(p) {
+				return
+			}
+		} else if !isExecutable(p) || isScript(p) {
 			return
 		}
 		if abs, err := filepath.Abs(p); err == nil {
 			p = abs
 		}
 		k := filepath.Clean(p)
-		if real, err := filepath.EvalSymlinks(p); err == nil {
+		if real, err := filepath.EvalSymlinks(p); err == nil && !launcher {
 			k = real
 		}
 		if seen[k] {
 			return
 		}
 		seen[k] = true
-		out = append(out, p)
+		out = append(out, agentrt.Found{Path: p, Source: src, Launcher: launcher})
 	}
-	var dirs []string
-	for _, d := range append(slices.Clone(e.Path), e.Dirs...) {
+	type dir struct {
+		dir string
+		src backend.Source
+	}
+	var dirs []dir
+	for i, d := range append(slices.Clone(e.Path), e.Dirs...) {
+		src := backend.SourcePath
+		if i >= len(e.Path) {
+			src = backend.SourceInstallDir
+		}
 		if d = strings.TrimSpace(d); d != "" {
-			dirs = append(dirs, d)
+			dirs = append(dirs, dir{d, src})
 		}
 	}
 	for _, d := range dirs {
-		add(filepath.Join(d, unixExeName))
+		add(filepath.Join(d.dir, unixExeName), d.src, false)
 	}
 	for _, p := range e.Apps {
-		add(p)
+		add(p, backend.SourceApp, false)
 	}
-	shim := ""
 	for _, d := range dirs {
-		s := filepath.Join(d, unixExeName)
+		s := filepath.Join(d.dir, unixExeName)
 		if !isFile(s) || !isScript(s) {
 			continue
 		}
-		if shim == "" {
-			shim = s
-		}
 		for _, p := range unixVendored(s, e) {
-			add(p)
+			add(p, backend.SourceNpmVendor, false)
 		}
+		add(s, d.src, true)
 	}
-	if len(out) == 0 && shim != "" {
-		return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: "Only the Node.js launcher of Codex was found (" + shim +
-			"). golauncher runs the native codex binary: install Codex with Homebrew (brew install --cask codex), or put codex from a Codex CLI release on PATH."}
-	}
-	return out, nil
+	return out
 }
 
 // unixTriples are the Rust target triples of the native binaries this Mac

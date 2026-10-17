@@ -53,7 +53,7 @@
 // one with the highest version. On macOS the binary is `codex`: on PATH, in
 // Homebrew's folders, in the Codex app, or inside an npm installation (the
 // `codex` on PATH is then a link to the launcher script; see
-// unixCandidates).
+// unixDiscover).
 package codex
 
 import (
@@ -166,9 +166,6 @@ type Backend struct {
 
 // New returns a backend configured by o.
 func New(o Options) *Backend {
-	if o.Path != "" {
-		o.Path = nativePath(o.Path, candidateEnv())
-	}
 	return &Backend{Runtime: agentrt.New(adapter{}, o)}
 }
 
@@ -192,7 +189,10 @@ func (adapter) Info() agentrt.Info {
 		PerTurnOnly:      true,
 		AssignsSessionID: true,
 		Candidates:       func() ([]string, error) { return candidates(candidateEnv()) },
-		LoginArgs:        []string{"login", "status"},
+		Discover:         func() []agentrt.Found { return discover(candidateEnv()) },
+		// A configured npm launcher runs the native binary next to it.
+		ResolvePath: func(path string) string { return nativePath(path, candidateEnv()) },
+		LoginArgs:   []string{"login", "status"},
 	}
 }
 

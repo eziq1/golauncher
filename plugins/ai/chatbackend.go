@@ -144,8 +144,10 @@ func (p *Plugin) transcript(ch *chat) string {
 	heading := p.assistantName(ch.sess)
 	answer := func(text, notice string, tools []string, steps []ToolStep) {
 		b.WriteString("**" + heading + "**\n\n")
-		if notice != "" {
-			b.WriteString("_" + p.noticeLine(ch.sess, notice) + "_\n\n")
+		for code := range strings.SplitSeq(notice, ",") {
+			if code != "" {
+				b.WriteString("_" + p.noticeLine(ch.sess, code) + "_\n\n")
+			}
 		}
 		for _, t := range tools {
 			b.WriteString("_" + p.toolLine(t) + "_\n\n")
@@ -170,7 +172,7 @@ func (p *Plugin) transcript(ch *chat) string {
 				b.WriteString("_" + l.T("chat.stopped") + "_\n\n")
 			}
 			if m.Error != "" {
-				b.WriteString(p.errorMarkdown(ch.sess, m.Error) + "\n\n")
+				b.WriteString(p.errorMarkdown(ch.sess, m.Error, m.Program) + "\n\n")
 			}
 		}
 	}
@@ -200,12 +202,16 @@ func (p *Plugin) noticeLine(sess Session, code string) string {
 	switch code {
 	case backend.NoticeNewSession:
 		return l.T("notice.newSession", "backend", p.backendName(sess))
+	case backend.NoticeProgramMissing:
+		return l.T("notice.programMissing", "backend", p.backendName(sess))
 	}
 	return code
 }
 
-// errorMarkdown explains a recorded error ("kind:message") of a chat.
-func (p *Plugin) errorMarkdown(sess Session, recorded string) string {
+// errorMarkdown explains a recorded error ("kind:message") of a chat; when
+// the error may come from the wrong installation, it names the program that
+// ran and where to choose another (R84).
+func (p *Plugin) errorMarkdown(sess Session, recorded, program string) string {
 	l := p.h.I18n()
 	kind, msg, _ := strings.Cut(recorded, ":")
 	id, _ := p.backendOf(sess)
@@ -223,6 +229,9 @@ func (p *Plugin) errorMarkdown(sess Session, recorded string) string {
 	out := "> **" + l.T("error.heading") + "** " + text
 	if msg = strings.TrimSpace(msg); msg != "" {
 		out += "\n>\n> " + strings.ReplaceAll(msg, "\n", "\n> ")
+	}
+	if program != "" {
+		out += "\n>\n> " + l.T("error.program", "path", program, "backend", p.backendName(sess))
 	}
 	return out
 }

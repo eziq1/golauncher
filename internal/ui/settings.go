@@ -92,7 +92,8 @@ type Settings struct {
 	loadedFor string       // the plugin whose options were loaded
 	services  mui.Services // redraws the window when a call finishes
 
-	agent agentState // the AI tools section of the AI plugin's page
+	agent    agentState    // the AI tools section of the AI plugin's page
+	backends backendsState // its Backends section (guarded by asyncMu)
 
 	appearance appearanceState // the Appearance page
 
@@ -661,6 +662,7 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 		}
 	}
 	if p.ID == aiPluginID {
+		s.backendsSection(c)
 		s.agentSection(c, cfg)
 	}
 }

@@ -223,6 +223,12 @@ func TestCandidates(t *testing.T) {
 	if err != nil || !slices.Equal(got, []string{`C:\c\gemini.exe`, `C:\b\gemini.cmd`, `C:\Users\someone\AppData\Roaming\npm\gemini.cmd`}) {
 		t.Errorf("candidates %q %v", got, err)
 	}
+	// The discovery (R84) also lists the launcher it skips, and how each was
+	// found.
+	if got := foundStrings(discover(fakeHost(env, files))); !slices.Equal(got, []string{`C:\c\gemini.exe:path`, `C:\b\gemini.cmd:path`,
+		`C:\Users\someone\AppData\Roaming\npm\gemini.cmd:installDir`, `C:\a\gemini.ps1:path:launcher`}) {
+		t.Errorf("discover %q", got)
+	}
 	// Only launchers golauncher does not run.
 	got, err = candidates(fakeHost(env, map[string]string{`C:\a\gemini.ps1`: "", `C:\a\gemini`: ""}))
 	if len(got) != 0 || err == nil || !strings.Contains(err.Error(), `C:\a\gemini.ps1`) {
@@ -252,6 +258,10 @@ func TestCandidatesUnix(t *testing.T) {
 	got, err := candidates(h)
 	if err != nil || !slices.Equal(got, []string{"/Users/someone/bin/gemini", "/opt/homebrew/bin/gemini", "/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini"}) {
 		t.Errorf("candidates %q %v", got, err)
+	}
+	if got := foundStrings(discover(h)); !slices.Equal(got, []string{"/Users/someone/bin/gemini:path", "/opt/homebrew/bin/gemini:path",
+		"/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini:installDir"}) {
+		t.Errorf("discover %q", got)
 	}
 	// A gemini that may not be run, or none.
 	h = fakeHost(env, map[string]string{"/usr/bin/gemini": ""})
@@ -318,4 +328,16 @@ func TestStripComments(t *testing.T) {
 	if err := json.Unmarshal(stripComments([]byte(in)), &v); err != nil || v["a"] != "// no" || v["c"] != `"/*` {
 		t.Errorf("%s %v %v", stripComments([]byte(in)), v, err)
 	}
+}
+
+// foundStrings describes what discover found: path, source and "launcher".
+func foundStrings(found []agentrt.Found) []string {
+	out := make([]string, len(found))
+	for i, f := range found {
+		out[i] = f.Path + ":" + string(f.Source)
+		if f.Launcher {
+			out[i] += ":launcher"
+		}
+	}
+	return out
 }

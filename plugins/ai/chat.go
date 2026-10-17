@@ -243,7 +243,11 @@ func (p *Plugin) turn(ctx context.Context, ch *chat, text string) {
 			p.askPermission(ctx, ch, ev.Permission)
 		case backend.EventNotice:
 			p.mu.Lock()
-			ch.notice = ev.Text
+			if ch.notice == "" {
+				ch.notice = ev.Text
+			} else if !slices.Contains(strings.Split(ch.notice, ","), ev.Text) {
+				ch.notice += "," + ev.Text
+			}
 			p.mu.Unlock()
 			p.push(ch)
 		case backend.EventDone, backend.EventError:
@@ -266,7 +270,11 @@ func (p *Plugin) finish(ch *chat, ev backend.Event, start time.Time) {
 		if e, ok := errors.AsType[errChatUnavailable](ev.Err); ok {
 			m.Error = recordedChatUnavailable + ":" + e.id
 		} else if ev.Err != nil {
-			m.Error = string(backend.KindOf(ev.Err)) + ":" + errorText(ev.Err)
+			kind, text := string(backend.KindOf(ev.Err)), errorText(ev.Err)
+			m.Error = kind + ":" + text
+			if wrongInstallation(kind, text) {
+				m.Program = p.programOf(ch.sess)
+			}
 		}
 	case backend.EventDone:
 		m.Stopped = ev.Cancelled

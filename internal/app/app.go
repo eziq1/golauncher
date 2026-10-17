@@ -90,6 +90,10 @@ type Env struct {
 	Agent *agent.Agent
 	// Themes are the themes and the live appearance (docs/themes.md).
 	Themes *theme.Manager
+	// AIBackends lists the AI chat's backends and their installations (the
+	// AI plugin; nil without it): the settings page and glctl show them
+	// (R84, docs/ai.md §22).
+	AIBackends backend.Reporter
 
 	tempDir   string
 	manifests []plugin.Manifest
@@ -283,6 +287,9 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 			SetPermissionAsker(backend.PermissionAsker)
 		}); ok {
 			s.SetPermissionAsker(ask)
+		}
+		if r, ok := p.(backend.Reporter); ok && env.AIBackends == nil {
+			env.AIBackends = r
 		}
 	}
 	return env, nil

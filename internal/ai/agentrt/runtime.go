@@ -74,6 +74,8 @@ type Runtime struct {
 
 	mu       sync.Mutex
 	cli      *cliInfo
+	disc     *backend.Discovery // the last discovery (R84)
+	tried    string             // the CLI of the last failed check, for messages
 	convs    map[*conversation]bool
 	live     []*conversation // with a persistent process, least recently used first
 	sessions *SessionMap
@@ -87,6 +89,9 @@ type cliInfo struct {
 	path     string
 	version  string
 	untested bool
+	// fallback: the configured CLI no longer exists and this is the
+	// automatic choice (the chat says so, backend.NoticeProgramMissing).
+	fallback bool
 }
 
 // New returns a runtime for the CLI of a, configured by o.
@@ -102,6 +107,9 @@ func New(a Adapter, o Options) *Runtime {
 		log = slog.New(slog.DiscardHandler)
 	}
 	info := a.Info()
+	if o.Path != "" && info.ResolvePath != nil {
+		o.Path = info.ResolvePath(o.Path)
+	}
 	return &Runtime{a: a, info: info, o: o, log: log.With("backend", info.ID), convs: map[*conversation]bool{}}
 }
 
@@ -117,19 +125,24 @@ func (r *Runtime) errorf(format string, args ...any) error {
 // (and, with Info.LoginArgs, that it is signed in). Of several candidates
 // (Info.Candidates) the one with the highest acceptable version is used.
 func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
-	paths, err := r.findAll()
+	configured := r.configured()
+	paths, missing, err := r.findAll(configured)
 	if err != nil {
 		return backend.Status{}, err
+	}
+	if missing {
+		r.log.Warn("the configured CLI no longer exists; using the automatic choice")
 	}
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 	var best *cliInfo
 	var firstErr error
+	tried := ""
 	for _, path := range paths {
 		cli, err := r.checkOne(ctx, path)
 		if err != nil {
 			if firstErr == nil || backend.KindOf(firstErr) != backend.ErrVersion && backend.KindOf(err) == backend.ErrVersion {
-				firstErr = err
+				firstErr, tried = err, path
 			}
 			continue
 		}
@@ -138,8 +151,14 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 		}
 	}
 	if best == nil {
+		r.mu.Lock()
+		r.tried = tried
+		r.mu.Unlock()
 		return backend.Status{}, firstErr
 	}
+	best.fallback = missing
+	// Which kind of installation runs, never its path (docs/ai.md §9).
+	r.log.Debug("agent CLI chosen", "source", r.sourceOf(best.path), "configured", configured != "" && !missing, "candidates", len(paths))
 	if len(r.info.LoginArgs) > 0 {
 		out, code, err := r.run(ctx, best.path, r.info.LoginArgs)
 		if err != nil {
@@ -150,7 +169,7 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 		}
 	}
 	r.mu.Lock()
-	r.cli = best
+	r.cli, r.tried = best, ""
 	r.mu.Unlock()
 	r.log.Info("agent CLI found", "version", best.version, "untested", best.untested, "candidates", len(paths))
 	return backend.Status{Version: best.version, Untested: best.untested}, nil
@@ -206,7 +225,7 @@ func (r *Runtime) resolve(ctx context.Context) (*cliInfo, error) {
 	r.mu.Lock()
 	cli := r.cli
 	r.mu.Unlock()
-	if cli != nil {
+	if cli != nil && isFile(cli.path) { // a CLI that was removed is looked for again
 		return cli, nil
 	}
 	if _, err := r.Check(ctx); err != nil {
@@ -321,25 +340,41 @@ func (r *Runtime) drop(c *conversation) {
 	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
 }
 
-// findAll locates the CLIs to choose from: the configured one, the
-// adapter's candidates, or the first found on PATH or in the usual install
-// locations.
-func (r *Runtime) findAll() ([]string, error) {
-	if r.o.Path == "" {
-		if c := r.a.Info().Candidates; c != nil {
-			paths, err := c()
-			if len(paths) > 0 {
-				return paths, nil
-			}
-			if _, ok := errors.AsType[*backend.Error](err); ok {
-				return nil, err
-			}
-			msg := ""
-			if err != nil {
-				msg = err.Error()
-			}
-			return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: msg}
+// findAll locates the CLIs to choose from: the configured one, else the
+// automatic choice's (autoPaths). When the configured CLI no longer exists
+// (missing), the automatic choice is used instead (R84); when that finds
+// nothing either, the error names the configured path.
+func (r *Runtime) findAll(configured string) (paths []string, missing bool, err error) {
+	if configured != "" {
+		if isFile(configured) {
+			return []string{configured}, false, nil
 		}
+		paths, err := r.autoPaths()
+		if err != nil {
+			return nil, true, &backend.Error{Kind: backend.ErrNotInstalled, Message: configured}
+		}
+		return paths, true, nil
+	}
+	paths, err = r.autoPaths()
+	return paths, false, err
+}
+
+// autoPaths are the CLIs the automatic choice chooses from: the adapter's
+// candidates, or the first found on PATH or in the usual install locations.
+func (r *Runtime) autoPaths() ([]string, error) {
+	if c := r.a.Info().Candidates; c != nil {
+		paths, err := c()
+		if len(paths) > 0 {
+			return paths, nil
+		}
+		if _, ok := errors.AsType[*backend.Error](err); ok {
+			return nil, err
+		}
+		msg := ""
+		if err != nil {
+			msg = err.Error()
+		}
+		return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: msg}
 	}
 	p, err := r.find()
 	if err != nil {
@@ -348,14 +383,8 @@ func (r *Runtime) findAll() ([]string, error) {
 	return []string{p}, nil
 }
 
-// find locates the CLI.
+// find locates the CLI on PATH or in the usual install locations.
 func (r *Runtime) find() (string, error) {
-	if r.o.Path != "" {
-		if fi, err := os.Stat(r.o.Path); err == nil && !fi.IsDir() {
-			return r.o.Path, nil
-		}
-		return "", &backend.Error{Kind: backend.ErrNotInstalled, Message: r.o.Path}
-	}
 	info := r.a.Info() // the install locations may depend on the environment
 	for _, name := range info.Commands {
 		if p, err := exec.LookPath(name); err == nil {

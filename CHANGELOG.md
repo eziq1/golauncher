@@ -8,6 +8,21 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **AI backends in the settings** (R84, docs/ai.md §22): *Settings › Plugins
+  › AI › Backends* lists Claude Code, Codex (ChatGPT) and Gemini CLI with
+  their status (available, not installed, not signed in, version too old),
+  the program in use (path, version, how it was found: PATH, a usual install
+  folder, the desktop app, inside an npm installation) and why it was chosen,
+  and the other installations found (marked too old, launcher script not
+  used, found later). *Program* chooses one of them or a custom path, which is
+  checked first (it must exist and print an acceptable version); *Re-detect*
+  looks again. A chosen program that disappears falls back to the automatic
+  choice, and the chat says so. Errors that may come from the wrong
+  installation (too old, client no longer supported) name the program that
+  ran. glctl ai backends [--real] prints the same as JSON.
+
 ## [0.7.0] - 2026-10-16
 
 ### Added
