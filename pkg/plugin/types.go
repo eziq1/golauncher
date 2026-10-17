@@ -344,6 +344,15 @@ type View struct {
 	// default (clear the search field, then go back), e.g. "Stop" while an
 	// answer is being written. Drop it when Escape should go back again.
 	Escape *Action `json:"escape,omitempty"`
+	// KeepOnHide asks the host to keep this view when the window hides while
+	// it is on top: the next show returns to it, with the whole navigation
+	// stack and the text typed in each level, instead of the root search (a
+	// chat whose answer was copied elsewhere). The view stays open (no
+	// ViewClosed) while kept. The host returns to the root anyway after the
+	// user's "Return to the main screen" setting (10 minutes by default),
+	// when text was selected for the new show, or when the restore request
+	// (ViewRequest.Restore) fails. See docs/keep-view.md.
+	KeepOnHide bool `json:"keepOnHide,omitzero"`
 }
 
 // Form is an input form. The host keeps the field values and passes them in

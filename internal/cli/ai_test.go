@@ -46,3 +46,30 @@ func TestSessionAIChatChinese(t *testing.T) {
 		t.Errorf("not in Chinese:\n%s", out)
 	}
 }
+
+// TestSessionAIChatKept hides the launcher in a chat and shows it again: the
+// chat comes back with the footer's hint, then with a draft (no hint over a draft; docs/keep-view.md);
+// shown as by the selected-text hotkey, the root search instead.
+func TestSessionAIChatKept(t *testing.T) {
+	s := filepath.Join(t.TempDir(), "s.json")
+	glctl(t, "session", "new", "-s", s)
+	glctl(t, "session", "type", "-s", s, "why is the sky blue")
+	glctl(t, "session", "key", "-s", s, "Tab")
+	glctl(t, "session", "key", "-s", s, "Enter") // turns AI on and asks
+	glctl(t, "session", "hide", "-s", s)
+	out, _ := glctl(t, "session", "reopen", "-s", s)
+	golden(t, "session_ai_kept", out)
+	glctl(t, "session", "type", "-s", s, "a draft")
+	glctl(t, "session", "hide", "-s", s)
+	out, _ = glctl(t, "session", "reopen", "-s", s, "--format", "text")
+	for _, want := range []string{"| You asked: why is the sky blue", `text: "a draft"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("no %q in:\n%s", want, out)
+		}
+	}
+	glctl(t, "session", "hide", "-s", s)
+	out, _ = glctl(t, "session", "reopen", "-s", s, "root", "--format", "text")
+	if strings.Contains(out, "You asked") || !strings.Contains(out, "(depth 0)") {
+		t.Errorf("reopen root:\n%s", out)
+	}
+}

@@ -566,6 +566,9 @@ func writeStep(w io.Writer, r stepResult) {
 	if s.Tasks != nil {
 		fmt.Fprintf(w, "tasks: %s\n", s.Tasks.Label)
 	}
+	if s.Hint != "" {
+		fmt.Fprintf(w, "hint: Esc %s\n", s.Hint)
+	}
 }
 
 func (c *cli) plugin(ctx context.Context, args []string) error {

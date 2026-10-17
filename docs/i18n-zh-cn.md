@@ -59,6 +59,7 @@
 | Preferences | 偏好设置 | 插件的设置项 |
 | General / Plugins / Advanced / About | 通用 / 插件 / 高级 / 关于 | 设置页导航 |
 | Root search / main search | 主搜索 | |
+| Main screen（"回到主界面"） | 主界面 | 作为"要回去的地方"时用主界面，如设置"回到主界面"、页脚提示（docs/keep-view.md） |
 | Recent | 最近使用（主搜索）/ 最近（剪贴板） | |
 | Alias | 别名 | |
 | Hotkey / Shortcut | 快捷键 | 录制快捷键 = Record shortcut |

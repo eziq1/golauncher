@@ -151,6 +151,7 @@ Raycast 的"进入命令 → 子视图 → 返回"模型由 Engine 维护的 `[]
 - 根视图是全局搜索，聚合所有插件的 `RootItems`。
 - 执行 `Push(view)` 类型的动作时，压入插件返回的新视图。
 - 栈顶视图决定 UI 渲染哪种布局：List、Grid、Detail 或 Form。
+- 窗口隐藏后再呼出，默认回到根视图；栈顶视图声明了 `View.KeepOnHide`（如 AI 对话）时整栈保留，下次呼出恢复（设置"回到主界面"：立即 / 10 分钟后（默认）/ 从不；读到新的选中文字、选中文字热键、插件拒绝恢复等情况仍回根）。详见 [keep-view.md](keep-view.md)（R75）。
 
 ## 5. 插件系统
 
@@ -366,6 +367,7 @@ glctl query <text>                         # 根搜索，输出排序后的分�
 glctl run <plugin>/<command> [--text t]    # 运行命令，输出 outcome、effects 和视图快照
 glctl session new -s FILE [env flags]      # 开始多步会话
 glctl session type|key|select|action|show -s FILE [args]
+glctl session hide|reopen [root] -s FILE  # 模拟窗口隐藏再呼出（keep-view.md）
 glctl plugin list | plugin info <id>
 glctl config path | get [key] | set <key> <value>   # 总是读写真实配置文件；key 是点分路径
 glctl i18n check [--src DIR]               # 检查消息目录和代码里的 key 引用（§10.5）

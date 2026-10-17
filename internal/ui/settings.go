@@ -387,6 +387,7 @@ func (s *Settings) generalPage(c *mui.Context, cfg config.Config) {
 	s.toggle(c, s.loc.T("settings.general.hideOnBlur"), "", cfg.HideOnBlur, func(v bool) {
 		s.update(func(c *config.Config) { c.HideOnBlur = v })
 	})
+	s.returnToRootSetting(c, cfg)
 	s.toggle(c, s.loc.T("settings.general.contextAware"), s.loc.T("settings.general.contextAware.desc"), cfg.ContextAware, func(v bool) {
 		s.update(func(c *config.Config) { c.ContextAware = v })
 	})
