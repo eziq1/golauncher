@@ -242,6 +242,16 @@ Accessibility permission after each update: remove golauncher from the list
 and add it again. Automatic updates work as on Windows. Requires macOS 13 or
 later. See [docs/macos-port.md](docs/macos-port.md).
 
+**Homebrew** (once the tap repository is published):
+`brew install --cask eziq1/tap/golauncher`, and later
+`brew upgrade --cask golauncher` (then quit and reopen golauncher). It installs
+golauncher.app into `/Applications` and links `glctl` into Homebrew's `bin`. A
+copy installed with Homebrew does not offer to install itself and leaves
+updates to Homebrew (*Settings › About* says so). The app is not notarized,
+so macOS still blocks its first start: allow it in *System Settings › Privacy &
+Security › Open Anyway*. `brew uninstall --zap --cask golauncher` also removes
+your settings and data. See [docs/homebrew-packaging.md](docs/homebrew-packaging.md).
+
 | What | Where |
 |------|-------|
 | Configuration | `~/Library/Application Support/golauncher/config.json` |

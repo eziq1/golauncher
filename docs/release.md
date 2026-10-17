@@ -46,6 +46,7 @@
 4. `git tag -a vX.Y.Z -m "golauncher X.Y.Z"`，然后 `git push origin vX.Y.Z`。
 5. 等发布工作流跑完，在 Releases 页面检查产物和发布说明。
 6. winget：从这次运行的 Artifacts 下载 `winget-manifests`，按 [winget-packaging.md §4.2](winget-packaging.md) 提交到 microsoft/winget-pkgs（软件包被接受之后，每个正式版本都要提交一次）。
+7. Homebrew：发布工作流把 cask 作为构建产物 `homebrew-cask` 上传，`homebrew` 任务在 macOS 上用 `brew style`/`brew audit` 检查；设置了 Secret `HOMEBREW_TAP_TOKEN` 时自动推送到 `eziq1/homebrew-tap`，否则下载产物后手动提交到 tap 仓库，见 [homebrew-packaging.md §5](homebrew-packaging.md)。
 
 ## 4. v0.1.0 的发布记录
 

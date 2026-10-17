@@ -39,6 +39,17 @@ Before 1.0.0, minor versions may contain breaking changes.
   itself and does not update itself: *Settings › About* says it is managed by
   winget, and a check for updates tells you to run
   `winget upgrade eziq1.golauncher`. See `docs/winget-packaging.md`.
+- **Homebrew cask** (R98): `brew install --cask eziq1/tap/golauncher` from the
+  tap `eziq1/homebrew-tap` (to be created) installs golauncher.app from the
+  release's macOS zip for Apple silicon or Intel and links `glctl`. The cask is
+  written by `scripts/release/brewcask` from the release zips and
+  `checksums.txt`; the 0.8.0 cask is in `packaging/homebrew/`. The release
+  workflow builds it as an artifact and checks it with `brew style` and
+  `brew audit`; it is pushed to the tap only when the `HOMEBREW_TAP_TOKEN`
+  secret is set. A copy installed with Homebrew does not offer to install
+  itself or update itself; *Settings › About* says it is managed by Homebrew,
+  and a check for updates tells you to run `brew upgrade --cask golauncher`.
+  See `docs/homebrew-packaging.md`.
 
 ### Fixed
 

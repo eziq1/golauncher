@@ -55,7 +55,7 @@ func (s *Shell) newUpdates(o Options) *update.Service {
 		dir = filepath.Join(os.TempDir(), "golauncher-update")
 	}
 	self, _ := os.Executable()
-	disabled := updateDisabled(os.Getenv, o.winget)
+	disabled := updateDisabled(os.Getenv, o.managedBy)
 	return update.NewService(update.Options{
 		Client:      updateClient(o.Version),
 		Dir:         dir,
@@ -77,15 +77,13 @@ func (s *Shell) newUpdates(o Options) *update.Service {
 
 // updateDisabled returns why updates are off whatever the installation
 // ("" when the update service decides): GOLAUNCHER_NO_UPDATE=1, or a copy
-// that winget installed and updates.
-func updateDisabled(getenv func(string) string, winget bool) string {
-	switch {
-	case getenv(update.EnvNoUpdate) == "1":
+// that a package manager (managedBy, Options.managedBy) installed and
+// updates.
+func updateDisabled(getenv func(string) string, managedBy string) string {
+	if getenv(update.EnvNoUpdate) == "1" {
 		return update.DisabledEnv
-	case winget:
-		return update.DisabledWinget
 	}
-	return ""
+	return managedBy
 }
 
 // updateSettings returns the user's update settings.
