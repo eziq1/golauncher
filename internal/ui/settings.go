@@ -80,6 +80,7 @@ type Settings struct {
 
 	agent    agentState    // the AI tools section of the AI plugin's page
 	backends backendsState // its Backends section (guarded by asyncMu)
+	actions  actionsState  // its AI Actions section
 
 	appearance appearanceState // the Appearance page
 

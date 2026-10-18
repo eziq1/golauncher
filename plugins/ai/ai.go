@@ -416,6 +416,15 @@ type chatPayload struct {
 	// Files are attached to the new chat's draft (files handed to the root
 	// search, R97); with Text the message goes out with them at once.
 	Files []string `json:"files,omitempty"`
+
+	// Prompt is the prompt of an AI action using {selection} or {input}
+	// (R103), filled in with Vars, Quote and the input argument when the
+	// chat opens; the first message instead of Instruction or Text.
+	Prompt string      `json:"prompt,omitempty"`
+	Vars   *promptVars `json:"vars,omitempty"`
+	// Result shows only the answer (an action's result mode,
+	// docs/ai-actions.md §4) until Tab turns the view into the chat.
+	Result bool `json:"result,omitzero"`
 }
 
 // enablePayload is the payload of the "enable" callback.
@@ -502,6 +511,8 @@ func (p *Plugin) HandleAction(ctx context.Context, a plugin.ActionDo) (plugin.Re
 		return plugin.Result{ClearText: true}, nil
 	case "claude", "chatgpt":
 		return p.continueIn(a.Target, ip.Instance, a.Query), nil
+	case "tochat":
+		return p.toChat(ip.Instance, a.Query), nil
 	}
 	return plugin.Result{}, nil
 }

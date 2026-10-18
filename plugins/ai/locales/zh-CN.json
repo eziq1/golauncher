@@ -150,6 +150,10 @@
   "selection.reply.keywords": "回复, 回答, 回复建议, reply",
   "action.replaceSelection": "替换选中的文字",
   "off.selection": "打开后会回到搜索界面，你可以在那里选择让 AI 对选中的文字做什么。选择之前不会发送任何内容。",
+  "actions.input.placeholder": "补充要求（可留空）",
+  "action.toChat": "转为对话",
+  "result.placeholder": "Enter 粘贴 · Tab 转为对话继续追问",
+  "result.empty": "没有回答。",
 
   "pref.model.codex.title": "模型（Codex）",
   "pref.model.codex.description": "Codex 用哪个模型回答。默认：你的 Codex CLI 版本的默认模型（不使用你自己的 Codex 设置）。",

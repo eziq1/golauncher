@@ -175,6 +175,7 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 	}
 	if p.ID == aiPluginID {
 		s.backendsSection(c)
+		s.actionsSection(c, cfg)
 		s.agentSection(c, cfg)
 	}
 }

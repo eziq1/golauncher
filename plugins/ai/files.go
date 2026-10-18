@@ -9,8 +9,9 @@ import (
 
 // FileItems implements plugin.FileActionsProvider (R97, docs/root-files.md):
 // for the files handed to the root search, "Ask AI about <name>" opens a new
-// chat with them in its draft (the first action of the section) and, with
-// text typed, "Ask AI: <text>" sends the text with them at once. With AI
+// chat with them in its draft (the first action of the section), the AI
+// actions on files follow (R103) and, with text typed, "Ask AI: <text>"
+// sends the text with them at once. With AI
 // off, one row opens the prompt to turn it on, which keeps them. Nothing is
 // read or sent until the user picks an action.
 func (p *Plugin) FileItems(ctx context.Context, q plugin.FilesQuery) ([]plugin.Item, error) {
@@ -51,5 +52,11 @@ func (p *Plugin) FileItems(ctx context.Context, q plugin.FilesQuery) ([]plugin.I
 	if typed == "" {
 		ask.Score = 1 // the first action of the section
 	}
-	return append(items, ask), nil
+	items = append(items, ask)
+	// The AI actions on files (R103), in the list's order.
+	names := make([]string, len(q.Files))
+	for i, f := range q.Files {
+		names[i] = f.Name
+	}
+	return append(items, p.fileActionItems(paths, strings.Join(names, ", "))...), nil
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/internal/theme"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/plugins/ai/actions"
 	"github.com/eziq1/golauncher/plugins/ai/backend"
 )
 
@@ -94,6 +95,10 @@ type Env struct {
 	// AI plugin; nil without it): the settings page and glctl show them
 	// (R84, docs/ai.md §22).
 	AIBackends backend.Reporter
+	// AIActions gives the AI plugin's built-in actions on the selected text
+	// and files (nil without it): the settings page merges them with the
+	// stored list (R103, docs/ai-actions.md).
+	AIActions actions.Provider
 
 	tempDir   string
 	manifests []plugin.Manifest
@@ -290,6 +295,9 @@ func Build(ctx context.Context, o Options) (*Env, error) {
 		}
 		if r, ok := p.(backend.Reporter); ok && env.AIBackends == nil {
 			env.AIBackends = r
+		}
+		if r, ok := p.(actions.Provider); ok && env.AIActions == nil {
+			env.AIActions = r
 		}
 	}
 	return env, nil

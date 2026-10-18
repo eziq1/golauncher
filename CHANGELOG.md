@@ -8,6 +8,31 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Custom AI actions** (R103 phase 1, docs/ai-actions.md): *Settings ›
+  Plugins › AI › AI Actions* lists the actions on the selected text and on
+  files handed to the main search. Built-in actions (Translate, Explain,
+  Summarize, Rewrite, Suggest Replies) can be renamed, given another prompt,
+  turned off and reordered, and *Restore Defaults* (after a confirmation)
+  puts them back; your own actions can be added, edited and deleted.
+  - An action has a name, a prompt, what it applies to (selected text,
+    files or both), its result, keywords, an icon and an optional minimum
+    length. Prompts may use `{selection}`, `{lang}` (the Translate target
+    language), `{input}` (an argument typed for the action), `{app}` and
+    `{date}`; without `{selection}` the text follows as a quote, as before.
+    Files are sent as attachments.
+  - *Shows the result*: a view with only the answer as it is written;
+    Enter replaces the selected text (or pastes the answer), Ctrl+C copies
+    it, Tab turns it into a chat to follow up, Esc goes back. It is saved in
+    AI Chat History like any chat.
+  - Stored in `config.json` under the AI plugin's `actions` preference, as
+    what differs from the built-in actions, so new built-in actions show up.
+    The built-in actions send the same prompts as before. Not shown to AI
+    tools (MCP); the log records counts only.
+- `glctl --pref <plugin>:<name>=<JSON>` sets a plugin preference in the fake
+  environment.
+
 ## [0.9.0] - 2026-10-17
 
 ### Added

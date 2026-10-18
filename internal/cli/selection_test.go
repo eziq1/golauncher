@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"encoding/json/v2"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -68,6 +70,114 @@ func TestSessionSelectionAI(t *testing.T) {
 	}
 	if !strings.Contains(out, "Replace Selected Text") {
 		t.Errorf("an editable selection: no Replace Selected Text in:\n%s", out)
+	}
+}
+
+// formalActions are AI actions as the settings store them (R103): a custom
+// action in the result mode, and Explain turned off.
+const formalActions = `{"builtin":{"explain":{"disabled":true}},"custom":[{"id":"custom-1","title":"Formal Email",` +
+	`"prompt":"Rewrite as a formal email: {selection}","targets":"selection","result":"result","keywords":"mail","icon":"message-square"}]}`
+
+// newActionSession starts a session with the selected text (editable), AI
+// on and formalActions, and opens the custom action's result view.
+func newActionSession(t *testing.T) (string, string) {
+	t.Helper()
+	s := filepath.Join(t.TempDir(), "s.json")
+	out, code := glctl(t, "session", "new", "-s", s, "--selection", meetingText, "--selection-editable",
+		"--pref", "builtin.ai:enabled=true", "--pref", "builtin.ai:actions="+formalActions)
+	if code != 0 {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	out, _ = glctl(t, "session", "show", "-s", s, "--format", "text")
+	if !strings.Contains(out, "Formal Email") || strings.Contains(out, "Explain") {
+		t.Fatalf("the rows do not follow the actions:\n%s", out)
+	}
+	glctl(t, "session", "type", "-s", s, "formal email")
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter")
+	return s, out
+}
+
+// TestSessionSelectionActionResult: a custom AI action in the result mode
+// shows only the answer; Enter replaces the selected text with it, Tab
+// turns the view into the chat, Escape goes back.
+func TestSessionSelectionActionResult(t *testing.T) {
+	s, out := newActionSession(t)
+	golden(t, "session_selection_action_result", out)
+	for _, want := range []string{`"markdown": "You asked: Rewrite as a formal email: ` + meetingText, `"title": "Replace Selected Text"`, `"shortcut": "Tab"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("no %q in:\n%s", want, out)
+		}
+	}
+	out, _ = glctl(t, "session", "key", "-s", s, "Enter", "--format", "text")
+	if !strings.Contains(out, "paste") || !strings.Contains(out, "You asked: Rewrite as a formal email") {
+		t.Errorf("Enter did not paste the answer:\n%s", out)
+	}
+
+	s, _ = newActionSession(t)
+	out, _ = glctl(t, "session", "key", "-s", s, "Tab", "--format", "text")
+	if !strings.Contains(out, "| **You**") || !strings.Contains(out, "builtin.ai/chat") {
+		t.Errorf("Tab did not open the chat:\n%s", out)
+	}
+
+	s, _ = newActionSession(t)
+	out, _ = glctl(t, "session", "key", "-s", s, "Escape", "--format", "text")
+	if !strings.Contains(out, "(depth 0)") {
+		t.Errorf("Escape did not go back:\n%s", out)
+	}
+}
+
+// TestSelectionActionRows: the AI rows follow the user's order (R103), and
+// with nothing typed the section keeps its row limit; typing finds an
+// action beyond it by its keywords.
+func TestSelectionActionRows(t *testing.T) {
+	prefs := `{"order":["reply","custom-1","translate"],"custom":[` +
+		`{"id":"custom-1","title":"Formal Email","prompt":"p"},{"id":"custom-2","title":"Haiku","prompt":"p","keywords":"poem"},` +
+		`{"id":"custom-3","title":"Bullet Points","prompt":"p"},{"id":"custom-4","title":"Fix Grammar","prompt":"p"}]}`
+	rows := func(text string) []string {
+		t.Helper()
+		out, code := glctl(t, "query", text, "--selection", meetingText, "--pref", "builtin.ai:enabled=true", "--pref", "builtin.ai:actions="+prefs)
+		if code != 0 {
+			t.Fatalf("exit %d\n%s", code, out)
+		}
+		var res struct {
+			Sections []struct {
+				Title string `json:"title"`
+				Items []struct {
+					Key string `json:"key"`
+				} `json:"items"`
+			} `json:"sections"`
+		}
+		if err := json.Unmarshal([]byte(out), &res); err != nil {
+			t.Fatal(err)
+		}
+		var keys []string
+		for _, s := range res.Sections {
+			if s.Title == "Selected Text" {
+				for _, it := range s.Items {
+					keys = append(keys, it.Key)
+				}
+			}
+		}
+		return keys
+	}
+	keys := rows("")
+	if len(keys) != 7 {
+		t.Fatalf("%d rows, want the limit of 7: %q", len(keys), keys)
+	}
+	var ai []string
+	for _, k := range keys {
+		if id, ok := strings.CutPrefix(k, "builtin.ai/"); ok {
+			ai = append(ai, id)
+		}
+	}
+	if want := []string{"reply", "ask", "custom-1", "translate"}; !slices.Equal(ai[:min(len(ai), 4)], want) {
+		t.Errorf("AI rows %q, want them to start with %q", ai, want)
+	}
+	if slices.Contains(ai, "custom-2") {
+		t.Errorf("custom-2 is beyond the limit: %q", ai)
+	}
+	if keys := rows("poem"); !slices.Contains(keys, "builtin.ai/custom-2") {
+		t.Errorf("typing a keyword: %q", keys)
 	}
 }
 

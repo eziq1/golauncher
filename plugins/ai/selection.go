@@ -27,10 +27,11 @@ const (
 	instructionScore = 0.6
 )
 
-// Prompts sent to the model with the quoted text. They are not translated:
-// the system prompt names the language to answer in.
+// Prompts of the built-in actions (R103: with placeholders), sent to the
+// model with the quoted text. They are not translated: the system prompt
+// names the language to answer in.
 const (
-	promptTranslate = "Translate the quoted text into %s. Output only the translation."
+	promptTranslate = "Translate the quoted text into {lang}. Output only the translation."
 	promptExplain   = "Explain the quoted text concisely."
 	promptSummarize = "Summarize the quoted text in a few bullet points."
 	promptRewrite   = "Rewrite the quoted text to be clearer and more natural, keeping its language and meaning. Output only the rewritten text."
@@ -230,8 +231,9 @@ func splitKeywords(s string) []string {
 }
 
 // SelectionItems implements plugin.SelectionProvider: with AI on, the
-// actions on the selected text (translate, ask, explain, summarize, rewrite,
-// suggest replies) and, with text typed, "AI handles the selection: <text>";
+// actions on the selected text (the list of R103: by default translate,
+// explain, summarize, rewrite, suggest replies), "Ask AI…" after the first
+// of them and, with text typed, "AI handles the selection: <text>" first;
 // with AI off, one row that opens the prompt to turn it on. Nothing is sent
 // until the user picks an action.
 func (p *Plugin) SelectionItems(ctx context.Context, q plugin.SelectionQuery) ([]plugin.Item, error) {
@@ -275,28 +277,24 @@ func (p *Plugin) SelectionItems(ctx context.Context, q plugin.SelectionQuery) ([
 		it.Score = instructionScore
 		items = append(items, it)
 	}
-	target := p.translateTarget(sel.Text)
-	lang := langName(l, target)
-	items = append(items, row("translate", l.T("selection.translate", "lang", lang), l.T("selection.translate.name"),
-		l.T("selection.translate.keywords"), fmt.Sprintf(promptTranslate, englishNames[target])))
 	ask := row("ask", l.T("selection.ask"), l.T("selection.ask.name"), l.T("selection.ask.keywords"), "")
 	ask.Arguments = []plugin.Argument{{Name: argInstruction, Type: plugin.ArgText, Placeholder: l.T("selection.ask.placeholder")}}
-	items = append(items,
-		ask,
-		row("explain", l.T("selection.explain"), l.T("selection.explain"), l.T("selection.explain.keywords"), promptExplain))
-	if utf8.RuneCountInString(strings.TrimSpace(sel.Text)) >= minSummarizeRunes {
-		items = append(items, row("summarize", l.T("selection.summarize"), l.T("selection.summarize"), l.T("selection.summarize.keywords"), promptSummarize))
-	}
-	items = append(items,
-		row("rewrite", l.T("selection.rewrite"), l.T("selection.rewrite"), l.T("selection.rewrite.keywords"), promptRewrite),
-		row("reply", l.T("selection.reply"), l.T("selection.reply"), l.T("selection.reply.keywords"), promptReply))
+	// "Ask AI…" is a general entry, not in the list: second, as before R103.
+	list := p.selectionActionItems(sel)
+	first := min(1, len(list))
+	items = append(items, list[:first]...)
+	items = append(items, ask)
+	items = append(items, list[first:]...)
 	return items, nil
 }
 
 // selectionMessage is the first message of a chat opened from a selection
 // action: its instruction (for "Ask AI…" the argument typed, by default an
-// explanation) and the quoted text.
+// explanation) and the quoted text, or an action's prompt filled in.
 func selectionMessage(pl chatPayload, args map[string]string) string {
+	if pl.Prompt != "" {
+		return promptMessage(pl, args)
+	}
 	instruction := pl.Instruction
 	if instruction == "" {
 		instruction = strings.TrimSpace(args[argInstruction])

@@ -150,6 +150,10 @@
   "selection.reply.keywords": "reply, replies, respond, answer, 回复",
   "action.replaceSelection": "Replace Selected Text",
   "off.selection": "Once it is on, you are back at the search, where you choose what AI does with the selected text. Nothing is sent before you choose.",
+  "actions.input.placeholder": "Your input (optional)",
+  "action.toChat": "Continue as Chat",
+  "result.placeholder": "Enter to paste · Tab to follow up in a chat",
+  "result.empty": "No answer.",
 
   "pref.model.codex.title": "Model (Codex)",
   "pref.model.codex.description": "The model Codex answers with. Default: the default of your Codex CLI version (your own Codex settings are not used).",
