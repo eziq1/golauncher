@@ -64,14 +64,12 @@ type promptVars struct {
 }
 
 // appName is the name of the app the text was selected in, as {app} gives
-// it: the executable's name without ".exe".
+// it: the executable's name without ".exe". Both separators are cut, so a
+// Windows path gives the same name whatever the OS.
 func appName(exe string) string {
-	name := filepath.Base(exe)
+	name := exe[strings.LastIndexAny(exe, `/\`)+1:]
 	if strings.EqualFold(filepath.Ext(name), ".exe") {
 		name = name[:len(name)-4]
-	}
-	if name == "." {
-		return ""
 	}
 	return name
 }
