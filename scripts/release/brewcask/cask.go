@@ -67,7 +67,8 @@ func Cask(rel Release) string {
 	p("    strategy :github_latest")
 	p("  end")
 	p("")
-	p(`  depends_on macos: ">= :%s"`, rel.MacOS)
+	// A bare symbol means "this release or newer"; brew style rejects ">= :x".
+	p(`  depends_on macos: :%s`, rel.MacOS)
 	p("")
 	p("  app %s", ruby(install.BundleName))
 	p(`  binary "#{appdir}/%s/Contents/MacOS/%s"`, install.BundleName, install.BundleCtlName)

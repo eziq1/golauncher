@@ -16,7 +16,7 @@
 | 安装内容 | Release 里已有的 macOS zip，不另做安装包：`app "golauncher.app"`，`binary` 把包里的 `Contents/MacOS/glctl` 链接到 `$(brew --prefix)/bin/glctl` |
 | 架构 | `on_arm`（`golauncher_<版本>_darwin_arm64.zip`）和 `on_intel`（`..._amd64.zip`），各自的 `url` 和 `sha256` |
 | SHA-256 | 生成器从 zip 本身算出，再和同一 Release 的 `checksums.txt` 核对，不一致就报错 |
-| 最低系统 | `depends_on macos: ">= :ventura"`，由生成器从 zip 里 Info.plist 的 `LSMinimumSystemVersion`（13.0）换算 |
+| 最低系统 | `depends_on macos: :ventura`，由生成器从 zip 里 Info.plist 的 `LSMinimumSystemVersion`（13.0）换算 |
 | 版本检测 | `livecheck`：`url :url` + `strategy :github_latest`（GitHub 的 Latest release，不看预发布） |
 | 预发布版本 | 不发布，生成器拒绝带后缀的版本号，`-download` 时也拒绝 GitHub 上标为 pre-release 的 Release |
 | 签名 | 应用只有 ad hoc 签名，没有 Developer ID 签名和公证（[release.md](release.md) 的 macOS 任务、`scripts/macos/build.sh`）。cask 不加任何绕过 Gatekeeper 的设置（§4） |
@@ -35,7 +35,7 @@ v0.8.0 的 cask 在 `packaging/homebrew/Casks/golauncher.rb`，作为示例和�
 | `on_arm` / `on_intel` | `sha256` 和 `url "https://github.com/eziq1/golauncher/releases/download/v#{version}/golauncher_#{version}_darwin_arm64.zip"`（Intel 是 `amd64`）。URL 里用 `#{version}` 插值，升级时只有 `version` 和两个 `sha256` 变 |
 | `name` / `desc` / `homepage` | `golauncher`；`Raycast-style keyboard launcher with plugins, written in Go`（Homebrew 的规则：不以冠词开头、不写平台、不含软件名、不超过 80 个字符、不以句号结尾）；仓库主页 |
 | `livecheck` | 见 §1 |
-| `depends_on` | `macos: ">= :ventura"` |
+| `depends_on` | `macos: :ventura`（只写一个符号就表示"这个版本或更新"；v0.9.0 发布时 `brew style` 的 `Homebrew/OSDependsOn` 不再接受 `">= :ventura"` 的写法，生成器已改） |
 | `app` | `golauncher.app`，装到 appdir（默认 `/Applications`） |
 | `binary` | `#{appdir}/golauncher.app/Contents/MacOS/glctl`，终端里可以直接用 `glctl` |
 | `zap trash` | `brew uninstall --zap` 删除的用户数据：`~/Library/Application Support/golauncher`（配置、数据库、剪贴板历史、AI 对话、安装记录）、`~/Library/Caches/golauncher`（缓存、日志、更新下载）、`~/Library/LaunchAgents/io.github.eziq1.golauncher.login.plist`（开机自启的后备 launch agent，`install.LaunchAgentLabel`）、`~/Library/Preferences/io.github.eziq1.golauncher.plist` 和 `~/Library/Saved Application State/io.github.eziq1.golauncher.savedState`（macOS 按 bundle ID 保存的偏好和窗口状态，可能不存在） |

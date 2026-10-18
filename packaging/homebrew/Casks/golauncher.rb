@@ -23,7 +23,7 @@ cask "golauncher" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   app "golauncher.app"
   binary "#{appdir}/golauncher.app/Contents/MacOS/glctl"

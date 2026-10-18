@@ -173,3 +173,4 @@
 - **内容**：翻译插件三期（R99）、主输入框接收文件（R97）、粘贴图片的修复（R96）、AI 对话附件（R90/R91）、Homebrew 安装方式和 brew/winget 管理的副本不再自我更新（R92/R98）、代码审查修复（R88）、MyGo v0.5.5（R100）、文档（R101）。
 - **版本号**：新功能和 SDK 新接口（`FileActionsProvider`、`ActionAskAI`），按语义化版本升次版本号。
 - **发布后**：用这次的 `homebrew-cask` 产物手动更新 `eziq1/homebrew-tap`（`HOMEBREW_TAP_TOKEN` 未配置）；winget 的 0.8.0 PR 还在审核，0.9.0 的清单等它被接受后再提交；在 issue #3 回复翻译插件的进展。
+- **结果**：2026-10-17 在 `3661b75` 上打了 `v0.9.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.2MB）、`windows_arm64`（20.4MB）、`darwin_amd64`（22.7MB）、`darwin_arm64`（20.8MB）和 `checksums.txt`。`homebrew` 任务的 `brew style` 报 `Homebrew/OSDependsOn`（要写 `depends_on macos: :ventura`），因为是 `continue-on-error` 没有挡住发布；生成器随后修正，tap 里的 0.9.0 cask 用修正后的生成器重新生成（SHA-256 和 `checksums.txt` 一致）后手动推送。<https://github.com/eziq1/golauncher/releases/tag/v0.9.0>

@@ -49,7 +49,7 @@ func TestCaskContent(t *testing.T) {
 			"    url \"https://github.com/eziq1/golauncher/releases/download/v#{version}/golauncher_#{version}_darwin_amd64.zip\"\n  end\n",
 		"  name \"golauncher\"\n  desc \"" + Desc + "\"\n  homepage \"https://github.com/eziq1/golauncher\"\n",
 		"  livecheck do\n    url :url\n    strategy :github_latest\n  end\n",
-		"  depends_on macos: \">= :ventura\"\n",
+		"  depends_on macos: :ventura\n",
 		"  app \"golauncher.app\"\n  binary \"#{appdir}/golauncher.app/Contents/MacOS/glctl\"\n",
 		"    \"~/Library/Application Support/golauncher\",\n",
 		"    \"~/Library/Caches/golauncher\",\n",
