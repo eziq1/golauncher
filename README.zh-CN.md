@@ -10,6 +10,35 @@
   <a href="README.md">English</a>
 </p>
 
+<p align="center">
+  <img src="assets/demo/ai-memory.gif" width="800" alt="问 AI 哪个应用占用内存最多：它通过启动器的工具打开进程列表并回答">
+  <br>
+  <em>问 AI 当前哪个应用最占内存：AI 通过启动器自己的工具读取进程列表，分析后给出答案</em>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demo/ai-updates.gif" alt="问 AI 有哪些软件可以升级：它查询 WinGet 和 Scoop 并列出可升级的软件">
+      <br><em>问 AI 有哪些软件可以升级（WinGet 和 Scoop）</em>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demo/currency.gif" alt="计算器里的汇率换算">
+      <br><em>汇率换算</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demo/translate.gif" alt="用 tr 边输边翻译">
+      <br><em>用 <code>tr</code> 边输边翻译</em>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demo/context-aware.gif" alt="从资源管理器呼出启动器，列出针对所选文件和文件夹的操作">
+      <br><em>情境感知：从资源管理器呼出，直接给出针对所选文件的操作</em>
+    </td>
+  </tr>
+</table>
+
 - 在任意位置按 **Alt+Space**（Mac 上是 **⌥Space**）呼出，可以搜索应用、命令、文件，也可以直接算数。macOS 上所有快捷键里的 Ctrl 都换成 ⌘。
 - 一切皆插件：内置功能和第三方插件用的是同一套[插件 SDK](pkg/plugin/)。
 - **环境感知**：在资源管理器、访达或桌面上呼出时，列表最上方会针对当前目录和选中的文件给出操作：在此处打开终端或 VS Code、新建文件夹或文本文件、复制路径、压缩为 ZIP、复制 SHA-256、用 Everything 或聚焦搜索此目录。支持 Windows 11 的多标签页，也支持标题里带路径的其他窗口（Mac 上是带文档路径的窗口）。获取到的信息不落盘，可以在设置里关闭（[docs/context-awareness.md](docs/context-awareness.md)）。

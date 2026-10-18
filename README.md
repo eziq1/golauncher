@@ -11,6 +11,35 @@
   <a href="README.zh-CN.md">简体中文</a>
 </p>
 
+<p align="center">
+  <img src="assets/demo/ai-memory.gif" width="800" alt="Asking AI which app uses the most memory: it opens the process list through a launcher tool and answers">
+  <br>
+  <em>Ask AI which app uses the most memory: it reads the process list through the launcher's own tools</em>
+</p>
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demo/ai-updates.gif" alt="Asking AI which apps can be updated: it checks WinGet and Scoop and lists the updates">
+      <br><em>Ask AI which apps can be updated (WinGet and Scoop)</em>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demo/currency.gif" alt="Converting currencies in the calculator">
+      <br><em>Currency conversion</em>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/demo/translate.gif" alt="Translating with tr as you type">
+      <br><em>Translate as you type with <code>tr</code></em>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/demo/context-aware.gif" alt="Opening the launcher from File Explorer offers actions for the selected file and folder">
+      <br><em>Context aware: actions for the file selected in File Explorer</em>
+    </td>
+  </tr>
+</table>
+
 - Press **Alt+Space** (**⌥Space** on a Mac) anywhere to search apps, commands,
   files and math. On macOS, ⌘ takes the place of Ctrl in every shortcut.
 - Everything is a plugin. The built-in features use the same
