@@ -39,7 +39,7 @@
 - **中英文界面**：默认跟随系统的显示语言（zh-CN、zh-Hans、zh-SG 显示简体中文，其他显示英文）。要切换语言，打开“设置 › 通用 › 语言”，选择“跟随系统”“English”或“简体中文”，立即生效，不需要重启。在中文界面里，命令的英文名称和关键词照样能搜到，也支持拼音和拼音首字母。
 - **`glctl`**：无头 CLI，驱动的是同一个引擎，你或 AI Agent 不打开界面也能测试所有交互流程。
 
-> **状态**：v0.8 是支持 Windows 和 macOS 的早期公开版本。上面的部分功能（翻译、主界面接收文件、AI 对话的附件、粘贴图片的修复）已经在 `main` 分支上，随下一个版本发布，见[更新日志](CHANGELOG.md)。架构和路线图见[设计文档](docs/design.md)。
+> **状态**：v0.9 是支持 Windows 和 macOS 的早期公开版本，每个版本新增了什么见[更新日志](CHANGELOG.md)。架构和路线图见[设计文档](docs/design.md)。
 
 ## 安装
 
@@ -48,7 +48,7 @@
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_windows_<架构>.zip`。
 2. 解压后运行 `golauncher.exe`。第一次运行会弹出安装界面，默认安装到 `%LOCALAPPDATA%\Programs\golauncher`（不需要管理员权限），并创建开始菜单项、在"设置 › 应用"里注册卸载入口。之后运行更新或更旧的版本，会提示升级或降级；版本相同则直接启动已安装的程序。也可以选择"不安装，直接运行"（或加 `--portable` 参数）。程序常驻在系统托盘。
 3. **自动更新**：已安装的副本在启动 30 秒后、之后每天（或每周）查询 GitHub Releases 的最新正式版，下载对应架构的 zip，用 Release 里的 SHA-256 校验和校验，在 golauncher 空闲时（窗口隐藏、没有后台任务和 AI 回答、几分钟内没用过）安装并自动重启，然后通知“已更新”。新版本起不来就自动恢复旧版本，并跳过这个版本。“设置 › 关于”里可以查看状态、立即检查、跳过某个版本，或改成“只通知我”“关闭”；托盘菜单和“检查更新”命令也能检查。便携运行和开发构建不会自动更新。详见 [docs/auto-update.md](docs/auto-update.md)。
-4. **winget**（软件包被 winget 社区仓库接受之后）：`winget install eziq1.golauncher`，以后用 `winget upgrade eziq1.golauncher` 升级。软件包正在审核：PR [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732) 已经通过自动校验，在等人工审核。升级前请先退出 golauncher。从下一个版本起，用 winget 安装的副本不弹安装界面，也不自己更新，交给 winget（“设置 › 关于”里有说明）；0.8.0 还不认识 winget。详见 [docs/winget-packaging.md](docs/winget-packaging.md)。
+4. **winget**（软件包被 winget 社区仓库接受之后）：`winget install eziq1.golauncher`，以后用 `winget upgrade eziq1.golauncher` 升级。软件包正在审核：PR [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732) 已经通过自动校验，在等人工审核。升级前请先退出 golauncher。从 0.9.0 起，用 winget 安装的副本不弹安装界面，也不自己更新，交给 winget（“设置 › 关于”里有说明）。详见 [docs/winget-packaging.md](docs/winget-packaging.md)。
 
 需要 Windows 10 或 11，Acrylic 毛玻璃背景只在 Windows 11 上有。不需要 WebView2 运行时。
 
@@ -72,7 +72,7 @@ golauncher.exe --uninstall  # 卸载
 1. 从 [Releases](https://github.com/eziq1/golauncher/releases) 下载 `golauncher_<版本>_darwin_arm64.zip`（Apple 芯片）或 `golauncher_<版本>_darwin_amd64.zip`（Intel），解压。
 2. 应用还没有经过公证，第一次打开时按住 Control 点按 `golauncher.app` › “打开”（macOS 15：先打开一次，再到“系统设置 › 隐私与安全性”点“仍要打开”），或者执行 `xattr -dr com.apple.quarantine golauncher.app`。第一次运行会提示安装到“应用程序”文件夹（没有权限时装到 `~/Applications`）。程序常驻在菜单栏，没有 Dock 图标，按 **⌥Space** 呼出。
 3. “设置 › 权限”列出需要你允许的权限：**辅助功能**（粘贴、读取选中的文字）和**自动化 › 访达**（访达当前文件夹）。应用没有用 Developer ID 签名，所以每次更新后 macOS 会忘掉辅助功能权限，需要在列表里删掉 golauncher 再重新添加。自动更新和 Windows 一样。需要 macOS 13 或更高版本。详见 [docs/macos-port.md](docs/macos-port.md)。
-4. **Homebrew**：`brew install --cask eziq1/tap/golauncher`，以后用 `brew upgrade --cask golauncher` 升级（升级后退出并重新打开 golauncher）。cask 在 tap 仓库 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap) 里。它把 golauncher.app 装到“应用程序”文件夹，并把 `glctl` 链接到 Homebrew 的 `bin`。应用只有 ad hoc 签名，没有经过公证，所以 macOS 会拦下第一次打开：先打开一次，再到“系统设置 › 隐私与安全性”点“仍要打开”。升级后可能还要再允许一次。从下一个版本起，用 Homebrew 安装的副本不弹安装界面，也不自己更新，交给 Homebrew（“设置 › 关于”里有说明）；0.8.0 还不认识 Homebrew。如果 golauncher 已经自己安装到了“应用程序”文件夹，先退出并删掉那一份（配置和数据不受影响），或者在版本相同时用 `brew install --cask --adopt`。`brew uninstall --zap --cask golauncher` 会连配置和数据一起删掉。详见 [docs/homebrew-packaging.md](docs/homebrew-packaging.md)。
+4. **Homebrew**：`brew install --cask eziq1/tap/golauncher`，以后用 `brew upgrade --cask golauncher` 升级（升级后退出并重新打开 golauncher）。cask 在 tap 仓库 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap) 里。它把 golauncher.app 装到“应用程序”文件夹，并把 `glctl` 链接到 Homebrew 的 `bin`。应用只有 ad hoc 签名，没有经过公证，所以 macOS 会拦下第一次打开：先打开一次，再到“系统设置 › 隐私与安全性”点“仍要打开”。升级后可能还要再允许一次。从 0.9.0 起，用 Homebrew 安装的副本不弹安装界面，也不自己更新，交给 Homebrew（“设置 › 关于”里有说明）。如果 golauncher 已经自己安装到了“应用程序”文件夹，先退出并删掉那一份（配置和数据不受影响），或者在版本相同时用 `brew install --cask --adopt`。`brew uninstall --zap --cask golauncher` 会连配置和数据一起删掉。详见 [docs/homebrew-packaging.md](docs/homebrew-packaging.md)。
 
 | 内容 | 位置 |
 |------|------|

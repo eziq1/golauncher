@@ -167,3 +167,9 @@
 - **版本号**：原先说发 0.7.1，因为带了 R84 的新设置页，按语义化版本改为 0.8.0。
 - **合并**：`claude-compat` 和 main 上的 R84 都改了 AI 运行层：两边给 `cliInfo` 加的字段都保留；两边都新增了 `Runtime.probe`，版本兼容的改名为 `probeFlags`；分支上的"检查"按钮和 R84 的后端页重复，去掉了。
 - **结果**：2026-10-17 在 `11444a7` 上打了 `v0.8.0`，CI 和发布工作流一次通过。Release 为正式版，`/releases/latest` 指向它。产物：`windows_amd64`（21.5MB）、`windows_arm64`（19.8MB）、`darwin_amd64`（22MB）、`darwin_arm64`（20.2MB）和 `checksums.txt`。下载 `darwin_amd64` 在 Intel Mac 上验证过：SHA-256 一致、签名有效、x86_64、版本 0.8.0。<https://github.com/eziq1/golauncher/releases/tag/v0.8.0>
+
+## 15. v0.9.0（2026-10-17，R102）
+
+- **内容**：翻译插件三期（R99）、主输入框接收文件（R97）、粘贴图片的修复（R96）、AI 对话附件（R90/R91）、Homebrew 安装方式和 brew/winget 管理的副本不再自我更新（R92/R98）、代码审查修复（R88）、MyGo v0.5.5（R100）、文档（R101）。
+- **版本号**：新功能和 SDK 新接口（`FileActionsProvider`、`ActionAskAI`），按语义化版本升次版本号。
+- **发布后**：用这次的 `homebrew-cask` 产物手动更新 `eziq1/homebrew-tap`（`HOMEBREW_TAP_TOKEN` 未配置）；winget 的 0.8.0 PR 还在审核，0.9.0 的清单等它被接受后再提交；在 issue #3 回复翻译插件的进展。

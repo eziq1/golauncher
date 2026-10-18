@@ -201,10 +201,8 @@
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.8 is an early public release for Windows and macOS. Some
-> features above (the translator, files in the main search, attachments in
-> the AI chat, the fixed image paste) are on `main` and come with the next
-> release; see the [changelog](CHANGELOG.md). See the
+> **Status:** v0.9 is an early public release for Windows and macOS; see the
+> [changelog](CHANGELOG.md) for what each release added. See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 
 ## Install
@@ -225,9 +223,9 @@ repository): `winget install eziq1.golauncher`, and later
 `winget upgrade eziq1.golauncher`. The package is under review: the pull
 request [microsoft/winget-pkgs#454732](https://github.com/microsoft/winget-pkgs/pull/454732)
 passed the automated checks and waits for a human reviewer. Quit golauncher
-before upgrading. From the next release on, a copy installed with winget
-does not offer to install itself and leaves updates to winget (*Settings ›
-About* says so); 0.8.0 does not know about winget yet. See
+before upgrading. Since 0.9.0, a copy installed with winget does not offer
+to install itself and leaves updates to winget (*Settings › About* says so).
+See
 [docs/winget-packaging.md](docs/winget-packaging.md).
 
 **Automatic updates**: the installed copy checks GitHub Releases for a new
@@ -288,9 +286,9 @@ It installs golauncher.app into `/Applications` and links `glctl` into
 Homebrew's `bin`. The app is ad hoc signed, not notarized, so macOS blocks
 its first start: open it once, then choose *System Settings › Privacy &
 Security › Open Anyway*. You may have to do this again after an upgrade.
-From the next release on, a copy installed with Homebrew does not offer to
-install itself and leaves updates to Homebrew (*Settings › About* says so);
-0.8.0 does not know about Homebrew yet. If golauncher already installed
+Since 0.9.0, a copy installed with Homebrew does not offer to install
+itself and leaves updates to Homebrew (*Settings › About* says so). If
+golauncher already installed
 itself into `/Applications`, quit it and remove that copy first (your
 settings are kept), or use `brew install --cask --adopt` for the same
 version. `brew uninstall --zap --cask golauncher` also removes your settings
