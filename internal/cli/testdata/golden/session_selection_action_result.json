@@ -1,0 +1,106 @@
+{
+  "step": "key \"Enter\"",
+  "outcome": {
+    "push": {
+      "plugin": "builtin.ai",
+      "request": {
+        "id": "chat",
+        "payload": {
+          "quote": "Let's move the meeting to Thursday afternoon, the room is booked.",
+          "editable": true,
+          "title": "Formal Email: Let's move the meeting to Thu…",
+          "prompt": "Rewrite as a formal email: {selection}",
+          "vars": {
+            "lang": "Simplified Chinese",
+            "app": "notepad",
+            "date": "2026-10-14"
+          },
+          "result": true
+        },
+        "query": {
+          "text": ""
+        }
+      }
+    }
+  },
+  "snapshot": {
+    "depth": 1,
+    "title": "Formal Email: Let's move the meeting to Thu…",
+    "layout": "detail",
+    "placeholder": "Enter to paste · Tab to follow up in a chat",
+    "text": "",
+    "sections": [
+      {
+        "items": [
+          {
+            "id": "result",
+            "title": "Formal Email: Let's move the meeting to Thu…",
+            "icon": {
+              "name": "sparkles"
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Replace Selected Text",
+                "do": {
+                  "kind": "Paste",
+                  "target": "You asked: Rewrite as a formal email: Let's move the meeting to Thursday afternoon, the room is booked."
+                }
+              },
+              {
+                "id": "copy",
+                "title": "Copy Answer",
+                "shortcut": "Ctrl+C",
+                "do": {
+                  "kind": "CopyText",
+                  "target": "You asked: Rewrite as a formal email: Let's move the meeting to Thursday afternoon, the room is booked."
+                }
+              },
+              {
+                "id": "tochat",
+                "title": "Continue as Chat",
+                "shortcut": "Tab",
+                "do": {
+                  "kind": "Callback",
+                  "target": "tochat",
+                  "payload": {
+                    "instance": "v1"
+                  }
+                }
+              },
+              {
+                "id": "history",
+                "title": "AI Chat History",
+                "do": {
+                  "kind": "Push",
+                  "target": "history"
+                }
+              }
+            ],
+            "plugin": "builtin.ai",
+            "key": "builtin.ai/result"
+          }
+        ]
+      }
+    ],
+    "selected": 0,
+    "detail": {
+      "markdown": "You asked: Rewrite as a formal email: Let's move the meeting to Thursday afternoon, the room is booked.",
+      "metadata": [
+        {
+          "label": "Claude Code",
+          "value": "fake-model"
+        },
+        {
+          "label": "Last answer",
+          "value": "92 tokens in, 103 out"
+        }
+      ]
+    },
+    "emptyText": "No results",
+    "selection": {
+      "chars": 65,
+      "label": "65 characters selected"
+    }
+  }
+}

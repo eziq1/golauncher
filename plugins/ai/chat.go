@@ -32,6 +32,9 @@ type chat struct {
 	// editable marks a chat about an editable selection: pasting the answer
 	// replaces it. It is not stored.
 	editable bool
+	// result shows only the answer (an AI action's result view, R103) until
+	// Tab turns it into the chat. It is not stored.
+	result bool
 	// toRoot goes back to the root search once AI is turned on from this
 	// chat's prompt (opened from the selected text).
 	toRoot bool
@@ -101,11 +104,19 @@ func (p *Plugin) chatOf(req plugin.ViewRequest) *chat {
 		}
 	}
 	if ch == nil {
-		ch = &chat{sess: p.newSession(), pending: strings.TrimSpace(pl.Text), toRoot: pl.ToRoot}
-		if strings.TrimSpace(pl.Quote) != "" {
+		ch = &chat{sess: p.newSession(), pending: strings.TrimSpace(pl.Text), toRoot: pl.ToRoot, result: pl.Result}
+		switch {
+		case strings.TrimSpace(pl.Quote) != "":
 			ch.pending = selectionMessage(pl, req.Arguments)
 			ch.title = titleOf(pl.Title)
 			ch.editable = pl.Editable
+			p.logAction(pl)
+		case pl.Prompt != "" || pl.Title != "" && len(pl.Files) > 0: // an action on files (R103)
+			if pl.Prompt != "" {
+				ch.pending = promptMessage(pl, req.Arguments)
+			}
+			ch.title = titleOf(pl.Title)
+			p.logAction(pl)
 		}
 	}
 	p.chats[ch.sess.ID] = ch
@@ -518,6 +529,9 @@ func (p *Plugin) render(ch *chat, instance string) plugin.View {
 	}
 	if !p.enabled() {
 		return p.offView(ch, instance)
+	}
+	if ch.result {
+		return p.renderResult(ch, instance)
 	}
 	inst := plugin.MustPayload(instancePayload{Instance: instance})
 	cb := func(id, title, shortcut string) plugin.Action {

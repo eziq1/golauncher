@@ -252,6 +252,8 @@ level=INFO  msg="selection clipboard restore skipped" reason=changed-by-other
 
 AI 插件的 `chatPayload` 增加 `Quote`（选中文字）和 `Truncated`；对话标题取动作名（“翻译：Let's move…”），不是选中文字的全文。
 
+> R103 之后：翻译、解释、总结、改写、回复建议这几个 AI 操作不再写死，改由“设置 › 插件 › AI › AI 操作”里的列表生成（内置操作可改名、改提示词、停用、排序、恢复默认，也可以新建自己的操作，用于选中文字和/或文件，结果可以“直接出结果”）。默认列表和上表行为完全一样；“问 AI…”和“让 AI 处理选中的文字”仍是固定入口。详见 [ai-actions.md](ai-actions.md)。
+
 第二期再做：大小写转换、繁简转换、去掉多余空格和换行、URL 编码/解码、Base64、JSON 格式化（都放进 `builtin.selection`，本地处理，结果可复制或粘贴替换）；多个网址时逐个打开；划词后直接朗读。
 
 ## 7. SDK 与宿主改动

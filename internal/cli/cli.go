@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/eziq1/golauncher/internal/app"
+	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/internal/tasks"
@@ -110,6 +111,8 @@ Environment flags (query, run, session new, tasks, plugin, ai, mcp, bench):
   --selection-source uia|clipboard   how it was read (default uia)
   --selection-truncated  mark it as cut to the maximum length
   --selection-editable   mark it as in an editable control
+  --pref PLUGIN:NAME=JSON  set a plugin preference in the fake configuration
+                   (repeatable), e.g. builtin.ai:actions={"custom":[…]}
   --format json|text
 `
 
@@ -136,6 +139,9 @@ type envFlags struct {
 	SelectionSource    string `json:"selectionSource,omitempty"`
 	SelectionTruncated bool   `json:"selectionTruncated,omitzero"`
 	SelectionEditable  bool   `json:"selectionEditable,omitzero"`
+	// Prefs set plugin preferences in the fake environment's configuration,
+	// each "<plugin>:<name>=<JSON>" (e.g. the AI actions of R103).
+	Prefs []string `json:"prefs,omitempty"`
 }
 
 func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
@@ -170,6 +176,13 @@ func (c *cli) flagSet(name string, ef *envFlags) *flag.FlagSet {
 		fs.StringVar(&ef.SelectionSource, "selection-source", "", "how the selected text was read: uia or clipboard")
 		fs.BoolVar(&ef.SelectionTruncated, "selection-truncated", false, "the selected text was truncated")
 		fs.BoolVar(&ef.SelectionEditable, "selection-editable", false, "the selected text is in an editable control")
+		fs.Func("pref", "set a plugin preference: <plugin>:<name>=<JSON> (repeatable, fake environment)", func(s string) error {
+			if _, _, _, err := parsePref(s); err != nil {
+				return err
+			}
+			ef.Prefs = append(ef.Prefs, s)
+			return nil
+		})
 	}
 	return fs
 }
@@ -299,6 +312,10 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 	}
 	if !ef.Real {
 		e.Engine.SetFileChooser(e.choose)
+		if err := setPrefs(e.Config, ef.Prefs); err != nil {
+			e.Close()
+			return nil, err
+		}
 	}
 	if !ef.Real && ef.Fixtures != "" {
 		if err := loadClipboardFixture(e, ef.Fixtures); err != nil {
@@ -313,6 +330,44 @@ func (c *cli) build(ctx context.Context, ef envFlags) (*env, error) {
 		e.Engine.SetSelection(s)
 	}
 	return e, nil
+}
+
+// parsePref splits a --pref value, "<plugin>:<name>=<JSON>".
+func parsePref(s string) (id, name string, v jsontext.Value, err error) {
+	key, raw, ok := strings.Cut(s, "=")
+	id, name, ok2 := strings.Cut(key, ":")
+	if !ok || !ok2 || id == "" || name == "" {
+		return "", "", nil, fmt.Errorf("--pref %q: want <plugin>:<name>=<JSON>", s)
+	}
+	v = jsontext.Value(raw)
+	if !v.IsValid() {
+		return "", "", nil, fmt.Errorf("--pref %q: the value is not JSON", s)
+	}
+	return id, name, v, nil
+}
+
+// setPrefs sets the --pref preferences in the configuration.
+func setPrefs(store *config.Store, prefs []string) error {
+	if len(prefs) == 0 {
+		return nil
+	}
+	return store.Update(func(c *config.Config) {
+		for _, s := range prefs {
+			id, name, v, err := parsePref(s)
+			if err != nil {
+				continue // checked when parsed
+			}
+			if c.Plugins == nil {
+				c.Plugins = map[string]config.PluginConfig{}
+			}
+			pc := c.Plugins[id]
+			if pc.Preferences == nil {
+				pc.Preferences = map[string]jsontext.Value{}
+			}
+			pc.Preferences[name] = v
+			c.Plugins[id] = pc
+		}
+	})
 }
 
 // selection is the selected text the flags inject, or nil. Nothing is read

@@ -199,6 +199,7 @@
     inline; up to 10 per message. PDF, Office documents, video and audio
     show as unsupported and keep the message from being sent until you
     remove them ([docs/ai.md](docs/ai.md)).
+  - **Custom AI actions**: *Settings › Plugins › AI › AI Actions* edits, reorders, turns off or adds the actions offered for the selected text and for files, with prompt placeholders (`{selection}`, `{lang}`, `{input}`, `{app}`, `{date}`) and an optional result view that only shows the answer (Enter pastes or replaces the selection, Tab follows up in a chat) ([docs/ai-actions.md](docs/ai-actions.md)).
   - **Use golauncher from Claude Desktop or Claude Code** (off until you
     turn on *Settings › Plugins › AI › Allow AI apps to use golauncher*):
     `golauncher mcp` is an MCP server for your plugins. The settings
