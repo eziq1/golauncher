@@ -1,6 +1,6 @@
 # 自定义 AI 操作方案
 
-> 状态：方案 v1 · 待你 review · 2026-10-18 · 对应需求 R103（见 [requirements.md](requirements.md)）
+> 状态：方案 v1 · 已确认（§8 四项都按建议执行），开发第一期 · 2026-10-18 · 对应需求 R103（见 [requirements.md](requirements.md)）
 >
 > 需求：现在选中文字后的 AI 操作是固定的，希望用户能在 AI 插件的配置页面自定义 AI 操作。对应 Raycast 的"AI Commands"。
 
