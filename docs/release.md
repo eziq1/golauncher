@@ -180,3 +180,4 @@
 - **内容**：自定义 AI 操作第一期（R103）、Codex 模型列表和 Codex/Claude Code 的推理强度（R109）、Homebrew tap 改由发布流程用部署密钥自动推送（R108）、README 顶部的演示 GIF（R105）。
 - **版本号**：起初按要求准备发 0.9.1（CHANGELOG 已定版、`4008928` 已推送，但 CI 通过前就停下，没有打 tag、没有 Release）；随后你要求按语义化版本发布：有新功能，升次版本号，改为 0.10.0。
 - **要验证的**：这是第一次由发布流程自动推送 tap（`homebrew` 任务的 "Push to eziq1/homebrew-tap" 一步，用 `HOMEBREW_TAP_DEPLOY_KEY`），发布后确认 tap 出现 `golauncher 0.10.0` 提交；winget 的 0.8.0 PR 仍在审核，0.10.0 清单等它被接受后再提交。
+- **结果**：2026-10-19 在 `8bcdf15` 上打了 `v0.10.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.3MB）、`windows_arm64`（20.5MB）、`darwin_amd64`（22.9MB）、`darwin_arm64`（20.9MB）和 `checksums.txt`。**tap 第一次自动推送成功**：`github-actions[bot]` 提交 `golauncher 0.10.0`（`dbff212`），cask 的两个 SHA-256 和 `checksums.txt` 一致。`brew style` 无问题；`brew audit --online` 因匿名调用 GitHub API 被限流而失败（`continue-on-error`，不影响发布和推送），之后给这一步加了 `HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}`。<https://github.com/eziq1/golauncher/releases/tag/v0.10.0>

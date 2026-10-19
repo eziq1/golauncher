@@ -265,6 +265,10 @@ jobs:
 
       - name: brew style and brew audit
         continue-on-error: true
+        env:
+          # brew audit --online calls the GitHub API; anonymous calls from a
+          # shared runner IP hit the rate limit (v0.10.0).
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           brew tap-new --no-git golauncher-ci/local
