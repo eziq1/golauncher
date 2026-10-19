@@ -8,6 +8,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Changed
+
+- **Homebrew tap updates itself** (R108, issue #4): the release workflow now
+  pushes each release's cask to `eziq1/homebrew-tap` with a deploy key that
+  can write to the tap only (secret `HOMEBREW_TAP_DEPLOY_KEY`;
+  `HOMEBREW_TAP_TOKEN` still works).
+
 ### Added
 
 - **Custom AI actions** (R103 phase 1, docs/ai-actions.md): *Settings ›

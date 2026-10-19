@@ -198,7 +198,8 @@ jobs:
         # Casks/golauncher.rb of this release for the tap eziq1/homebrew-tap
         # (docs/homebrew-packaging.md), kept as a build artifact; the
         # homebrew job checks it and pushes it only when the
-        # HOMEBREW_TAP_TOKEN secret is set. Never holds the release back.
+        # HOMEBREW_TAP_DEPLOY_KEY or HOMEBREW_TAP_TOKEN secret is set.
+        # Never holds the release back.
         id: cask
         if: steps.version.outputs.prerelease == 'false'
         continue-on-error: true
@@ -241,9 +242,10 @@ jobs:
   homebrew:
     # The cask built by the release job (docs/homebrew-packaging.md §5):
     # brew style and brew audit in a throwaway local tap, then, only when
-    # the repository secret HOMEBREW_TAP_TOKEN is set, a commit to
-    # eziq1/homebrew-tap. The release is already published: nothing here
-    # can hold it back.
+    # the repository secret HOMEBREW_TAP_DEPLOY_KEY (an SSH deploy key with
+    # write access to eziq1/homebrew-tap only) or HOMEBREW_TAP_TOKEN is
+    # set, a commit to eziq1/homebrew-tap. The release is already
+    # published: nothing here can hold it back.
     name: Homebrew cask
     needs: release
     if: needs.release.outputs.prerelease == 'false' && needs.release.outputs.cask == 'success'
@@ -251,6 +253,7 @@ jobs:
     continue-on-error: true
     env:
       TAG: ${{ github.ref_name }}
+      HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
       HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_ENV_HINTS: "1"
@@ -272,10 +275,18 @@ jobs:
           brew audit --cask --online golauncher-ci/local/golauncher
 
       - name: Push to eziq1/homebrew-tap
-        if: env.HOMEBREW_TAP_TOKEN != ''
+        if: env.HOMEBREW_TAP_DEPLOY_KEY != '' || env.HOMEBREW_TAP_TOKEN != ''
         run: |
           set -euo pipefail
-          git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/eziq1/homebrew-tap.git" tap
+          if [ -n "$HOMEBREW_TAP_DEPLOY_KEY" ]; then
+            key="$RUNNER_TEMP/tap_deploy_key"
+            printf '%s\n' "$HOMEBREW_TAP_DEPLOY_KEY" > "$key"
+            chmod 600 "$key"
+            export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+            git clone --depth 1 git@github.com:eziq1/homebrew-tap.git tap
+          else
+            git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/eziq1/homebrew-tap.git" tap
+          fi
           mkdir -p tap/Casks
           cp cask/golauncher.rb tap/Casks/golauncher.rb
           cd tap

@@ -21,7 +21,7 @@
 | 预发布版本 | 不发布，生成器拒绝带后缀的版本号，`-download` 时也拒绝 GitHub 上标为 pre-release 的 Release |
 | 签名 | 应用只有 ad hoc 签名，没有 Developer ID 签名和公证（[release.md](release.md) 的 macOS 任务、`scripts/macos/build.sh`）。cask 不加任何绕过 Gatekeeper 的设置（§4） |
 | tap 仓库 | ✅ 已创建 [eziq1/homebrew-tap](https://github.com/eziq1/homebrew-tap)（2026-10-17，含 v0.8.0 的 cask） |
-| 自动推送到 tap | 已实现但默认关闭：只有仓库 Secret `HOMEBREW_TAP_TOKEN` 存在时发布流程才推送（§5.3） |
+| 自动推送到 tap | ✅ 已开启（2026-10-19）：发布流程用 Secret `HOMEBREW_TAP_DEPLOY_KEY`（tap 仓库的可写部署密钥）推送；也支持 `HOMEBREW_TAP_TOKEN`（§5.3） |
 
 ## 2. cask
 
@@ -180,11 +180,16 @@ golauncher.app 只有 ad hoc 签名，没有 Developer ID 签名，也没有经�
 3. 用户的 `brew update` 之后，`brew outdated --cask` 和 `brew upgrade --cask golauncher` 就能看到新版本。
 4. 想把仓库里的示例跟上最新版本时，再提交 `packaging/homebrew/Casks/golauncher.rb`（可选；生成器的测试只检查 0.8.0 那份，要一起改测试里的 `v080`）。
 
-### 5.3 自动推送（已实现，默认关闭）
+### 5.3 自动推送（✅ 2026-10-19 已开启，用部署密钥）
 
-发布工作流的 `homebrew` 任务最后一步"Push to eziq1/homebrew-tap"只在仓库 Secret **`HOMEBREW_TAP_TOKEN`** 存在时运行：克隆 `eziq1/homebrew-tap`，用这次生成的 cask 覆盖 `Casks/golauncher.rb`，有变化就以 `github-actions[bot]` 的名义提交 `golauncher X.Y.Z` 并推送到默认分支。没有这个 Secret 时跳过，什么都不推。预发布版本不运行。
+**现在的配置**：`eziq1/homebrew-tap` 上有一把可写的 SSH 部署密钥"golauncher release workflow"（只对这一个仓库有效，不过期），私钥存在本仓库的 Actions Secret **`HOMEBREW_TAP_DEPLOY_KEY`**，本地没有留副本。开启时在本地用它克隆 tap 并 `push --dry-run` 验证过。下一次正式发布起自动推送，不用再手动更新 tap。
 
-要打开它：
+- 要关掉：删掉 Secret `HOMEBREW_TAP_DEPLOY_KEY`，或在 tap 仓库 Settings › Deploy keys 里删掉这把密钥。
+- 要换密钥：`ssh-keygen -t ed25519 -N "" -f key`，`gh repo deploy-key add key.pub -R eziq1/homebrew-tap --allow-write`，`gh secret set HOMEBREW_TAP_DEPLOY_KEY -R eziq1/golauncher < key`，再删本地文件和旧密钥。（在 PowerShell 里 `-N '""'` 会把两个引号字符当成密码，要用 cmd 或 `-N ""` 的真正空串。）
+
+推送这一步只在 Secret **`HOMEBREW_TAP_DEPLOY_KEY`**（SSH）或 **`HOMEBREW_TAP_TOKEN`**（HTTPS，下面的旧办法）存在时运行，两个都有时用部署密钥：克隆 `eziq1/homebrew-tap`，用这次生成的 cask 覆盖 `Casks/golauncher.rb`，有变化就以 `github-actions[bot]` 的名义提交 `golauncher X.Y.Z` 并推送到默认分支。没有这个 Secret 时跳过，什么都不推。预发布版本不运行。
+
+旧办法（不用部署密钥时）：
 
 1. 建一个 fine-grained 个人访问令牌：Repository access 只选 `eziq1/homebrew-tap`，Permissions › Contents 选 **Read and write**，其他都不给；设一个过期时间，到期前续。
 2. 在 `eziq1/golauncher` 的 Settings › Secrets and variables › Actions 里新建 Secret `HOMEBREW_TAP_TOKEN`，填这个令牌。
