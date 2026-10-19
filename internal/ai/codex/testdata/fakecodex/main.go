@@ -10,6 +10,8 @@
 //	                     per prompt read (stdin)
 //	FAKECODEX_STATE      directory with a file per known thread ID, so that
 //	                     `exec resume <id>` works across processes
+//	FAKECODEX_MODELS, FAKECODEX_MODELS_BUNDLED
+//	                     what `debug models` prints (see debugModels)
 //
 // What a turn does depends on the prompt: "multi" answers with two messages
 // (the first one growing in item.updated events), "tool <query>" calls
@@ -55,6 +57,9 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("Logged in using ChatGPT")
+		return
+	case len(args) >= 2 && args[0] == "debug" && args[1] == "models":
+		debugModels(args)
 		return
 	case len(args) == 0 || args[0] != "exec":
 		fmt.Fprintln(os.Stderr, "fakecodex: unexpected arguments", args)
@@ -155,6 +160,32 @@ func main() {
 	}
 	emit(map[string]any{"type": "turn.completed", "usage": map[string]any{"input_tokens": 100, "cached_input_tokens": 40,
 		"cache_write_input_tokens": 0, "output_tokens": 7, "reasoning_output_tokens": 3}})
+}
+
+// debugModels imitates `codex debug models [--bundled]`: it prints the file
+// FAKECODEX_MODELS (FAKECODEX_MODELS_BUNDLED with --bundled); "fail" fails
+// like a refresh without a network, "sleep" hangs, "old" is a version
+// without the command. The log gets the arguments.
+func debugModels(args []string) {
+	logEntry(map[string]any{"debug": args})
+	src := os.Getenv("FAKECODEX_MODELS")
+	if slices.Contains(args, "--bundled") {
+		src = os.Getenv("FAKECODEX_MODELS_BUNDLED")
+	}
+	switch src {
+	case "", "fail":
+		fail("Error: failed to refresh available models: stream disconnected (fake)")
+	case "sleep":
+		time.Sleep(time.Minute)
+	case "old":
+		fmt.Fprintln(os.Stderr, "error: unrecognized subcommand 'debug'\n\nUsage: codex [OPTIONS] [PROMPT]")
+		os.Exit(2)
+	}
+	b, err := os.ReadFile(src)
+	if err != nil {
+		fail("fakecodex: " + err.Error())
+	}
+	os.Stdout.Write(b)
 }
 
 // checkImages returns the number of --image=<file> arguments, which must

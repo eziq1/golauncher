@@ -60,6 +60,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"regexp"
 	"slices"
 	"strings"
@@ -162,11 +163,17 @@ type ToolServer = agentrt.ToolServer
 // is safe for concurrent use.
 type Backend struct {
 	*agentrt.Runtime
+	log    *slog.Logger
+	models modelsCache // the model lists (R109)
 }
 
 // New returns a backend configured by o.
 func New(o Options) *Backend {
-	return &Backend{Runtime: agentrt.New(adapter{}, o)}
+	log := o.Log
+	if log == nil {
+		log = slog.New(slog.DiscardHandler)
+	}
+	return &Backend{Runtime: agentrt.New(adapter{}, o), log: log.With("backend", "codex")}
 }
 
 // adapter is Codex's agentrt.Adapter.
@@ -254,6 +261,11 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 	}
 	if l.Model != "" {
 		a = append(a, "-m", l.Model)
+	}
+	if validEffort(l.Effort) {
+		// The plugin passes only a level the model lists (R109); one that
+		// could not be written as a plain TOML string is left out.
+		cfg(effortConfig(l.Effort))
 	}
 	if l.SystemPrompt != "" {
 		cfg("developer_instructions=" + tomlString(l.SystemPrompt))

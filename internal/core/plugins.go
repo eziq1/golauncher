@@ -183,10 +183,10 @@ func (e *Engine) PreferenceOptions(ctx context.Context, id, name string) ([]plug
 	opts, err := callPlugin(ctx, e, id, viewTimeout, func(ctx context.Context) ([]plugin.Option, error) {
 		return pp.PreferenceOptions(ctx, name)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return resolveOptions(l, opts), nil
+	// With an error the plugin may still give the options that remain (e.g.
+	// "Default" when a model list could not be had): the error is shown
+	// under them.
+	return resolveOptions(l, opts), err
 }
 
 // RunPreferenceAction runs the Action of the button preference name of

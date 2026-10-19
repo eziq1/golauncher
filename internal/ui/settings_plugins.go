@@ -144,7 +144,7 @@ func (s *Settings) pluginPage(c *mui.Context, cfg config.Config) {
 
 	if len(p.Preferences) > 0 {
 		s.asyncMu.Lock()
-		load := s.loadedFor != p.ID
+		load := s.loadedFor != p.ID || s.optionsStale
 		s.asyncMu.Unlock()
 		if load {
 			s.loadOptions(p)

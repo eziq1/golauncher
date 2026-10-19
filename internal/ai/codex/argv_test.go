@@ -58,6 +58,19 @@ func TestArgvTable(t *testing.T) {
 			}
 		}
 	}
+	// The reasoning effort (R109): -c model_reasoning_effort="<level>" with
+	// or without a model; a level that is not a plain word is left out.
+	for _, resume := range []bool{false, true} {
+		for _, model := range []string{"", "gpt-5.5"} {
+			for _, effort := range []string{"high", "xhigh", "Not A Level"} {
+				oo := backend.OpenOptions{SessionID: chat, Resume: resume, Model: model, Effort: effort, WebSearch: true, LauncherTools: true}
+				got = append(got, argvCase{
+					Name: fmt.Sprintf("resume=%v tools=on web=true model=%q effort=%q prompt=false", resume, model, effort),
+					Argv: commandFor(withTools, oo, path, resume),
+				})
+			}
+		}
+	}
 	b, err := json.MarshalIndent(got, "", "  ")
 	if err != nil {
 		t.Fatal(err)

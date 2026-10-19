@@ -17,7 +17,9 @@ Options:
   --append-system-prompt <prompt>       Append a system prompt to the default
                                         system prompt
   --disable-slash-commands              Disable all skills
-  -h, --help                            Display help for command
+  --effort <level>                      Effort level for the current session
+                                        (low, medium, high, xhigh, max)
+  -h, --help                           Display help for command
   --include-partial-messages            Include partial message chunks as they
                                         arrive
   --input-format <format>               Input format (only works with --print)

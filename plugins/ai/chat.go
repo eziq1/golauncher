@@ -387,7 +387,7 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 	c, ok := p.checks[id]
 	fresh := ok && time.Since(c.at) < checkTTL
 	p.mu.Unlock()
-	opts := p.openOptions(ch, c.status)
+	opts := p.openOptions(ctx, ch, c.status)
 	// Resume changes after the first answer; the conversation knows that.
 	old.Resume = opts.Resume
 	if conv != nil && old == opts && oldID == id {
@@ -401,7 +401,7 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 		p.mu.Lock()
 		p.checks[id] = checked{at: time.Now(), status: st}
 		p.mu.Unlock()
-		opts = p.openOptions(ch, st)
+		opts = p.openOptions(ctx, ch, st)
 		if conv != nil && old == opts && oldID == id {
 			return conv, nil
 		}
@@ -422,19 +422,21 @@ func (p *Plugin) conversation(ctx context.Context, ch *chat) (backend.Conversati
 // openOptions are the options of the chat's conversation, on a backend
 // whose last check reported st: what an older CLI cannot do is left out,
 // so that the system prompt does not offer it either.
-func (p *Plugin) openOptions(ch *chat, st backend.Status) backend.OpenOptions {
+func (p *Plugin) openOptions(ctx context.Context, ch *chat, st backend.Status) backend.OpenOptions {
 	prefs := p.h.Preferences()
 	web := prefs.Bool(prefWebSearch) && !st.Reduces(backend.FeatureWebSearch)
 	tools := p.enabled() && prefs.Bool(prefTools) && !st.Reduces(backend.FeatureLauncherTools)
 	p.mu.Lock()
 	resume := ch.sess.Started
 	id := ch.sess.ID
+	sess := ch.sess
 	model := p.model(ch.sess)
 	p.mu.Unlock()
 	return backend.OpenOptions{
 		SessionID:     id,
 		Resume:        resume,
 		Model:         model,
+		Effort:        p.effort(ctx, sess, model),
 		WebSearch:     web,
 		LauncherTools: tools,
 		SystemPrompt:  systemPrompt(p.h.I18n().Locale(), web, tools),

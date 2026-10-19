@@ -20,14 +20,58 @@ type FakeInstalls struct {
 	// MinVersion, Status, Message. Discover fills in the program chosen with
 	// SetProgram: one of Installs, else it is missing.
 	Found Discovery
+	// ModelList and ModelErr are what Models returns (R109); EffortLevels and
+	// EffortErr what Efforts returns.
+	ModelList    ModelList
+	ModelErr     error
+	EffortLevels []string
+	EffortErr    error
 
-	mu       sync.Mutex
-	program  string
-	searches int
-	refresh  int
+	mu        sync.Mutex
+	program   string
+	searches  int
+	refresh   int
+	listed    int
+	redetects int
 }
 
-var _ Discoverer = (*FakeInstalls)(nil)
+var (
+	_ Discoverer   = (*FakeInstalls)(nil)
+	_ ModelLister  = (*FakeInstalls)(nil)
+	_ EffortLister = (*FakeInstalls)(nil)
+)
+
+// Models implements ModelLister.
+func (f *FakeInstalls) Models(context.Context) (ModelList, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.listed++
+	if f.ModelErr != nil {
+		return ModelList{}, f.ModelErr
+	}
+	l := f.ModelList
+	l.Models = slices.Clone(l.Models)
+	return l, nil
+}
+
+// Redetect implements ModelLister.
+func (f *FakeInstalls) Redetect() {
+	f.mu.Lock()
+	f.redetects++
+	f.mu.Unlock()
+}
+
+// Listed reports how often Models was called, and Redetect.
+func (f *FakeInstalls) Listed() (models, redetects int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.listed, f.redetects
+}
+
+// Efforts implements EffortLister.
+func (f *FakeInstalls) Efforts(context.Context) ([]string, error) {
+	return slices.Clone(f.EffortLevels), f.EffortErr
+}
 
 // Name implements Backend.
 func (f *FakeInstalls) Name() string {

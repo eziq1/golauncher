@@ -84,6 +84,9 @@ func (r *Runtime) Discover(ctx context.Context, refresh bool) backend.Discovery 
 		return d
 	}
 	configured := r.o.Path
+	if refresh {
+		r.stale = true // Resolved checks again: the CLI may have been updated
+	}
 	r.mu.Unlock()
 	d := r.discover(ctx, configured)
 	r.mu.Lock()

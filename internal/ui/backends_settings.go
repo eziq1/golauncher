@@ -45,6 +45,9 @@ func (s *Settings) loadBackends(refresh bool) {
 		reports := r.BackendReports(context.Background(), refresh)
 		s.asyncMu.Lock()
 		s.backends.reports, s.backends.loading = reports, false
+		if refresh {
+			s.optionsStale = true // Codex's models are listed again too (R109)
+		}
 		s.asyncMu.Unlock()
 	})
 }
@@ -73,6 +76,7 @@ func (s *Settings) backendsSection(c *mui.Context) {
 	}
 	if len(save) > 0 {
 		s.loadBackends(false)
+		s.reloadOptions() // the models of the new program
 	}
 
 	s.subheading(c, s.loc.T("settings.backends.heading"))
@@ -263,6 +267,7 @@ func (s *Settings) programField(c *mui.Context, r backend.Report) {
 				s.setBackends(func(st *backendsState) { delete(st.custom, r.ID); delete(st.probeErr, r.ID) })
 				s.setPref(aiPluginID, prefName, choices[i].path)
 				s.loadBackends(false)
+				s.reloadOptions()
 			}
 		}
 	})

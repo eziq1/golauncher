@@ -33,17 +33,24 @@ type buttonResult struct {
 }
 
 // loadOptions asks the plugin p for the dynamic options of its preferences.
+// Asked again for the same plugin (reloadOptions), the options it had stay
+// until the new ones arrive.
 func (s *Settings) loadOptions(p core.PluginInfo) {
 	s.asyncMu.Lock()
 	defer s.asyncMu.Unlock()
-	s.loadedFor = p.ID
-	clear(s.options)
+	again := s.loadedFor == p.ID
+	s.loadedFor, s.optionsStale = p.ID, false
+	if !again {
+		clear(s.options)
+	}
 	for _, pref := range p.Preferences {
 		if !pref.DynamicOptions {
 			continue
 		}
 		key, id, name := prefKey(p.ID, pref.Name), p.ID, pref.Name
-		s.options[key] = optionsResult{loading: true}
+		r := s.options[key]
+		r.loading = true
+		s.options[key] = r
 		s.async(func() {
 			opts, err := s.env.Engine.PreferenceOptions(context.Background(), id, name)
 			r := optionsResult{options: opts}
@@ -57,6 +64,16 @@ func (s *Settings) loadOptions(p core.PluginInfo) {
 			s.asyncMu.Unlock()
 		})
 	}
+}
+
+// reloadOptions asks the plugin page for the dynamic options again with the
+// next frame: a choice changed that they may depend on (the AI plugin's
+// reasoning efforts depend on the chosen model, its model lists on the
+// program, R109).
+func (s *Settings) reloadOptions() {
+	s.asyncMu.Lock()
+	s.optionsStale = true
+	s.asyncMu.Unlock()
 }
 
 // runButton runs the action of a button preference.
@@ -172,6 +189,7 @@ func (s *Settings) preference(c *mui.Context, id string, pref plugin.Preference,
 			if mui.Select(c, &chosen, titles).Changed() {
 				if i := slices.Index(titles, chosen); i >= 0 {
 					s.setPref(id, pref.Name, options[i].Value)
+					s.reloadOptions()
 				}
 			}
 		case plugin.PrefStringList:

@@ -22,12 +22,14 @@
 package claudecode
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -78,6 +80,19 @@ func New(o Options) *Backend {
 	return &Backend{Runtime: agentrt.New(adapter{}, o), o: o}
 }
 
+var _ backend.EffortLister = (*Backend)(nil)
+
+// Efforts implements backend.EffortLister: the --effort levels of the CLI in
+// use, from its help (probed once per binary); none when it has no --effort
+// (R109).
+func (b *Backend) Efforts(ctx context.Context) ([]string, error) {
+	cli, err := b.Resolved(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return support{version: cli.Version, flags: cli.Flags}.efforts(), nil
+}
+
 // adapter is Claude Code's agentrt.Adapter.
 type adapter struct{}
 
@@ -103,6 +118,7 @@ func (adapter) Info() agentrt.Info {
 		EnvDrop:      envDrop,
 		HelpArgs:     []string{"--help"},
 		ParseHelp:    parseHelp,
+		HelpSchema:   1, // 1: the --effort levels (R109)
 		Fit:          fit,
 		Attachments:  backend.AllAttachments(),
 	}
@@ -173,6 +189,11 @@ func (adapter) Command(l agentrt.Launch) (agentrt.Command, error) {
 	}
 	if l.Model != "" && p.model {
 		a = append(a, "--model", l.Model)
+	}
+	if l.Effort != "" && slices.Contains(support{version: l.Version, flags: l.Flags}.efforts(), l.Effort) {
+		// A level this version does not list (or no --effort at all) is left
+		// out: the CLI would refuse to start (R109).
+		a = append(a, flagEffort, l.Effort)
 	}
 	cmd := agentrt.Command{Argv: a}
 	if l.Tools != nil || !safe {
