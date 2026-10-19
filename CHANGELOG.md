@@ -8,12 +8,7 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
-### Changed
-
-- **Homebrew tap updates itself** (R108, issue #4): the release workflow now
-  pushes each release's cask to `eziq1/homebrew-tap` with a deploy key that
-  can write to the tap only (secret `HOMEBREW_TAP_DEPLOY_KEY`;
-  `HOMEBREW_TAP_TOKEN` still works).
+## [0.9.1] - 2026-10-19
 
 ### Added
 
@@ -51,6 +46,14 @@ Before 1.0.0, minor versions may contain breaking changes.
     tools (MCP); the log records counts only.
 - `glctl --pref <plugin>:<name>=<JSON>` sets a plugin preference in the fake
   environment.
+
+### Changed
+
+- **Homebrew tap updates itself** (R108, issue #4): the release workflow now
+  pushes each release's cask to `eziq1/homebrew-tap` with a deploy key that
+  can write to the tap only (secret `HOMEBREW_TAP_DEPLOY_KEY`;
+  `HOMEBREW_TAP_TOKEN` still works).
+- **README**: demo GIFs at the top (R105).
 
 ## [0.9.0] - 2026-10-17
 
@@ -879,7 +882,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/eziq1/golauncher/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/eziq1/golauncher/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/eziq1/golauncher/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/eziq1/golauncher/compare/v0.6.0...v0.7.0
