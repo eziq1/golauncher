@@ -1161,6 +1161,27 @@
         ]
       },
       {
+        "name": "effort.claude-code",
+        "type": "select",
+        "title": "Reasoning effort (Claude Code)",
+        "description": "How hard Claude thinks (Claude Code's --effort). Older versions of Claude Code without it don't get it, and a level the installed version doesn't list is not passed.",
+        "dynamicOptions": true
+      },
+      {
+        "name": "model.codex",
+        "type": "select",
+        "title": "Model (Codex)",
+        "description": "The model Codex answers with, from the list your Codex CLI gives for your account. Default: the default of your Codex CLI version (your own Codex settings are not used).",
+        "dynamicOptions": true
+      },
+      {
+        "name": "effort.codex",
+        "type": "select",
+        "title": "Reasoning effort (Codex)",
+        "description": "How long Codex reasons before it answers. The levels are those the chosen model supports (with the default model, those every listed model supports). A level the model does not support is not passed.",
+        "dynamicOptions": true
+      },
+      {
         "name": "webSearch",
         "type": "bool",
         "title": "Allow web search",

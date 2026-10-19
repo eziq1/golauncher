@@ -28,10 +28,10 @@ var geminiModels = []plugin.Option{
 // nothing.
 func aiBackends() []ai.BackendOption {
 	return []ai.BackendOption{
-		{ID: claudecode.ID, Backend: claudecode.New(claudecode.Options{Tools: toolServer("")})},
-		// Codex's models depend on the account and the CLI version: only its
-		// default is offered (Models non-nil gives it its own preference).
-		{ID: codex.ID, Backend: codex.New(codex.Options{Tools: toolServer("Codex")}), Models: []plugin.Option{}},
+		{ID: claudecode.ID, Backend: claudecode.New(claudecode.Options{Tools: toolServer("")}), Efforts: true},
+		// Codex's models depend on the account and the CLI version: they come
+		// from `codex debug models` (R109), each with its reasoning efforts.
+		{ID: codex.ID, Backend: codex.New(codex.Options{Tools: toolServer("Codex")}), DynamicModels: true, Efforts: true},
 		{ID: gemini.ID, Backend: gemini.New(gemini.Options{Tools: toolServer("Gemini CLI")}), Models: geminiModels},
 	}
 }

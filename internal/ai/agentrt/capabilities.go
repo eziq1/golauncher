@@ -129,6 +129,9 @@ type capsKey struct {
 	Version string `json:"version"`
 	Size    int64  `json:"size"`
 	ModTime int64  `json:"mtime"` // Unix nanoseconds
+	// Schema is Info.HelpSchema: probes cached before ParseHelp learned more
+	// are made again.
+	Schema int `json:"schema,omitzero"`
 }
 
 // capsEntry is a cached probe.
@@ -153,7 +156,7 @@ func (r *Runtime) probeFlags(ctx context.Context, path, ver string) (flags Flags
 	if len(r.info.HelpArgs) == 0 {
 		return nil, false
 	}
-	key := capsKey{Path: path, Version: ver}
+	key := capsKey{Path: path, Version: ver, Schema: r.info.HelpSchema}
 	if fi, err := os.Stat(path); err == nil {
 		key.Size, key.ModTime = fi.Size(), fi.ModTime().UnixNano()
 	}

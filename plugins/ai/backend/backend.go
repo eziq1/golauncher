@@ -72,6 +72,10 @@ type OpenOptions struct {
 	Resume    bool
 	// Model is the model name or alias ("" for the backend's default).
 	Model string
+	// Effort is the reasoning effort level, e.g. "high" ("" for the model's
+	// default, R109). The plugin only sets a level the model accepts; a
+	// backend whose CLI lacks the level (or a way to pass it) leaves it out.
+	Effort string
 	// WebSearch allows the model to search and fetch web pages (never any
 	// tool that touches this computer).
 	WebSearch bool

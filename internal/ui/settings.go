@@ -75,8 +75,11 @@ type Settings struct {
 	asyncMu   sync.Mutex
 	options   map[string]optionsResult // by preference field key
 	buttons   map[string]buttonResult
-	loadedFor string       // the plugin whose options were loaded
-	services  mui.Services // redraws the window when a call finishes
+	loadedFor string // the plugin whose options were loaded
+	// optionsStale asks for the options of loadedFor again (a choice they
+	// may depend on changed, R109); the old ones show until the new arrive.
+	optionsStale bool
+	services     mui.Services // redraws the window when a call finishes
 
 	agent    agentState    // the AI tools section of the AI plugin's page
 	backends backendsState // its Backends section (guarded by asyncMu)

@@ -1108,3 +1108,49 @@ MyGo 0.5.1 提供 `Window.OnFileDrop`（Windows、macOS 都支持从资源管理
 ### 24.9 修订：拖到主界面（R97，2026-10-17）
 
 主界面现在自己接收文件（[root-files.md](root-files.md)）：拖到主界面、在主界面 `Ctrl+V` 文件或图片、`Ctrl+O` 选择文件，都显示在“收到的文件”分组里。原来“拖到主界面直接打开新的 AI 对话”改为这个分组的第一个动作“问 AI：<文件名>”（`FileItems`，打开新对话，文件在草稿里）；输入文字后“问 AI：<文字>”带着文件直接发送；AI 关着时是“打开 AI，询问这些文件”，提示界面照旧保留附件。`ReceiveFiles` 在主界面不再被调用（`Instance` 为空时返回 `ErrFilesNotTaken`）。对话的 payload 多了 `files`：新对话第一次显示时把它们加进草稿（`prepareFiles`，和拖入一样检查和复制）。
+
+## 25. 实现记录（R109：Codex 的模型列表、Codex 和 Claude Code 的推理强度，2026-10-19）
+
+**起因**：Codex 的"模型（Codex）"只有"默认"（R72 时因为模型随账号和 CLI 版本变化，没有写死）；`--ignore-user-config` 又让 `~/.codex/config.toml` 里的模型不生效，所以用户没法换 Codex 的模型。按 R109 的决定：Codex 的模型改成从 CLI 读；Codex 和 Claude Code 都加"推理强度"；Gemini 不加（在考虑移除）。
+
+### 25.1 在 CLI 帮助里核实的（只读命令，没有发任何消息给模型）
+
+- **Codex**（Codex 应用自带的 0.163.0-alpha 和 0.130.0-alpha 都有）：`codex debug models [--bundled] [-c key=value] [--enable/--disable]`，输出 `{"models":[…]}`。每项有 `slug`、`display_name`、`visibility`（`list`/`hide`）、`priority`、`supported_in_api`、`supported_reasoning_levels`（**对象数组** `[{"effort":"low","description":"…"}, …]`）、`default_reasoning_level`，还有每个模型自己的 `base_instructions` 等（0.163 的输出约 650 KB）。`--bundled` 不联网，只输出程序自带的目录；不带它时先按登录的账号刷新。`debug models` **没有** `--ignore-user-config`（只有 `exec` 有）。目录的顺序和 `priority` 不完全一致（例如第一项的 priority 是 2，第二项是 1）。
+- **Codex 的推理强度**：`codex --help`、`codex exec --help` 里**没有**专门的参数；程序里的配置键是 `model_reasoning_effort`（另有 `plan_mode_reasoning_effort`），所以用 `-c model_reasoning_effort="<级别>"`。各模型支持的级别不同（例如有的到 `xhigh`，有的还有 `max`、`ultra`）。
+- **Claude Code**（2.1.296）：`--effort <level>  Effort level for the current session (low, medium, high, xhigh, max)`。CHANGELOG：2.1.72 修过 `--effort`（那时级别简化成 low/medium/high，去掉了 max），2.1.111 加了 `xhigh`，之后 max 又回来了（具体版本不知道）。没有用 `--bare`、`--dangerously-skip-permissions` 或任何绕过授权的参数。
+
+### 25.2 Codex 的模型列表
+
+- `codex/models.go`：`codex debug models -c model_provider="openai" -c check_for_update_on_startup=false`（`model_provider` 让用户 config.toml 里的自定义提供方不影响列表——对话本身用 `--ignore-user-config`，用的是 OpenAI 的）。失败（退出码不为 0、15 秒超时、输出不是目录）就再跑一次加 `--bundled` 的；还失败就报错。帮助里报"unrecognized subcommand"一类时算"版本太旧"，不再试 `--bundled`。
+- 程序就是"后端"一节（R84）里正在使用的那一份（`Discover` 的 `InUse`，含用户选的"程序"），所以没登录时也能拿到自带的列表；Codex 始终是原生 `codex.exe`，不经过 `.cmd`/`.ps1`。运行方式和版本检查一样（`Runtime.RunCLI`：工作目录、去掉父 Agent 的环境变量、没有控制台窗口；标准输出最多 16 MB）。
+- 只列 `visibility == "list"` 的；**按 `priority` 排**（Codex 自己的模型选择器就是这个顺序；没有 priority 的放最后，相同的保持目录顺序）。标题是 `display_name`（没有就用 slug），值是 `slug`。没有 slug 的、级别里不是小写单词的都跳过。
+- **缓存**：在内存里，按（路径、版本、文件大小、修改时间），所以原地升级也会重新读；失败的结果也缓存。设置页同时加载模型和强度时只跑一次；设置页最多等 8 秒（宿主 10 秒就放弃），没等到时说明"还在列出"，命令继续在后台跑完并缓存，下次打开就有。"后端"一节的"重新检测"清掉缓存（`ModelLister.Redetect`），也让设置页重新加载这些选项。
+- **选项**：第一项"默认"（空值），然后是列表。列表来自自带目录时下面注明"没能取到你的账号的列表"；拿不到时只有"默认"，并说明原因：没有安装 / 版本不能列出模型 / 命令失败（附原因）。**选过、但已经不在列表里的模型**照样保留选中，标成"<名字>（不在当前列表里）"，不会被重置。
+
+### 25.3 推理强度
+
+- 偏好 `effort.codex`（"推理强度（Codex）"）、`effort.claude-code`（"推理强度（Claude Code）"），都是动态下拉框，第一项"默认"。放在同一个后端的模型偏好后面：`model`、`effort.claude-code`、`model.codex`、`effort.codex`、`model.gemini`。**没有用 `VisibleWhen`**：原有的各后端模型偏好一直都显示（每个对话固定在开始时的后端上，换了"后端"后旧对话仍用旧后端的设置），保持一致。
+- **Codex**：级别来自所选模型的 `supported_reasoning_levels`。选"默认"模型时，列的是**列表里每个模型都支持的级别（交集）**——不知道 CLI 默认会用哪个模型，交集保证无论用哪个都支持。对话时插件再查一次（用缓存）：所选模型不在列表里、拿不到列表、或这个模型不支持所选级别，就**不传**，对话照常；设置页把这种级别标成"<级别>（这里不支持，不会传）"。命令行在 `-m` 后面加 `-c model_reasoning_effort="<级别>"`（金样 `codex/testdata/argv.golden.json` 末尾新增 12 种：续接 × 模型 × high/xhigh/非法级别）。
+- **Claude Code**：`parseHelp` 读出 `--effort` 说明里括号中的级别，记成标记 `--effort=<级别>`（`Info.HelpSchema` 升到 1，旧的 `capabilities.json` 缓存会重新探测一次）。探测到时用帮助列出的级别；有 `--effort` 但没列级别时按 low/medium/high；探测失败时按版本：≥2.1.111 是 low–xhigh，≥2.1.72 是 low–high，更早不传；版本也不知道时按测试过的全套。命令行在 `--model` 后面加 `--effort <级别>`，只有这个版本支持这个级别时才加（否则 CLI 一启动就会因为不认识的参数退出）。没有 `--effort` 的旧版本不显示级别，设置页说明"这个版本没有办法选推理强度，更新后才能选"。金样 `claudecode/testdata/argv.effort.golden.json`（8 种版本/帮助 × `claude.exe`/`claude.cmd` × high/xhigh/max/ultra）；`argv.golden.json`、`argv.reduced.golden.json` 不变。
+- 对话底部在模型后面显示实际传的强度（例如"gpt-5.5 · 高"）。
+
+### 25.4 其他改动
+
+- 设置页：下拉框改了值、"后端"一节重新检测或换了程序后，插件页的动态选项重新加载（新选项到之前保留旧的，不闪）。这对所有插件都适用（翻译插件的 Ollama 模型列表也会在改了下拉框后重新加载）。
+- 宿主：`PreferenceOptions` 出错时也把插件给的选项交给设置页（原来丢掉），这样拿不到列表时仍有"默认"，错误显示在下面。
+- 运行层：`Runtime.Resolved`（上次检查选的 CLI，"重新检测"后会重新检查）、`Runtime.RunCLI`；`Launch.Effort`、`OpenOptions.Effort`；契约 `backend.ModelLister`、`backend.EffortLister`、`ModelList.EffortsFor`。
+- glctl 的假环境和真实注册表一致：Codex 的模型偏好现在是动态的，`plugin_list` 金样多了 `effort.claude-code`、`model.codex`、`effort.codex` 三项（以前假环境里 Codex 没有模型偏好），其他金样不变。
+
+### 25.5 测试
+
+- `codex/models_test.go`：目录解析（隐藏、缺字段、按 priority、对象和字符串两种级别、非法级别、前面有警告行、各种坏输入）；刷新 → 自带 → 报错的顺序（假的运行函数：成功、离线、超时、输出不是 JSON、都失败、都超时、版本太旧）；假 CLI 进程（`fakecodex` 新增 `debug models`）：缓存只跑一次、`Redetect` 和原地升级后重跑、离线用自带列表、都失败时缓存错误、旧版本、没有安装、刷新卡住时用自带列表、调用方先放弃时后台继续。
+- `claudecode/effort_test.go`：帮助里的级别、按版本的级别、命令行金样、经过运行层和假 CLI（假 CLI 拒绝帮助里没有的参数）：当前版本、没有 `--effort`、只列三个级别、探测失败的 2.1.100；"重新检测"后看到升级。
+- `plugins/ai/models_test.go`：偏好的顺序和类型、模型选项（列表、自带列表的说明、不在列表里的模型、四种原因）、强度选项（交集、所选模型、不在列表里的模型、不支持的级别、Claude Code 的级别、没有 `--effort`、没有安装）、对话时传不传、拿不到列表时不传且对话照常、底部显示、"重新检测"。
+- `internal/ui/models_settings_test.go`：在设置页里换模型后强度列表随之改变；"重新检测"重新列出模型。
+- 没有设 `GOLAUNCHER_AI_TESTS`，没有运行真实的 AI CLI（只在开发时手动跑过 `codex debug models --bundled`、`codex --help`、`codex exec --help`、`claude --help`）。
+
+### 25.6 没有验证的
+
+- 不带 `--bundled` 的 `codex debug models`（会联网按账号刷新）没有手动跑过，离线或没登录时它是报错退出还是退回缓存/自带目录不确定——两种情况都按上面的规则处理。
+- 带 `-c model_reasoning_effort` 和 `--effort` 的真实对话没有跑过（按要求不发消息给模型）；模型不支持某个级别时 CLI 的实际反应没有验证（所以干脆不传）。
+- Claude Code 的 `max` 在哪个版本重新出现不知道，探测失败时不传 `max`。

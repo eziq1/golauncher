@@ -74,6 +74,7 @@ type Runtime struct {
 
 	mu       sync.Mutex
 	cli      *cliInfo
+	stale    bool               // a re-detection asked to check cli again (Resolved)
 	disc     *backend.Discovery // the last discovery (R84)
 	tried    string             // the CLI of the last failed check, for messages
 	convs    map[*conversation]bool
@@ -177,7 +178,7 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 		}
 	}
 	r.mu.Lock()
-	r.cli, r.tried = best, ""
+	r.cli, r.tried, r.stale = best, "", false
 	r.mu.Unlock()
 	r.log.Info("agent CLI found", "version", best.version, "untested", best.untested, "candidates", len(paths),
 		"probed", best.flags != nil, "perTurn", best.fit.PerTurn)
@@ -257,6 +258,89 @@ func (r *Runtime) resolve(ctx context.Context) (*cliInfo, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.cli, nil
+}
+
+// CLI is the CLI a check chose (Resolved).
+type CLI struct {
+	Path, Version string
+	// Flags are its probed flags (nil when unknown).
+	Flags Flags
+}
+
+// Resolved returns the CLI the last check chose, checking first when there
+// was none, it was removed, or the installations were detected again since
+// (Discover with refresh), so that an update is noticed. Settings that
+// depend on the CLI (its models, R109) use it.
+func (r *Runtime) Resolved(ctx context.Context) (CLI, error) {
+	r.mu.Lock()
+	cli, stale := r.cli, r.stale
+	r.mu.Unlock()
+	if cli == nil || stale || !isFile(cli.path) {
+		if _, err := r.Check(ctx); err != nil {
+			return CLI{}, err
+		}
+		r.mu.Lock()
+		cli = r.cli
+		r.mu.Unlock()
+	}
+	return CLI{Path: cli.path, Version: cli.version, Flags: cli.flags}, nil
+}
+
+// RunCLI runs the CLI at path with args the way the checks do (the CLI's
+// working directory and environment, no console window) and returns its
+// standard output, the end of its standard error and its exit code. More
+// than maxOut bytes of output is an error. It is for read-only commands
+// that print something to parse (Codex's model list, R109).
+func (r *Runtime) RunCLI(ctx context.Context, path string, args []string, maxOut int) (stdout, stderr string, code int, err error) {
+	dir, err := r.dir()
+	if err != nil {
+		return "", "", 0, err
+	}
+	out := &capped{max: maxOut}
+	errOut := &tail{max: 4096}
+	p, err := proc.Start(proc.Options{Argv: append([]string{path}, args...), Dir: dir, Env: r.envFor(path), Output: out, Stderr: errOut})
+	if err != nil {
+		return "", "", 0, err
+	}
+	stop := context.AfterFunc(ctx, p.Stop)
+	defer stop()
+	code, err = p.Wait()
+	if err != nil {
+		return "", "", 0, err
+	}
+	if ctx.Err() != nil {
+		return "", "", 0, ctx.Err()
+	}
+	s, over := out.result()
+	if over {
+		return "", errOut.String(), code, fmt.Errorf("%s printed more than %d bytes", r.info.Name, maxOut)
+	}
+	return s, errOut.String(), code, nil
+}
+
+func (c *capped) result() (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.b.String(), c.over
+}
+
+// capped keeps up to max bytes written to it and notes when there was more.
+type capped struct {
+	max  int
+	mu   sync.Mutex
+	b    strings.Builder
+	over bool
+}
+
+func (c *capped) Write(p []byte) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.b.Len()+len(p) > c.max {
+		c.over = true
+		return len(p), nil
+	}
+	c.b.Write(p)
+	return len(p), nil
 }
 
 // Open implements backend.Backend. The process is started by the first Send.

@@ -312,12 +312,14 @@ func TestArgvOptions(t *testing.T) {
 			Env: map[string]string{"GOLAUNCHER_AGENT_TOKEN": "tok"}, SessionEnv: "GOLAUNCHER_AGENT_SESSION"}
 	})
 	chat := "22222222-2222-4222-8222-222222222222"
-	c := f.open(backend.OpenOptions{SessionID: chat, Model: "fake-model", WebSearch: true, LauncherTools: true,
+	c := f.open(backend.OpenOptions{SessionID: chat, Model: "fake-model", Effort: "high", WebSearch: true, LauncherTools: true,
 		SystemPrompt: "Line one.\nLine \"two\"."})
 	wantDone(t, send(t, c, "hi"), "echo: hi")
 	argv := f.starts()[0]
 	for _, kv := range []string{
 		`web_search="live"`,
+		`model_reasoning_effort="high"`, // R109
+
 		`developer_instructions="Line one.\nLine \"two\"."`,
 		`mcp_servers.golauncher.command="C:\\gl\\golauncher.exe"`,
 		`mcp_servers.golauncher.args=["mcp", "--x"]`,

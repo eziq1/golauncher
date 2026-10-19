@@ -17,6 +17,18 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ### Added
 
+- **Codex model list and reasoning effort** (R109, docs/ai.md §25): the AI
+  plugin's *Model (Codex)* now lists the models your Codex CLI offers for
+  your account (`codex debug models`; offline, the models built into the
+  CLI), instead of only *Default*. New *Reasoning effort (Codex)* and
+  *Reasoning effort (Claude Code)* choices sit next to the model choices:
+  Codex gets `-c model_reasoning_effort=…` with the levels the chosen model
+  supports, Claude Code gets `--effort` with the levels its version lists.
+  A level the model or version does not take is not passed (the setting
+  says so), so a chat never fails because of it; a chosen model that is no
+  longer listed stays selected and is marked. *Re-detect* in the Backends
+  section lists the models again.
+
 - **Custom AI actions** (R103 phase 1, docs/ai-actions.md): *Settings ›
   Plugins › AI › AI Actions* lists the actions on the selected text and on
   files handed to the main search. Built-in actions (Translate, Explain,

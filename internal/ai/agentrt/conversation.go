@@ -657,7 +657,7 @@ func (c *conversation) launch(path, dir string, persistent, resume bool, mcpConf
 	return Launch{
 		Path: path, Dir: dir, Persistent: persistent, ChatID: c.oo.SessionID,
 		SessionID: id, Resume: resume,
-		Model: c.oo.Model, WebSearch: c.oo.WebSearch, SystemPrompt: c.oo.SystemPrompt,
+		Model: c.oo.Model, WebSearch: c.oo.WebSearch, SystemPrompt: c.oo.SystemPrompt, Effort: c.oo.Effort,
 		Tools: c.toolServer(), MCPConfig: mcpConfig,
 	}
 }

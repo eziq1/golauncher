@@ -144,6 +144,9 @@ type Info struct {
 	// leaves Launch.Flags nil (docs/ai.md §22).
 	HelpArgs  []string
 	ParseHelp func(out string) Flags
+	// HelpSchema is raised when ParseHelp starts to report more (e.g. new
+	// markers), so that the probes cached before are made again.
+	HelpSchema int
 	// Fit, when set, decides from the version and the probed flags (nil when
 	// unknown) how the CLI is run: per turn only, features turned off. An
 	// error (usually ErrVersion: something it cannot do without is missing)
@@ -180,6 +183,9 @@ type Launch struct {
 	Model        string
 	WebSearch    bool
 	SystemPrompt string
+	// Effort is the reasoning effort level ("" for the default, R109); the
+	// adapter leaves out a level the CLI cannot take.
+	Effort string
 	// Tools is golauncher's MCP tool server, nil when the model gets no
 	// launcher tools; MCPConfig the path of the file written from
 	// Adapter.MCPConfig ("" when none).

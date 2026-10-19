@@ -261,6 +261,10 @@ func (p *Plugin) metadata(ch *chat) []plugin.Metadata {
 	if model == "" {
 		model = l.T("pref.model.default")
 	}
+	if ch.conv != nil && ch.convOpts.Effort != "" && ch.convBackend == id {
+		// The effort the conversation was opened with (R109).
+		model += " · " + effortTitle(l, ch.convOpts.Effort)
+	}
 	md := []plugin.Metadata{{Label: p.backendName(sess), Value: model}}
 	if c, ok := p.checks[id]; ok && c.status.Untested {
 		md[0].Value += " · " + l.T("meta.untested", "version", c.status.Version)

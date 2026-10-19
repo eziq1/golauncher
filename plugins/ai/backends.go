@@ -24,7 +24,19 @@ type BackendOption struct {
 	// comes first by itself). Without it the backend uses the "Model"
 	// preference (Claude's models).
 	Models []plugin.Option
+	// DynamicModels gives the backend its own "Model" preference whose
+	// choices come from its CLI (backend.ModelLister, Codex; R109): the
+	// models it lists, with the reasoning efforts each accepts.
+	DynamicModels bool
+	// Efforts gives the backend a "Reasoning effort" preference (prefEffort
+	// + "." + ID, R109), next to its model: the levels the chosen model
+	// accepts (DynamicModels), or the levels the CLI takes for every model
+	// (backend.EffortLister, Claude Code).
+	Efforts bool
 }
+
+// ownModels reports whether o has its own model preference.
+func (o BackendOption) ownModels() bool { return o.Models != nil || o.DynamicModels }
 
 // chooser holds the backends. New chats use the one chosen in the "Backend"
 // preference; a chat keeps the backend it was started with (Session.BackendID,
@@ -50,32 +62,71 @@ func (c *chooser) preference() plugin.Preference {
 		Default: plugin.MustPayload(c.opts[0].ID), Options: options}
 }
 
-// modelPreferences are the model preferences of the backends with their own
-// models.
+// effortPrefText are the titles of the backends' reasoning effort
+// preferences.
+var effortPrefText = map[string][2]string{
+	DefaultBackendID: {"%pref.effort.claude.title%", "%pref.effort.claude.description%"},
+	"codex":          {"%pref.effort.codex.title%", "%pref.effort.codex.description%"},
+}
+
+// modelPreferences are the preferences that follow the "Model" preference:
+// the reasoning efforts of the backends using it, then for each backend with
+// its own models its model preference and its effort preference (R109), so
+// that each backend's choices stay together. They show whichever backend is
+// chosen, as the model preferences always did: a chat keeps the backend it
+// was started with.
 func (c *chooser) modelPreferences() []plugin.Preference {
 	var out []plugin.Preference
 	for _, o := range c.opts {
-		if o.Models == nil {
+		if !o.ownModels() && o.Efforts {
+			out = append(out, effortPreference(o))
+		}
+	}
+	for _, o := range c.opts {
+		if !o.ownModels() {
 			continue
 		}
 		text, ok := modelPrefText[o.ID]
 		if !ok {
 			text = [2]string{"%pref.model.title%", "%pref.model.description%"}
 		}
-		options := append([]plugin.Option{{Value: "", Title: "%pref.model.default%"}}, o.Models...)
-		out = append(out, plugin.Preference{Name: modelPref(o), Type: plugin.PrefSelect, Title: text[0], Description: text[1],
-			Default: plugin.MustPayload(""), Options: options})
+		pref := plugin.Preference{Name: modelPref(o), Type: plugin.PrefSelect, Title: text[0], Description: text[1],
+			Default: plugin.MustPayload("")}
+		if o.DynamicModels {
+			pref.DynamicOptions = true
+		} else {
+			pref.Options = append([]plugin.Option{{Value: "", Title: "%pref.model.default%"}}, o.Models...)
+		}
+		out = append(out, pref)
+		if o.Efforts {
+			out = append(out, effortPreference(o))
+		}
 	}
 	return out
 }
 
+// effortPreference is o's reasoning effort preference; its choices come
+// from the backend.
+func effortPreference(o BackendOption) plugin.Preference {
+	text, ok := effortPrefText[o.ID]
+	if !ok {
+		text = [2]string{"%pref.effort.title%", "%pref.effort.description%"}
+	}
+	return plugin.Preference{Name: effortPref(o), Type: plugin.PrefSelect, Title: text[0], Description: text[1],
+		Default: plugin.MustPayload(""), DynamicOptions: true}
+}
+
 // modelPref is the name of the preference that chooses o's model.
 func modelPref(o BackendOption) string {
-	if o.Models == nil {
+	if !o.ownModels() {
 		return prefModel
 	}
 	return prefModel + "." + o.ID
 }
+
+// effortPref is the name of the preference that chooses o's reasoning
+// effort.
+func effortPref(o BackendOption) string { return prefEffort + "." + o.ID }
 
 // id is the ID of the backend chosen in the preferences.
 func (c *chooser) id() string {

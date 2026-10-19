@@ -36,6 +36,7 @@ const (
 	prefEnabled   = "enabled"
 	prefBackend   = "backend"
 	prefModel     = "model"
+	prefEffort    = "effort"
 	prefWebSearch = "webSearch"
 	prefTools     = "tools"
 	prefRetention = "retentionDays"
@@ -135,6 +136,8 @@ var (
 	_ plugin.TabProvider       = (*Plugin)(nil)
 	_ plugin.SelectionProvider = (*Plugin)(nil)
 	_ plugin.FileReceiver      = (*Plugin)(nil)
+
+	_ plugin.PreferenceOptionsProvider = (*Plugin)(nil)
 )
 
 // New returns the plugin answering with be.

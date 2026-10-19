@@ -267,9 +267,16 @@ func fakeAIBackends() []ai.BackendOption {
 	codexD.Installs[1].TooOld = true
 	geminiD := backend.Discovery{MinVersion: gemini.MinVersion, Auto: 0, AutoReason: backend.ReasonOnly, Status: backend.StatusNotSignedIn,
 		Installs: []backend.Install{in(`\AppData\Roaming\npm\gemini.cmd`, backend.SourceInstallDir, "0.34.0")}}
+	// Made-up models (R109).
+	models := backend.ModelList{Models: []backend.Model{
+		{ID: "fake-large", Name: "Fake Large", Efforts: []string{"low", "medium", "high", "xhigh"}, DefaultEffort: "medium"},
+		{ID: "fake-small", Name: "Fake Small", Efforts: []string{"low", "medium", "high"}, DefaultEffort: "low"},
+	}}
 	return []ai.BackendOption{
-		{ID: claudecode.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, Found: claude}},
-		{ID: codex.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Codex (ChatGPT)", Found: codexD}},
+		{ID: claudecode.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, Found: claude,
+			EffortLevels: []string{"low", "medium", "high", "xhigh", "max"}}, Efforts: true},
+		{ID: codex.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Codex (ChatGPT)", Found: codexD,
+			ModelList: models}, DynamicModels: true, Efforts: true},
 		{ID: gemini.ID, Backend: &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Gemini CLI", Found: geminiD}},
 	}
 }

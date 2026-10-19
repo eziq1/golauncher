@@ -1,7 +1,10 @@
 package claudecode
 
 import (
+	"cmp"
 	"fmt"
+	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/eziq1/golauncher/internal/ai/agentrt"
@@ -45,7 +48,107 @@ const (
 	flagPermissionMode    = "--permission-mode"
 	flagAppendSystem      = "--append-system-prompt"
 	flagModel             = "--model"
+	flagEffort            = "--effort"
 )
+
+// markEffort prefixes the markers parseHelp adds for the levels --effort
+// lists ("--effort=high"; R109).
+const markEffort = flagEffort + "="
+
+// Reasoning effort (R109): --effort <level> sets it for the session. It
+// appeared before 2.1.72 (whose CHANGELOG fixes it) with low/medium/high
+// (2.1.72 dropped max); 2.1.111 added xhigh; 2.1.292's help lists low,
+// medium, high, xhigh, max. The help names the levels, so a probed CLI gets
+// the ones it lists; without a probe they go by these versions.
+var effortSince = []struct {
+	version string
+	levels  []string
+}{
+	{"2.1.111", []string{"low", "medium", "high", "xhigh"}},
+	{"2.1.72", []string{"low", "medium", "high"}},
+}
+
+// testedEfforts are the levels of the tested version (2.1.292), assumed when
+// neither the flags nor the version are known (as for every other flag).
+var testedEfforts = []string{"low", "medium", "high", "xhigh", "max"}
+
+// effortListRE matches the list of levels in --effort's description:
+// "(low, medium, high, xhigh, max)".
+var effortListRE = regexp.MustCompile(`\(\s*([a-z]+(?:\s*,\s*[a-z]+)+)\s*\)`)
+
+// helpEfforts returns the levels the --effort option of a help text lists
+// (its option line and the description lines under it), nil when it lists
+// none.
+func helpEfforts(out string) []string {
+	var desc strings.Builder
+	in := false
+	for line := range strings.Lines(out) {
+		trimmed := strings.TrimLeft(line, " \t")
+		indent := len(line) - len(trimmed)
+		if indent > 0 && indent <= 8 && strings.HasPrefix(trimmed, "-") {
+			if in {
+				break // the next option
+			}
+			spec, _, _ := strings.Cut(strings.TrimSpace(trimmed), "  ")
+			in = slices.ContainsFunc(strings.FieldsFunc(spec, func(r rune) bool { return r == ' ' || r == ',' || r == '=' }),
+				func(tok string) bool { return tok == flagEffort })
+		}
+		if in {
+			desc.WriteString(strings.TrimSpace(line) + " ")
+		}
+	}
+	m := effortListRE.FindStringSubmatch(desc.String())
+	if m == nil {
+		return nil
+	}
+	var levels []string
+	for l := range strings.SplitSeq(m[1], ",") {
+		if l = strings.TrimSpace(l); l != "" && !slices.Contains(levels, l) {
+			levels = append(levels, l)
+		}
+	}
+	return levels
+}
+
+// efforts returns the --effort levels the CLI takes (none without --effort):
+// those its help listed; with --effort but no list, low/medium/high; without
+// a probe, by version, or the tested set when the version is unknown too.
+func (s support) efforts() []string {
+	if s.flags != nil {
+		if !s.flags.Has(flagEffort) {
+			return nil
+		}
+		var levels []string
+		for _, f := range s.flags.List() {
+			if l, ok := strings.CutPrefix(f, markEffort); ok {
+				levels = append(levels, l)
+			}
+		}
+		if len(levels) == 0 {
+			return []string{"low", "medium", "high"}
+		}
+		// In the order of the tested set, then any others.
+		slices.SortStableFunc(levels, func(a, b string) int { return cmp.Compare(effortRank(a), effortRank(b)) })
+		return levels
+	}
+	if s.version == "" {
+		return slices.Clone(testedEfforts)
+	}
+	for _, e := range effortSince {
+		if agentrt.CompareVersions(s.version, e.version) >= 0 {
+			return slices.Clone(e.levels)
+		}
+	}
+	return nil
+}
+
+// effortRank orders levels as the tested set does (others after it).
+func effortRank(level string) int {
+	if i := slices.Index(testedEfforts, level); i >= 0 {
+		return i
+	}
+	return len(testedEfforts)
+}
 
 // markDontAsk is the marker parseHelp adds when --permission-mode offers
 // "dontAsk" (deny whatever is not pre-approved).
@@ -71,6 +174,11 @@ func parseHelp(out string) agentrt.Flags {
 	}
 	if strings.Contains(out, `"dontAsk"`) {
 		f[markDontAsk] = true
+	}
+	if f.Has(flagEffort) {
+		for _, l := range helpEfforts(out) {
+			f[markEffort+l] = true
+		}
 	}
 	return f
 }

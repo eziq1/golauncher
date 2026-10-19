@@ -54,6 +54,11 @@ func (p *Plugin) BackendReports(ctx context.Context, refresh bool) []backend.Rep
 	var out []backend.Report
 	var ds []backend.Discoverer
 	for _, o := range p.be.opts {
+		if ml, ok := o.Backend.(backend.ModelLister); ok && refresh && o.DynamicModels {
+			ml.Redetect() // "Re-detect" lists the models again too (R109)
+		}
+	}
+	for _, o := range p.be.opts {
 		if d, ok := discoverer(o); ok {
 			out = append(out, backend.Report{ID: o.ID, Name: o.Backend.Name()})
 			ds = append(ds, d)
