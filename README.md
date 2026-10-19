@@ -231,7 +231,7 @@
 - **`glctl`**: a headless CLI that drives the same engine, so you or an AI agent
   can test every flow without the GUI.
 
-> **Status:** v0.9 is an early public release for Windows and macOS; see the
+> **Status:** v0.10 is an early public release for Windows and macOS; see the
 > [changelog](CHANGELOG.md) for what each release added. See the
 > [design document](docs/design.md) for the architecture and the roadmap.
 
