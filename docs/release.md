@@ -175,8 +175,8 @@
 - **发布后**：用这次的 `homebrew-cask` 产物手动更新 `eziq1/homebrew-tap`（`HOMEBREW_TAP_TOKEN` 未配置）；winget 的 0.8.0 PR 还在审核，0.9.0 的清单等它被接受后再提交；在 issue #3 回复翻译插件的进展。
 - **结果**：2026-10-17 在 `3661b75` 上打了 `v0.9.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.2MB）、`windows_arm64`（20.4MB）、`darwin_amd64`（22.7MB）、`darwin_arm64`（20.8MB）和 `checksums.txt`。`homebrew` 任务的 `brew style` 报 `Homebrew/OSDependsOn`（要写 `depends_on macos: :ventura`），因为是 `continue-on-error` 没有挡住发布；生成器随后修正，tap 里的 0.9.0 cask 用修正后的生成器重新生成（SHA-256 和 `checksums.txt` 一致）后手动推送。<https://github.com/eziq1/golauncher/releases/tag/v0.9.0>
 
-## 16. v0.9.1（2026-10-19，R110）
+## 16. v0.10.0（2026-10-19，R110）
 
 - **内容**：自定义 AI 操作第一期（R103）、Codex 模型列表和 Codex/Claude Code 的推理强度（R109）、Homebrew tap 改由发布流程用部署密钥自动推送（R108）、README 顶部的演示 GIF（R105）。
-- **版本号**：按你的要求发 0.9.1。按语义化版本，新功能本该升次版本号（0.10.0）；1.0 之前不严格要求。
-- **要验证的**：这是第一次由发布流程自动推送 tap（`homebrew` 任务的 "Push to eziq1/homebrew-tap" 一步，用 `HOMEBREW_TAP_DEPLOY_KEY`），发布后确认 tap 出现 `golauncher 0.9.1` 提交；winget 的 0.8.0 PR 仍在审核，0.9.1 清单等它被接受后再提交。
+- **版本号**：起初按要求准备发 0.9.1（CHANGELOG 已定版、`4008928` 已推送，但 CI 通过前就停下，没有打 tag、没有 Release）；随后你要求按语义化版本发布：有新功能，升次版本号，改为 0.10.0。
+- **要验证的**：这是第一次由发布流程自动推送 tap（`homebrew` 任务的 "Push to eziq1/homebrew-tap" 一步，用 `HOMEBREW_TAP_DEPLOY_KEY`），发布后确认 tap 出现 `golauncher 0.10.0` 提交；winget 的 0.8.0 PR 仍在审核，0.10.0 清单等它被接受后再提交。
