@@ -132,7 +132,8 @@ func TestDirsFnmDefault(t *testing.T) {
 	if err := os.Symlink(filepath.Join(root, "fnm", "node-versions", "v20.0.0", "installation"), filepath.Join(root, "fnm", "aliases", "default")); err != nil {
 		t.Skip("no symbolic links here: ", err)
 	}
-	e := NodeEnv{GOOS: "linux", Getenv: envMap(map[string]string{"FNM_DIR": filepath.Join(root, "fnm")})}
+	// Root keeps the runner's own /opt/homebrew/bin and /usr/local/bin out.
+	e := NodeEnv{GOOS: "linux", Root: root, Getenv: envMap(map[string]string{"FNM_DIR": filepath.Join(root, "fnm")})}
 	want := []string{"fnm/node-versions/v20.0.0/installation/bin:fnm:default", "fnm/node-versions/v22.0.0/installation/bin:fnm"}
 	if got := dirStrings(t, root, e.Dirs()); !slices.Equal(got, want) {
 		t.Errorf("dirs %q", got)
