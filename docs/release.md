@@ -181,3 +181,9 @@
 - **版本号**：起初按要求准备发 0.9.1（CHANGELOG 已定版、`4008928` 已推送，但 CI 通过前就停下，没有打 tag、没有 Release）；随后你要求按语义化版本发布：有新功能，升次版本号，改为 0.10.0。
 - **要验证的**：这是第一次由发布流程自动推送 tap（`homebrew` 任务的 "Push to eziq1/homebrew-tap" 一步，用 `HOMEBREW_TAP_DEPLOY_KEY`），发布后确认 tap 出现 `golauncher 0.10.0` 提交；winget 的 0.8.0 PR 仍在审核，0.10.0 清单等它被接受后再提交。
 - **结果**：2026-10-19 在 `8bcdf15` 上打了 `v0.10.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.3MB）、`windows_arm64`（20.5MB）、`darwin_amd64`（22.9MB）、`darwin_arm64`（20.9MB）和 `checksums.txt`。**tap 第一次自动推送成功**：`github-actions[bot]` 提交 `golauncher 0.10.0`（`dbff212`），cask 的两个 SHA-256 和 `checksums.txt` 一致。`brew style` 无问题；`brew audit --online` 因匿名调用 GitHub API 被限流而失败（`continue-on-error`，不影响发布和推送），之后给这一步加了 `HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}`。<https://github.com/eziq1/golauncher/releases/tag/v0.10.0>
+
+## 17. v0.10.1（2026-10-19，R112）
+
+- **内容**：只有修复——在 Node.js 版本管理器（nvm、fnm、Volta、asdf、mise、nodenv、n；Windows 上 nvm-windows、fnm、Volta、mise）和 npm 自定义 prefix 下找到 Claude Code、Codex、Gemini CLI，并让它们用旁边的 node 运行（R111）。
+- **版本号**：只有修复，按语义化版本升补丁号。
+- **合并时**：macOS CI 的 `TestDirsFnmDefault` 失败——测试没设 `Root`，读到了运行器上真实存在的 `/opt/homebrew/bin`、`/usr/local/bin`；补上后通过（`c4b7670`）。R111 里只在 macOS 上运行的测试由这次 CI 第一次跑通。
