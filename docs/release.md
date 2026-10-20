@@ -193,3 +193,4 @@
 
 - **内容**：Markdown 里的 LaTeX 公式排版（R114，[math.md](math.md)）：独立公式用 treeblood 转 MathML 后自己排版，行内公式转 Unicode 文本，复制仍得到 TeX；新依赖 treeblood v0.1.16（MIT），程序体积 +755 KiB。
 - **版本号**：新功能，按语义化版本升次版本号。
+- **结果**：2026-10-20 在 `f87eaa7` 上打了 `v0.11.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.7MB）、`windows_arm64`（20.8MB）、`darwin_amd64`（23.2MB）、`darwin_arm64`（21.2MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.11.0`（`191fb8c`），SHA-256 和 `checksums.txt` 一致；`brew style`、`brew audit` 通过。<https://github.com/eziq1/golauncher/releases/tag/v0.11.0>
