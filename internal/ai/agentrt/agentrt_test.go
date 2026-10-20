@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -24,6 +25,8 @@ func TestMain(m *testing.M) {
 		fakeCLI()
 		os.Exit(0)
 	}
+	// Never this computer's install folders (tests that need some make them up).
+	installDirs = func() []BinDir { return nil }
 	os.Exit(m.Run())
 }
 
@@ -37,6 +40,13 @@ func TestMain(m *testing.M) {
 // It appends its argv to $AGENTRT_FAKE_LOG.
 func fakeCLI() {
 	args := os.Args[1:]
+	// Like an npm-installed CLI ("#!/usr/bin/env node"): it needs a node on PATH.
+	if os.Getenv("AGENTRT_FAKE_NEEDNODE") == "1" {
+		if _, err := exec.LookPath("node"); err != nil {
+			fmt.Fprintln(os.Stderr, "env: node: No such file or directory")
+			os.Exit(127)
+		}
+	}
 	if len(args) > 0 && args[0] == "--version" {
 		// A copy named fake-<x.y.z>.exe has that version.
 		ver := "1.2.3"

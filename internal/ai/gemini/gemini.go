@@ -89,9 +89,10 @@ type host struct {
 	exists   func(path string) bool
 	readFile func(path string) ([]byte, error)
 	// executable reports whether path is a file that may be run (outside
-	// Windows); dirs are the folders searched after PATH there.
+	// Windows); dirs are the folders searched after PATH (agentrt.InstallDirs:
+	// the usual install folders and the Node.js version managers').
 	executable func(path string) bool
-	dirs       []string
+	dirs       []agentrt.BinDir
 }
 
 func hostEnv() host {
@@ -106,10 +107,7 @@ func hostEnv() host {
 			fi, err := os.Stat(p)
 			return err == nil && !fi.IsDir() && fi.Mode()&0o111 != 0
 		},
-	}
-	if runtime.GOOS != "windows" {
-		home, _ := os.UserHomeDir()
-		h.dirs = agentrt.UnixBinDirs(home)
+		dirs: agentrt.InstallDirs(),
 	}
 	return h
 }
@@ -144,8 +142,8 @@ func config(h host) acp.Config {
 }
 
 // candidates finds Gemini CLI: gemini.exe on PATH, then the npm shim
-// gemini.cmd on PATH, then %APPDATA%\npm\gemini.cmd; elsewhere see
-// unixDiscover.
+// gemini.cmd on PATH, then %APPDATA%\npm\gemini.cmd and the folders of
+// h.dirs; elsewhere see unixDiscover.
 func candidates(h host) ([]string, error) {
 	var out, others []string
 	for _, f := range discover(h) {
@@ -162,9 +160,10 @@ func candidates(h host) ([]string, error) {
 }
 
 // discover is the search of candidates, with how each CLI was found (R84):
-// on Windows gemini.exe on PATH, then gemini.cmd on PATH and in
-// %APPDATA%\npm, then the PowerShell and sh launchers on PATH, which are
-// never run (Launcher); elsewhere see unixDiscover.
+// on Windows gemini.exe on PATH, then gemini.cmd on PATH, in %APPDATA%\npm
+// and in h.dirs (npm's prefix, the Node.js version managers' folders), then
+// the PowerShell and sh launchers on PATH, which are never run (Launcher);
+// elsewhere see unixDiscover.
 func discover(h host) []agentrt.Found {
 	if runtime.GOOS != "windows" {
 		return unixDiscover(h)
@@ -192,6 +191,13 @@ func discover(h host) []agentrt.Found {
 			cmds = append(cmds, agentrt.Found{Path: p, Source: backend.SourceInstallDir})
 		}
 	}
+	for _, d := range h.dirs {
+		for _, n := range []string{"gemini.exe", "gemini.cmd"} {
+			if p := filepath.Join(d.Dir, n); h.exists(p) {
+				cmds = append(cmds, agentrt.FoundIn(p, d, backend.SourceInstallDir))
+			}
+		}
+	}
 	var out []agentrt.Found
 	for _, f := range slices.Concat(exes, cmds, others) {
 		if !slices.ContainsFunc(out, func(q agentrt.Found) bool { return strings.EqualFold(f.Path, q.Path) }) {
@@ -202,14 +208,19 @@ func discover(h host) []agentrt.Found {
 }
 
 // unixDiscover finds Gemini CLI outside Windows: an executable gemini in a
-// directory of PATH, then of h.dirs (Homebrew's, npm's usual prefixes). It
-// is npm's link to the package's script (or Homebrew's wrapper), which runs
-// node: Gemini CLI is a Node.js program.
+// directory of PATH, then of h.dirs (Homebrew's, npm's prefixes, the Node.js
+// version managers'). It is npm's link to the package's script (or
+// Homebrew's wrapper), which runs node: Gemini CLI is a Node.js program.
 func unixDiscover(h host) []agentrt.Found {
+	var dirs []agentrt.BinDir
 	path := filepath.SplitList(h.getenv("PATH"))
+	for _, d := range path {
+		dirs = append(dirs, agentrt.BinDir{Dir: d})
+	}
 	var out []agentrt.Found
-	for i, dir := range append(path, h.dirs...) {
-		if dir = strings.TrimSpace(dir); dir == "" {
+	for i, d := range append(dirs, h.dirs...) {
+		dir := strings.TrimSpace(d.Dir)
+		if dir == "" {
 			continue
 		}
 		src := backend.SourcePath
@@ -218,7 +229,7 @@ func unixDiscover(h host) []agentrt.Found {
 		}
 		p := filepath.Join(dir, "gemini")
 		if h.executable(p) && !slices.ContainsFunc(out, func(f agentrt.Found) bool { return f.Path == p }) {
-			out = append(out, agentrt.Found{Path: p, Source: src})
+			out = append(out, agentrt.FoundIn(p, d, src))
 		}
 	}
 	return out

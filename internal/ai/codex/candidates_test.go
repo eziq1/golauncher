@@ -302,7 +302,7 @@ func TestCandidatesDarwin(t *testing.T) {
 				}
 				return out
 			}
-			e := findEnv{OS: "darwin", Arch: tt.arch, Path: abs(tt.path), Dirs: abs(tt.dirs),
+			e := findEnv{OS: "darwin", Arch: tt.arch, Path: abs(tt.path), Dirs: binDirs(abs(tt.dirs)...),
 				Apps: abs([]string{app, "Applications/Codex.app/Contents/Resources/bin/codex"})}
 			got, err := candidates(e)
 			if tt.shim {
@@ -357,17 +357,21 @@ func TestNativePathDarwin(t *testing.T) {
 	}
 }
 
-// TestUnixDirs: the folders searched after PATH, and the app's CLIs.
-func TestUnixDirs(t *testing.T) {
-	home := t.TempDir()
-	touch(t, home, ".nvm/versions/node/v22.1.0/bin/node")
-	dirs, apps := unixDirs(home)
-	want := []string{"/opt/homebrew/bin", "/usr/local/bin", filepath.Join(home, ".local", "bin"), filepath.Join(home, ".npm-global", "bin"),
-		filepath.Join(home, ".nvm", "versions", "node", "v22.1.0", "bin")}
-	if !slices.Equal(dirs, want) {
-		t.Errorf("dirs %q", dirs)
+// binDirs are usual install folders (no version manager).
+func binDirs(ds ...string) []agentrt.BinDir {
+	out := make([]agentrt.BinDir, len(ds))
+	for i, d := range ds {
+		out[i] = agentrt.BinDir{Dir: d}
 	}
-	if len(apps) != 4 || apps[0] != filepath.Join("/Applications", "Codex.app", "Contents", "Resources", "codex") {
+	return out
+}
+
+// TestUnixApps: the app's CLIs (the folders searched after PATH are
+// agentrt's, tested there).
+func TestUnixApps(t *testing.T) {
+	apps := unixApps("/Users/someone")
+	if len(apps) != 4 || apps[0] != filepath.Join("/Applications", "Codex.app", "Contents", "Resources", "codex") ||
+		apps[2] != filepath.Join("/Users/someone", "Applications", "Codex.app", "Contents", "Resources", "codex") {
 		t.Errorf("apps %q", apps)
 	}
 }
@@ -394,6 +398,9 @@ func foundRels(t *testing.T, root string, found []agentrt.Found) []string {
 	out := make([]string, len(found))
 	for i, f := range found {
 		out[i] = rels(t, root, []string{f.Path})[0] + ":" + string(f.Source)
+		if f.Manager != "" {
+			out[i] += ":" + f.Manager
+		}
 		if f.Launcher {
 			out[i] += ":launcher"
 		}
@@ -408,9 +415,12 @@ func TestDiscover(t *testing.T) {
 	const x64Old = "node_modules/@openai/codex/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
 	root := t.TempDir()
 	touch(t, root, "bin/codex.exe", "local/OpenAI/Codex/bin/codex.exe", "local/OpenAI/Codex/bin/26.1/codex.exe",
-		"node/codex.cmd", "node/codex.ps1", "node/"+x64Old, "roaming/npm/codex.cmd", "lone/codex.cmd")
+		"node/codex.cmd", "node/codex.ps1", "node/"+x64Old, "roaming/npm/codex.cmd", "lone/codex.cmd",
+		"nvm/v20.1.0/codex.cmd", "nvm/v20.1.0/"+x64Old)
 	e := findEnv{OS: "windows", Arch: "amd64", LocalAppData: filepath.Join(root, "local"), AppData: filepath.Join(root, "roaming"),
-		Path: []string{filepath.Join(root, "bin"), filepath.Join(root, "node"), filepath.Join(root, "lone")}}
+		Path: []string{filepath.Join(root, "bin"), filepath.Join(root, "node"), filepath.Join(root, "lone")},
+		// Searched after PATH: %APPDATA%\npm again (listed once), an nvm-windows version.
+		Dirs: []agentrt.BinDir{{Dir: filepath.Join(root, "roaming", "npm")}, {Dir: filepath.Join(root, "nvm", "v20.1.0"), Manager: "nvm"}}}
 	want := []string{
 		"bin/codex.exe:path",
 		"local/OpenAI/Codex/bin/codex.exe:app",
@@ -419,13 +429,15 @@ func TestDiscover(t *testing.T) {
 		"node/codex.cmd:path:launcher",
 		"lone/codex.cmd:path:launcher",
 		"roaming/npm/codex.cmd:installDir:launcher",
+		"nvm/v20.1.0/" + x64Old + ":npmVendor:nvm",
+		"nvm/v20.1.0/codex.cmd:versionManager:nvm:launcher",
 	}
 	if got := foundRels(t, root, discover(e)); !slices.Equal(got, want) {
 		t.Errorf("discover =\n %q\nwant\n %q", got, want)
 	}
 	// candidates is the same search without the launchers.
 	got, err := candidates(e)
-	if err != nil || len(got) != 4 {
+	if err != nil || len(got) != 5 {
 		t.Fatalf("candidates = %q, %v", got, err)
 	}
 }
@@ -441,15 +453,24 @@ func TestDiscoverDarwin(t *testing.T) {
 		armNest = pkg + "/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"
 		app     = "Applications/Codex.app/Contents/Resources/codex"
 	)
+	// npm under nvm: <version>/bin/codex links to <version>/lib/node_modules/@openai/codex/bin/codex.js.
+	const (
+		nvm       = ".nvm/versions/node/v22.1.0"
+		nvmNative = nvm + "/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"
+	)
 	root := realTempDir(t)
-	for _, n := range []string{"bin/codex", "brew/codex", app, armNest} {
+	for _, n := range []string{"bin/codex", "brew/codex", app, armNest, nvmNative} {
 		put(t, root, n, machO)
 	}
 	put(t, root, pkg+"/bin/codex.js", launcher)
 	link(t, root, "npm/bin/codex", "../lib/node_modules/@openai/codex/bin/codex.js")
+	put(t, root, nvm+"/lib/node_modules/@openai/codex/bin/codex.js", launcher)
+	link(t, root, nvm+"/bin/codex", "../lib/node_modules/@openai/codex/bin/codex.js")
 	e := findEnv{OS: "darwin", Arch: "arm64", Path: []string{filepath.Join(root, "bin"), filepath.Join(root, "npm/bin")},
-		Dirs: []string{filepath.Join(root, "brew")}, Apps: []string{filepath.Join(root, app)}}
-	want := []string{"bin/codex:path", "brew/codex:installDir", app + ":app", armNest + ":npmVendor", "npm/bin/codex:path:launcher"}
+		Dirs: append(binDirs(filepath.Join(root, "brew")), agentrt.BinDir{Dir: filepath.Join(root, nvm, "bin"), Manager: "nvm", Default: true}),
+		Apps: []string{filepath.Join(root, app)}}
+	want := []string{"bin/codex:path", "brew/codex:installDir", app + ":app", armNest + ":npmVendor", "npm/bin/codex:path:launcher",
+		nvmNative + ":npmVendor:nvm", nvm + "/bin/codex:versionManager:nvm:launcher"}
 	if got := foundRels(t, root, discover(e)); !slices.Equal(got, want) {
 		t.Errorf("discover =\n %q\nwant\n %q", got, want)
 	}

@@ -541,7 +541,7 @@ func TestCheckCandidates(t *testing.T) {
 	copyFake(t, older, "codex-cli 0.130.0-alpha.5")
 	copyFake(t, newest, "codex-cli 0.162.0-alpha.17.2")
 	setCandidateEnv(t, env(findEnv{Path: []string{pathDir}, LocalAppData: local, Arch: "amd64",
-		Dirs: []string{filepath.Dir(older)}, Apps: []string{newest}}))
+		Dirs: binDirs(filepath.Dir(older)), Apps: []string{newest}}))
 	log := filepath.Join(root, "log.jsonl")
 	b := New(Options{Dir: filepath.Join(root, "work"), Env: []string{"FAKECODEX_LOG=" + log, "FAKECODEX_STATE=" + root}})
 	defer b.Close()

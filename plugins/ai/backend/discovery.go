@@ -13,8 +13,11 @@ const (
 	// SourcePath: in a directory of PATH.
 	SourcePath Source = "path"
 	// SourceInstallDir: in a usual install folder searched after PATH
-	// (%APPDATA%\npm, ~/.local/bin, Homebrew's bin folders, nvm's, …).
+	// (%APPDATA%\npm, ~/.local/bin, Homebrew's bin folders, npm's prefix, …).
 	SourceInstallDir Source = "installDir"
+	// SourceVersionManager: in the folder of a Node.js version manager
+	// (Install.Manager: nvm, fnm, volta, …), searched after PATH (R111).
+	SourceVersionManager Source = "versionManager"
 	// SourceApp: the copy a desktop app carries (the Codex app's CLI).
 	SourceApp Source = "app"
 	// SourceNpmVendor: the native binary inside an npm package, next to its
@@ -29,6 +32,11 @@ type Install struct {
 	// Path is the program (shown to the user as it is; never logged).
 	Path   string `json:"path"`
 	Source Source `json:"source"`
+	// Manager is the Node.js version manager whose folder it is in ("nvm",
+	// "fnm", "volta", "asdf", "mise", "nodenv", "n"); "" for none. Set with
+	// SourceVersionManager, and with SourceNpmVendor for a package installed
+	// under a version manager.
+	Manager string `json:"manager,omitempty"`
 	// Launcher marks a launcher script golauncher does not run (Codex's npm
 	// launcher, which needs Node.js; gemini.ps1). It is not probed.
 	Launcher bool `json:"launcher,omitzero"`
@@ -42,7 +50,9 @@ type Install struct {
 	// with (it works, more carefully).
 	Untested bool `json:"untested,omitzero"`
 	// Shadowed: usable, but the automatic choice only uses the first program
-	// found (Claude Code: the first on PATH), and this one comes later.
+	// found (Claude Code: the first on PATH), and this one comes later; or it
+	// is under a Node.js version manager and one found otherwise (or under
+	// the manager's default version) is used (R111).
 	Shadowed bool `json:"shadowed,omitzero"`
 }
 
@@ -70,6 +80,10 @@ const (
 	// ReasonFirst: it was found first (on PATH, else in the usual install
 	// folders); later ones are Shadowed.
 	ReasonFirst = "firstFound"
+	// ReasonManagerDefault: nothing usable was found on PATH or in the usual
+	// install folders, and it is installed under the default Node.js version
+	// of its version manager (nvm's alias/default, R111).
+	ReasonManagerDefault = "managerDefault"
 )
 
 // Discovery is what a backend found of its program.

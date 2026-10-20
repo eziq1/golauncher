@@ -229,6 +229,13 @@ func TestCandidates(t *testing.T) {
 		`C:\Users\someone\AppData\Roaming\npm\gemini.cmd:installDir`, `C:\a\gemini.ps1:path:launcher`}) {
 		t.Errorf("discover %q", got)
 	}
+	// The folders searched after PATH: npm's prefix, a version manager's.
+	h := fakeHost(env, map[string]string{`C:\nvm4w\v20.1.0\gemini.cmd`: "", `C:\Users\someone\AppData\Roaming\npm\gemini.cmd`: ""})
+	h.dirs = []agentrt.BinDir{{Dir: `C:\Users\someone\AppData\Roaming\npm`}, {Dir: `C:\nvm4w\v20.1.0`, Manager: "nvm"}}
+	if got := foundStrings(discover(h)); !slices.Equal(got, []string{`C:\Users\someone\AppData\Roaming\npm\gemini.cmd:installDir`,
+		`C:\nvm4w\v20.1.0\gemini.cmd:versionManager`}) {
+		t.Errorf("discover %q", got)
+	}
 	// Only launchers golauncher does not run.
 	got, err = candidates(fakeHost(env, map[string]string{`C:\a\gemini.ps1`: "", `C:\a\gemini`: ""}))
 	if len(got) != 0 || err == nil || !strings.Contains(err.Error(), `C:\a\gemini.ps1`) {
@@ -254,13 +261,13 @@ func TestCandidatesUnix(t *testing.T) {
 	env := map[string]string{"PATH": "/usr/bin: /Users/someone/bin::/opt/homebrew/bin"}
 	files := map[string]string{"/opt/homebrew/bin/gemini": "", "/Users/someone/bin/gemini": "", "/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini": ""}
 	h := fakeHost(env, files)
-	h.dirs = []string{"/opt/homebrew/bin", "/usr/local/bin", "/Users/someone/.nvm/versions/node/v22.1.0/bin"}
+	h.dirs = []agentrt.BinDir{{Dir: "/opt/homebrew/bin"}, {Dir: "/usr/local/bin"}, {Dir: "/Users/someone/.nvm/versions/node/v22.1.0/bin", Manager: "nvm", Default: true}}
 	got, err := candidates(h)
 	if err != nil || !slices.Equal(got, []string{"/Users/someone/bin/gemini", "/opt/homebrew/bin/gemini", "/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini"}) {
 		t.Errorf("candidates %q %v", got, err)
 	}
 	if got := foundStrings(discover(h)); !slices.Equal(got, []string{"/Users/someone/bin/gemini:path", "/opt/homebrew/bin/gemini:path",
-		"/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini:installDir"}) {
+		"/Users/someone/.nvm/versions/node/v22.1.0/bin/gemini:versionManager"}) {
 		t.Errorf("discover %q", got)
 	}
 	// A gemini that may not be run, or none.

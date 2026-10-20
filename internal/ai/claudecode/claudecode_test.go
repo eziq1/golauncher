@@ -490,8 +490,17 @@ func TestNotInstalled(t *testing.T) {
 	// A configured CLI that is missing falls back to the automatic choice
 	// (R84), which finds nothing here either.
 	empty := t.TempDir()
-	for _, k := range []string{"PATH", "HOME", "USERPROFILE", "APPDATA"} {
+	for _, k := range []string{"PATH", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "NVM_DIR", "NVM_HOME", "NVM_SYMLINK", "FNM_DIR",
+		"XDG_DATA_HOME", "VOLTA_HOME", "ASDF_DATA_DIR", "MISE_DATA_DIR", "NODENV_ROOT", "N_PREFIX", "npm_config_prefix", "NPM_CONFIG_PREFIX"} {
 		t.Setenv(k, empty)
+	}
+	if runtime.GOOS != "windows" {
+		// The fixed system folders cannot be made up.
+		for _, p := range []string{"/opt/homebrew/bin/claude", "/usr/local/bin/claude"} {
+			if _, err := os.Stat(p); err == nil {
+				t.Skip("Claude Code is installed in " + filepath.Dir(p))
+			}
+		}
 	}
 	f := newFake(t, nil, func(o *Options) { o.Path = filepath.Join(t.TempDir(), "missing", "claude.exe") })
 	if _, err := f.b.Check(context.Background()); backend.KindOf(err) != backend.ErrNotInstalled {

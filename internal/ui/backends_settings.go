@@ -148,7 +148,7 @@ func (s *Settings) backendRow(c *mui.Context, r backend.Report) {
 	if len(others) > 0 {
 		mui.Text(c, s.loc.T("settings.backends.others")).FontSize(12).Bold().TextColor(t.TextMuted)
 		for _, in := range others {
-			mui.Text(c, in.Path+" — "+s.loc.T("settings.backends.other.line", "detail", s.otherDetail(r, in), "source", s.sourceText(in.Source))).
+			mui.Text(c, in.Path+" — "+s.loc.T("settings.backends.other.line", "detail", s.otherDetail(r, in), "source", s.sourceText(in))).
 				FontSize(12).TextColor(t.TextMuted).Selectable()
 		}
 	}
@@ -171,18 +171,35 @@ func (s *Settings) backendStatus(r backend.Report) string {
 }
 
 // sourceText words how an installation was found.
-func (s *Settings) sourceText(src backend.Source) string {
-	switch src {
+func (s *Settings) sourceText(in backend.Install) string {
+	switch in.Source {
 	case backend.SourcePath:
 		return s.loc.T("settings.backends.source.path")
 	case backend.SourceInstallDir:
 		return s.loc.T("settings.backends.source.installDir")
+	case backend.SourceVersionManager:
+		return s.loc.T("settings.backends.source.versionManager", "manager", managerName(in.Manager))
 	case backend.SourceApp:
 		return s.loc.T("settings.backends.source.app")
 	case backend.SourceNpmVendor:
+		if in.Manager != "" {
+			return s.loc.T("settings.backends.source.npmVendorManager", "manager", managerName(in.Manager))
+		}
 		return s.loc.T("settings.backends.source.npmVendor")
 	}
 	return s.loc.T("settings.backends.source.custom")
+}
+
+// managerName is the product name of a Node.js version manager
+// (Install.Manager; not translated).
+func managerName(m string) string {
+	switch m {
+	case "volta":
+		return "Volta"
+	case "":
+		return "?"
+	}
+	return m
 }
 
 // inUseDetail is the line under the program in use: its version, how it
@@ -193,7 +210,7 @@ func (s *Settings) inUseDetail(r backend.Report, in backend.Install) string {
 		version = "?"
 	}
 	if r.InUse != r.Auto || r.Configured != "" && !r.ConfiguredMissing {
-		return s.loc.T("settings.backends.inUse.chosen", "version", version, "source", s.sourceText(in.Source))
+		return s.loc.T("settings.backends.inUse.chosen", "version", version, "source", s.sourceText(in))
 	}
 	reason := s.loc.T("settings.backends.reason.only")
 	switch r.AutoReason {
@@ -201,8 +218,10 @@ func (s *Settings) inUseDetail(r backend.Report, in backend.Install) string {
 		reason = s.loc.T("settings.backends.reason.highestVersion")
 	case backend.ReasonFirst:
 		reason = s.loc.T("settings.backends.reason.firstFound")
+	case backend.ReasonManagerDefault:
+		reason = s.loc.T("settings.backends.reason.managerDefault", "manager", managerName(in.Manager))
 	}
-	return s.loc.T("settings.backends.inUse.auto", "version", version, "source", s.sourceText(in.Source), "reason", reason)
+	return s.loc.T("settings.backends.inUse.auto", "version", version, "source", s.sourceText(in), "reason", reason)
 }
 
 // otherDetail says why another installation is not used.
