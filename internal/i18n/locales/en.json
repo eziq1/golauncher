@@ -189,6 +189,7 @@
 
   "ui.search.label": "Search",
   "ui.back": "Back",
+  "ui.markdown.copyAsMarkdown": "Copy as Markdown",
   "ui.loading": "Loading…",
   "ui.footer.actions": "Actions",
   "ui.panel.label": "Actions",

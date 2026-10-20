@@ -558,6 +558,10 @@ Chinese names), licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is converted by
 [`scripts/data/gencities`](scripts/data/gencities/) and embedded in the program.
 
+LaTeX math in Markdown (AI answers) is converted to MathML by
+[treeblood](https://github.com/wyatt915/treeblood) (MIT), then laid out by
+golauncher ([docs/math.md](docs/math.md)).
+
 ## License
 
 [MIT](LICENSE)

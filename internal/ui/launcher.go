@@ -11,13 +11,14 @@ import (
 	"time"
 
 	mui "github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
+	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/eziq1/golauncher/internal/app"
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/i18n"
 	"github.com/eziq1/golauncher/internal/theme"
+	"github.com/eziq1/golauncher/internal/ui/mathview"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
@@ -94,7 +95,8 @@ type Launcher struct {
 	toastAt time.Time
 	loading time.Time // when the current search started showing as loading
 
-	md markdown.Options
+	// md shows Markdown (a plugin's detail, an AI answer) with its math.
+	md mathview.Markdown
 
 	// The scrolling of a full-window detail view (fullDetail) and the view
 	// it belongs to.
@@ -115,7 +117,9 @@ func NewLauncher(env *app.Env, host Host, work *Dispatcher) *Launcher {
 		hoverRow: -1,
 	}
 	l.images = newImageCache(host.Invalidate)
-	l.md.LoadImage = localImage
+	l.md.Options.LoadImage = localImage
+	// Math between single dollars too, as language models write it.
+	l.md.Options.Extensions = parser.Default | parser.ExtDollarMath
 	// ActionChooseFiles runs on the Dispatcher's goroutine, which waits for
 	// the dialog.
 	env.Engine.SetFileChooser(func(_ context.Context, o plugin.ChooseFilesOptions) ([]string, error) {
@@ -173,6 +177,7 @@ func (l *Launcher) View(c *mui.Context) {
 	l.res = resolveTheme(c, l.themes, *l.appearance.Load())
 	ui := l.res.UI
 	c.SetTheme(&ui)
+	l.md.CopyAsMarkdown = l.loc.T("ui.markdown.copyAsMarkdown")
 	// After SetTheme, which gives the root the theme's background.
 	c.Root().Background(l.res.Background)
 	// Whether edits are on their way, asked before the snapshot is taken: it

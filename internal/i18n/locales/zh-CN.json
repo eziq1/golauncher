@@ -189,6 +189,7 @@
 
   "ui.search.label": "搜索",
   "ui.back": "返回",
+  "ui.markdown.copyAsMarkdown": "复制为 Markdown",
   "ui.loading": "正在加载…",
   "ui.footer.actions": "操作",
   "ui.panel.label": "操作",
