@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	mui "github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
 
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/pkg/plugin"
@@ -187,7 +186,7 @@ func (l *Launcher) detail(c *mui.Context, d *plugin.Detail) {
 				}
 			}
 			if d.Markdown != "" {
-				markdown.View(c, d.Markdown, &l.md)
+				l.md.View(c, d.Markdown)
 			}
 			if len(d.Metadata) > 0 {
 				mui.Divider(c)
@@ -220,7 +219,7 @@ func (l *Launcher) fullDetail(c *mui.Context, s core.Snapshot) {
 		}
 		mui.Column(c).Gap(10).Children(func() {
 			if d.Markdown != "" {
-				markdown.View(c, d.Markdown, &l.md)
+				l.md.View(c, d.Markdown)
 			}
 			if len(d.Metadata) > 0 {
 				mui.Row(c).Gap(12).Children(func() {

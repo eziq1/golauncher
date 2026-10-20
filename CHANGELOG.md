@@ -8,6 +8,18 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **LaTeX math in Markdown** (R114, docs/math.md): AI answers and plugin
+  details now show display math (`$$…$$`, `\[…\]`) laid out — fractions,
+  scripts, roots, stretchy brackets, sums and integrals with limits,
+  accents, matrices and cases — in the theme's font (Chinese in `\text{}`
+  works) and colors. Math within text (`$…$`, `\(…\)`) shows as readable
+  Unicode text (`(期末值 / 期初值)^(1/n) − 1`), and so does any formula with
+  a command the layout does not support. Copying still gives the TeX. The
+  TeX is parsed by the new dependency
+  [treeblood](https://github.com/wyatt915/treeblood) (MIT, pure Go).
+
 ## [0.10.1] - 2026-10-19
 
 ### Fixed
