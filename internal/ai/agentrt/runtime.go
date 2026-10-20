@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -135,7 +135,7 @@ func (r *Runtime) errorf(format string, args ...any) error {
 // (Info.Candidates) the one with the highest acceptable version is used.
 func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 	configured := r.configured()
-	paths, missing, err := r.findAll(configured)
+	tiers, missing, err := r.findAll(configured)
 	if err != nil {
 		return backend.Status{}, err
 	}
@@ -147,16 +147,23 @@ func (r *Runtime) Check(ctx context.Context) (backend.Status, error) {
 	var best *cliInfo
 	var firstErr error
 	tried := ""
-	for _, path := range paths {
-		cli, err := r.checkOne(ctx, path)
-		if err != nil {
-			if firstErr == nil || backend.KindOf(firstErr) != backend.ErrVersion && backend.KindOf(err) == backend.ErrVersion {
-				firstErr, tried = err, path
+	var paths []string
+	for _, t := range tiers {
+		for _, path := range t.paths {
+			paths = append(paths, path)
+			cli, err := r.checkOne(ctx, path)
+			if err != nil {
+				if firstErr == nil || backend.KindOf(firstErr) != backend.ErrVersion && backend.KindOf(err) == backend.ErrVersion {
+					firstErr, tried = err, path
+				}
+				continue
 			}
-			continue
+			if best == nil || CompareVersions(cli.version, best.version) > 0 {
+				best = cli
+			}
 		}
-		if best == nil || CompareVersions(cli.version, best.version) > 0 {
-			best = cli
+		if best != nil {
+			break
 		}
 	}
 	if best == nil {
@@ -471,66 +478,100 @@ func (r *Runtime) drop(c *conversation) {
 	r.live = slices.DeleteFunc(r.live, func(x *conversation) bool { return x == c })
 }
 
+// tier is a group of CLIs the automatic choice chooses from: the first tier
+// with a usable CLI is used, and in it the highest version (autoTiers).
+type tier struct {
+	paths []string
+	// def: the CLIs under a version manager's default Node.js version.
+	def bool
+}
+
 // findAll locates the CLIs to choose from: the configured one, else the
-// automatic choice's (autoPaths). When the configured CLI no longer exists
+// automatic choice's (autoTiers). When the configured CLI no longer exists
 // (missing), the automatic choice is used instead (R84); when that finds
 // nothing either, the error names the configured path.
-func (r *Runtime) findAll(configured string) (paths []string, missing bool, err error) {
+func (r *Runtime) findAll(configured string) (tiers []tier, missing bool, err error) {
 	if configured != "" {
 		if isFile(configured) {
-			return []string{configured}, false, nil
+			return []tier{{paths: []string{configured}}}, false, nil
 		}
-		paths, err := r.autoPaths()
+		tiers, err := r.autoTiers()
 		if err != nil {
 			return nil, true, &backend.Error{Kind: backend.ErrNotInstalled, Message: configured}
 		}
-		return paths, true, nil
+		return tiers, true, nil
 	}
-	paths, err = r.autoPaths()
-	return paths, false, err
+	tiers, err = r.autoTiers()
+	return tiers, false, err
 }
 
-// autoPaths are the CLIs the automatic choice chooses from: the adapter's
-// candidates, or the first found on PATH or in the usual install locations.
-func (r *Runtime) autoPaths() ([]string, error) {
-	if c := r.a.Info().Candidates; c != nil {
-		paths, err := c()
-		if len(paths) > 0 {
-			return paths, nil
-		}
-		if _, ok := errors.AsType[*backend.Error](err); ok {
-			return nil, err
-		}
-		msg := ""
-		if err != nil {
-			msg = err.Error()
-		}
-		return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: msg}
-	}
-	p, err := r.find()
-	if err != nil {
-		return nil, err
-	}
-	return []string{p}, nil
-}
-
-// find locates the CLI on PATH or in the usual install locations.
-func (r *Runtime) find() (string, error) {
+// autoTiers are the CLIs the automatic choice chooses from (docs/ai.md
+// §22.7), in tiers tried in order:
+//
+//  1. the adapter's candidates (Info.Candidates) that are not under a Node.js
+//     version manager, or, without candidates, the first of Info.Commands
+//     found on PATH, in Info.InstallPaths or in the usual install folders
+//     (as exec.LookPath, then the install paths);
+//  2. those under a version manager's default Node.js version (Found.Default);
+//  3. the others under a version manager.
+//
+// A version manager's installations are so only used when nothing on PATH
+// or in the usual folders can be.
+func (r *Runtime) autoTiers() ([]tier, error) {
 	info := r.a.Info() // the install locations may depend on the environment
-	for _, name := range info.Commands {
-		if p, err := exec.LookPath(name); err == nil {
-			if abs, err := filepath.Abs(p); err == nil {
-				return abs, nil
+	var plain, def, managed []string
+	if c := info.Candidates; c != nil {
+		paths, err := c()
+		if len(paths) == 0 {
+			if _, ok := errors.AsType[*backend.Error](err); ok {
+				return nil, err
 			}
-			return p, nil
+			msg := ""
+			if err != nil {
+				msg = err.Error()
+			}
+			return nil, &backend.Error{Kind: backend.ErrNotInstalled, Message: msg}
+		}
+		var found []Found
+		if info.Discover != nil {
+			found = info.Discover()
+		}
+		for _, p := range paths {
+			i := slices.IndexFunc(found, func(f Found) bool { return samePath(f.Path, p) })
+			switch {
+			case i < 0 || found[i].Manager == "":
+				plain = append(plain, p)
+			case found[i].Default:
+				def = append(def, p)
+			default:
+				managed = append(managed, p)
+			}
+		}
+	} else {
+		for _, f := range r.found() {
+			switch {
+			case f.Launcher:
+			case f.Manager == "":
+				if len(plain) == 0 {
+					plain = append(plain, f.Path)
+				}
+			case f.Default:
+				def = append(def, f.Path)
+			default:
+				managed = append(managed, f.Path)
+			}
 		}
 	}
-	for _, p := range info.InstallPaths {
-		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-			return p, nil
+	var tiers []tier
+	for _, t := range []tier{{paths: plain}, {paths: def, def: true}, {paths: managed}} {
+		if len(t.paths) > 0 {
+			tiers = append(tiers, t)
 		}
 	}
-	return "", &backend.Error{Kind: backend.ErrNotInstalled}
+	if len(tiers) == 0 {
+		return nil, &backend.Error{Kind: backend.ErrNotInstalled}
+	}
+	return tiers, nil
 }
 
 // dir returns the CLI's working directory, creating it.
@@ -580,13 +621,39 @@ func (r *Runtime) Env() []string {
 	return proc.MergeEnv(env, r.o.Env)
 }
 
-// envFor is Env with the variables the CLI at path needs (Info.PathEnv).
+// envFor is Env with the variables the CLI at path needs (Info.PathEnv), and
+// with the CLI's folder first on PATH when PATH lacks it (R111): a CLI found
+// outside PATH (a Node.js version manager's folder, npm's prefix, a program
+// the user chose) is often a Node.js script ("#!/usr/bin/env node", an npm
+// .cmd shim) whose node is next to it. Every process of the CLI gets this
+// environment: the version, help and sign-in checks and the conversations.
 func (r *Runtime) envFor(path string) []string {
 	env := r.Env()
 	if f := r.info.PathEnv; f != nil {
 		env = proc.MergeEnv(env, f(path))
 	}
-	return env
+	return withDirOnPath(env, path, runtime.GOOS)
+}
+
+// withDirOnPath returns env with the folder of the program path first on
+// PATH, unless path is not absolute or PATH has the folder already.
+func withDirOnPath(env []string, path, goos string) []string {
+	if !filepath.IsAbs(path) {
+		return env
+	}
+	dir := filepath.Clean(filepath.Dir(path))
+	cur := proc.Getenv(env, "PATH")
+	for _, d := range filepath.SplitList(cur) {
+		d = filepath.Clean(strings.Trim(strings.TrimSpace(d), `"`))
+		if d == dir || goos == "windows" && strings.EqualFold(d, dir) {
+			return env
+		}
+	}
+	v := dir
+	if cur != "" {
+		v += string(os.PathListSeparator) + cur
+	}
+	return proc.MergeEnv(env, []string{"PATH=" + v})
 }
 
 // run runs the CLI with args (the version or login check) and returns its

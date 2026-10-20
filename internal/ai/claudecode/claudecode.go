@@ -29,6 +29,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -100,18 +101,12 @@ var _ agentrt.Adapter = adapter{}
 
 // Info implements agentrt.Adapter.
 func (adapter) Info() agentrt.Info {
-	var paths []string
-	if home, err := os.UserHomeDir(); err == nil {
-		paths = append(paths, filepath.Join(home, ".local", "bin", "claude.exe"))
-	}
-	if appData := os.Getenv("APPDATA"); appData != "" {
-		paths = append(paths, filepath.Join(appData, "npm", "claude.cmd"))
-	}
+	home, _ := os.UserHomeDir()
 	return agentrt.Info{
 		ID:           "claudecode",
 		Name:         "Claude Code",
 		Commands:     []string{"claude"},
-		InstallPaths: paths,
+		InstallPaths: installPaths(runtime.GOOS, home, os.Getenv("APPDATA")),
 		VersionArgs:  []string{"--version"},
 		MinVersion:   MinVersion,
 		TestedMajor:  TestedMajor,
@@ -122,6 +117,30 @@ func (adapter) Info() agentrt.Info {
 		Fit:          fit,
 		Attachments:  backend.AllAttachments(),
 	}
+}
+
+// installPaths are Claude Code's usual install locations, tried after PATH
+// (the runtime then also searches npm's prefixes and the Node.js version
+// managers' folders, agentrt.InstallDirs): on Windows the native installer's
+// %USERPROFILE%\.local\bin\claude.exe and npm's %APPDATA%\npm\claude.cmd;
+// elsewhere the native installer's ~/.local/bin/claude, the older "local"
+// installation's ~/.claude/local/claude (`claude migrate-installer`), and
+// Homebrew's /opt/homebrew/bin/claude and /usr/local/bin/claude (the cask).
+func installPaths(goos, home, appData string) []string {
+	var paths []string
+	if goos == "windows" {
+		if home != "" {
+			paths = append(paths, filepath.Join(home, ".local", "bin", "claude.exe"))
+		}
+		if appData != "" {
+			paths = append(paths, filepath.Join(appData, "npm", "claude.cmd"))
+		}
+		return paths
+	}
+	if home != "" {
+		paths = append(paths, filepath.Join(home, ".local", "bin", "claude"), filepath.Join(home, ".claude", "local", "claude"))
+	}
+	return append(paths, "/opt/homebrew/bin/claude", "/usr/local/bin/claude")
 }
 
 // noAutoMemory turns Claude Code's auto memory off; --safe-mode does that

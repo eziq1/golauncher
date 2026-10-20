@@ -231,7 +231,7 @@ func TestCommandsFound(t *testing.T) {
 	}
 	j := func(rel string) string { return filepath.Join(root, rel) }
 	info := Info{Commands: []string{"claude"}, InstallPaths: []string{j("b/claude.exe"), j("missing/claude.exe")}}
-	got := commandsFound(info, []string{j("a"), "", `"` + j("b") + `"`, j("c")}, pathExts("windows", ".EXE;.CMD"), "windows")
+	got := commandsFound(info, []string{j("a"), "", `"` + j("b") + `"`, j("c")}, pathExts("windows", ".EXE;.CMD"), "windows", nil)
 	var rels []string
 	for _, f := range got {
 		r, _ := filepath.Rel(root, f.Path)
@@ -244,7 +244,7 @@ func TestCommandsFound(t *testing.T) {
 		t.Fatalf("default PATHEXT: %q", got)
 	}
 	if runtime.GOOS != "windows" {
-		got = commandsFound(info, []string{j("a"), j("c")}, pathExts("darwin", ""), "darwin")
+		got = commandsFound(info, []string{j("a"), j("c")}, pathExts("darwin", ""), "darwin", nil)
 		if len(got) != 2 || filepath.Base(filepath.Dir(got[0].Path)) != "c" || got[1].Source != backend.SourceInstallDir {
 			t.Fatalf("unix: %+v", got)
 		}

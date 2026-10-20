@@ -8,6 +8,25 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **AI backends installed under Node.js version managers** (R111,
+  docs/ai.md §22.7): Claude Code, Codex and Gemini CLI installed with npm
+  under nvm, fnm, Volta, asdf, mise, nodenv or n (and nvm-windows, fnm,
+  Volta and mise on Windows), or into npm's own prefix (`~/.npmrc`
+  `prefix=`), are now found, also when the folder is not on golauncher's
+  PATH (on macOS, nvm is usually set up only in `~/.zshrc`, which the login
+  shell golauncher asks for its PATH does not read). The one on PATH is
+  still preferred; otherwise nvm's default version comes first, then the
+  highest version. Such a CLI now runs with its folder first on its PATH,
+  so its `#!/usr/bin/env node` (or the npm `.cmd` shim) finds the node next
+  to it instead of failing with "env: node: No such file or directory"; a
+  program chosen by its path in *Settings › Plugins › AI › Backends* gets
+  the same. The Backends section says which manager an installation was
+  found through ("found via nvm"). On macOS, Claude Code is also looked for
+  in `~/.local/bin`, `~/.claude/local`, `/opt/homebrew/bin` and
+  `/usr/local/bin`.
+
 ## [0.10.0] - 2026-10-19
 
 ### Added

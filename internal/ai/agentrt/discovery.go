@@ -27,9 +27,27 @@ const probeTimeout = 10 * time.Second
 type Found struct {
 	Path   string
 	Source backend.Source
+	// Manager is the Node.js version manager whose folder it was found in
+	// (BinDir.Manager; "" for none). The automatic choice takes such an
+	// installation only when nothing else can be used (autoTiers).
+	Manager string
+	// Default: in the folder of the manager's default Node.js version
+	// (BinDir.Default), preferred over the manager's other versions.
+	Default bool
 	// Launcher: a launcher script the runtime does not run (it is listed,
 	// not probed or chosen).
 	Launcher bool
+}
+
+// FoundIn is how the CLI p, found through the folder d (searched after
+// PATH), was found: src, which SourceInstallDir stands for in general and
+// becomes SourceVersionManager in a version manager's folder (the native
+// binary of an npm package, SourceNpmVendor, stays that), with the manager.
+func FoundIn(p string, d BinDir, src backend.Source) Found {
+	if d.Manager != "" && src == backend.SourceInstallDir {
+		src = backend.SourceVersionManager
+	}
+	return Found{Path: p, Source: src, Manager: d.Manager, Default: d.Default}
 }
 
 var _ backend.Discoverer = (*Runtime)(nil)
@@ -147,9 +165,9 @@ func errorMessage(err error) string {
 func (r *Runtime) discover(ctx context.Context, configured string) backend.Discovery {
 	d := backend.Discovery{MinVersion: r.info.MinVersion, Auto: -1, InUse: -1, Configured: configured}
 	for _, f := range r.found() {
-		d.Installs = append(d.Installs, backend.Install{Path: f.Path, Source: f.Source, Launcher: f.Launcher})
+		d.Installs = append(d.Installs, backend.Install{Path: f.Path, Source: f.Source, Manager: f.Manager, Launcher: f.Launcher})
 	}
-	auto, autoErr := r.autoPaths()
+	tiers, autoErr := r.autoTiers()
 	custom := -1
 	if configured != "" {
 		if isFile(configured) {
@@ -172,8 +190,26 @@ func (r *Runtime) discover(ctx context.Context, configured string) backend.Disco
 	}
 	wg.Wait()
 
-	considered := func(p string) bool {
-		return slices.ContainsFunc(auto, func(a string) bool { return samePath(a, p) })
+	// The tier of an installation (-1: the automatic choice does not
+	// consider it); the first tier with a usable one is used.
+	tierOf := func(p string) int {
+		for t, tier := range tiers {
+			if slices.ContainsFunc(tier.paths, func(a string) bool { return samePath(a, p) }) {
+				return t
+			}
+		}
+		return -1
+	}
+	considered := func(p string) bool { return tierOf(p) >= 0 }
+	chosen := -1
+	for i := range d.Installs {
+		in := &d.Installs[i]
+		if !in.Usable() || in.Source == backend.SourceCustom {
+			continue
+		}
+		if t := tierOf(in.Path); t >= 0 && (chosen < 0 || t < chosen) {
+			chosen = t
+		}
 	}
 	usable, shadowed := 0, false
 	for i := range d.Installs {
@@ -181,7 +217,7 @@ func (r *Runtime) discover(ctx context.Context, configured string) backend.Disco
 		if !in.Usable() || in.Source == backend.SourceCustom {
 			continue
 		}
-		if !considered(in.Path) {
+		if chosen < 0 || tierOf(in.Path) != chosen {
 			in.Shadowed, shadowed = true, true
 			continue
 		}
@@ -191,6 +227,8 @@ func (r *Runtime) discover(ctx context.Context, configured string) backend.Disco
 		}
 	}
 	switch {
+	case usable > 0 && tiers[chosen].def:
+		d.AutoReason = backend.ReasonManagerDefault
 	case usable > 1:
 		d.AutoReason = backend.ReasonHighest
 	case usable == 1 && shadowed:
@@ -259,8 +297,12 @@ func (r *Runtime) found() []Found {
 		}
 		return out
 	}
-	return commandsFound(info, filepath.SplitList(os.Getenv("PATH")), pathExts(runtime.GOOS, os.Getenv("PATHEXT")), runtime.GOOS)
+	return commandsFound(info, filepath.SplitList(os.Getenv("PATH")), pathExts(runtime.GOOS, os.Getenv("PATHEXT")), runtime.GOOS, installDirs())
 }
+
+// installDirs are the folders searched after PATH and Info.InstallPaths for
+// Info.Commands (a variable, so that tests can make them up).
+var installDirs = InstallDirs
 
 // pathExts are the extensions exec.LookPath tries on Windows (PATHEXT);
 // elsewhere none.
@@ -285,17 +327,19 @@ func pathExts(goos, pathext string) []string {
 
 // commandsFound lists the programs named info.Commands in the directories
 // dirs (each tried with exts, in the order exec.LookPath tries them, so the
-// first is the one find chooses), then the info.InstallPaths that exist.
-func commandsFound(info Info, dirs, exts []string, goos string) []Found {
+// first is the one exec.LookPath finds), then the info.InstallPaths that
+// exist, then the commands in the folders extra (InstallDirs).
+func commandsFound(info Info, dirs, exts []string, goos string, extra []BinDir) []Found {
 	var out []Found
-	add := func(p string, src backend.Source) {
-		if abs, err := filepath.Abs(p); err == nil {
-			p = abs
+	add := func(f Found) {
+		if abs, err := filepath.Abs(f.Path); err == nil {
+			f.Path = abs
 		}
-		if !slices.ContainsFunc(out, func(f Found) bool { return samePath(f.Path, p) }) {
-			out = append(out, Found{Path: p, Source: src})
+		if !slices.ContainsFunc(out, func(g Found) bool { return samePath(g.Path, f.Path) }) {
+			out = append(out, f)
 		}
 	}
+	runnable := func(p string) bool { return isFile(p) && (goos == "windows" || isExecutable(p)) }
 	for _, name := range info.Commands {
 		for _, d := range dirs {
 			d = strings.Trim(strings.TrimSpace(d), `"`)
@@ -303,16 +347,24 @@ func commandsFound(info Info, dirs, exts []string, goos string) []Found {
 				continue
 			}
 			for _, ext := range exts {
-				p := filepath.Join(d, name+ext)
-				if isFile(p) && (goos == "windows" || isExecutable(p)) {
-					add(p, backend.SourcePath)
+				if p := filepath.Join(d, name+ext); runnable(p) {
+					add(Found{Path: p, Source: backend.SourcePath})
 				}
 			}
 		}
 	}
 	for _, p := range info.InstallPaths {
 		if isFile(p) {
-			add(p, backend.SourceInstallDir)
+			add(Found{Path: p, Source: backend.SourceInstallDir})
+		}
+	}
+	for _, d := range extra {
+		for _, name := range info.Commands {
+			for _, ext := range exts {
+				if p := filepath.Join(d.Dir, name+ext); runnable(p) {
+					add(FoundIn(p, d, backend.SourceInstallDir))
+				}
+			}
 		}
 	}
 	return out

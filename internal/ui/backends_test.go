@@ -27,13 +27,19 @@ const (
 // Code (which lists no installations) and Codex (which does).
 func newBackendsSettings(t *testing.T, locale string) (*ui.Settings, *mui.Tester, *app.Env, *backend.FakeInstalls, *hostfake.Clipboard) {
 	t.Helper()
-	codex := &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Codex (ChatGPT)", Found: backend.Discovery{
+	return newBackendsSettingsWith(t, locale, backend.Discovery{
 		MinVersion: "0.130.0", Auto: 0, AutoReason: backend.ReasonOnly, Status: backend.StatusAvailable,
 		Installs: []backend.Install{
 			{Path: appCodex, Source: backend.SourceApp, Version: "0.162.0"},
 			{Path: npmCodex, Source: backend.SourceNpmVendor, Version: "0.46.0", TooOld: true},
 			{Path: launcherCodex, Source: backend.SourceInstallDir, Launcher: true},
-		}}}
+		}})
+}
+
+// newBackendsSettingsWith is newBackendsSettings with Codex's installations found.
+func newBackendsSettingsWith(t *testing.T, locale string, found backend.Discovery) (*ui.Settings, *mui.Tester, *app.Env, *backend.FakeInstalls, *hostfake.Clipboard) {
+	t.Helper()
+	codex := &backend.FakeInstalls{Fake: &backend.Fake{}, BackendName: "Codex (ChatGPT)", Found: found}
 	clip := &hostfake.Clipboard{}
 	p := ai.NewWithOptions(ai.Options{Sync: true, HasProtocol: func(string) bool { return false }, Backends: []ai.BackendOption{
 		{ID: ai.DefaultBackendID, Backend: &backend.Fake{}}, {ID: "codex", Backend: codex},
@@ -219,6 +225,39 @@ func TestSettingsBackendsChinese(t *testing.T) {
 	for _, want := range []string{"后端", "可用", "重新检测", "其他安装", "启动脚本，不使用", "自动（推荐）", "版本 0.162.0 · 在桌面应用里找到 · 自动选择：唯一能用的一份"} {
 		if !hasTextPart(tt, want) {
 			t.Fatalf("no %q in %q", want, tt.Texts())
+		}
+	}
+}
+
+// TestSettingsBackendsVersionManager: installations under Node.js version
+// managers say which manager (R111), and why the default version's is used.
+func TestSettingsBackendsVersionManager(t *testing.T) {
+	const (
+		nvmDefault = "/Users/someone/.nvm/versions/node/v20.20.0/bin/codex"
+		nvmVendor  = "/Users/someone/.nvm/versions/node/v22.1.0/lib/node_modules/@openai/codex/vendor/aarch64-apple-darwin/bin/codex"
+		voltaCodex = "/Users/someone/.volta/bin/codex"
+	)
+	found := backend.Discovery{MinVersion: "0.130.0", Auto: 0, InUse: 0, AutoReason: backend.ReasonManagerDefault, Status: backend.StatusAvailable,
+		Installs: []backend.Install{
+			{Path: nvmDefault, Source: backend.SourceVersionManager, Manager: "nvm", Version: "0.162.0"},
+			{Path: nvmVendor, Source: backend.SourceNpmVendor, Manager: "nvm", Version: "0.163.0", Shadowed: true},
+			{Path: voltaCodex, Source: backend.SourceVersionManager, Manager: "volta", Version: "0.160.0", Shadowed: true},
+		}}
+	for locale, wants := range map[string][]string{
+		"en": {
+			"Version 0.162.0 · found via nvm · chosen automatically: the default Node.js version of nvm",
+			nvmVendor + " — ", "found inside an npm installation under nvm",
+			voltaCodex + " — ", "found via Volta",
+		},
+		"zh-CN": {
+			"在 nvm 的目录里找到", "nvm 的默认 Node.js 版本", "在 nvm 下 npm 安装的包里找到", "在 Volta 的目录里找到",
+		},
+	} {
+		_, tt, _, _, _ := newBackendsSettingsWith(t, locale, found)
+		for _, want := range wants {
+			if !hasTextPart(tt, want) {
+				t.Errorf("%s: no %q in %q", locale, want, tt.Texts())
+			}
 		}
 	}
 }

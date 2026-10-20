@@ -858,8 +858,8 @@ Windows 上的行为一字未变（Windows 的查找逻辑原样保留，`gemini
 
 ### 22.3 查找和选择的规则（和 §20、§21 一致，只是多列出跳过的）
 
-- **来源**（`Source`）：`path`（PATH 上）、`installDir`（PATH 之后找的常见目录：`%APPDATA%\npm`、Claude 的 `~/.local/bin`、macOS 的 Homebrew、`~/.npm-global/bin`、nvm）、`app`（Codex 应用：`%LOCALAPPDATA%\OpenAI\Codex\bin`、`Codex.app`）、`npmVendor`（npm 包里的原生程序）、`custom`（用户填的、查找没找到的路径）。
-- **Claude Code**（没有 `Candidates`）：列出 PATH 上每个目录里的 `claude`（Windows 按 `PATHEXT` 的顺序，和 `exec.LookPath` 一样，所以第一个就是 `find` 选的），再加存在的 `InstallPaths`。**自动选择只用第一个**（和以前一样），后面能用的标成 `Shadowed`（"另一份先被找到"），原因是 `firstFound`。
+- **来源**（`Source`）：`path`（PATH 上）、`installDir`（PATH 之后找的常见目录：`%APPDATA%\npm`、Claude 的 `~/.local/bin`、macOS 的 Homebrew、npm 的全局 prefix、`~/.npm-global/bin`）、`versionManager`（Node 版本管理器的目录，`Install.Manager` 是 nvm、fnm、volta……，R111，见 §22.7）、`app`（Codex 应用：`%LOCALAPPDATA%\OpenAI\Codex\bin`、`Codex.app`）、`npmVendor`（npm 包里的原生程序；装在版本管理器下面时也带 `Manager`）、`custom`（用户填的、查找没找到的路径）。
+- **Claude Code**（没有 `Candidates`）：列出 PATH 上每个目录里的 `claude`（Windows 按 `PATHEXT` 的顺序，和 `exec.LookPath` 一样），再加存在的 `InstallPaths`，再加 §22.7 的目录里的 `claude`。**自动选择先只用第一个不在版本管理器里的**（和以前一样），后面能用的标成 `Shadowed`（"另一份先被找到"），原因是 `firstFound`；版本管理器里的规则见 §22.7。
 - **Codex**：§21.5、§21.8 的顺序不变；每个有启动脚本的目录在它的原生程序后面列一次启动脚本（`Launcher`，不探测、不选）。Windows 上 PATH 目录里的启动脚本来源是 `path`，`%APPDATA%\npm` 的是 `installDir`。
 - **Gemini CLI**：Windows 上 `gemini.exe`、`gemini.cmd`，然后是 PATH 上的 `gemini.ps1` 和无扩展名脚本（`Launcher`）；macOS 上 PATH 之后的目录是 `installDir`。
 - **自动选择**：和 `Check` 一样，在自动查找给出的候选里取版本最高且不低于门槛的（同版本取先找到的）；只有一份能用时原因是 `only`。
@@ -887,6 +887,38 @@ Windows 上的行为一字未变（Windows 的查找逻辑原样保留，`gemini
 - 正在进行的对话换程序后，常驻进程（Claude Code、Gemini）要到下一次启动进程时才用新程序（释放、崩溃、换偏好重开）；新对话立即用新程序。
 - 对话历史里的旧错误不会补上路径（只有这次以后记录的才有）。
 - 假环境的路径是 Windows 风格，在 macOS 上跑 glctl 也一样（金样跨平台一致）。
+
+### 22.7 Node 版本管理器里的 CLI（R111，2026-10-19）
+
+**问题**：npm 装的 CLI 常在 Node 版本管理器的目录里（比如 `~/.nvm/versions/node/v20.x/bin/claude`）。macOS 上 golauncher 用 `$SHELL -l -c` 取登录 shell 的 PATH（不交互，所以 zsh 不读 `~/.zshrc`，nvm 的初始化一般写在那里），这些目录不在 PATH 上，就找不到；找到了，npm 装的 CLI 是 `#!/usr/bin/env node` 脚本（Windows 上是调用 `node` 的 `.cmd` shim），子进程的 PATH 里没有它旁边的 `node`，也跑不起来（"env: node: No such file or directory"）。不改成交互式 shell（`-i` 慢、可能卡住、会跑任意 rc 代码），而是直接看这些目录。
+
+**目录**（`agentrt.NodeEnv.Dirs`，共用层，三个后端都用；家目录、环境变量、GOOS、文件系统根都能注入，测试全是假的）。只读固定的几个模式（每个一次 `ReadDir`），不递归遍历；只列存在的目录，去重：
+
+| 系统 | 目录（按这个顺序） |
+|------|------|
+| macOS、Linux | Homebrew `/opt/homebrew/bin`、`/usr/local/bin`；`~/.local/bin`；npm 的 prefix（`$npm_config_prefix`、`~/.npmrc` 的 `prefix=`，展开 `~` 和 `${HOME}` 等 `${变量}`）的 `bin`；`~/.npm-global/bin`（以上是 `installDir`）。然后是版本管理器（`versionManager`）：nvm（`$NVM_DIR` 或 `~/.nvm`，`versions/node/*/bin`）；fnm（`$FNM_DIR`、`$XDG_DATA_HOME/fnm`、`~/.local/share/fnm`、`~/Library/Application Support/fnm`、`~/.fnm`，`node-versions/*/installation/bin`）；Volta（`$VOLTA_HOME/bin` 或 `~/.volta/bin`）；asdf（`$ASDF_DATA_DIR` 或 `~/.asdf`，`installs/nodejs/*/bin`）；mise（`$MISE_DATA_DIR`、`$XDG_DATA_HOME/mise` 或 `~/.local/share/mise`，`installs/node/*/bin`，然后 `shims`）；nodenv（`$NODENV_ROOT` 或 `~/.nodenv`，`versions/*/bin`）；n（`$N_PREFIX/bin`；`$N_PREFIX` 或 `/usr/local` 下的 `n/versions/node/*/bin`） |
+| Windows | `%APPDATA%\npm`、`.npmrc` 的 prefix 和 `%npm_config_prefix%`（Windows 上 npm 的程序就在 prefix 目录里，`installDir`）；nvm-windows（`%NVM_SYMLINK%`，即当前版本，然后 `%NVM_HOME%\v*`，跳过链接指向的那个）；fnm（`%FNM_DIR%`、`%APPDATA%\fnm`、`%LOCALAPPDATA%\fnm`，`node-versions\*\installation`）；Volta（`%LOCALAPPDATA%\Volta\bin`）；mise（`%MISE_DATA_DIR%` 或 `%LOCALAPPDATA%\mise`，`installs\node\*`，然后 `shims`） |
+
+- **同一个管理器里的顺序**：默认版本在前，其余按版本号从高到低（`v20.10.0` 高于 `v20.9.0`；不是版本号的目录名排最后）。默认版本：nvm 读 `$NVM_DIR/alias/default`，顺着别名文件往下找（`lts/*` → `alias/lts/*` → `alias/lts/iron` → `v20.x`，用户自己的别名也行，最多 8 层），`node`、`stable` 是装了的最高版本，`20`、`v20.1`、`v20.1.0` 是匹配的最高版本；`system`、`iojs`、没有别名文件的 LTS 名字解析不出来（就没有默认版本）。fnm 看 `aliases/default` 链接指向的版本；nvm-windows 是 `%NVM_SYMLINK%`。
+- **asdf 只看 `installs`**：asdf 0.16 起 shim 是 `exec asdf exec …`，要 asdf 本身在 PATH 上才能跑，而且和 `installs/nodejs/<版本>/bin` 里的是同一份，所以不列 shim。mise 的 shim 是指向 mise 程序（绝对路径）的链接，不需要 mise 在 PATH 上，所以列在它的 `installs` 后面。
+- **macOS 上 Claude Code 的常见位置**（`InstallPaths`）：`~/.local/bin/claude`（原生安装器）、`~/.claude/local/claude`（旧的 "local" 安装，`claude migrate-installer`）、`/opt/homebrew/bin/claude`、`/usr/local/bin/claude`（Homebrew cask）。Windows 上不变（`%USERPROFILE%\.local\bin\claude.exe`、`%APPDATA%\npm\claude.cmd`）。
+- **各后端怎么用**：Claude Code 在这些目录里找 `claude`（Windows 按 `PATHEXT`，其他系统要有执行位）；Codex 在里面找原生的 `codex`，以及 npm 启动脚本旁边的原生程序（`npmVendor`，启动脚本照旧只列出不运行，Windows 上也在这些目录里找 `codex.cmd` 等）；Gemini CLI 在里面找 `gemini`（Windows 上 `gemini.exe`、`gemini.cmd`）。Gemini 除了查找和环境，其他不变。
+
+**自动选择**（`Runtime.autoTiers`，`Check` 和"后端"一节用同一套）分三层，第一层里有能用的就只在第一层里选，否则看下一层：
+
+1. 不在版本管理器里的：有 `Candidates` 的后端（Codex、Gemini）和以前一样，取其中版本最高的；Claude Code 和以前一样只取第一个找到的（PATH 优先，然后 `InstallPaths`、常见目录）。
+2. 版本管理器默认版本下的（`Found.Default`），原因是 `managerDefault`（"nvm 的默认 Node.js 版本"）。
+3. 版本管理器里的其他版本，取版本最高的。
+
+也就是说 PATH 上（或常见目录里）有能用的就用它；只有都不能用（没有、太旧、跑不起来）时才用版本管理器里的，先用 nvm 默认版本下的，它也不能用时取版本最高的。没被用的能用的那些标成 `Shadowed`。
+
+**运行环境**（`Runtime.envFor`，所有后端）：程序是绝对路径、它所在的目录不在子进程的 PATH 上时，把这个目录放到 PATH 最前面。`#!/usr/bin/env node` 和 `.cmd` shim 就能找到旁边的 `node`（nvm、fnm、nvm-windows 的目录里都有）；原生程序多一个目录也无害。版本检查（`--version`）、`--help` 探测、`codex login status`、`codex debug models`（`RunCLI`）和对话进程都走这里，所以检查和真正运行用的是同一个环境；用户在设置里选的程序（R84 的自定义路径、`Probe`）也一样。Gemini 原来的 `nodePath` 保留（结果一样）。
+
+**界面**：来源写成"在 nvm 的目录里找到"/"found via nvm"，npm 包里的原生程序写"在 nvm 下 npm 安装的包里"；manager 名字是产品名，不翻译（`volta` 显示为 Volta）。
+
+**测试**：`agentrt/installdirs_test.go`（假的目录树：nvm 多个版本加默认别名、fnm 的三个位置和 `aliases/default` 链接、Volta、asdf（shim 不列）、mise、nodenv、n、`.npmrc` 的 prefix、环境变量改位置；注入 GOOS 的 Windows 布局：nvm-windows（含 `NVM_SYMLINK` 链接去重）、fnm、Volta、mise；nvm 别名解析；版本排序；PATH 前置）、`agentrt/versionmanager_test.go`（PATH 优先、nvm 默认版本优先、默认的太旧时取最高；`Candidates` 后端的分层；一个没有 `node` 在 PATH 上就退出的假 CLI，在版本管理器目录里旁边放假的 `node`：检查、对话、自定义路径和 `Probe` 都能跑，去掉 `node` 就失败）、`codex/candidates_test.go`（Windows 的 nvm-windows 目录、macOS 的 nvm 下 npm 包里的原生程序）、`gemini_test.go`、`claudecode/installpaths_test.go`、`ui/backends_test.go`（英文、中文的来源和原因）。都不碰真实的家目录和 CLI；`claudecode` 的"没有安装"测试在 macOS 上 `/opt/homebrew/bin/claude` 或 `/usr/local/bin/claude` 存在时跳过（固定的系统目录没法假造）。
+
+**遗留**：只把 CLI 自己的目录放到 PATH 前面；如果 CLI 在 npm prefix 里而 `node` 在别处、又不在 PATH 上，仍然会失败。Windows 上 Volta 的 shim、asdf 没有 Windows 版，没专门处理。没有在真的 Mac + nvm 上验证过；要看的是：从 Dock/Finder 启动（不是终端）时"后端"一节列出 `~/.nvm/versions/node/<版本>/bin/claude`、来源"在 nvm 的目录里"、版本号正常，以及能正常对话。
 
 ## 23. 版本兼容：支持多个 Claude Code 版本（2026-10-17）
 

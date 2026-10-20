@@ -14,16 +14,18 @@ import (
 )
 
 // findEnv is what Candidates looks at: the operating system (GOOS), the
-// directories of PATH, the processor architecture (GOARCH) and, on Windows,
-// the %LOCALAPPDATA% and %APPDATA% folders; elsewhere the usual install
-// folders searched after PATH (Dirs) and the CLIs the Codex desktop app may
-// carry (Apps). Tests make one up.
+// directories of PATH, the processor architecture (GOARCH), the usual
+// install folders and Node.js version managers' folders searched after PATH
+// (Dirs, agentrt.InstallDirs) and, on Windows, the %LOCALAPPDATA% and
+// %APPDATA% folders; elsewhere the CLIs the Codex desktop app may carry
+// (Apps). Tests make one up.
 type findEnv struct {
 	OS                    string
 	Path                  []string
 	LocalAppData, AppData string
 	Arch                  string
-	Dirs, Apps            []string
+	Dirs                  []agentrt.BinDir
+	Apps                  []string
 }
 
 // candidateEnv returns the environment Candidates looks at (a variable, so
@@ -35,10 +37,11 @@ var candidateEnv = func() findEnv {
 		LocalAppData: os.Getenv("LOCALAPPDATA"),
 		AppData:      os.Getenv("APPDATA"),
 		Arch:         runtime.GOARCH,
+		Dirs:         agentrt.InstallDirs(),
 	}
 	if e.OS != "windows" {
 		home, _ := os.UserHomeDir()
-		e.Dirs, e.Apps = unixDirs(home)
+		e.Apps = unixApps(home)
 	}
 	return e
 }
@@ -74,8 +77,9 @@ func platformPackage(triple string) string {
 //  2. the Codex desktop app's CLIs, %LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe
 //     and the versioned %LOCALAPPDATA%\OpenAI\Codex\bin\*\codex.exe;
 //  3. the native binary of an npm installation, next to its launcher (a
-//     directory of PATH with codex.cmd, codex.ps1 or codex, and
-//     %APPDATA%\npm), in every layout the launcher (bin/codex.js) looks at.
+//     directory of PATH with codex.cmd, codex.ps1 or codex, %APPDATA%\npm,
+//     npm's prefix and the Node.js version managers' folders, e.Dirs), in
+//     every layout the launcher (bin/codex.js) looks at.
 //
 // The npm launcher itself is never returned: it needs Node.js. When it is
 // all there is, the error says so (ErrNotInstalled); when nothing is found,
@@ -114,7 +118,7 @@ func discover(e findEnv) []agentrt.Found {
 	}
 	var out []agentrt.Found
 	seen := map[string]bool{}
-	add := func(p string, src backend.Source, launcher bool) {
+	add := func(p string, d agentrt.BinDir, src backend.Source, launcher bool) {
 		if !isFile(p) {
 			return
 		}
@@ -126,8 +130,11 @@ func discover(e findEnv) []agentrt.Found {
 			return
 		}
 		seen[k] = true
-		out = append(out, agentrt.Found{Path: p, Source: src, Launcher: launcher})
+		f := agentrt.FoundIn(p, d, src)
+		f.Launcher = launcher
+		out = append(out, f)
 	}
+	none := agentrt.BinDir{}
 	var dirs []string // PATH, cleaned
 	for _, d := range e.Path {
 		d = strings.Trim(strings.TrimSpace(d), `"`)
@@ -136,27 +143,32 @@ func discover(e findEnv) []agentrt.Found {
 		}
 	}
 	for _, d := range dirs {
-		add(filepath.Join(d, exeName), backend.SourcePath, false)
+		add(filepath.Join(d, exeName), none, backend.SourcePath, false)
 	}
 	if e.LocalAppData != "" {
 		bin := filepath.Join(e.LocalAppData, "OpenAI", "Codex", "bin")
-		add(filepath.Join(bin, exeName), backend.SourceApp, false)
+		add(filepath.Join(bin, exeName), none, backend.SourceApp, false)
 		matches, _ := filepath.Glob(filepath.Join(bin, "*", exeName))
 		slices.Sort(matches)
 		for _, m := range matches {
-			add(m, backend.SourceApp, false)
+			add(m, none, backend.SourceApp, false)
 		}
 	}
 	type shimDir struct {
-		dir string
-		src backend.Source
+		dir   string
+		src   backend.Source
+		after agentrt.BinDir // searched after PATH
 	}
 	var shimDirs []shimDir
 	for _, d := range dirs {
-		shimDirs = append(shimDirs, shimDir{d, backend.SourcePath})
+		shimDirs = append(shimDirs, shimDir{dir: d, src: backend.SourcePath})
 	}
 	if e.AppData != "" {
-		shimDirs = append(shimDirs, shimDir{filepath.Join(e.AppData, "npm"), backend.SourceInstallDir})
+		npm := filepath.Join(e.AppData, "npm")
+		shimDirs = append(shimDirs, shimDir{dir: npm, src: backend.SourceInstallDir, after: agentrt.BinDir{Dir: npm}})
+	}
+	for _, d := range e.Dirs {
+		shimDirs = append(shimDirs, shimDir{dir: d.Dir, src: backend.SourceInstallDir, after: d})
 	}
 	for _, d := range shimDirs {
 		s := shimIn(d.dir)
@@ -164,9 +176,9 @@ func discover(e findEnv) []agentrt.Found {
 			continue
 		}
 		for _, p := range vendored(d.dir, e) {
-			add(p, backend.SourceNpmVendor, false)
+			add(p, d.after, backend.SourceNpmVendor, false)
 		}
-		add(s, d.src, true)
+		add(s, d.after, d.src, true)
 	}
 	return out
 }
@@ -242,12 +254,11 @@ const (
 	launcherName = "codex.js"
 )
 
-// unixDirs are the folders searched after PATH outside Windows
-// (agentrt.UnixBinDirs: Homebrew, whose codex formula and cask are native,
-// npm's usual prefixes; the order matters little, the runtime uses the
-// newest CLI), and the CLIs the Codex desktop app may carry, for the home
-// folder home.
-func unixDirs(home string) (dirs, apps []string) {
+// unixApps are the CLIs the Codex desktop app may carry outside Windows, for
+// the home folder home. (The folders searched after PATH, e.Dirs, are
+// agentrt.InstallDirs: Homebrew, whose codex formula and cask are native,
+// npm's prefixes and the Node.js version managers' folders.)
+func unixApps(home string) (apps []string) {
 	appRoots := []string{"/Applications"}
 	if home != "" {
 		appRoots = append(appRoots, filepath.Join(home, "Applications"))
@@ -256,13 +267,13 @@ func unixDirs(home string) (dirs, apps []string) {
 		res := filepath.Join(r, "Codex.app", "Contents", "Resources")
 		apps = append(apps, filepath.Join(res, unixExeName), filepath.Join(res, "bin", unixExeName))
 	}
-	return agentrt.UnixBinDirs(home), apps
+	return apps
 }
 
 // unixDiscover is discover outside Windows, in order of preference:
 //
 //  1. a native codex in a directory of PATH, then of e.Dirs (Homebrew, a
-//     release binary, …);
+//     release binary, a version manager's folder, …);
 //  2. the Codex desktop app's CLI (e.Apps);
 //  3. the native binary of an npm installation whose launcher (a codex that
 //     is a script, usually a link to bin/codex.js) is in one of those
@@ -273,7 +284,7 @@ func unixDirs(home string) (dirs, apps []string) {
 func unixDiscover(e findEnv) []agentrt.Found {
 	var out []agentrt.Found
 	seen := map[string]bool{}
-	add := func(p string, src backend.Source, launcher bool) {
+	add := func(p string, d agentrt.BinDir, src backend.Source, launcher bool) {
 		if launcher {
 			if !isFile(p) {
 				return
@@ -292,37 +303,41 @@ func unixDiscover(e findEnv) []agentrt.Found {
 			return
 		}
 		seen[k] = true
-		out = append(out, agentrt.Found{Path: p, Source: src, Launcher: launcher})
+		f := agentrt.FoundIn(p, d, src)
+		f.Launcher = launcher
+		out = append(out, f)
 	}
 	type dir struct {
-		dir string
+		bin agentrt.BinDir // the zero BinDir on PATH
 		src backend.Source
 	}
 	var dirs []dir
-	for i, d := range append(slices.Clone(e.Path), e.Dirs...) {
-		src := backend.SourcePath
-		if i >= len(e.Path) {
-			src = backend.SourceInstallDir
-		}
+	for _, d := range e.Path {
 		if d = strings.TrimSpace(d); d != "" {
-			dirs = append(dirs, dir{d, src})
+			dirs = append(dirs, dir{agentrt.BinDir{Dir: d}, backend.SourcePath})
 		}
 	}
+	for _, d := range e.Dirs {
+		if strings.TrimSpace(d.Dir) != "" {
+			dirs = append(dirs, dir{d, backend.SourceInstallDir})
+		}
+	}
+	none := agentrt.BinDir{}
 	for _, d := range dirs {
-		add(filepath.Join(d.dir, unixExeName), d.src, false)
+		add(filepath.Join(d.bin.Dir, unixExeName), d.bin, d.src, false)
 	}
 	for _, p := range e.Apps {
-		add(p, backend.SourceApp, false)
+		add(p, none, backend.SourceApp, false)
 	}
 	for _, d := range dirs {
-		s := filepath.Join(d.dir, unixExeName)
+		s := filepath.Join(d.bin.Dir, unixExeName)
 		if !isFile(s) || !isScript(s) {
 			continue
 		}
 		for _, p := range unixVendored(s, e) {
-			add(p, backend.SourceNpmVendor, false)
+			add(p, d.bin, backend.SourceNpmVendor, false)
 		}
-		add(s, d.src, true)
+		add(s, d.bin, d.src, true)
 	}
 	return out
 }
