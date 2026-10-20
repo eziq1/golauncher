@@ -187,3 +187,4 @@
 - **内容**：只有修复——在 Node.js 版本管理器（nvm、fnm、Volta、asdf、mise、nodenv、n；Windows 上 nvm-windows、fnm、Volta、mise）和 npm 自定义 prefix 下找到 Claude Code、Codex、Gemini CLI，并让它们用旁边的 node 运行（R111）。
 - **版本号**：只有修复，按语义化版本升补丁号。
 - **合并时**：macOS CI 的 `TestDirsFnmDefault` 失败——测试没设 `Root`，读到了运行器上真实存在的 `/opt/homebrew/bin`、`/usr/local/bin`；补上后通过（`c4b7670`）。R111 里只在 macOS 上运行的测试由这次 CI 第一次跑通。
+- **结果**：2026-10-19 在 `8cc3024` 上打了 `v0.10.1`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.4MB）、`windows_arm64`（20.6MB）、`darwin_amd64`（22.9MB）、`darwin_arm64`（20.9MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.10.1`（`4df82c7`），两个 SHA-256 和 `checksums.txt` 一致；`brew style` 无问题，`brew audit --online` 加了工作流 token 后不再被限流、通过。<https://github.com/eziq1/golauncher/releases/tag/v0.10.1>
