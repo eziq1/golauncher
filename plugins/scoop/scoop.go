@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+	"weak"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
 	"github.com/eziq1/golauncher/pkg/plugin/bg"
@@ -89,17 +90,17 @@ type Plugin struct {
 	unsubs []func()
 	work   bg.Group // background work; closed by Close
 
-	refreshMu  sync.Mutex   // serializes index refreshes
-	refreshing bg.Refresher // background index refreshes
-	ready      bg.Ready     // the first index is set
+	refreshMu  sync.Mutex      // serializes reading the index and the cache
+	index      bg.Lazy[*Index] // read on first use, dropped when idle
+	refreshing bg.Refresher    // background index refreshes
 	shellOnce  sync.Once
 	shellPath  string
 
-	mu    sync.Mutex
-	index *Index
-	// The last cleanup measurement (see reclaimFor).
+	mu sync.Mutex
+	// The last cleanup measurement (see reclaimFor); weak, so that it does
+	// not keep a dropped index alive.
 	reclaim   Reclaim
-	reclaimIx *Index
+	reclaimIx weak.Pointer[Index]
 	reclaimAt time.Time
 }
 
@@ -173,14 +174,16 @@ func (p *Plugin) Locales() fs.FS {
 }
 
 // Init implements plugin.Plugin. Without Scoop the plugin is unavailable.
-// The index is loaded from the cache (or built) in the background.
+// The index is loaded from the cache (or built) when first needed and
+// dropped when idle (bg.Lazy); the cache is brought up to date in the
+// background.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.mu.Lock()
 	if p.work.Closed() {
 		// Init after Close starts again (docs/plugin-guide.md "Lifecycle"):
 		// as a new plugin, its background work having ended in Close.
-		p.work, p.unsubs, p.index, p.ready, p.refreshing = bg.Group{}, nil, nil, bg.Ready{}, bg.Refresher{}
-		p.reclaim, p.reclaimIx, p.reclaimAt = Reclaim{}, nil, time.Time{}
+		p.work, p.unsubs, p.refreshing = bg.Group{}, nil, bg.Refresher{}
+		p.reclaim, p.reclaimIx, p.reclaimAt = Reclaim{}, weak.Pointer[Index]{}, time.Time{}
 	}
 	p.mu.Unlock()
 	p.h = h
@@ -200,8 +203,10 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	if p.root == "" {
 		return fmt.Errorf("%s: %w", t.T("unavailable.notInstalled"), plugin.ErrUnavailable)
 	}
+	p.index = bg.Lazy[*Index]{Host: h, Group: &p.work, Load: p.loadIndex,
+		OnLate: func() { h.Invalidate("") }}
 	if p.opts.Sync {
-		p.refresh(false)
+		p.index.Get(context.Background())
 	} else {
 		p.scheduleRefresh()
 	}
@@ -229,29 +234,19 @@ func (p *Plugin) goFn(fn func()) { p.h.Go(fn) }
 // Root returns the Scoop root in use.
 func (p *Plugin) Root() string { return p.root }
 
-// Index returns the current index, or nil before the first one is built.
+// Index returns the index, loading it first if it is not loaded.
 func (p *Plugin) Index() *Index {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.index
+	ix, _ := p.index.Get(context.Background())
+	return ix
 }
 
-// waitIndex returns the index, waiting for the first one for at most
-// indexWait.
+// waitIndex returns the index, waiting at most indexWait for it to be
+// loaded.
 func (p *Plugin) waitIndex(ctx context.Context) *Index {
-	if ix := p.Index(); ix != nil {
-		return ix
-	}
-	p.ready.Wait(ctx, indexWait)
-	return p.Index()
-}
-
-// setIndex publishes ix.
-func (p *Plugin) setIndex(ix *Index) {
-	p.mu.Lock()
-	p.index = ix
-	p.mu.Unlock()
-	p.ready.Done()
+	ctx, cancel := context.WithTimeout(ctx, indexWait)
+	defer cancel()
+	ix, _ := p.index.Get(ctx)
+	return ix
 }
 
 // scheduleRefresh refreshes the index in the background; calls during a
@@ -260,51 +255,76 @@ func (p *Plugin) scheduleRefresh() {
 	p.refreshing.Request(&p.work, p.h, func() { p.refresh(true) })
 }
 
+// loadIndex builds the index from the cache, reading the buckets whose
+// stamp changed and the installed apps (bg.Lazy's Load).
+func (p *Plugin) loadIndex() (*Index, error) {
+	p.refreshMu.Lock()
+	defer p.refreshMu.Unlock()
+	start := time.Now()
+	buckets, _ := p.updateBuckets(p.cachedBuckets())
+	apps := append(readApps(p.root, false), readApps(p.global, true)...)
+	ix := newIndex(p.root, p.global, buckets, apps)
+	p.h.Logger().Info("scoop: index loaded", "packages", ix.PackageCount(), "apps", len(apps), "took", time.Since(start))
+	return ix, nil
+}
+
 // refresh brings the index up to date: buckets whose stamp changed are read
-// again, installed apps always. The first refresh starts from the cache.
-// With notify, a change is reported with Invalidate.
+// again, installed apps always. An index that is not loaded stays so: only
+// the cache is brought up to date, and it is not even read while the stamps
+// saved with it match the buckets. With notify, a change of the loaded index
+// is reported with Invalidate.
 func (p *Plugin) refresh(notify bool) {
 	p.refreshMu.Lock()
 	defer p.refreshMu.Unlock()
-	log := p.h.Logger()
-	old := p.Index()
-	var oldBuckets []*Bucket
-	if old != nil {
-		oldBuckets = old.Buckets
-	} else {
-		start := time.Now()
-		cached, err := loadCache(p.h.CacheDir(), p.root)
-		switch {
-		case err == nil:
-			apps := append(readApps(p.root, false), readApps(p.global, true)...)
-			old = newIndex(p.root, p.global, cached, apps)
-			p.setIndex(old)
-			oldBuckets = cached
-			log.Info("scoop: index loaded from the cache", "packages", old.PackageCount(), "apps", len(apps), "took", time.Since(start))
-		case !errors.Is(err, fs.ErrNotExist):
-			log.Warn("scoop: ignoring the index cache", "err", err)
+	old, ok := p.index.Peek()
+	if !ok {
+		if !cacheCurrent(p.h.CacheDir(), p.root) {
+			p.updateBuckets(p.cachedBuckets())
 		}
+		return
 	}
+	buckets, changed := p.updateBuckets(old.Buckets)
+	apps := append(readApps(p.root, false), readApps(p.global, true)...)
+	if !changed && reflect.DeepEqual(old.Apps, apps) {
+		return
+	}
+	if p.index.Set(newIndex(p.root, p.global, buckets, apps), nil) && notify {
+		p.h.Invalidate("")
+	}
+}
+
+// cachedBuckets returns the buckets of the cache, or nil without one.
+func (p *Plugin) cachedBuckets() []*Bucket {
+	cached, err := loadCache(p.h.CacheDir(), p.root)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		p.h.Logger().Warn("scoop: ignoring the index cache", "err", err)
+	}
+	return cached
+}
+
+// updateBuckets returns the buckets, reusing those of old whose stamp did
+// not change, and saves them to the cache when they changed (or the cache's
+// stamps are missing). The caller holds refreshMu.
+func (p *Plugin) updateBuckets(old []*Bucket) ([]*Bucket, bool) {
+	log := p.h.Logger()
 	start := time.Now()
-	buckets, changed, errs := refreshBuckets(p.root, oldBuckets, p.goFn)
+	buckets, changed, errs := refreshBuckets(p.root, old, p.goFn)
 	for _, err := range errs {
 		log.Warn("scoop: reading a bucket", "err", err)
 	}
-	apps := append(readApps(p.root, false), readApps(p.global, true)...)
-	if old != nil && !changed && reflect.DeepEqual(old.Apps, apps) {
-		return
-	}
-	ix := newIndex(p.root, p.global, buckets, apps)
-	p.setIndex(ix)
 	if changed {
-		log.Info("scoop: index built", "buckets", len(buckets), "packages", ix.PackageCount(), "took", time.Since(start))
+		n := 0
+		for _, b := range buckets {
+			n += len(b.Packages)
+		}
+		log.Info("scoop: buckets read", "buckets", len(buckets), "packages", n, "took", time.Since(start))
+	}
+	if changed || !cacheCurrent(p.h.CacheDir(), p.root) {
 		if err := saveCache(p.h.CacheDir(), p.root, buckets); err != nil {
 			log.Warn("scoop: saving the index cache", "err", err)
 		}
 	}
-	if notify {
-		p.h.Invalidate("")
-	}
+	return buckets, changed
 }
 
 // maxResults is the maxResults preference, clamped to [1, limitMax].
@@ -334,8 +354,11 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 		return nil, nil
 	}
 	text, ok := rootQuery(q.Text)
-	ix := p.Index()
-	if !ok || ix == nil {
+	if !ok {
+		return nil, nil
+	}
+	ix, ok := p.index.TryGet() // if not loaded, Invalidate follows the read
+	if !ok {
 		return nil, nil
 	}
 	t := p.h.I18n()

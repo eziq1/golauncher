@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"weak"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -158,7 +159,7 @@ func (p *Plugin) start(req opRequest) (plugin.Result, error) {
 // changed, so the index is read again (which also refreshes open views).
 func (p *Plugin) opDone(plugin.TaskResult) {
 	p.mu.Lock()
-	p.reclaimIx = nil // folders and the cache may have changed
+	p.reclaimIx = weak.Pointer[Index]{} // folders and the cache may have changed
 	p.mu.Unlock()
 	if p.work.Closed() {
 		return

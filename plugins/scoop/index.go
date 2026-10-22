@@ -367,17 +367,86 @@ func loadCache(dir, root string) ([]*Bucket, error) {
 	return c.Buckets, nil
 }
 
-// saveCache writes the buckets of root to dir, atomically.
+// saveCache writes the buckets of root to dir, atomically, and then their
+// stamps (see cacheCurrent).
 func saveCache(dir, root string, buckets []*Bucket) error {
-	data, err := json.Marshal(cacheFile{Version: cacheVersion, Root: root, Buckets: buckets})
+	if err := writeJSON(cachePath(dir), cacheFile{Version: cacheVersion, Root: root, Buckets: buckets}); err != nil {
+		return err
+	}
+	st := stampsFile{Version: cacheVersion, Root: root}
+	for _, b := range buckets {
+		st.Buckets = append(st.Buckets, b.stamp())
+	}
+	return writeJSON(stampsPath(dir), st)
+}
+
+// writeJSON writes v to path atomically.
+func writeJSON(path string, v any) error {
+	data, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	tmp := cachePath(dir) + ".tmp"
+	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, cachePath(dir))
+	return os.Rename(tmp, path)
+}
+
+// bucketStamp identifies the content of a bucket: a bucket is read again
+// when its stamp or directory changes.
+type bucketStamp struct {
+	Name  string `json:"name"`
+	Dir   string `json:"dir"`
+	Stamp string `json:"stamp"`
+}
+
+func (b *Bucket) stamp() bucketStamp { return bucketStamp{Name: b.Name, Dir: b.Dir, Stamp: b.Stamp} }
+
+// current reports whether the bucket in dir, whose stamp is now stamp, is
+// still the one s was taken of.
+func (s bucketStamp) current(dir, stamp string) bool {
+	return s.Stamp == stamp && strings.EqualFold(s.Dir, dir)
+}
+
+// stampsFile is the bucket stamps of the cache, written next to it so that
+// a refresh can tell whether the cache is current without reading it.
+type stampsFile struct {
+	Version int           `json:"version"`
+	Root    string        `json:"root"`
+	Buckets []bucketStamp `json:"buckets"`
+}
+
+func stampsPath(dir string) string { return filepath.Join(dir, "index.stamps.json") }
+
+// cacheCurrent reports whether the cache of root in dir holds the buckets
+// as they are now, by their stamps.
+func cacheCurrent(dir, root string) bool {
+	data, err := os.ReadFile(stampsPath(dir))
+	if err != nil {
+		return false
+	}
+	var st stampsFile
+	if json.Unmarshal(data, &st) != nil || st.Version != cacheVersion || !strings.EqualFold(st.Root, root) {
+		return false
+	}
+	if _, err := os.Stat(cachePath(dir)); err != nil {
+		return false
+	}
+	dirs := bucketDirs(root)
+	if len(dirs) != len(st.Buckets) {
+		return false
+	}
+	for _, s := range st.Buckets {
+		dir, ok := dirs[s.Name]
+		if !ok {
+			return false
+		}
+		if _, stamp, _ := bucketInfo(dir); !s.current(dir, stamp) {
+			return false
+		}
+	}
+	return true
 }
 
 // refreshBuckets returns the buckets of root, reusing those of old whose
@@ -391,7 +460,7 @@ func refreshBuckets(root string, old []*Bucket, goFn func(func())) (buckets []*B
 	}
 	for name, dir := range dirs {
 		_, stamp, _ := bucketInfo(dir)
-		if b, ok := byName[name]; ok && b.Stamp == stamp && strings.EqualFold(b.Dir, dir) {
+		if b, ok := byName[name]; ok && b.stamp().current(dir, stamp) {
 			buckets = append(buckets, b)
 			continue
 		}

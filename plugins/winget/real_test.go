@@ -1,11 +1,17 @@
 package winget
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"io/fs"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // TestRealWinget reads the winget of this machine and logs counts and
@@ -36,9 +42,9 @@ func TestRealWinget(t *testing.T) {
 	srcs := p.loadSources()
 	t.Logf("winget source export: %d sources, %v", len(srcs), time.Since(begin))
 
-	ix := p.Index()
+	ix, err := p.index.Get(t.Context())
 	if ix.PackageCount() == 0 {
-		t.Fatalf("no packages in the index: %v", p.indexErr)
+		t.Fatalf("no packages in the index: %v", err)
 	}
 	for _, s := range srcs {
 		if !s.Indexed() {
@@ -98,5 +104,49 @@ func TestRealWinget(t *testing.T) {
 
 	if n := len(h.Tasks.List()); n != 0 || len(h.Runner.Commands()) != 0 {
 		t.Fatalf("%d tasks were started", n)
+	}
+}
+
+// heapMB is the live heap after a full collection, in MB.
+func heapMB() float64 {
+	runtime.GC()
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return float64(m.HeapAlloc) / (1 << 20)
+}
+
+// TestRealIdleHeap logs the heap the index of this machine's winget keeps
+// (go test -run RealIdleHeap -v): none after Init and a window shown, until
+// a search reads it, and none again once it is dropped. It runs no winget
+// command (the sources default to "winget").
+func TestRealIdleHeap(t *testing.T) {
+	if FindWinget(os.Getenv) == "" || testing.Short() {
+		t.Skip("winget is not installed")
+	}
+	o := Options{Run: func(context.Context, []string) ([]byte, error) { return nil, errors.New("not run") },
+		OpenPins: func() (*sql.DB, error) { return nil, fs.ErrNotExist }}
+	p := NewWithOptions(o)
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := heapMB()
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { p.Close() })
+	h.Bus.PublishSync(plugin.EventWindowShown)
+	idle := heapMB() - base
+	begin := time.Now()
+	n := p.Index().PackageCount()
+	took := time.Since(begin)
+	loaded := heapMB() - base
+	p.index.Drop()
+	dropped := heapMB() - base
+	t.Logf("heap above the start: %.1f MB after Init, %.1f MB with the index (%d packages, read in %v), %.1f MB after it is dropped",
+		idle, loaded, n, took, dropped)
+	if loaded-idle < 1 {
+		t.Errorf("the index took only %.1f MB", loaded-idle)
 	}
 }
