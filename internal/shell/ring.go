@@ -642,7 +642,8 @@ func (h ringHost) Close()            { h.s.closeRing() }
 // runRingSlot runs a slot of the ring in the window that was active.
 // Main thread only.
 func (s *Shell) runRingSlot(slot ring.Slot, cap ringCapture) {
-	if cap.sel == nil && !cap.read && cap.selHere && ringNeedsSelection(slot) {
+	if cap.sel == nil && !cap.read && cap.selHere && ringNeedsSelection(slot) &&
+		!(slot.Key == config.RingAskAI && len(ringFiles(cap.ctx)) > 0) {
 		// Not read as the ring opened (UI Automation could not, and no copy
 		// while the button is held): read now, as the launcher does.
 		s.ringSelection(cap, func(cap ringCapture) { s.runRingSlot(slot, cap) })
@@ -662,8 +663,8 @@ func (s *Shell) runRingSlot(slot ring.Slot, cap ringCapture) {
 		}()
 		return
 	case config.RingAskAI:
-		if e, ok := ringAskAIEntry(cap.sel); ok {
-			s.runRingEntry(e, cap) // a new chat about the selected text
+		if e, ok := ringAskAIEntry(cap.sel, ringFiles(cap.ctx)); ok {
+			s.runRingEntry(e, cap) // a new chat about the selected text or files
 			return
 		}
 		// A blank chat: the launcher shows at it, without the root (and the
@@ -754,15 +755,31 @@ func ringNeedsSelection(slot ring.Slot) bool {
 	return slot.Key == config.RingAskAI || slot.Entry != nil && slot.Entry.Selection
 }
 
-// ringAskAIEntry returns the entry of Ask AI about the selected text sel:
-// a new chat about it; false without a selection (a blank chat).
-func ringAskAIEntry(sel *plugin.Selection) (core.Entry, bool) {
-	if sel == nil {
+// ringFiles are the files the ring acts on in a folder view (Explorer, the
+// desktop, Finder): the one under the pointer, or the selected ones it was
+// part of (R120).
+func ringFiles(c *plugin.Context) []string {
+	if c == nil {
+		return nil
+	}
+	return c.Selected
+}
+
+// ringAskAIEntry returns the entry of Ask AI about the selected text sel
+// and the files: a new chat with the text as a quote and the files attached
+// (only the files: they wait in its draft for the question); false without
+// either (a blank chat).
+func ringAskAIEntry(sel *plugin.Selection, files []string) (core.Entry, bool) {
+	if sel == nil && len(files) == 0 {
 		return core.Entry{}, false
 	}
+	q := plugin.AskAI{Files: files}
+	if sel != nil {
+		q.Text = sel.Text
+	}
 	item := plugin.Item{ID: "ring-ask", Transient: true, Sensitive: true, Actions: []plugin.Action{{ID: "ask",
-		Do: plugin.ActionDo{Kind: plugin.ActionAskAI, Payload: plugin.MustPayload(plugin.AskAI{Text: sel.Text})}}}}
-	return core.Entry{Item: item, Plugin: ai.ID, Key: ai.ID + "/ring-ask", Context: true, Selection: true}, true
+		Do: plugin.ActionDo{Kind: plugin.ActionAskAI, Payload: plugin.MustPayload(q)}}}}
+	return core.Entry{Item: item, Plugin: ai.ID, Key: ai.ID + "/ring-ask", Context: true, Selection: sel != nil}, true
 }
 
 // ringSelectionWait is how often, and how many times, ringSelection looks

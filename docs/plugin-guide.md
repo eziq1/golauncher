@@ -336,6 +336,10 @@ plugin.Action{ID: "ai", Title: l.T("action.ai"), Do: plugin.ActionDo{Kind: plugi
   plugin turned off in Settings, a toast says AI is not available.
 - Write the instruction in English (the AI answers in the user's
   language); without `Text` the instruction is the whole message.
+- `Files` (absolute paths) are attached to the new chat: they go out with
+  the message, or, with neither `Instruction` nor `Text`, wait in the
+  chat's draft for the user's question (the Action Ring's *Ask AI* on a
+  file does this).
 - It may also be a `Result.Do`. For an AI using the launcher's tools it is
   a "change" action (the user confirms). The translator's *Translate with
   AI* is the example.

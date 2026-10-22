@@ -22,6 +22,10 @@ type AskAI struct {
 	// Title is the chat's title (user-visible: from your catalog); "" for
 	// the start of the message.
 	Title string `json:"title,omitempty"`
+	// Files (absolute paths) are attached to the new chat: they go out with
+	// the message, or, without Instruction and Text, wait in its draft for
+	// the user's question.
+	Files []string `json:"files,omitempty"`
 }
 
 // AIAsker is implemented by the plugin that answers ActionAskAI

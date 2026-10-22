@@ -3,6 +3,7 @@ package core_test
 import (
 	"context"
 	"encoding/json/v2"
+	"reflect"
 	"testing"
 	"time"
 
@@ -50,11 +51,11 @@ func TestAskAI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(a.got) != 1 || a.got[0] != q {
+	if len(a.got) != 1 || !reflect.DeepEqual(a.got[0], q) {
 		t.Fatalf("asked %+v", a.got)
 	}
 	var got plugin.AskAI
-	if out.Push == nil || out.Push.Plugin != "fake.ai" || out.Push.Request.ID != "chat" || json.Unmarshal(out.Push.Request.Payload, &got) != nil || got != q {
+	if out.Push == nil || out.Push.Plugin != "fake.ai" || out.Push.Request.ID != "chat" || json.Unmarshal(out.Push.Request.Payload, &got) != nil || !reflect.DeepEqual(got, q) {
 		t.Fatalf("outcome %+v", out)
 	}
 	// The AI plugin turned off.
