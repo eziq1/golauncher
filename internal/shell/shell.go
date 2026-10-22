@@ -160,6 +160,9 @@ type Shell struct {
 	// previewing is set while the launcher shows beside the settings as
 	// a preview of the appearance (previewLauncher).
 	previewing bool
+
+	// ring is the Action Ring (ring.go).
+	ring ringState
 }
 
 // Run runs golauncher until it quits. A second instance hands its arguments
@@ -372,6 +375,7 @@ func (s *Shell) ready(action string) {
 	}
 	s.syncLoginItem(s.env.Config.Get())
 	s.registerHotkeys()
+	s.setUpRing()
 	s.prepareOnboarding()
 	switch {
 	case action == actionSettings:
@@ -407,6 +411,7 @@ func (s *Shell) handle(action string) {
 }
 
 func (s *Shell) shutdown() {
+	s.stopRing()
 	mygo.GlobalShortcut.UnregisterAll()
 	if s.stopClip != nil {
 		s.stopClip()
@@ -609,6 +614,7 @@ func (s *Shell) configChanged(c config.Config) {
 	s.applyAppearance()
 	s.syncLoginItem(c)
 	s.registerHotkeys()
+	s.syncRing(c)
 	s.panel.Invalidate()
 	if s.settingsWin != nil {
 		s.settingsWin.Invalidate()

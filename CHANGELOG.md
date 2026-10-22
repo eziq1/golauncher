@@ -8,6 +8,23 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **Action Ring** (R116, docs/action-ring.md): hold the middle mouse button
+  (300 ms by default) to open a ring of up to eight actions around the
+  pointer, without taking the focus from the app you are in. Four fixed
+  actions (by default Open golauncher, Ask AI — about the selected text if
+  there is some —, Screenshot and Lock) and actions for the selected text and
+  for the folder under the pointer (open a terminal or VS Code there, copy
+  the path…), or recently used items. Drag toward an action and let go, or
+  let go first and then click one or press `1`–`8`; `Esc`, the × or a click
+  outside closes it. A short click of the middle button still goes to the
+  app, and so does dragging with it (autoscroll, panning). Remote desktops,
+  virtual machines, Blender and full-screen games are left alone. On by
+  default; *Settings › Action Ring* sets the hold time, the fixed actions,
+  the context actions and the exceptions. On macOS it needs the
+  Accessibility permission (the page says so; nothing is asked at startup).
+
 ## [0.11.0] - 2026-10-20
 
 ### Added

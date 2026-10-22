@@ -90,6 +90,8 @@ type Settings struct {
 	updates updatesState // the Updates section of the About page
 
 	perms permissionsState // the Permissions page (macOS)
+
+	ring ringSettingsState // the Action Ring page
 }
 
 // NewSettings returns the settings view of env.
@@ -132,8 +134,11 @@ func (s *Settings) ShowPage(page string) {
 		s.appearance.dragging = ""
 		s.env.Themes.SetPreview(nil)
 	}
-	if page == PagePermissions {
+	switch page {
+	case PagePermissions:
 		s.checkPermissions()
+	case PageRing:
+		s.openRingPage()
 	}
 }
 
@@ -226,6 +231,7 @@ func (s *Settings) View(c *mui.Context) {
 			mui.SidebarItem(c, PageGeneral, builtinIcon("settings"), s.loc.T("settings.nav.general"))
 			mui.SidebarItem(c, PageAppearance, builtinIcon("contrast"), s.loc.T("settings.nav.appearance"))
 			mui.SidebarItem(c, PagePlugins, builtinIcon("app"), s.loc.T("settings.nav.plugins"))
+			mui.SidebarItem(c, PageRing, builtinIcon("circle-dot"), s.loc.T("settings.nav.ring"))
 			if _, ok := s.permissionsHost(); ok {
 				mui.SidebarItem(c, PagePermissions, builtinIcon("shield"), s.loc.T("settings.nav.permissions"))
 			}
@@ -251,6 +257,8 @@ func (s *Settings) View(c *mui.Context) {
 					s.appearancePage(c, cfg)
 				case PagePermissions:
 					s.permissionsPage(c)
+				case PageRing:
+					s.ringPage(c, cfg)
 				case PageAdvanced:
 					s.advancedPage(c, cfg)
 				case PageAbout:

@@ -37,6 +37,26 @@ func (l *Launcher) OpenTasks(id string) {
 	})
 }
 
+// RunEntry queues running the primary action of entry while the launcher
+// is hidden, for the Action Ring (core.Controller.RunEntry); done then runs
+// on the worker with the outcome and whether the launcher has something to
+// show (a view, a form, a confirmation).
+func (l *Launcher) RunEntry(entry core.Entry, done func(out core.Outcome, err error, show bool)) {
+	l.work.Do(func(ctx context.Context) {
+		out, err := l.ctrl.RunEntry(ctx, entry)
+		if err != nil {
+			l.log.Warn("ring action failed", "plugin", entry.Plugin, "err", err)
+		}
+		if out.Hide {
+			l.host.Hide()
+		}
+		l.host.Invalidate()
+		if done != nil {
+			done(out, err, l.ctrl.NeedsWindow())
+		}
+	})
+}
+
 // apply carries out an outcome of the Controller. It runs on the worker.
 func (l *Launcher) apply(out core.Outcome, err error) {
 	if err != nil {
