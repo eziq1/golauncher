@@ -200,3 +200,5 @@
 - **内容**：Action Ring（R116～R120：中键圆环、目录、透明窗口、问 AI 读取选中文字、跟随鼠标下的项目）；鼠标钩子移到独立进程，修复全系统打字变慢（R122）；圆环问 AI 带上鼠标下的文件（R123）；附加图片不再占 200 多 MB（R124）；包索引按需加载、空闲后归还内存，后台空闲内存 66 → 33 MB（R125）；SDK 新增 `plugin.AskAI.Files` 和 `bg.Lazy[T]`。
 - **版本号**：新功能，按语义化版本升次版本号。
 - **本地验证**：`gofmt -l .` 为空，`go vet ./...`，`go test -p 2 ./...`（74 个包）、`go test -p 2 -race ./internal/... ./plugins/...`（67 个包）通过，`scripts/windows/build.ps1 -Zip` 成功。
+- **CI**：第一次推送 `main` 时 Windows 测试失败：R125 新加的 `TestRealIdleHeap` 默认就会运行，CI 的 winget 包目录为空（0 个包），“索引至少占 1 MB”的断言失败。改为 winget 的这个测试需要 `GOLAUNCHER_WINGET_TESTS=1`（和同文件其他真机测试一致），两个插件的这个测试在包少于 1000 个时跳过（`82cedf9`），第二次 CI 通过。
+- **结果**：2026-10-22 在 `82cedf9` 上打了 `v0.12.0`，发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.8MB）、`windows_arm64`（20.9MB）、`darwin_amd64`（23.3MB）、`darwin_arm64`（21.3MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.12.0`（`c6676c1`），SHA-256 和 `checksums.txt` 一致；Homebrew cask 任务（`brew style`、`brew audit`）通过。<https://github.com/eziq1/golauncher/releases/tag/v0.12.0>
