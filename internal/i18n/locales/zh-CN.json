@@ -658,6 +658,8 @@
   "settings.ring.hold": "按住时长（毫秒）",
   "settings.ring.hold.desc": "按住中键多久后弹出圆环。",
   "settings.ring.hold.invalid": "请输入 {{.min}} 到 {{.max}} 之间的数。",
+  "settings.ring.trackpadTap": "三指轻点触控板打开操作环",
+  "settings.ring.trackpadTap.desc": "三根手指同时轻点触控板，不要按下去：圆环在指针位置弹出并留在屏幕上，直到你选一个操作或关闭它。如果在“系统设置 › 触控板”里把“查询与数据检测器”设成了“用三指轻点”，macOS 也会响应这个手势，请在那里换成别的选项。",
   "settings.ring.permission": "操作环需要“辅助功能”权限才能看到鼠标中键。请在“系统设置 › 隐私与安全性 › 辅助功能”中允许 golauncher。",
   "settings.ring.permission.open": "打开辅助功能设置",
   "settings.ring.fixed": "固定操作",
@@ -684,5 +686,6 @@
   "settings.ring.exceptions.add": "添加",
   "settings.ring.exceptions.none": "没有例外。",
   "settings.ring.privacy": "隐私",
-  "settings.ring.privacy.text": "只处理鼠标中键；只有在按住中键或圆环打开时才会查看指针位置和其他按键。不记录、不保存任何内容。在 Windows 上，以管理员身份运行的程序里不会弹出圆环。"
+  "settings.ring.privacy.text": "只处理鼠标中键；只有在按住中键或圆环打开时才会查看指针位置和其他按键。不记录、不保存任何内容。在 Windows 上，以管理员身份运行的程序里不会弹出圆环。",
+  "settings.ring.privacy.text@darwin": "只处理鼠标中键；只有在按住中键或圆环打开时才会查看指针位置和其他按键。打开三指轻点时，会读取触控板的触点来识别这个手势，不做别的用途。不记录、不保存任何内容。"
 }

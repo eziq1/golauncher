@@ -174,6 +174,45 @@ func TestHoldOpens(t *testing.T) {
 	want(t, rec)
 }
 
+// TestOpenAt: a trackpad's tap opens the ring through Open, staying open
+// as after a press let go without moving; not while it shows, nor while a
+// press is in progress, nor over an exception.
+func TestOpenAt(t *testing.T) {
+	m, clk, rec := newTestMachine()
+	if !m.OpenAt(Point{10, 20}) {
+		t.Fatal("not opened")
+	}
+	want(t, rec, "open 10,20")
+	if !m.Open() || m.WantsMoves() || !m.WantsButtons() || m.ButtonDown() {
+		t.Fatal("the ring stays open and watches the buttons, not the moves")
+	}
+	if m.OpenAt(Point{30, 30}) {
+		t.Error("opened again while it shows")
+	}
+	// A click outside is reported; a middle click chooses, kept with its up.
+	handle(t, m, ev(OtherDown, 500, 500), false)
+	handle(t, m, ev(MiddleDown, 12, 20), true)
+	handle(t, m, ev(MiddleUp, 12, 20), true)
+	want(t, rec, "press 500,500 false", "press 12,20 true")
+	m.SetOpen(false)
+
+	handle(t, m, ev(MiddleDown, 1, 1), true)
+	if m.OpenAt(Point{1, 1}) {
+		t.Error("opened while a press is pending")
+	}
+	handle(t, m, ev(MiddleUp, 1, 1), true)
+	want(t, rec, "replay true true")
+	if clk.running() != 0 {
+		t.Error("a timer runs")
+	}
+
+	rec.allowed = false
+	if m.OpenAt(Point{1, 1}) || m.Open() {
+		t.Error("opened over an exception")
+	}
+	want(t, rec)
+}
+
 // TestDragSelect: held open and dragged, the pointer is tracked and the
 // release reports a move.
 func TestDragSelect(t *testing.T) {

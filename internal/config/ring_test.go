@@ -29,17 +29,20 @@ func TestRingDefaults(t *testing.T) {
 	}
 	c := load(`{"schemaVersion": 1}`)
 	r := c.Ring
-	if !r.Enabled || !r.Context || r.EffectiveHoldMS() != 300 || len(r.Fixed) != 4 || r.Fixed[0].Key != RingLauncher ||
+	if !r.Enabled || !r.Context || !r.TrackpadTap || r.EffectiveHoldMS() != 300 || len(r.Fixed) != 4 || r.Fixed[0].Key != RingLauncher ||
 		r.Fixed[3].Key != RingLock || !slices.Contains(r.Exceptions, "mstsc.exe") || !slices.Contains(r.Exceptions, "com.vmware.fusion") {
 		t.Errorf("defaults %+v", r)
 	}
 	c = load(`{"schemaVersion": 1, "ring": {"enabled": false}}`)
-	if c.Ring.Enabled || !c.Ring.Context || len(c.Ring.Fixed) != 4 || len(c.Ring.Exceptions) != len(DefaultRingExceptions) {
+	if c.Ring.Enabled || !c.Ring.Context || !c.Ring.TrackpadTap || len(c.Ring.Fixed) != 4 || len(c.Ring.Exceptions) != len(DefaultRingExceptions) {
 		t.Errorf("partial %+v", c.Ring)
 	}
 	c = load(`{"schemaVersion": 1, "ring": {"fixed": [{"key": "builtin.ai/cmd:chat", "title": "Chat"}], "exceptions": [], "holdMs": 5000}}`)
 	if len(c.Ring.Fixed) != 1 || c.Ring.Fixed[0].Title != "Chat" || len(c.Ring.Exceptions) != 0 || c.Ring.EffectiveHoldMS() != MaxRingHoldMS {
 		t.Errorf("stored %+v", c.Ring)
+	}
+	if c = load(`{"schemaVersion": 1, "ring": {"trackpadTap": false}}`); c.Ring.TrackpadTap || !c.Ring.Enabled {
+		t.Errorf("trackpad tap off %+v", c.Ring)
 	}
 	if (RingConfig{HoldMS: 1}).EffectiveHoldMS() != MinRingHoldMS {
 		t.Error("no lower bound")

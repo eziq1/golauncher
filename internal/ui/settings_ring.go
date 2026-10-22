@@ -137,6 +137,13 @@ func (s *Settings) ringPage(c *mui.Context, cfg config.Config) {
 	if msg := s.errs[key]; msg != "" {
 		field.Error(msg)
 	}
+	// The three-finger tap (R127): macOS only, where the host has the
+	// permissions.
+	if _, mac := s.permissionsHost(); mac {
+		s.toggle(c, s.loc.T("settings.ring.trackpadTap"), s.loc.T("settings.ring.trackpadTap.desc"), rc.TrackpadTap, func(v bool) {
+			setRing(func(r *config.RingConfig) { r.TrackpadTap = v })
+		})
+	}
 
 	s.ringFixed(c, rc, setRing)
 

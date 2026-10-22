@@ -292,6 +292,27 @@ func (m *Machine) Handle(ev Event) (swallow bool) {
 	return swallow
 }
 
+// OpenAt opens the ring around pt without a press, for a gesture of
+// another device (a three-finger tap on a trackpad, R127): through Open,
+// as a held press does, and staying open as after a press let go without
+// moving. Not while a press is in progress or the ring shows, nor over the
+// apps Allowed refuses. It reports whether the ring opened.
+func (m *Machine) OpenAt(pt Point) bool {
+	m.mu.Lock()
+	if m.st != idle || m.open || m.o.Allowed != nil && !m.o.Allowed(pt) {
+		m.mu.Unlock()
+		return false
+	}
+	m.open = true
+	m.updateInterest()
+	f := m.o.Open
+	m.mu.Unlock()
+	if f != nil {
+		f(pt)
+	}
+	return true
+}
+
 // timeout opens the ring if the press gen is still pending.
 func (m *Machine) timeout(gen int) {
 	m.mu.Lock()
