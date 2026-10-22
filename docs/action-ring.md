@@ -207,3 +207,17 @@
 - macOS 的 `CGEventTap` 不在这次范围内：系统发现事件监听太慢会直接关掉它，不会拖慢输入。
 
 **测试建议**：要模拟按键、抢前台窗口、装真钩子的真机测试（`GOLAUNCHER_HOOK_TESTS`、`GOLAUNCHER_SELECTION_TESTS`、`GOLAUNCHER_CLIPBOARD_TESTS` 等）默认都不会运行，开发时只在用户不用电脑时才设这些变量。
+
+### 9.1 实现记录（2026-10-22）
+
+- **钩子进程**：`golauncher --mouse-hook-host`，在 `cmd/golauncher/main.go` 最开头处理，不经过单实例、配置、日志、安装器和界面。入口 `mousehook.HostMain`（`internal/winapi/mousehook/host_windows.go`），协议和主循环在 `host.go`。进程里跑真正的 `ring.Machine` 和原来的 `WH_MOUSE_LL`：判断是否允许弹出（`AppAt`、全屏、例外名单 `ring.Excluded`）、补发中键（`SendInput`）、拖动阈值都和进程内时一样；钩子线程设为 `THREAD_PRIORITY_TIME_CRITICAL`。指针在主进程的窗口上时，和以前一样当作 golauncher 自己（不去打开进程令牌）。
+- **钩子线程不等管道**：回调只把事件放进队列（预先分配、最多 64 条，满了丢弃），由单独的 goroutine 写到标准输出；Track 只保留最新的一个，并保持在其他事件之间的顺序。事件手写成 JSON（`strconv`），不分配内存；状态机不需要的鼠标移动只读一个原子变量就放行，不加锁、不分配（有测试检查 0 次分配）。钩子进程启动后的堆约 3 MB（全部来自程序里各个包的初始化），之后几乎不再分配，GC 可以忽略。
+- **协议**（每行一个 JSON，未知的行和字段忽略）：
+  - 主进程 → 钩子进程：`hold`（按住时长，毫秒）、`exceptions`（例外名单）、`open`（圆环关闭/显示，带 `seq`）、`reset`（带 `seq`）、`start`（安装钩子；按住时长和例外名单在它之前发，钩子不会在没有设置的情况下运行）。
+  - 钩子进程 → 主进程：`ready` / `error`（钩子装好了 / 装不上）、`open`（带 `seq`）、`track`、`release`（`moved`）、`press`（`middle`）、`button`（中键是否处于被状态机处理的按下中，即 `Machine.ButtonDown`，“问 AI”等它松开再复制要用）。
+  - **状态机自己会改 `open`**：按住到时间时它自己把圆环设为打开（就是 `open` 事件）；关闭只由主进程发起（`SetOpen(false)`、`Reset`）。主进程每次关闭都把 `seq` 加一，钩子进程发 `open` 时带上它已经执行到的最后一次关闭的 `seq`；主进程收到的 `seq` 比自己的小，说明这次打开会被随后的关闭撤销，直接丢弃——和原来同一进程里 `openRing` 发现 `Machine.Open()` 为 false 时不显示一样。
+- **主进程这边**：`mousehook.Remote`（`remote.go`）。`internal/shell/ring.go` 里新加接口 `ringMachine`（`Open`、`ButtonDown`、`SetOpen`、`SetHold`、`Reset`），进程内的 `ring.Machine`（macOS、退回时）和 `Remote` 都满足；`ringRemote` 再加上 `SetExceptions` 和 `Start`。`Remote` 保存 `open`（收到 `open` 事件为 true，`SetOpen(false)`/`Reset` 为 false）和 `ButtonDown` 的副本；读管道的 goroutine 调用的回调和以前一样只往主线程投递（`ringPost`），不阻塞。`syncRing` 的按住时长和例外名单会转发过去。`WindowAt`、`RootOwner`、`AppAt` 在主线程上用的仍在主进程里直接调用。
+- **生命周期**：用 `os.Executable()` 启动自己，`CREATE_NO_WINDOW`，放进 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 的作业对象（和插件进程共用 `internal/winapi/proc` 的 `NewKillOnCloseJob`，原来 `extproc` 里的那份改为调用它）。关掉圆环或退出时关闭它的标准输入：它停掉钩子，把还扣着的中键按下补发给程序（退出前同步发送），然后退出；2 秒内没退出就结束它。主进程崩溃时，管道断开或作业对象关闭也会让它结束。
+- **退回**：钩子进程启动失败（5 秒内没有 `ready`，或报告 `error`）→ 记一条警告，改用进程内钩子。运行中意外退出 → 警告，关闭圆环，重启一次；再退出就改用进程内钩子，不会反复重启。
+- **macOS 不变**，仍在进程内。
+- **测试**：用内存管道把 `Remote` 和真正的主循环 `runHost` 接起来，假的钩子和时钟（不安装钩子）：设置在安装钩子之前到达、例外放行、短按补发、按住打开 / Track / 拖动松开、`ButtonDown` 跟随、关闭后的打开被丢弃（`seq`）、停止时补发扣着的按下、启动失败、意外退出后可以再启动；队列合并 Track 和顺序、事件编码往返和 0 分配、空闲时鼠标移动 0 分配；`shell` 里用假的 `ringRemote` 测启动、关闭、启动失败退回、意外退出重启一次后退回。真正启动钩子进程的 `TestRealHost` 和 `TestRealHook` 一样要设 `GOLAUNCHER_HOOK_TESTS=1`。**需要实测**：开着 golauncher 跑构建时打字是否恢复正常，圆环、短按、拖动、例外和“问 AI”是否照常。

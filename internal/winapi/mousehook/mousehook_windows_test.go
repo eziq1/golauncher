@@ -12,6 +12,17 @@ import (
 	"github.com/eziq1/golauncher/internal/ring"
 )
 
+// TestMain runs the hook host when TestRealHost starts this binary as it.
+func TestMain(m *testing.M) {
+	if len(os.Args) == 2 && os.Args[1] == HostFlag {
+		if err := HostMain(os.Stdin, os.Stdout); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+	os.Exit(m.Run())
+}
+
 // fakeHandler records the events it gets and swallows the middle button.
 type fakeHandler struct {
 	moves, buttons bool
@@ -120,6 +131,40 @@ func TestRealHook(t *testing.T) {
 	stop()
 	stop()
 	t.Logf("moves seen: %d", h.n)
+}
+
+// TestRealHost starts the real hook host (this test binary, as TestMain
+// runs it): only with GOLAUNCHER_HOOK_TESTS=1, by hand. The hook installs
+// in the host and the host ends with Stop; nothing is held back unless the
+// middle button is.
+func TestRealHost(t *testing.T) {
+	if os.Getenv("GOLAUNCHER_HOOK_TESTS") != "1" {
+		t.Skip("set GOLAUNCHER_HOOK_TESTS=1 to install a real mouse hook")
+	}
+	r := NewRemote(300*time.Millisecond, ring.Callbacks{}, func(err error) { t.Errorf("exited: %v", err) })
+	stop, err := r.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2 * time.Second) // move the mouse meanwhile
+	stop()
+}
+
+// TestHotPathAllocs: a move the machine does not want passes through the
+// host's handler without allocating (nor locking: WantsMoves reads an
+// atomic).
+func TestHotPathAllocs(t *testing.T) {
+	h := &host{box: newOutbox(), appAt: func(ring.Point) App { return App{} }}
+	h.m = ring.NewMachine(ring.Options{Hold: time.Hour})
+	var x Handler = hostHandler{h}
+	info := msllhookstruct{X: 1, Y: 2}
+	if n := testing.AllocsPerRun(1000, func() {
+		if handle(x, wmMouseMove, uintptr(unsafe.Pointer(&info))) {
+			t.Fatal("swallowed")
+		}
+	}); n != 0 {
+		t.Errorf("%v allocations per move", n)
+	}
 }
 
 type countHandler struct{ n int }

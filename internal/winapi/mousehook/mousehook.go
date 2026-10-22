@@ -4,10 +4,12 @@
 // pointer and the other buttons only while the Handler asks for them, to a
 // ring.Machine, which decides on the hook's thread whether each event is
 // kept from the apps; it replays the middle button the machine held back,
-// marked so that the hook lets it pass. Nothing is recorded.
+// marked so that the hook lets it pass. Nothing is recorded. On Windows the
+// hook and the machine run in a process of their own, the hook host
+// (host.go), which golauncher drives through Remote.
 //
-// Tests never install the hook: TestRealHook, behind GOLAUNCHER_HOOK_TESTS=1,
-// is the only one that does.
+// Tests never install the hook: TestRealHook and TestRealHost, behind
+// GOLAUNCHER_HOOK_TESTS=1, are the only ones that do.
 package mousehook
 
 import "github.com/eziq1/golauncher/internal/ring"
