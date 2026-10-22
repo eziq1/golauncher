@@ -8,6 +8,8 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-22
+
 ### Added
 
 - **Action Ring** (R116, docs/action-ring.md): hold the middle mouse button
@@ -39,6 +41,14 @@ Before 1.0.0, minor versions may contain breaking changes.
   out. Buttons do the same without dragging. A list of fixed actions of an
   older version is read as slots (actions past the fourth go into a folder
   in the left slot).
+
+- **Plugin SDK**: `plugin.AskAI` has `Files`: absolute paths attached to the new chat. They
+  go out with the message, or, without `Instruction` and `Text`, wait in its
+  draft for the user's question.
+- **Plugin SDK**: `bg.Lazy[T]` loads a value on first use (one load shared by concurrent
+  callers) and drops it after `bg.IdleRelease` unused; `bg.Group.Done`
+  reports the group's close.
+
 ### Changed
 
 - **Action Ring** (R117): every action now shows its name in a pill outside
@@ -48,6 +58,15 @@ Before 1.0.0, minor versions may contain breaking changes.
   show whole in a tooltip. *Open Command Prompt Here* (and the
   administrator Command Prompt of System Tools) gets its own icon instead of
   the terminal's.
+
+- **Less memory at idle** (R125): the winget and Scoop package indexes are
+  read the first time a search or view needs them (about 50 ms from their
+  cache) and dropped after ten minutes unused, instead of staying loaded
+  from startup; the first `winget …` or `scoop …` search after a while shows
+  its results a moment later. Thirty seconds after startup and after each
+  hide of the launcher, golauncher gives the memory it freed back to the
+  system. Started in the background, it now uses about 33 MB instead of
+  66 MB.
 
 ### Fixed
 
@@ -68,6 +87,24 @@ Before 1.0.0, minor versions may contain breaking changes.
   empty space means the folder itself. Before, only the items already
   selected counted, so a file had to be clicked first. The selection is
   never changed; the launcher's hotkey keeps using the selection.
+- **Typing slowed down while golauncher ran** (R122): the Action Ring's
+  mouse hook ran in golauncher's own process, and whenever golauncher was
+  busy (reading the selected text, an AI answer, a build using every CPU)
+  each mouse event waited for it, and the keyboard input queued behind, in
+  every app. On Windows the hook now runs in a small process of its own
+  (`golauncher --mouse-hook-host`, ended with golauncher); if it cannot
+  start, the hook runs in golauncher as before.
+- **Action Ring: Ask AI on a file** (R123): over File Explorer, the desktop
+  or Finder, Ask AI now opens a chat with the file under the pointer (or the
+  selection it is part of) attached, waiting for your question; with
+  selected text too, the text is quoted and the files go with it. An image
+  attachment's chip showed only after typing; it now shows at once.
+- **Memory after attaching an image** (R124): preparing an image for the AI
+  chat took over 200 MB (the scaler's buffer for a 12-megapixel photo),
+  which stayed with golauncher for minutes. Images are now shrunk by area
+  averaging, which needs a fraction of it and is faster, and the memory is
+  given back once the image is ready.
+
 ## [0.11.0] - 2026-10-20
 
 ### Added
@@ -977,7 +1014,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/eziq1/golauncher/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/eziq1/golauncher/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/eziq1/golauncher/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/eziq1/golauncher/compare/v0.9.0...v0.10.0
