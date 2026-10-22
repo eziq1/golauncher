@@ -120,7 +120,14 @@ func heapMB() float64 {
 // (go test -run RealIdleHeap -v): none after Init and a window shown, until
 // a search reads it, and none again once it is dropped. It runs no winget
 // command (the sources default to "winget").
+// minMeasured is the fewest packages whose index TestRealIdleHeap measures
+// (a CI runner's winget may have none).
+const minMeasured = 1000
+
 func TestRealIdleHeap(t *testing.T) {
+	if os.Getenv("GOLAUNCHER_WINGET_TESTS") != "1" {
+		t.Skip("set GOLAUNCHER_WINGET_TESTS=1 to read the winget of this machine")
+	}
 	if FindWinget(os.Getenv) == "" || testing.Short() {
 		t.Skip("winget is not installed")
 	}
@@ -146,6 +153,9 @@ func TestRealIdleHeap(t *testing.T) {
 	dropped := heapMB() - base
 	t.Logf("heap above the start: %.1f MB after Init, %.1f MB with the index (%d packages, read in %v), %.1f MB after it is dropped",
 		idle, loaded, n, took, dropped)
+	if n < minMeasured {
+		t.Skipf("only %d packages: too few to measure", n)
+	}
 	if loaded-idle < 1 {
 		t.Errorf("the index took only %.1f MB", loaded-idle)
 	}
