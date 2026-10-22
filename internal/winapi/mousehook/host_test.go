@@ -485,3 +485,28 @@ func TestHostHandlerIdle(t *testing.T) {
 		t.Errorf("%v allocations", n)
 	}
 }
+
+// TestHostLockOrder: the machine calls allowed holding its lock while
+// commands take h.mu around the machine's methods; allowed must not take
+// h.mu, or the hook's thread and the command loop deadlock.
+func TestHostLockOrder(t *testing.T) {
+	h := &host{box: newOutbox(), appAt: func(ring.Point) App { return App{Name: "app.exe"} }}
+	h.m = ring.NewMachine(ring.Options{Hold: time.Hour, Threshold: 8, Callbacks: ring.Callbacks{Allowed: h.allowed}})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range 2000 {
+			h.m.Handle(ring.Event{Kind: ring.MiddleDown})
+			h.m.Handle(ring.Event{Kind: ring.MiddleUp})
+		}
+	}()
+	for i := range 2000 {
+		h.apply(hostMsg{Cmd: cmdOpen, Open: false, Seq: uint64(i)})
+		h.apply(hostMsg{Cmd: cmdExceptions, Apps: []string{"x.exe"}})
+	}
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("deadlock between the machine's lock and h.mu")
+	}
+}

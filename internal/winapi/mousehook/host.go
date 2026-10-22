@@ -231,12 +231,14 @@ type host struct {
 	m      *ring.Machine
 	box    *outbox
 	ending atomic.Bool // the host ends: replays go out at once
-
-	mu         sync.Mutex
-	seq        uint64 // the last close applied
-	down       bool   // the ButtonDown last sent
-	exceptions []string
+	// exceptions is read by allowed, which the machine calls holding its
+	// lock: never under mu, which is held around the machine's methods.
+	exceptions atomic.Pointer[[]string]
 	appAt      func(ring.Point) App
+
+	mu   sync.Mutex
+	seq  uint64 // the last close applied
+	down bool   // the ButtonDown last sent
 }
 
 // runHost runs the hook host: commands from in, events to out, until in
@@ -312,9 +314,7 @@ func (h *host) apply(c hostMsg) {
 	case cmdHold:
 		h.m.SetHold(time.Duration(c.MS) * time.Millisecond)
 	case cmdExceptions:
-		h.mu.Lock()
-		h.exceptions = c.Apps
-		h.mu.Unlock()
+		h.exceptions.Store(&c.Apps)
 	case cmdOpen:
 		h.mu.Lock()
 		h.m.SetOpen(c.Open)
@@ -332,16 +332,16 @@ func (h *host) apply(c hostMsg) {
 }
 
 // allowed is Callbacks.Allowed, on the hook's thread as the button goes
-// down: as the launcher's own (shell.ringAllowed).
+// down, holding the machine's lock: as the launcher's own
+// (shell.ringAllowed). It must not take h.mu (lock order: h.mu, then the
+// machine's).
 func (h *host) allowed(pt ring.Point) bool {
 	a := h.appAt(pt)
 	if a.Blocked || a.FullScreen {
 		return false
 	}
-	h.mu.Lock()
-	ex := h.exceptions
-	h.mu.Unlock()
-	return !ring.Excluded(ex, a.Name, a.Bundle, a.Title)
+	ex := h.exceptions.Load()
+	return ex == nil || !ring.Excluded(*ex, a.Name, a.Bundle, a.Title)
 }
 
 // opened is Callbacks.Open: sent with the seq of the last close applied,
