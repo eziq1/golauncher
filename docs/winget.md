@@ -48,7 +48,8 @@
 
 1. **搜索 → 本地索引。** 先 `winget source export` 得到源列表；对每个 `Type` 为 `Microsoft.PreIndexed.Package`、非显式（`Explicit: false`）的源，`Data` 就是索引包的包系列名，用 `GetPackagesByPackageFamily` + `GetPackagePathByFullName`（kernel32，Windows 8.1 起就有）找到安装目录，打开 `<目录>\Public\index.db`（`mode=ro&immutable=1`：包里的文件不会变，源更新时会装成一个新版本的目录）。`source export` 失败时退回固定的包系列名 `Microsoft.Winget.Source_8wekyb3d8bbwe`、源名 `winget`。只支持 schema 主版本 2；不认识的版本不报错，只是搜索不可用并在视图里说明。
    - 读进内存：`packages` 全表 + 标签 + 命令。搜索打分参照 Scoop：ID 或名称完全相同 > moniker 相同 > 名称/ID 前缀 > 命令名相同 > 名称包含 > ID 里的段（`Git.Git` 的 `Git`）前缀 > 标签 > 子序列；多个词都要匹配。
-   - **刷新**：窗口显示时检查索引包的完整名称有没有变化（一次 API 调用，不启动进程）；变了就在后台重新读，然后 `Invalidate`。
+   - **按需读、闲置释放（R125）**：启动时不读索引（也不跑 `source export`），第一次需要时才读（`bg.Lazy`）：根搜索 `winget <词>`、插件自己的视图。根搜索不等，先返回空，后台读完（本机约 60 毫秒）后 `Invalidate`；搜索和详情视图最多等 5 秒，已安装/可升级/源列表视图不等，读完后同样 `Invalidate`。10 分钟（`bg.IdleRelease`）没用就丢掉（约 14 MB 堆），下次用时重读。
+   - **刷新**：窗口显示时，如果索引在内存里，就检查索引包的完整名称有没有变化（一次 API 调用，不启动进程）；变了就在后台重新读，然后 `Invalidate`。索引不在内存里时什么也不做，下次读到的就是新的。
 2. **已安装 / 可升级 → `winget list`，后台运行并缓存。**
    - 命令：`winget list --accept-source-agreements --disable-interactivity`。stdout 是管道时 winget 不截断列（本机实测输出里没有 `…`），编码是 UTF-8。
    - **表格解析不依赖语言**：找到全是 `-` 的分隔行，它上面一行是表头；表头里每个"空格之后的非空格"位置是候选的列起点。位置按**显示宽度**计算（中日韩字符占两格，winget 也是这样对齐的，用 `golang.org/x/text/width`）。再用数据行验证：某个候选列起点的前一格在所有行里都必须是空格，否则说明它在某个多词的本地化表头内部，合并掉。遇到空行或汇总行（如 "8 upgrades available."）就停止。列按顺序是：名称、ID、版本、可用版本、源；只有 4 列时，最后一列的值都是已知的源名就当作"源"，否则当作"可用版本"。

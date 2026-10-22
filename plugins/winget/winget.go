@@ -121,16 +121,14 @@ type Plugin struct {
 	unsubs []func()
 	work   bg.Group // background work; closed by Close
 
-	indexMu    sync.Mutex   // serializes index refreshes
-	indexing   bg.Refresher // background index refreshes
-	indexReady bg.Ready     // the first index refresh ended
-	listing    bg.Refresher // background runs of `winget list`
-	listReady  bg.Ready     // the installed packages are known
+	indexMu   sync.Mutex      // serializes reading the index
+	index     bg.Lazy[*Index] // read on first use, dropped when idle
+	indexing  bg.Refresher    // background index refreshes
+	listing   bg.Refresher    // background runs of `winget list`
+	listReady bg.Ready        // the installed packages are known
 
 	mu        sync.Mutex
 	sources   []Source
-	index     *Index
-	indexErr  error
 	inst      *installedState
 	listTried time.Time
 	pins      map[string]Pin
@@ -208,15 +206,16 @@ func (p *Plugin) Locales() fs.FS {
 }
 
 // Init implements plugin.Plugin. Without winget the plugin is unavailable.
-// The index is read in the background; the installed packages come from
-// the cache and are listed again when a view needs them.
+// The index is read when first needed and dropped when idle (bg.Lazy); the
+// installed packages come from the cache and are listed again when a view
+// needs them.
 func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	p.mu.Lock()
 	if p.work.Closed() {
 		// Init after Close starts again (docs/plugin-guide.md "Lifecycle"):
 		// as a new plugin, its background work having ended in Close.
 		p.work, p.unsubs, p.sources, p.pins = bg.Group{}, nil, nil, nil
-		p.index, p.indexErr, p.indexing, p.indexReady = nil, nil, bg.Refresher{}, bg.Ready{}
+		p.indexing = bg.Refresher{}
 		p.inst, p.listTried, p.listing, p.listReady = nil, time.Time{}, bg.Refresher{}, bg.Ready{}
 		p.shows = map[string]*Details{}
 	}
@@ -243,6 +242,8 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 		p.opts.OpenPins = realOpenPins(p.opts.Getenv)
 	}
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.index = bg.Lazy[*Index]{Host: h, Group: &p.work, Load: p.loadIndex,
+		OnLate: func() { h.Invalidate("") }}
 	if st, err := loadInstalledCache(h.CacheDir()); err == nil {
 		p.inst = st
 		p.listReady.Done()
@@ -251,10 +252,8 @@ func (p *Plugin) Init(_ context.Context, h plugin.Host) error {
 	}
 	if p.opts.Sync {
 		p.loadSources()
-		p.refreshIndex(false)
+		p.index.Get(p.ctx)
 		p.refreshInstalled(false)
-	} else {
-		p.scheduleIndex(true)
 	}
 	p.unsubs = append(p.unsubs, h.Events().Subscribe(plugin.EventWindowShown, func() { p.scheduleIndex(false) }))
 	return nil
@@ -303,25 +302,17 @@ func (p *Plugin) loadSources() []Source {
 	return srcs
 }
 
-// Index returns the current index, or nil before the first one is read.
+// Index returns the index, reading it first if it is not loaded.
 func (p *Plugin) Index() *Index {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.index
+	ix, _ := p.index.Get(p.ctx)
+	return ix
 }
 
-// waitIndex returns the index, waiting at most indexWait for the first.
+// waitIndex returns the index, waiting at most indexWait for it to be read.
 func (p *Plugin) waitIndex(ctx context.Context) (*Index, error) {
-	p.mu.Lock()
-	ix, err := p.index, p.indexErr
-	p.mu.Unlock()
-	if ix != nil {
-		return ix, err
-	}
-	p.indexReady.Wait(ctx, indexWait)
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.index, cmpErr(p.indexErr, err)
+	ctx, cancel := context.WithTimeout(ctx, indexWait)
+	defer cancel()
+	return p.index.Get(ctx)
 }
 
 func cmpErr(a, b error) error {
@@ -331,10 +322,33 @@ func cmpErr(a, b error) error {
 	return b
 }
 
+// sourcesOrLoad returns the sources, listing them first if they are not
+// known yet.
+func (p *Plugin) sourcesOrLoad() []Source {
+	if srcs := p.Sources(); srcs != nil {
+		return srcs
+	}
+	return p.loadSources()
+}
+
+// loadIndex reads the index of every indexed source (bg.Lazy's Load).
+func (p *Plugin) loadIndex() (*Index, error) {
+	p.sourcesOrLoad()
+	p.indexMu.Lock()
+	defer p.indexMu.Unlock()
+	ix, _, err := p.readIndex(nil)
+	return ix, err
+}
+
 // scheduleIndex refreshes the index in the background (listing the sources
 // first with withSources); calls during a refresh cause one more.
 // (The runs requested during a refresh do not list the sources again.)
+// Without withSources, an index that is not loaded needs no refresh: it is
+// read afresh when next needed.
 func (p *Plugin) scheduleIndex(withSources bool) {
+	if !withSources && !p.index.Loaded() {
+		return
+	}
 	first := true
 	p.indexing.Request(&p.work, p.h, func() {
 		if first && (withSources || p.Sources() == nil) {
@@ -345,21 +359,34 @@ func (p *Plugin) scheduleIndex(withSources bool) {
 	})
 }
 
-// refreshIndex reads the index of every indexed source whose package
-// changed since the last read. With notify, a change is reported with
-// Invalidate.
+// refreshIndex reads again the catalogs of the loaded index whose package
+// changed since they were read; an index that is not loaded is left so.
+// With notify, a change is reported with Invalidate.
 func (p *Plugin) refreshIndex(notify bool) {
 	p.indexMu.Lock()
 	defer p.indexMu.Unlock()
+	old, ok := p.index.Peek()
+	if !ok {
+		return
+	}
+	ix, changed, err := p.readIndex(old)
+	if p.index.Set(ix, err) && notify && changed {
+		p.h.Invalidate("")
+	}
+}
+
+// readIndex reads the index of every indexed source, reusing the catalogs
+// of old whose package did not change. changed reports whether the result
+// differs from old. The caller holds indexMu.
+func (p *Plugin) readIndex(old *Index) (ix *Index, changed bool, err error) {
 	log := p.h.Logger()
-	old := p.Index()
 	srcs := p.Sources()
 	if srcs == nil {
 		srcs = []Source{defaultSource}
 	}
 	var cats []*Catalog
 	var errs []error
-	changed := old == nil
+	changed = old == nil
 	for _, s := range srcs {
 		if !s.Indexed() {
 			continue
@@ -389,24 +416,20 @@ func (p *Plugin) refreshIndex(notify bool) {
 	if old != nil && len(old.Catalogs) != len(cats) {
 		changed = true
 	}
-	err := errors.Join(errs...)
+	err = errors.Join(errs...)
 	if err != nil {
 		log.Warn("winget: reading the index", "err", err)
 	}
-	p.mu.Lock()
-	if changed || p.index == nil {
-		p.index = newIndex(cats)
+	ix = old
+	if changed {
+		ix = newIndex(cats)
 	}
 	if len(cats) == 0 {
-		p.indexErr = cmpErr(err, errNotInstalled)
+		err = cmpErr(err, errNotInstalled)
 	} else {
-		p.indexErr = nil
+		err = nil
 	}
-	p.mu.Unlock()
-	p.indexReady.Done()
-	if notify && changed {
-		p.h.Invalidate("")
-	}
+	return ix, changed, err
 }
 
 // readCatalog opens and reads the index of s.
@@ -480,7 +503,7 @@ func (p *Plugin) refreshInstalled(notify bool) {
 	start := time.Now()
 	out, err := p.opts.Run(ctx, listArgs)
 	var names []string
-	for _, s := range p.Sources() {
+	for _, s := range p.sourcesOrLoad() {
 		names = append(names, s.Name)
 	}
 	items, perr := parseList(out, names)
@@ -623,8 +646,11 @@ func (p *Plugin) RootItems(ctx context.Context, q plugin.Query) ([]plugin.Item, 
 		return nil, nil
 	}
 	text, ok := rootQuery(q.Text)
-	ix := p.Index()
-	if !ok || ix == nil {
+	if !ok {
+		return nil, nil
+	}
+	ix, ok := p.index.TryGet() // if not loaded, Invalidate follows the read
+	if !ok {
 		return nil, nil
 	}
 	t := p.h.I18n()

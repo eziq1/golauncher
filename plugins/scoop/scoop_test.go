@@ -17,6 +17,7 @@ import (
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/internal/tasks"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 const fixtureRoot = "../../testdata/fixtures/scoop"
@@ -824,4 +825,84 @@ func TestWindowShownRefreshes(t *testing.T) {
 		return !ok
 	})
 	waitFor(t, "Invalidate", func() bool { return slices.Contains(e.h.Invalidated(), "") })
+}
+
+// TestIndexOnDemand: the index is not loaded at Init; the background
+// refreshes keep the cache current without loading it (and without reading
+// it while its stamps match); a root search loads it in the background and
+// invalidates; it is dropped after IdleRelease without use and loaded again
+// by the next search.
+func TestIndexOnDemand(t *testing.T) {
+	root := t.TempDir()
+	copyDir(t, fixtureRoot, root)
+	p := NewWithOptions(Options{Root: root, NoDetect: true, Global: filepath.Join(root, "global"), Shell: "powershell.exe"})
+	dir := t.TempDir()
+	h, err := hostfake.New(p, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var now atomic.Int64
+	now.Store(hostfake.Fixed.UnixNano())
+	h.Clock = func() time.Time { return time.Unix(0, now.Load()).UTC() }
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { h.Tasks.Close(); p.Close() })
+	tick := make(chan time.Time)
+	p.index.After = func(time.Duration) <-chan time.Time { return tick }
+	h.Prefs.Set(prefShowInRoot, jsontext.Value(plugin.MustPayload(true)))
+
+	cache := filepath.Join(dir, "cache", "index.json")
+	refreshed := func(what string) {
+		t.Helper()
+		waitFor(t, what, func() bool { return !p.refreshing.Running() })
+		if p.index.Loaded() {
+			t.Fatalf("%s loaded the index", what)
+		}
+	}
+	refreshed("the startup refresh")
+	st, err := os.Stat(cache)
+	if err != nil || !cacheCurrent(h.CacheDir(), root) {
+		t.Fatalf("the startup refresh wrote no current cache: %v", err)
+	}
+	// Unchanged buckets: the cache is left alone.
+	h.Bus.PublishSync(plugin.EventWindowShown)
+	refreshed("a refresh")
+	if st2, _ := os.Stat(cache); !st2.ModTime().Equal(st.ModTime()) {
+		t.Error("the cache was written although no bucket changed")
+	}
+	// A changed bucket: the cache is written again.
+	os.WriteFile(filepath.Join(root, "buckets", "local", "newtool.json"), []byte(`{"version":"0.1"}`), 0o644)
+	future := time.Now().Add(time.Hour)
+	os.Chtimes(filepath.Join(root, "buckets", "local"), future, future)
+	if cacheCurrent(h.CacheDir(), root) {
+		t.Fatal("the cache is current after a bucket changed")
+	}
+	h.Bus.PublishSync(plugin.EventWindowShown)
+	refreshed("the refresh of a changed bucket")
+	if !cacheCurrent(h.CacheDir(), root) {
+		t.Fatal("the refresh did not update the cache")
+	}
+
+	search := func() []plugin.Item {
+		t.Helper()
+		items, err := p.RootItems(t.Context(), plugin.Query{Text: "scoop newtool"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return items
+	}
+	for round := 1; round <= 2; round++ {
+		if items := search(); len(items) != 0 {
+			t.Fatalf("round %d: %d results before the index was loaded", round, len(items))
+		}
+		waitFor(t, "the index", p.index.Loaded)
+		waitFor(t, "Invalidate", func() bool { return len(h.Invalidated()) == round })
+		if items := search(); len(items) != 1 || items[0].Title != "newtool" {
+			t.Fatalf("round %d: %+v", round, items)
+		}
+		now.Add(int64(bg.IdleRelease))
+		tick <- time.Time{}
+		waitFor(t, "the idle release", func() bool { return !p.index.Loaded() })
+	}
 }

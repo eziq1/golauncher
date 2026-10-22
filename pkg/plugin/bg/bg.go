@@ -8,6 +8,8 @@
 //     a time limit.
 //   - SecondLoops runs loops that tick just after every whole second of
 //     Host.Now, for live clocks and countdowns.
+//   - Lazy loads a value on first use and drops it when it has not been used
+//     for a while, for large indexes that are read from a cache.
 //
 // They hold no plugin state: what is refreshed, when it is stale and what
 // is invalidated stay in each plugin.
@@ -26,7 +28,23 @@ import (
 type Group struct {
 	mu     sync.Mutex
 	closed bool
+	done   chan struct{} // closed by Close
 	wg     sync.WaitGroup
+}
+
+// Done returns a channel that is closed when Close is called, for work that
+// waits and must end with the plugin.
+func (g *Group) Done() <-chan struct{} {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.doneLocked()
+}
+
+func (g *Group) doneLocked() chan struct{} {
+	if g.done == nil {
+		g.done = make(chan struct{})
+	}
+	return g.done
 }
 
 // Go runs fn through h.Go unless the group is closed. It reports whether fn
@@ -59,7 +77,10 @@ func (g *Group) Close() bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	first := !g.closed
-	g.closed = true
+	if first {
+		g.closed = true
+		close(g.doneLocked())
+	}
 	return first
 }
 

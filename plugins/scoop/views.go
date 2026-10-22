@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"weak"
 
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -439,7 +440,7 @@ const reclaimTTL = time.Minute
 // reclaimTTL for the same index and between operations.
 func (p *Plugin) reclaimFor(ctx context.Context, ix *Index) (Reclaim, error) {
 	p.mu.Lock()
-	if p.reclaimIx == ix && time.Since(p.reclaimAt) < reclaimTTL {
+	if p.reclaimIx == weak.Make(ix) && time.Since(p.reclaimAt) < reclaimTTL {
 		r := p.reclaim
 		p.mu.Unlock()
 		return r, nil
@@ -450,7 +451,7 @@ func (p *Plugin) reclaimFor(ctx context.Context, ix *Index) (Reclaim, error) {
 		return Reclaim{}, err
 	}
 	p.mu.Lock()
-	p.reclaim, p.reclaimIx, p.reclaimAt = r, ix, time.Now()
+	p.reclaim, p.reclaimIx, p.reclaimAt = r, weak.Make(ix), time.Now()
 	p.mu.Unlock()
 	return r, nil
 }

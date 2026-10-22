@@ -17,6 +17,7 @@ import (
 
 	"github.com/eziq1/golauncher/internal/host/hostfake"
 	"github.com/eziq1/golauncher/pkg/plugin"
+	"github.com/eziq1/golauncher/pkg/plugin/bg"
 )
 
 const fixtures = "../../testdata/fixtures"
@@ -806,3 +807,74 @@ func TestIndexStampRefresh(t *testing.T) {
 
 // isListing reports whether a winget list runs.
 func (p *Plugin) isListing() bool { return p.listing.Running() }
+
+// fakeClock is a host clock that tests move forward.
+type fakeClock struct{ ns atomic.Int64 }
+
+func (c *fakeClock) now() time.Time          { return time.Unix(0, c.ns.Load()).UTC() }
+func (c *fakeClock) advance(d time.Duration) { c.ns.Add(int64(d)) }
+func newFakeClock() *fakeClock               { c := &fakeClock{}; c.ns.Store(hostfake.Fixed.UnixNano()); return c }
+
+// TestIndexOnDemand: the index is not read at Init (nor on window shown); a
+// root search reads it in the background and invalidates; it is dropped
+// after IdleRelease without use, and the next search reads it again.
+func TestIndexOnDemand(t *testing.T) {
+	var opens atomic.Int32
+	o := FixtureOptions(fixtures)
+	o.Sync = false
+	open := o.OpenIndex
+	o.OpenIndex = func(s Source) (*sql.DB, error) { opens.Add(1); return open(s) }
+	p := NewWithOptions(o)
+	h, err := hostfake.New(p, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock := newFakeClock()
+	h.Clock = clock.now
+	if err := p.Init(t.Context(), h); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { h.Tasks.Close(); p.Close() })
+	tick := make(chan time.Time)
+	p.index.After = func(time.Duration) <-chan time.Time { return tick }
+
+	h.Bus.PublishSync(plugin.EventWindowShown)
+	if p.index.Loaded() || opens.Load() != 0 {
+		t.Fatalf("index read before use (%d opens)", opens.Load())
+	}
+	search := func() []plugin.Item {
+		t.Helper()
+		items, err := p.RootItems(t.Context(), plugin.Query{Text: "winget textpad"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return items
+	}
+	if p.RootItems(t.Context(), plugin.Query{Text: "textpad"}); p.index.Loaded() || opens.Load() != 0 {
+		t.Fatal("a query without the prefix read the index")
+	}
+	for round := 1; round <= 2; round++ {
+		if items := search(); len(items) != 0 {
+			t.Fatalf("round %d: %d results before the index was read", round, len(items))
+		}
+		waitFor(t, "the index", p.index.Loaded)
+		waitFor(t, "Invalidate", func() bool { return len(h.Invalidated()) == round })
+		if items := search(); len(items) == 0 || int(opens.Load()) != round {
+			t.Fatalf("round %d: %d results, %d opens", round, len(items), opens.Load())
+		}
+		clock.advance(bg.IdleRelease)
+		tick <- time.Time{}
+		waitFor(t, "the idle release", func() bool { return !p.index.Loaded() })
+	}
+}
+
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}

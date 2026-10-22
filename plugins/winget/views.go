@@ -141,7 +141,7 @@ func (p *Plugin) installedView(ctx context.Context, t plugin.Localizer) plugin.V
 		v.EmptyText = s
 		return v
 	}
-	ix := p.Index()
+	ix, _ := p.index.TryGet() // Invalidate follows if it is read now
 	var updates, sourced, other []plugin.Item
 	for _, in := range installedSorted(st) {
 		it := p.installedItem(t, ix, in)
@@ -181,7 +181,7 @@ func (p *Plugin) updatesView(ctx context.Context, t plugin.Localizer) plugin.Vie
 		v.EmptyText = s
 		return v
 	}
-	ix := p.Index()
+	ix, _ := p.index.TryGet() // Invalidate follows if it is read now
 	var items []plugin.Item
 	upgradable := 0
 	for _, in := range installedSorted(st) {
@@ -217,7 +217,7 @@ func (p *Plugin) updatesView(ctx context.Context, t plugin.Localizer) plugin.Vie
 
 func (p *Plugin) sourcesView(t plugin.Localizer) plugin.View {
 	srcs := p.loadSources()
-	ix := p.Index()
+	ix, _ := p.index.TryGet() // Invalidate follows if it is read now
 	v := plugin.View{
 		Kind:          plugin.ViewList,
 		Title:         t.T("view.sources.title"),

@@ -2,6 +2,7 @@ package scoop
 
 import (
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
@@ -95,5 +96,54 @@ func TestRealScoop(t *testing.T) {
 		if len(h.Runner.Commands()) != 0 || len(h.Tasks.List()) != 0 {
 			t.Fatalf("commands were started: %+v", h.Runner.Commands())
 		}
+	}
+}
+
+// heapMB is the live heap after a full collection, in MB.
+func heapMB() float64 {
+	runtime.GC()
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return float64(m.HeapAlloc) / (1 << 20)
+}
+
+// TestRealIdleHeap logs the heap the index of this machine's Scoop keeps
+// (go test -run RealIdleHeap -v): none after Init and the startup refresh
+// (from a current cache), until a search loads it, and none again once it
+// is dropped.
+func TestRealIdleHeap(t *testing.T) {
+	root, _ := DetectRoot("", os.Getenv)
+	if root == "" || testing.Short() {
+		t.Skip("Scoop is not installed")
+	}
+	cache := t.TempDir()
+	start := func(sync bool) *Plugin {
+		p := NewWithOptions(Options{Root: root, Global: DetectGlobal(os.Getenv), NoDetect: true, Sync: sync})
+		h, err := hostfake.New(p, cache)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Init(t.Context(), h); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	start(true).Close() // writes the cache
+	base := heapMB()
+	p := start(false)
+	t.Cleanup(func() { p.Close() })
+	waitFor(t, "the startup refresh", func() bool { return !p.refreshing.Running() })
+	idle := heapMB() - base
+	begin := time.Now()
+	n := p.Index().PackageCount()
+	took := time.Since(begin)
+	loaded := heapMB() - base
+	p.index.Drop()
+	dropped := heapMB() - base
+	t.Logf("heap above the start: %.1f MB after Init and the refresh, %.1f MB with the index (%d packages, loaded in %v), %.1f MB after it is dropped",
+		idle, loaded, n, took, dropped)
+	if loaded-idle < 1 {
+		t.Errorf("the index took only %.1f MB", loaded-idle)
 	}
 }
