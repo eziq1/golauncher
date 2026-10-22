@@ -48,7 +48,9 @@ var (
 	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 	procGetSystemMetrics         = user32.NewProc("GetSystemMetrics")
 	procSHQueryUserNotification  = shell32.NewProc("SHQueryUserNotificationState")
-	procGetModuleHandleW         = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetModuleHandleW")
+	kernel32                     = windows.NewLazySystemDLL("kernel32.dll")
+	procGetModuleHandleW         = kernel32.NewProc("GetModuleHandleW")
+	procSetThreadPriority        = kernel32.NewProc("SetThreadPriority")
 )
 
 const (
@@ -75,6 +77,8 @@ const (
 	pmNoRemove  = 0x0000
 
 	qunsRunningD3DFullScreen = 3
+
+	threadPriorityTimeCritical = 15
 )
 
 // msllhookstruct mirrors MSLLHOOKSTRUCT.
@@ -173,7 +177,11 @@ func handle(h Handler, wParam, lParam uintptr) bool {
 
 // Start installs the hook, which reports to h until stop is called. One
 // hook runs at a time.
-func Start(h Handler) (stop func(), err error) {
+func Start(h Handler) (stop func(), err error) { return start(h, false) }
+
+// start installs the hook; critical raises its thread to time-critical
+// priority (the hook host, which does nothing else: R122).
+func start(h Handler, critical bool) (stop func(), err error) {
 	startMu.Lock()
 	defer startMu.Unlock()
 	if running.Load() != nil {
@@ -188,6 +196,9 @@ func Start(h Handler) (stop func(), err error) {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 		tid = windows.GetCurrentThreadId()
+		if critical {
+			procSetThreadPriority.Call(uintptr(windows.CurrentThread()), threadPriorityTimeCritical)
+		}
 		// The thread's message queue, for PostThreadMessage.
 		var m msg
 		procPeekMessageW.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0, pmNoRemove)
@@ -322,6 +333,8 @@ var (
 	// elevated tells whether golauncher itself runs as administrator: then
 	// nothing is blocked.
 	elevated = sync.OnceValue(func() bool { return windows.GetCurrentProcessToken().IsElevated() })
+	// hostParent is golauncher in the hook host: its windows are ours too.
+	hostParent int
 )
 
 // processTTL is how long a process's name is kept: a process identifier
@@ -348,7 +361,7 @@ func processInfo(pid uint32) process {
 }
 
 func readProcess(pid uint32) process {
-	if int(pid) == os.Getpid() {
+	if int(pid) == os.Getpid() || int(pid) == hostParent {
 		return process{name: "golauncher"}
 	}
 	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)

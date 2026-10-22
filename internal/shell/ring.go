@@ -32,11 +32,15 @@ import (
 // ringState is the Action Ring of a Shell. Main thread only, except where
 // noted.
 type ringState struct {
-	machine *ring.Machine // nil where the hook is not supported
-	stop    func()        // stops the hook; nil while it is off
-	waiting chan struct{} // closed to stop waiting for the permission (macOS)
-	win     *mygo.Window
-	view    *ui.Ring
+	machine ringMachine // nil where the hook is not supported
+	remote  ringRemote  // machine, where it runs in the hook host; nil in this process
+	stop    func()      // stops the hook; nil while it is off
+	// restarted: the hook host ended once and was started again; the next
+	// time the hook runs in this process.
+	restarted bool
+	waiting   chan struct{} // closed to stop waiting for the permission (macOS)
+	win       *mygo.Window
+	view      *ui.Ring
 
 	// The ring showing: its window and centre in the hook's units, and
 	// how many of them make a DIP.
@@ -89,6 +93,29 @@ var ringKeys = []struct {
 	{"5", mui.Key5}, {"6", mui.Key6}, {"7", mui.Key7}, {"8", mui.Key8},
 }
 
+// ringMachine is what the shell needs of the machine telling a held
+// middle button from a click: a ring.Machine fed by the hook in this
+// process, or the one in the hook host process (mousehook.Remote, Windows:
+// docs/action-ring.md §9), whose callbacks come the same way.
+type ringMachine interface {
+	Open() bool
+	ButtonDown() bool
+	SetOpen(open bool)
+	SetHold(d time.Duration)
+	Reset()
+}
+
+// ringRemote is the machine in the hook host (mousehook.Remote): its hook
+// starts with the host, and the exceptions are sent to it.
+type ringRemote interface {
+	ringMachine
+	SetExceptions(apps []string)
+	Start() (stop func(), err error)
+}
+
+// startLocalHook starts the hook in this process; replaced in tests.
+var startLocalHook = mousehook.Start
+
 // setUpRing creates the ring's machine and view and starts the hook if the
 // ring is on. Main thread only.
 func (s *Shell) setUpRing() {
@@ -97,18 +124,78 @@ func (s *Shell) setUpRing() {
 	}
 	cfg := s.env.Config.Get()
 	s.ring.view = ui.NewRing(s.env, ringHost{s})
-	s.ring.machine = ring.NewMachine(ring.Options{
-		Hold:      time.Duration(cfg.Ring.EffectiveHoldMS()) * time.Millisecond,
-		Threshold: mousehook.DragThreshold(),
-		Callbacks: ring.Callbacks{
-			Allowed: s.ringAllowed,
-			Replay:  mousehook.Replay,
-			Open:    func(pt ring.Point) { s.ringPost(func() { s.openRing(pt) }) },
-			Track:   s.ringTrack,
-			Release: func(pt ring.Point, moved bool) { s.ringPost(func() { s.ringReleased(pt, moved) }) },
-			Press:   func(pt ring.Point, middle bool) { s.ringPost(func() { s.ringPressed(pt, middle) }) },
-		},
-	})
+	hold := time.Duration(cfg.Ring.EffectiveHoldMS()) * time.Millisecond
+	if mousehook.HostSupported() {
+		s.ring.remote = mousehook.NewRemote(hold, s.ringCallbacks(), func(err error) {
+			s.post(func() { s.ringHostExited(err) })
+		})
+		s.ring.machine = s.ring.remote
+	} else {
+		s.ring.machine = s.localRingMachine(hold)
+	}
+	s.syncRing(cfg)
+}
+
+// ringCallbacks are how the machine opens and drives the ring: from the
+// hook's thread (or the goroutine reading the hook host), posting to the
+// main thread.
+func (s *Shell) ringCallbacks() ring.Callbacks {
+	return ring.Callbacks{
+		Open:    func(pt ring.Point) { s.ringPost(func() { s.openRing(pt) }) },
+		Track:   s.ringTrack,
+		Release: func(pt ring.Point, moved bool) { s.ringPost(func() { s.ringReleased(pt, moved) }) },
+		Press:   func(pt ring.Point, middle bool) { s.ringPost(func() { s.ringPressed(pt, middle) }) },
+	}
+}
+
+// localRingMachine returns a machine fed by the hook in this process.
+func (s *Shell) localRingMachine(hold time.Duration) *ring.Machine {
+	cb := s.ringCallbacks()
+	cb.Allowed, cb.Replay = s.ringAllowed, mousehook.Replay
+	return ring.NewMachine(ring.Options{Hold: hold, Threshold: mousehook.DragThreshold(), Callbacks: cb})
+}
+
+// startRingHook starts watching the mouse: the hook host, or the hook in
+// this process feeding the machine here.
+func (s *Shell) startRingHook() (stop func(), err error) {
+	if s.ring.remote != nil {
+		return s.ring.remote.Start()
+	}
+	h, ok := s.ring.machine.(mousehook.Handler)
+	if !ok {
+		return nil, errors.New("action ring: no hook for the machine")
+	}
+	return startLocalHook(h)
+}
+
+// ringInProcess makes the hook run in this process from now on, with the
+// settings cfg: the hook host could not start or ended again. The ring must
+// be off. Main thread only.
+func (s *Shell) ringInProcess(cfg config.Config) {
+	r := &s.ring
+	r.remote = nil
+	r.machine = s.localRingMachine(time.Duration(cfg.Ring.EffectiveHoldMS()) * time.Millisecond)
+}
+
+// ringHostExited handles the hook host ending while the ring is on: it is
+// started again once, then the hook runs in this process. Main thread
+// only.
+func (s *Shell) ringHostExited(err error) {
+	r := &s.ring
+	if r.remote == nil || r.stop == nil {
+		return // stopped or replaced meanwhile
+	}
+	r.stop()
+	r.stop = nil
+	s.closeRing()
+	cfg := s.env.Config.Get()
+	if !r.restarted {
+		r.restarted = true
+		s.log.Warn("action ring: the mouse hook host ended; starting it again", "err", err)
+	} else {
+		s.log.Warn("action ring: the mouse hook host ended again; the hook runs in golauncher", "err", err)
+		s.ringInProcess(cfg)
+	}
 	s.syncRing(cfg)
 }
 
@@ -122,6 +209,9 @@ func (s *Shell) syncRing(cfg config.Config) {
 	}
 	ex := cfg.Ring.Clone().Exceptions
 	r.exceptions.Store(&ex)
+	if r.remote != nil {
+		r.remote.SetExceptions(ex)
+	}
 	r.machine.SetHold(time.Duration(cfg.Ring.EffectiveHoldMS()) * time.Millisecond)
 	switch {
 	case cfg.Ring.Enabled && r.stop == nil:
@@ -130,7 +220,12 @@ func (s *Shell) syncRing(cfg config.Config) {
 			return
 		}
 		s.stopWaitingRing()
-		stop, err := mousehook.Start(r.machine)
+		stop, err := s.startRingHook()
+		if err != nil && r.remote != nil {
+			s.log.Warn("action ring: mouse hook host; the hook runs in golauncher", "err", err)
+			s.ringInProcess(cfg)
+			stop, err = s.startRingHook()
+		}
 		if err != nil {
 			s.log.Warn("action ring: mouse hook", "err", err)
 			return

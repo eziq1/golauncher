@@ -176,9 +176,10 @@ func TestRingSelectionAfterButtonUp(t *testing.T) {
 	s := selectionShell(t, fake, true, on)
 	done := make(chan ringCapture, 1)
 	s.sel.post = func(fn func()) { fn() }
-	s.ring.machine = ring.NewMachine(ring.Options{Hold: time.Hour, Threshold: 8})
-	s.ring.machine.Handle(ring.Event{Kind: ring.MiddleDown})
-	if !s.ring.machine.ButtonDown() {
+	m := ring.NewMachine(ring.Options{Hold: time.Hour, Threshold: 8})
+	s.ring.machine = m
+	m.Handle(ring.Event{Kind: ring.MiddleDown})
+	if !m.ButtonDown() {
 		t.Fatal("not down")
 	}
 	s.ringSelection(ringCapture{fg: 7, selHere: true}, func(c ringCapture) { done <- c })
@@ -189,7 +190,7 @@ func TestRingSelectionAfterButtonUp(t *testing.T) {
 	if copies != 0 {
 		t.Fatal("copied while the button is down")
 	}
-	s.ring.machine.Handle(ring.Event{Kind: ring.MiddleUp})
+	m.Handle(ring.Event{Kind: ring.MiddleUp})
 	select {
 	case c := <-done:
 		if c.sel == nil || c.sel.Text != "text" {
