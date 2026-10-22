@@ -151,6 +151,11 @@ func (p *Plugin) chatView(req plugin.ViewRequest) (plugin.View, error) {
 			p.mu.Unlock()
 			files := p.prepareFiles(pl.Files, nil)
 			p.addDraft(ch, files)
+			// Preparing them (an image is decoded and scaled) runs outside the
+			// lock: a request of this view meanwhile rendered the draft without
+			// them, and the host may have dropped this one's (the launcher
+			// showing after the Action Ring's Ask AI, R123). Pull it again.
+			p.h.Invalidate(viewChat)
 			p.mu.Lock()
 		}
 	}
