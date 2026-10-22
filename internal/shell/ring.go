@@ -19,7 +19,6 @@ import (
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
 	"github.com/eziq1/golauncher/internal/winapi/mousehook"
-	winselection "github.com/eziq1/golauncher/internal/winapi/selection"
 	"github.com/eziq1/golauncher/pkg/plugin"
 	"github.com/eziq1/golauncher/plugins/ai"
 )
@@ -66,6 +65,10 @@ type ringCapture struct {
 	fg  uintptr
 	ctx *plugin.Context
 	sel *plugin.Selection
+	// selHere: the pointer was on the focused window, whose selected text
+	// the ring's actions take; read: the selection was read again once an
+	// action was chosen (ringSelection).
+	selHere, read bool
 }
 
 // ringContextBudget bounds reading the context and the selection for a
@@ -298,7 +301,9 @@ func (s *Shell) openRing(pt ring.Point) {
 	cfg := s.env.Config.Get()
 	fg := clip.ForegroundWindow()
 	target := mousehook.WindowAt(pt)
-	r.cap = ringCapture{fg: fg}
+	// The selected text is the focused window's: read only when the
+	// pointer is on it.
+	r.cap = ringCapture{fg: fg, selHere: fg != 0 && (target == mousehook.RootOwner(fg) || runtime.GOOS == "darwin")}
 
 	// The fixed actions, as stored, until they are found again.
 	quick := ring.Arrange(ring.FixedSlots(s.ctx, nil, cfg.Ring.Fixed, ui.RingOwn(s.loc)), nil)
@@ -319,20 +324,28 @@ func (s *Shell) openRing(pt ring.Point) {
 	w.Invalidate()
 	s.registerRingKeys()
 
-	// The selected text: of the window under the pointer only (where the
-	// focus is); UI Automation or Accessibility only, never a simulated
-	// copy while the button is held.
-	var sel *winselection.Pending
-	if cfg.ContextAware && cfg.Ring.Context && fg != 0 && (target == mousehook.RootOwner(fg) || runtime.GOOS == "darwin") {
-		sc := cfg.Selection
-		sel = winselection.Begin(fg, winselection.Options{MaxChars: sc.EffectiveMaxChars(), ExcludeApps: sc.ExcludeApps, Log: s.log})
+	// The selected text, through the launcher's path (selectionReader):
+	// UI Automation or Accessibility only, never a simulated copy while
+	// the button is held (an action that needs the text copies it once
+	// chosen: ringSelection).
+	var sel selCapture
+	if cfg.Ring.Context && r.cap.selHere {
+		sel = s.ringOpenSelection(fg)
 	}
 	go s.ringContent(gen, cfg, target, sel)
 }
 
+// ringOpenSelection starts capturing the text selected in window fg as the
+// ring opens: the launcher's path, without a copy (the button is held).
+func (s *Shell) ringOpenSelection(fg uintptr) selCapture {
+	var sel selCapture
+	s.sel.Capture(fg, false, func(c selCapture) { sel = c })
+	return sel
+}
+
 // ringContent reads the context and the selected text for the ring gen,
 // finds its actions, and shows them if it still shows. Off the main thread.
-func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending *winselection.Pending) {
+func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending selCapture) {
 	ctx, cancel := context.WithTimeout(s.ctx, ringContextBudget)
 	defer cancel()
 	var c *plugin.Context
@@ -348,7 +361,7 @@ func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending 
 		}
 		if pending != nil && pending.Err() == nil {
 			wg.Go(func() {
-				if v, ok := pending.Read(ctx); ok && strings.TrimSpace(v.Text) != "" && !ring.Excluded(cfg.Selection.ExcludeApps, v.App.Name) {
+				if v, ok := pending.Read(ctx); ok {
 					sel = &v
 				}
 			})
@@ -511,6 +524,12 @@ func (h ringHost) Close()            { h.s.closeRing() }
 // runRingSlot runs a slot of the ring in the window that was active.
 // Main thread only.
 func (s *Shell) runRingSlot(slot ring.Slot, cap ringCapture) {
+	if cap.sel == nil && !cap.read && cap.selHere && ringNeedsSelection(slot) {
+		// Not read as the ring opened (UI Automation could not, and no copy
+		// while the button is held): read now, as the launcher does.
+		s.ringSelection(cap, func(cap ringCapture) { s.runRingSlot(slot, cap) })
+		return
+	}
 	s.prevForeground.Store(cap.fg) // where Paste goes
 	switch slot.Key {
 	case config.RingLauncher:
@@ -525,15 +544,13 @@ func (s *Shell) runRingSlot(slot ring.Slot, cap ringCapture) {
 		}()
 		return
 	case config.RingAskAI:
-		if cap.sel == nil {
-			s.showLauncher()
-			s.launcher.OpenCommand(ai.ID, ai.CommandChat)
+		if e, ok := ringAskAIEntry(cap.sel); ok {
+			s.runRingEntry(e, cap) // a new chat about the selected text
 			return
 		}
-		// A new chat about the selected text.
-		item := plugin.Item{ID: "ring-ask", Transient: true, Sensitive: true, Actions: []plugin.Action{{ID: "ask",
-			Do: plugin.ActionDo{Kind: plugin.ActionAskAI, Payload: plugin.MustPayload(plugin.AskAI{Text: cap.sel.Text})}}}}
-		s.runRingEntry(core.Entry{Item: item, Plugin: ai.ID, Key: ai.ID + "/ring-ask", Context: true, Selection: true}, cap)
+		// A blank chat: the launcher shows at it, without the root (and the
+		// selected text) its own show would put over it.
+		s.showLauncherFor(func() { s.launcher.OpenCommand(ai.ID, ai.CommandChat) })
 		return
 	}
 	if slot.Entry == nil {
@@ -553,11 +570,14 @@ func (s *Shell) runRingSlot(slot ring.Slot, cap ringCapture) {
 	}
 	e := *slot.Entry
 	if name, ok := strings.CutPrefix(e.ID, "cmd:"); ok && !slot.Entry.Context {
-		// A command, as its hotkey runs it.
+		// A command, as its hotkey runs it; one with a view opens once the
+		// launcher's show reset it, so that the root does not come over it.
+		open := func() { s.launcher.OpenCommand(e.Plugin, name) }
 		if len(e.Actions) == 0 || e.Actions[0].Do.Kind != plugin.ActionRunCommand {
-			s.showLauncher()
+			s.showLauncherThen(open)
+			return
 		}
-		s.launcher.OpenCommand(e.Plugin, name)
+		open()
 		return
 	}
 	s.runRingEntry(e, cap)
@@ -607,4 +627,51 @@ func (s *Shell) showCurrent() {
 // ringFailed tells that an action of the ring failed.
 func (s *Shell) ringFailed(err error) {
 	s.notify(core.Notice{Toast: plugin.Toast{Style: plugin.ToastFailure, Title: s.loc.T("ring.failed"), Message: err.Error()}})
+}
+
+// ringNeedsSelection reports whether slot acts on the selected text: Ask
+// AI, and the entries of the selection's providers (selected-text items,
+// AI actions).
+func ringNeedsSelection(slot ring.Slot) bool {
+	return slot.Key == config.RingAskAI || slot.Entry != nil && slot.Entry.Selection
+}
+
+// ringAskAIEntry returns the entry of Ask AI about the selected text sel:
+// a new chat about it; false without a selection (a blank chat).
+func ringAskAIEntry(sel *plugin.Selection) (core.Entry, bool) {
+	if sel == nil {
+		return core.Entry{}, false
+	}
+	item := plugin.Item{ID: "ring-ask", Transient: true, Sensitive: true, Actions: []plugin.Action{{ID: "ask",
+		Do: plugin.ActionDo{Kind: plugin.ActionAskAI, Payload: plugin.MustPayload(plugin.AskAI{Text: sel.Text})}}}}
+	return core.Entry{Item: item, Plugin: ai.ID, Key: ai.ID + "/ring-ask", Context: true, Selection: true}, true
+}
+
+// ringSelectionWait is how often, and how many times, ringSelection looks
+// whether the middle button went up.
+const (
+	ringSelectionPoll  = 20 * time.Millisecond
+	ringSelectionPolls = 100
+)
+
+// ringSelection reads the selected text of the window the ring acted on
+// once an action that needs it was chosen, with the user's copy fallback
+// (selectionReader, the launcher's path), then runs then with it (cap.sel,
+// nil for none; cap.read set). The ring is hidden by then and never had
+// the focus, so the window still has it; a copy waits for the middle
+// button to be up (a middle click chose). Main thread only.
+func (s *Shell) ringSelection(cap ringCapture, then func(ringCapture)) {
+	s.ringSelectionAfter(cap, then, ringSelectionPolls)
+}
+
+func (s *Shell) ringSelectionAfter(cap ringCapture, then func(ringCapture), polls int) {
+	if m := s.ring.machine; m != nil && m.ButtonDown() && polls > 0 {
+		time.AfterFunc(ringSelectionPoll, func() { s.sel.post(func() { s.ringSelectionAfter(cap, then, polls-1) }) })
+		return
+	}
+	cap.read = true
+	s.sel.Read(s.ctx, cap.fg, true, time.Second, func(sel *plugin.Selection) {
+		cap.sel = sel
+		then(cap)
+	})
 }

@@ -54,7 +54,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **Action Ring on Windows** (R117): the ring no longer sits on a black box
   with rounded corners and a border: its window is now a transparent
   flyout, so that the desktop shows around the ring.
-
+- **Action Ring: Ask AI** (R119): in apps whose selected text UI Automation
+  cannot read (Chrome's pages), choosing Ask AI showed golauncher's root with
+  the "Selected Text" section instead of the AI chat. The ring now reads the
+  selection through the launcher's own path, and once an action that needs
+  it is chosen (and the middle button is up) it uses the copy fallback the
+  selection settings allow; Ask AI always opens a chat: about the selected
+  text, or a blank one.
 ## [0.11.0] - 2026-10-20
 
 ### Added

@@ -7,7 +7,6 @@ package shell
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"io"
 	"log/slog"
@@ -35,7 +34,6 @@ import (
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
 	winstall "github.com/eziq1/golauncher/internal/winapi/install"
 	"github.com/eziq1/golauncher/internal/winapi/process"
-	winselection "github.com/eziq1/golauncher/internal/winapi/selection"
 	wshell "github.com/eziq1/golauncher/internal/winapi/shell"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
@@ -146,6 +144,8 @@ type Shell struct {
 	// showed, which Paste pastes into.
 	prevForeground atomic.Uintptr
 	stopClip       func()
+	// sel reads the selected text, for the launcher and the Action Ring.
+	sel *selectionReader
 	// copying is set while the selected text is copied before the launcher
 	// shows (main thread only); hotkeys are ignored meanwhile.
 	copying bool
@@ -233,6 +233,9 @@ func Run(o Options) error {
 	setLevel(level, cfg.LogLevel)
 	log.Info("starting", "version", o.Version, "config", s.env.Config.Path())
 	s.loc = s.env.I18n.Localizer(i18n.CoreNamespace)
+	s.sel = newSelectionReader(s.env.Config.Get, s.post, log, func() {
+		s.env.Engine.Notify(core.Notice{Toast: plugin.Toast{Style: plugin.ToastFailure, Title: s.loc.T("toast.clipboardNotRestored")}})
+	})
 	// Before the windows exist, the appearance of the theme the
 	// configuration fixes, if any; ready applies the rest.
 	if a := cfg.Appearance; !a.FollowSystem {
@@ -428,19 +431,25 @@ func (s *Shell) showLauncher() { s.showLauncherThen(nil) }
 
 // showLauncherThen is showLauncher; then (if not nil) runs on the main
 // thread once the launcher was reset for showing.
-func (s *Shell) showLauncherThen(then func()) { s.show(then, false) }
+func (s *Shell) showLauncherThen(then func()) { s.show(then, false, true) }
+
+// showLauncherFor shows the launcher at what then opens (a command), without
+// reading the selected text: nothing of the show's own (the root with the
+// selection) comes after it.
+func (s *Shell) showLauncherFor(then func()) { s.show(then, false, false) }
 
 // showForSelection shows the launcher for the selected text (the
 // selection hotkey, docs/selected-text.md §8): as showLauncher, telling the
 // user when no selected text was read.
-func (s *Shell) showForSelection() { s.show(nil, true) }
+func (s *Shell) showForSelection() { s.show(nil, true, true) }
 
 // show shows the launcher. Main thread only. When it was hidden, the window
 // that was active is recorded and its context and selected text captured
 // before the launcher takes the focus; when the selection must be copied
 // (a simulated Ctrl+C), that happens first, off the main thread, and the
 // launcher shows once it is done (hotkeys pressed meanwhile are ignored).
-func (s *Shell) show(then func(), forSelection bool) {
+// Without readSel, no selected text is read.
+func (s *Shell) show(then func(), forSelection, readSel bool) {
 	if s.panel == nil || s.copying {
 		return
 	}
@@ -457,39 +466,39 @@ func (s *Shell) show(then func(), forSelection bool) {
 	// Before the root search of this show starts (Shown resets it): the
 	// context arrives in the background and refreshes the root.
 	s.env.Engine.DetectContext(func(ctx context.Context) (plugin.Context, bool) { return wincontext.Detect(ctx, fg) })
-	sel := s.beginSelection(fg) // the focused element, before we take the focus
-	if sel != nil && sel.NeedsCopy() {
-		s.copying = true
-		go func() {
-			sel.Copy()
-			s.post(func() {
-				s.copying = false
-				s.present(sel, then, forSelection)
-			})
-		}()
+	if !readSel {
+		s.present(nil, then, forSelection)
 		return
 	}
-	s.present(sel, then, forSelection)
+	// The focused element, before we take the focus; a copy, if the
+	// settings ask for one, before the launcher shows.
+	s.copying = s.launcherSelection(fg, func(sel selCapture) {
+		s.copying = false
+		s.present(sel, then, forSelection)
+	})
+}
+
+// launcherSelection starts capturing the text selected in window fg as the
+// launcher shows (selectionReader.Capture, with the copy fallback the
+// settings allow); done runs on the main thread, it reports whether later.
+func (s *Shell) launcherSelection(fg uintptr, done func(selCapture)) bool {
+	return s.sel.Capture(fg, true, done)
 }
 
 // present shows the hidden launcher for a new show whose selection capture
 // began with sel (nil: none). Main thread only.
-func (s *Shell) present(sel *winselection.Pending, then func(), forSelection bool) {
+func (s *Shell) present(sel selCapture, then func(), forSelection bool) {
 	var read chan bool // the outcome of reading the selection, for forSelection
 	if forSelection {
 		read = make(chan bool, 1)
 	}
 	// Nothing can be read without a permission (macOS): say so instead of
 	// "no selected text".
-	noPermission := sel.Err() != nil
+	noPermission := sel != nil && sel.Err() != nil
 	if noPermission {
 		read = nil
 	}
 	if sel != nil {
-		if err := sel.CopyErr(); errors.Is(err, clip.ErrNotRestored) {
-			s.log.Warn("selection: clipboard not restored", "err", err)
-			s.env.Engine.Notify(core.Notice{Toast: plugin.Toast{Style: plugin.ToastFailure, Title: s.loc.T("toast.clipboardNotRestored")}})
-		}
 		s.env.Engine.DetectSelection(func(ctx context.Context) (plugin.Selection, bool) {
 			v, ok := sel.Read(ctx)
 			if read != nil {
@@ -538,23 +547,6 @@ func (s *Shell) reveal() {
 	s.panel.Show()
 	s.panel.Focus()
 	s.env.Services.Bus.Publish(plugin.EventWindowShown)
-}
-
-// beginSelection starts capturing the text selected in window fg (phase 1,
-// synchronous and bounded), or returns nil when context awareness is off.
-func (s *Shell) beginSelection(fg uintptr) *winselection.Pending {
-	cfg := s.env.Config.Get()
-	if !cfg.ContextAware || fg == 0 {
-		return nil
-	}
-	sc := cfg.Selection
-	return winselection.Begin(fg, winselection.Options{
-		MaxChars:      sc.EffectiveMaxChars(),
-		ExcludeApps:   sc.ExcludeApps,
-		Clipboard:     sc.Clipboard,
-		ClipboardApps: sc.ClipboardApps,
-		Log:           s.log,
-	})
 }
 
 func (s *Shell) hideLauncher() {

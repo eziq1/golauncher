@@ -174,6 +174,15 @@ func (m *Machine) Open() bool {
 	return m.open
 }
 
+// ButtonDown reports whether the middle button is down in a press the
+// machine handles (held back, holding the ring, or kept from the app until
+// it goes up): no copy is simulated meanwhile.
+func (m *Machine) ButtonDown() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.st == pending || m.st == holding || m.st == swallowUp
+}
+
 // SetOpen tells the machine that the ring closed (false) or shows (true).
 // Closed while the button still holds it, the button's up is kept from the
 // app all the same (its down was).
