@@ -208,3 +208,4 @@
 - **内容**：Mac 触控板三指轻点打开 Action Ring（R127，[action-ring.md §10](action-ring.md)）：私有 MultitouchSupport 框架读触点（purego），三指 80 ms 内落下、300 ms 内抬起、几乎不移动、无物理按下才算；圆环在指针处打开并停留；设置页有开关，默认开启。**发布时尚未在真机 Mac 上测过**（开发机是 Windows，只做了交叉编译和合成触点的单元测试）；框架不可用时手势自动关闭，中键不受影响。
 - **版本号**：新功能，按语义化版本升次版本号。
 - **本地验证**：`gofmt -l .` 为空，`go vet ./...`，`go test -p 2 ./...`（75 个包）、`go test -p 2 -race ./internal/... ./plugins/...`（68 个包）通过，`scripts/windows/build.ps1 -Zip` 成功。
+- **结果**：2026-10-22 在 `3dfc962` 上打了 `v0.13.0`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.8MB）、`windows_arm64`（20.9MB）、`darwin_amd64`（23.3MB）、`darwin_arm64`（21.3MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.13.0`（`a63d18d`），SHA-256 和 `checksums.txt` 一致；Homebrew cask 任务（`brew style`、`brew audit`）通过。<https://github.com/eziq1/golauncher/releases/tag/v0.13.0>
