@@ -231,8 +231,8 @@ var DefaultRingExceptions = []string{
 	"blender.exe", "org.blenderfoundation.blender",
 }
 
-// RingConfig configures the Action Ring (docs/action-ring.md). Enabled and
-// Context are on by default.
+// RingConfig configures the Action Ring (docs/action-ring.md). Enabled,
+// Context and TrackpadTap are on by default.
 type RingConfig struct {
 	Enabled bool `json:"enabled"`
 	// HoldMS is how long the middle button is held before the ring opens; 0
@@ -248,11 +248,14 @@ type RingConfig struct {
 	// Exceptions are the apps (executable names, macOS bundle identifiers
 	// or app names) where the middle button is left alone.
 	Exceptions []string `json:"exceptions"`
+	// TrackpadTap opens the ring, on macOS, with a three-finger tap on a
+	// trackpad (R127, docs/action-ring.md §10), while the ring is on.
+	TrackpadTap bool `json:"trackpadTap"`
 }
 
 // DefaultRing returns the Action Ring settings of a new configuration.
 func DefaultRing() RingConfig {
-	return RingConfig{Enabled: true, Fixed: DefaultRingFixed(), Context: true, Exceptions: slices.Clone(DefaultRingExceptions)}
+	return RingConfig{Enabled: true, Fixed: DefaultRingFixed(), Context: true, Exceptions: slices.Clone(DefaultRingExceptions), TrackpadTap: true}
 }
 
 // EffectiveHoldMS returns HoldMS within its bounds, or its default.

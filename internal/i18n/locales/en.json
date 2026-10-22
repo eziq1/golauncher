@@ -658,6 +658,8 @@
   "settings.ring.hold": "Hold for (milliseconds)",
   "settings.ring.hold.desc": "How long the middle button is held before the ring opens.",
   "settings.ring.hold.invalid": "Enter a number from {{.min}} to {{.max}}.",
+  "settings.ring.trackpadTap": "Open the Action Ring with a three-finger tap on the trackpad",
+  "settings.ring.trackpadTap.desc": "Tap lightly with three fingers at once, without pressing: the ring opens at the pointer and stays until you choose an action or close it. If Look up & data detectors is set to Tap with three fingers in System Settings › Trackpad, macOS answers the same tap too; choose another option there.",
   "settings.ring.permission": "The Action Ring needs the Accessibility permission to see the middle mouse button. Allow golauncher in System Settings › Privacy & Security › Accessibility.",
   "settings.ring.permission.open": "Open Accessibility Settings",
   "settings.ring.fixed": "Fixed actions",
@@ -684,5 +686,6 @@
   "settings.ring.exceptions.add": "Add",
   "settings.ring.exceptions.none": "No exceptions.",
   "settings.ring.privacy": "Privacy",
-  "settings.ring.privacy.text": "Only the middle mouse button is handled; the pointer and the other buttons are looked at only while it is held or the ring is open. Nothing is recorded or stored. On Windows the ring does not open over apps running as administrator."
+  "settings.ring.privacy.text": "Only the middle mouse button is handled; the pointer and the other buttons are looked at only while it is held or the ring is open. Nothing is recorded or stored. On Windows the ring does not open over apps running as administrator.",
+  "settings.ring.privacy.text@darwin": "Only the middle mouse button is handled; the pointer and the other buttons are looked at only while it is held or the ring is open. With the three-finger tap on, the trackpad's touches are read to recognize it, and nothing else is done with them. Nothing is recorded or stored."
 }

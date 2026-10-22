@@ -271,7 +271,7 @@ func TestSettingsRing(t *testing.T) {
 			t.Fatalf("no %q in %q", want, tt.Texts())
 		}
 	}
-	if !hasTextPart(tt, "Only the middle mouse button is handled") || hasTextPart(tt, "Accessibility") {
+	if !hasTextPart(tt, "Only the middle mouse button is handled") || hasTextPart(tt, "Accessibility") || hasTextPart(tt, "three-finger") {
 		t.Errorf("texts %q", tt.Texts())
 	}
 
@@ -374,6 +374,30 @@ func TestSettingsRingPermission(t *testing.T) {
 	settle(s, tt)
 	if hasTextPart(tt, "Accessibility permission") {
 		t.Errorf("a notice with the permission: %q", tt.Texts())
+	}
+}
+
+// TestSettingsRingTrackpad: on macOS the page has the three-finger tap,
+// on by default, with the note about Look up; it turns off and on.
+func TestSettingsRingTrackpad(t *testing.T) {
+	host := &permHost{status: map[tcc.ID]tcc.Status{tcc.Accessibility: tcc.Granted}}
+	env, _, tt := newRingSettings(t, "en", host)
+	const label = "Open the Action Ring with a three-finger tap on the trackpad"
+	if !tt.HasText(label) || !hasTextPart(tt, "Tap with three fingers in System Settings › Trackpad") {
+		t.Fatalf("no switch in %q", tt.Texts())
+	}
+	clickText(t, tt, label)
+	if env.Config.Get().Ring.TrackpadTap {
+		t.Fatal("still on")
+	}
+	clickText(t, tt, label)
+	if !env.Config.Get().Ring.TrackpadTap {
+		t.Fatal("still off")
+	}
+
+	_, _, tt = newRingSettings(t, "zh-CN", host)
+	if !tt.HasText("三指轻点触控板打开操作环") || !hasTextPart(tt, "查询与数据检测器") {
+		t.Errorf("Chinese: %q", tt.Texts())
 	}
 }
 

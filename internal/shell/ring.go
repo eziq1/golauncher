@@ -15,6 +15,7 @@ import (
 	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/core"
 	"github.com/eziq1/golauncher/internal/ring"
+	"github.com/eziq1/golauncher/internal/trackpad"
 	"github.com/eziq1/golauncher/internal/ui"
 	"github.com/eziq1/golauncher/internal/winapi/clip"
 	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
@@ -39,6 +40,11 @@ type ringState struct {
 	// time the hook runs in this process.
 	restarted bool
 	waiting   chan struct{} // closed to stop waiting for the permission (macOS)
+	// tapStop stops watching the trackpads for a three-finger tap (macOS,
+	// R127); nil while off. tapFailed: it could not start, which was
+	// logged once.
+	tapStop   func()
+	tapFailed bool
 	win       *mygo.Window
 	view      *ui.Ring
 
@@ -207,6 +213,7 @@ func (s *Shell) syncRing(cfg config.Config) {
 	if r.machine == nil {
 		return
 	}
+	defer s.syncTrackpad(cfg) // with the hook as it ends up
 	ex := cfg.Ring.Clone().Exceptions
 	r.exceptions.Store(&ex)
 	if r.remote != nil {
@@ -285,10 +292,78 @@ func (s *Shell) stopWaitingRing() {
 // stopRing stops the hook as golauncher quits.
 func (s *Shell) stopRing() {
 	s.stopWaitingRing()
+	s.stopTrackpad()
 	if s.ring.stop != nil {
 		s.ring.stop()
 		s.ring.stop = nil
 	}
+}
+
+// startTrackpad starts watching the trackpads for a three-finger tap, and
+// trackpadSupported reports whether it can (macOS); replaced in tests.
+var (
+	startTrackpad     = trackpad.Start
+	trackpadSupported = trackpad.Supported
+)
+
+// syncTrackpad watches the trackpads for a three-finger tap (R127,
+// docs/action-ring.md §10) while the hook runs (the ring is on and, on
+// macOS, has the Accessibility permission) and the setting is on. Where
+// the framework is missing, the tap stays off with one line in the log.
+// Main thread only.
+func (s *Shell) syncTrackpad(cfg config.Config) {
+	r := &s.ring
+	on := cfg.Ring.Enabled && cfg.Ring.TrackpadTap && r.stop != nil
+	switch {
+	case on && r.tapStop == nil && !r.tapFailed:
+		if !trackpadSupported() {
+			return
+		}
+		stop, err := startTrackpad(func() { s.ringPost(s.ringTapped) })
+		if err != nil {
+			r.tapFailed = true
+			s.log.Info("action ring: no three-finger tap", "err", err)
+			return
+		}
+		r.tapStop = stop
+		s.log.Info("action ring: three-finger tap on")
+	case !on:
+		s.stopTrackpad()
+	}
+}
+
+func (s *Shell) stopTrackpad() {
+	if s.ring.tapStop != nil {
+		s.ring.tapStop()
+		s.ring.tapStop = nil
+	}
+}
+
+// ringOpener is a machine the ring opens on without a press
+// (ring.Machine.OpenAt): the machine of the hook in this process, which
+// macOS has.
+type ringOpener interface {
+	OpenAt(pt ring.Point) bool
+}
+
+// ringPointerNow returns where the pointer is, in the hook's units (points on
+// macOS, as MyGo's screen coordinates); replaced in tests.
+var ringPointerNow = func() ring.Point {
+	p := mygo.Screen.CursorScreenPoint()
+	return ring.Point{X: float64(p.X), Y: float64(p.Y)}
+}
+
+// ringTapped opens the ring at the pointer for a three-finger tap on a
+// trackpad: through the machine, as a held middle button does (Allowed
+// checks the exceptions and full screen against the frontmost app, Open
+// shows it with openRing), and it stays open as after the button was let
+// go without moving. Main thread only.
+func (s *Shell) ringTapped() {
+	m, ok := s.ring.machine.(ringOpener)
+	if !ok || s.ring.tapStop == nil {
+		return // turned off meanwhile
+	}
+	m.OpenAt(ringPointerNow())
 }
 
 // ringAllowed reports whether the ring may open over the app at pt. It runs
