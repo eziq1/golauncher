@@ -134,6 +134,8 @@ type Shell struct {
 
 	keepLoginItem bool // see Options
 
+	trim *trimmer // gives freed memory back once idle (R125)
+
 	// updates keeps golauncher up to date (docs/auto-update.md); plugins
 	// are the loaded plugins, asked whether they are busy before an update
 	// restarts golauncher.
@@ -313,6 +315,9 @@ func (s *Shell) ready(action string) {
 		DisableResize: true,
 		Content:       mui.View(s.launcher.View),
 	})
+	s.trim = newTrimmer(func(done func(bool)) {
+		s.post(func() { done(s.panel.IsVisible()) })
+	})
 	hideCaptionColor(s.panel.NativeHandle()) // ready runs on the main thread
 	s.watchPermissions()
 	s.panel.OnClose(func(e *mygo.CloseEvent) {
@@ -338,6 +343,7 @@ func (s *Shell) ready(action string) {
 		s.env.Engine.ClearSelection() // the selected text lives for one show only
 		s.launcher.Hidden()           // the top view may ask to be kept (docs/keep-view.md)
 		s.env.Services.Bus.Publish(plugin.EventWindowHidden)
+		s.trim.schedule()
 	})
 	s.env.Controller.OnChange(s.panel.Invalidate)
 
@@ -380,6 +386,7 @@ func (s *Shell) ready(action string) {
 	s.registerHotkeys()
 	s.setUpRing()
 	s.prepareOnboarding()
+	s.trim.schedule() // the startup's garbage, once its background work is done
 	switch {
 	case action == actionSettings:
 		s.showSettings(ui.PageGeneral)
@@ -414,6 +421,9 @@ func (s *Shell) handle(action string) {
 }
 
 func (s *Shell) shutdown() {
+	if s.trim != nil {
+		s.trim.stop()
+	}
 	s.stopRing()
 	mygo.GlobalShortcut.UnregisterAll()
 	if s.stopClip != nil {
