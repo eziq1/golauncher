@@ -243,3 +243,16 @@
 **设置**：设置 › Action Ring 增加“三指轻点触控板打开圆环”开关（只在 macOS 上显示），默认开启。
 
 **验证**：开发机是 Windows，只能交叉编译和单元测试判定逻辑（用合成的触点帧）；真机行为要你在 Mac 上实测。
+
+### 10.1 实现记录（2026-10-22）
+
+- **代码在哪**：新包 `internal/trackpad`。`touch.go` 解码触点、`tap.go` 判定三指轻点，都是纯 Go、和平台无关；`trackpad_darwin.go` 通过 purego 调用 `MultitouchSupport.framework`；`trackpad_other.go` 是其他平台的空实现（`Supported` 为 false）。接线在 `internal/shell/ring.go`（`syncTrackpad`、`ringTapped`），状态机加了 `ring.Machine.OpenAt`，配置是 `ring.trackpadTap`（默认 true）。
+- **接口（ABI）**：私有框架，没有官方头文件。参考公开的逆向资料（Erling Ellingsen 2008 年的 multitouch.c、MiddleClick 的头文件、OpenMultitouchSupport 的 `MTTouch`，MIT），只用来确认内存布局，代码是自己写的。回调是 `void cb(MTDeviceRef, MTTouch *touches, size_t n, double timestamp, size_t frame)`；purego 的回调只声明前三个整数参数（amd64 和 arm64 上它们都在前三个整数寄存器里，double 走浮点寄存器），时间戳和帧号不读；个数按 32 位读，`int` 和 `size_t` 两种声明都对。每个触点 96 字节，amd64 和 arm64 相同：标识 @16、状态 @20、归一化坐标 x @32、y @36（float32，0–1），其余字段在 `touch.go` 的注释里逐个列出偏移。状态 3（MakeTouch）和 4（Touching）算手指在板上，悬停、抬起、离开都不算。
+- **线程**：框架在自己的线程上回调。回调里只解码（固定大小的数组，不分配内存）、在锁内喂这台设备的 `Tap`，判定成立时调 `onTap`；shell 传入的 `onTap` 只是 `ringPost(ringTapped)`，不阻塞。主线程上 `ringTapped` 取指针位置（MyGo 的屏幕坐标，和事件监听的点坐标一致），调用 `Machine.OpenAt`：和按住中键一样，先用 `Allowed`（最前面的程序、例外名单、全屏）判断，再通过 `Open` 回调走 `openRing`。圆环打开后状态机处于“停留”状态（空闲 + 打开），点外面、中键点选、1–8、Esc 都和按住中键松开后一样。圆环已经打开或中键正按着时，三指轻点不起作用。
+- **判定**（常量都在 `tap.go`）：3 根手指；后面的手指在第一根落下后 80 ms 内落下（`TapDownWindow`）；全部抬起前出现第 4 根（或抬起后又落下一根）就不算；从第一根落下到全部抬起不超过 300 ms（`TapMaxDuration`）；每根手指离落点不超过 0.04（归一化，约 4–6 mm，`TapMaxMove`）；必须有 3 根同时在板上。不算的手势要等所有手指抬起才重新开始判定，所以三指扫动（调度中心、切换空间）和三指拖移不会触发。
+- **物理按下**：没有用事件监听（它空闲时不看左右键），而是在判定成立时用公开的 `CGEventSourceSecondsSinceLastEventType`（HID 系统状态）查左键、右键、其他键最近一次按下的时间；在手势期间或手势开始前 80 ms 内有按下就不算。
+- **开关**：只在圆环开启、钩子在运行（macOS 上就是有辅助功能权限）并且设置打开时运行；关掉圆环、没有权限、关掉设置或退出时停止。框架或任何一个函数找不到时，记一条 Info 日志，之后不再尝试，中键照常可用。
+- **设备插拔**：用 IOKit 的匹配通知（`AppleMultitouchDevice` 的 FirstMatch 和 Terminate，在单独的线程上跑 run loop）得知设备接入或移除，等 500 ms 后停掉所有设备、重新枚举并启动。开机时没有触控板（例如 Mac mini）也会等到接入妙控板时开始工作。
+- **设置**：设置 › 操作环，按住时长下面加“三指轻点触控板打开操作环”开关，只在 macOS 上显示（有权限宿主时），说明里提示“查询与数据检测器：用三指轻点”的冲突。macOS 的隐私说明加了一句读取触控板触点（`settings.ring.privacy.text@darwin`）。中英文都有。
+- **测试**：`internal/trackpad/tap_test.go` 用合成帧测判定（连续两次轻点、两指、四指、抬起一根后再落一根、第三根太晚、按住太久、抬起太晚、上扫和横扫、三指拖移、单指滑动、三指不同时在板上、只有悬停、小幅抖动仍算、期间有物理按下不算、喂帧 0 次分配）和按文档偏移拼出的字节解码；`ring` 测 `OpenAt`（停留状态、已打开时不再打开、中键按着时不打开、例外不打开）；`shell` 用假的 `trackpad.Start` 测开关条件、打开、关闭、框架不可用时只试一次；`ui` 测开关只在 macOS 显示、切换、中文。真机测试 `TestRealTrackpad` 要设 `GOLAUNCHER_TRACKPAD_TESTS=1`：列出设备，记录 10 秒的触点帧和识别到的轻点，不注入任何输入。
+- **需要在 Mac 上实测**：结构布局和回调参数（看真机测试里的坐标是否在 0–1、标识是否稳定）；判定的阈值手感；打开“轻点来点按”或“三指拖移”时三指轻点会不会产生鼠标按下（会的话手势被当成点击而不触发）；妙控板和妙控鼠标（也是多点触控设备，同样会响应）；插拔妙控板、睡眠唤醒后是否还能用（唤醒后不会重新枚举，如果失效需要补）；带触控栏的机型上触控栏是否也在设备列表里。
