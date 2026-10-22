@@ -25,6 +25,22 @@ Before 1.0.0, minor versions may contain breaking changes.
   the context actions and the exceptions. On macOS it needs the
   Accessibility permission (the page says so; nothing is asked at startup).
 
+### Changed
+
+- **Action Ring** (R117): every action now shows its name in a pill outside
+  the ring, all the time, not only when pointed at (as the Logitech Options+
+  Actions Ring does); the action pointed at or dragged to is highlighted
+  with its pill, and a click on a pill runs it. Long names end with "…" and
+  show whole in a tooltip. *Open Command Prompt Here* (and the
+  administrator Command Prompt of System Tools) gets its own icon instead of
+  the terminal's.
+
+### Fixed
+
+- **Action Ring on Windows** (R117): the ring no longer sits on a black box
+  with rounded corners and a border: its window is now a transparent
+  flyout, so that the desktop shows around the ring.
+
 ## [0.11.0] - 2026-10-20
 
 ### Added

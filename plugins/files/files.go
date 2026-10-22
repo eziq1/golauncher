@@ -284,7 +284,7 @@ func (p *Plugin) folderItems(l plugin.Localizer, dir string) []plugin.Item {
 		})
 	}
 	items = append(items, plugin.Item{
-		ID: "cmd", Title: l.T("item.cmd.title"), Subtitle: dir, Icon: plugin.Icon{Name: "terminal"},
+		ID: "cmd", Title: l.T("item.cmd.title"), Subtitle: dir, Icon: plugin.Icon{Name: "square-terminal"},
 		Keywords: keywords(l.T("keywords.cmd")),
 		Actions:  []plugin.Action{openAction("open", l.T("action.open"), "cmd.exe", plugin.OpenOptions{Dir: dir}), copyPath},
 	})

@@ -203,14 +203,31 @@ func (s *Shell) ringAllowed(pt ring.Point) bool {
 	return ex == nil || !ring.Excluded(*ex, a.Name, a.Bundle, a.Title)
 }
 
-// ringWindow returns the ring's window, created the first time: a panel
-// without frame or background that never takes the focus.
-func (s *Shell) ringWindow() *mygo.Window {
-	if s.ring.win != nil {
-		return s.ring.win
+// ringFlyoutOptions are the options of the ring's window where it is a
+// flyout (ringUsesFlyout): a flyout of the tray icon, which has no parent
+// and floats above other apps' windows, is transparent where its content
+// is (on Windows it has no redirection bitmap: what the content leaves
+// clear shows the desktop), never takes the keyboard, and has no shadow,
+// so that Windows 11 neither rounds nor outlines it. MyGo places it next
+// to the tray icon; placeRing moves it to the pointer.
+func ringFlyoutOptions(tray *mygo.Tray, content mygo.Content) mygo.FlyoutOptions {
+	return mygo.FlyoutOptions{
+		Tray:      tray,
+		Width:     ui.RingWidth,
+		Height:    ui.RingHeight,
+		Focusable: false,
+		Shadow:    false,
+		Popover:   false,
+		Hidden:    true,
+		Content:   content,
 	}
-	w := mygo.NewWindow(mygo.WindowOptions{
-		Title:         s.loc.T("settings.nav.ring"),
+}
+
+// ringPanelOptions are the options of the ring's window elsewhere: a panel
+// without frame, background or shadow that never takes the focus.
+func ringPanelOptions(title string, content mygo.Content) mygo.WindowOptions {
+	return mygo.WindowOptions{
+		Title:         title,
 		Width:         ui.RingWidth,
 		Height:        ui.RingHeight,
 		Panel:         true,
@@ -221,9 +238,30 @@ func (s *Shell) ringWindow() *mygo.Window {
 		SkipTaskbar:   true,
 		DisableResize: true,
 		DisableShadow: true,
-		Content:       mui.View(s.ring.view.View),
-	})
+		Content:       content,
+	}
+}
+
+// ringWindow returns the ring's window, created the first time: a flyout
+// of the tray icon on Windows, a panel elsewhere (ringUsesFlyout), and a
+// panel too where the tray icon could not be created.
+func (s *Shell) ringWindow() *mygo.Window {
+	if s.ring.win != nil {
+		return s.ring.win
+	}
+	content := mui.View(s.ring.view.View)
+	var w *mygo.Window
+	if ringUsesFlyout && s.tray != nil {
+		w = mygo.NewFlyout(ringFlyoutOptions(s.tray, content))
+	} else {
+		if ringUsesFlyout {
+			s.log.Warn("action ring: no tray icon; the ring's window is a panel")
+		}
+		w = mygo.NewWindow(ringPanelOptions(s.loc.T("settings.nav.ring"), content))
+	}
 	noActivate(w.NativeHandle())
+	// The user closing it (a flyout or a panel closes on an Escape its
+	// content does not take) closes the ring as anything else does.
 	w.OnClose(func(e *mygo.CloseEvent) {
 		if s.quitting {
 			return

@@ -128,7 +128,7 @@
             "title": "Open Command Prompt Here",
             "subtitle": "<DIR>",
             "icon": {
-              "name": "terminal"
+              "name": "square-terminal"
             },
             "keywords": [
               "cmd",
