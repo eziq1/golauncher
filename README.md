@@ -70,6 +70,13 @@
   filter the actions. A chip's × removes one file; `Esc` removes them all.
   The files are never recorded or shown to AI unless you pick *Ask AI*
   ([docs/root-files.md](docs/root-files.md)).
+- **Action Ring**: hold the middle mouse button to open a ring of actions
+  around the pointer: open golauncher, ask AI, take a screenshot, lock the
+  screen, plus actions for the selected text or the folder under the pointer.
+  Drag toward one and let go, or click it or press `1`–`8`. A short click of
+  the middle button still goes to the app; remote desktops, virtual machines
+  and Blender are left alone (*Settings › Action Ring*,
+  [docs/action-ring.md](docs/action-ring.md)).
 - **Built-in plugins**
   - **Applications**: Start menu apps, including Store apps, on Windows; the
     apps in Applications and the system folders, with their localized names,
@@ -344,6 +351,7 @@ On a Mac, press ⌥ for Alt and ⌘ for Ctrl (`⌥Space`, `⌘K`, `⌘,`); `⌃N
 | `Ctrl+V` | Main search and AI chat: paste copied files or an image as files (text still pastes as text) |
 | `Esc` | Clear the search, go back, or hide. In the main search with files: clear the text first, then the files, then hide |
 | `Ctrl+,` | Open Settings |
+| Hold the middle mouse button | Open the Action Ring; then `1`–`8` choose an action, `Esc` closes it |
 
 When the selected item has its own `Ctrl+O` action, that action wins.
 

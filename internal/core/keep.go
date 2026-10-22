@@ -37,6 +37,10 @@ type ShowOptions struct {
 	// Root always starts at the root search, dropping a kept stack: the
 	// selected-text hotkey, or a show that opens a command or a task.
 	Root bool
+	// Current shows the navigation as it is: an action run while the
+	// window was hidden (Controller.RunEntry, the Action Ring) opened a
+	// view or awaits a confirmation.
+	Current bool
 }
 
 // Hidden records that the launcher window was hidden. When the top view
@@ -64,6 +68,11 @@ func (c *Controller) Show(ctx context.Context, o ShowOptions) {
 	c.mu.Lock()
 	k := c.keep
 	c.keep = keepState{}
+	if o.Current {
+		c.mu.Unlock()
+		c.refresh(ctx)
+		return
+	}
 	if !k.kept || o.Root || !c.restorable(k.hiddenAt) {
 		c.mu.Unlock()
 		c.Reset(ctx)

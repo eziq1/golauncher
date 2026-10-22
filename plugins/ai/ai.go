@@ -49,6 +49,10 @@ const (
 	viewHistory = "history"
 )
 
+// CommandChat is the command opening a new chat (the Action Ring's "Ask
+// AI" without selected text).
+const CommandChat = viewChat
+
 const (
 	// defaultIdleRelease is how long after the window hides the CLI
 	// processes are stopped (docs/ai.md §6.1); the chats resume later.

@@ -64,6 +64,7 @@
   - **AI 对话**（默认关闭，需要你打开）：输入问题后按 `Tab`，或在没有匹配结果时选“问 AI”，就能通过本机安装的 [Claude Code](https://claude.com/product/claude-code) 命令行和你的 Claude 订阅与 Claude 对话（不需要 API Key）。回答实时显示，可以追问，按 `Esc` 停止，复制或粘贴回答，在 Claude 或 ChatGPT 应用中继续；“AI 对话历史”可以打开以前的对话（默认保留 30 天）。Claude 可以使用启动器的插件（“8080 端口被谁占了”“用 winget 装 7-Zip”）：它通过 golauncher 自己的工具搜索和运行插件，每一步都显示在对话里；会改动东西的操作先在启动器里问你（“允许”“本次会话内都允许”“拒绝”，破坏性操作每次都问）。联网搜索可选。在 设置 › 插件 › AI › 后端 里还可以改用 **Codex**（用你的 ChatGPT 账号；golauncher 运行原生的 Codex 程序，比如 Codex 应用、Homebrew 或 npm 装的那个）或 **Gemini CLI**（用你的 Google 账号；Gemini CLI 本身需要 Node.js）。它们都和你自己对这个 CLI 的配置隔离（不加载别的 MCP 服务器、钩子、扩展和记忆文件，没有读写文件和运行命令的工具）；每个对话固定使用开始时的后端；Gemini 请求使用工具的授权时，在同一个确认框里回答。设置 › 插件 › AI 的“后端”一节列出每个后端是否可用、实际运行的是哪个程序（路径、版本、在哪里找到的）以及找到的其他安装；装了不止一份时可以选用哪一份，或者填写路径。复制回答、到别处粘贴后再打开启动器，会回到原来的对话，没发出去的文字也还在（默认 10 分钟内；设置 › 通用 › 回到主界面；[docs/keep-view.md](docs/keep-view.md)）。**消息可以带图片和文本文件**：把文件拖到对话里，在对话里按 `Ctrl+V` 粘贴图片或复制的文件（从浏览器或聊天软件复制的图片也可以），或用“添加附件…”（`Ctrl+O`）选择文件。在主界面收到文件后，选“问 AI”会打开一个带着这些文件的新对话。图片（PNG、JPEG、GIF、WebP；BMP、TIFF 会转换）缩小到最长边 2000 像素以内，文本文件（最大 200 KB）直接放进消息；一条消息最多 10 个附件。PDF、Office 文档、视频和音频会标成不支持，移除之前不能发送（[docs/ai.md](docs/ai.md)）。
   - **自定义 AI 操作**：在“设置 › 插件 › AI › AI 操作”里修改、排序、停用或新建选中文字和文件的 AI 操作，提示词可用占位符（`{selection}` `{lang}` `{input}` `{app}` `{date}`），还可以选“直接出结果”：只显示回答，Enter 粘贴或替换选中的文字，Tab 转为对话继续追问（[docs/ai-actions.md](docs/ai-actions.md)）。
   - **在 Claude 桌面版或 Claude Code 里使用 golauncher**（默认关闭，在“设置 › 插件 › AI › 允许 AI 应用使用 golauncher”打开）：`golauncher mcp` 是一个提供你的插件的 MCP 服务器。设置页可以一键连接 Claude 桌面版（先备份，只改 `golauncher` 这一项），并给出添加到 Claude Code 的 `claude mcp add` 命令。哪些插件允许 AI 使用由你决定（剪贴板历史和第三方插件默认关闭）；“AI 活动记录”列出最近 30 天的每一次工具调用（[docs/ai.md](docs/ai.md)）。
+- **操作环**：按住鼠标中键，在指针周围弹出一圈操作：打开 golauncher、问 AI、截图、锁屏，以及针对选中文字或指针下文件夹的操作。往某个方向拖动后松开，或者点一下、按 `1`–`8` 执行。短按中键照常交给程序；远程桌面、虚拟机和 Blender 里不拦截（“设置 › 操作环”，[docs/action-ring.md](docs/action-ring.md)）。
 - **设置窗口**（`Ctrl+,`，Mac 上 `⌘,`）：快捷键、别名、插件偏好、外观、语言；macOS 上还能在“设置 › 权限”查看 golauncher 拿到了哪些权限。
 - **主题**（“设置 › 外观”，[docs/themes.md](docs/themes.md)）：18 个内置主题（golauncher 浅色/深色、绯红、GitHub、Nord、Dracula、Catppuccin、Tokyo Night、Solarized、Gruvbox、One Dark、宣纸和两个高对比度主题），画廊里是实时绘制的缩略图；跟随系统时可以分别选浅色和深色主题；Windows 上背景不透明度滑块让亚克力或云母材质透出来，文字始终清晰（关闭透明效果或开启对比度主题时自动变为纯色）；强调色可以用主题的、系统的或自己选；还能调圆角、密度和字号。自己的主题是 `%APPDATA%\golauncher\themes`（macOS 上是 `~/Library/Application Support/golauncher/themes`） 里的 JSON 文件，可以 `extends` 别的主题，保存后立即生效；`glctl theme validate` 检查格式和对比度。
 - **中英文界面**：默认跟随系统的显示语言（zh-CN、zh-Hans、zh-SG 显示简体中文，其他显示英文）。要切换语言，打开“设置 › 通用 › 语言”，选择“跟随系统”“English”或“简体中文”，立即生效，不需要重启。在中文界面里，命令的英文名称和关键词照样能搜到，也支持拼音和拼音首字母。
@@ -124,6 +125,7 @@ Mac 上用 ⌥ 代替 Alt、⌘ 代替 Ctrl（`⌥Space`、`⌘K`、`⌘,`）；
 | `Ctrl+V` | 主界面和 AI 对话：把复制的文件或图片作为文件粘贴进来（文字照常粘贴成文字） |
 | `Esc` | 清空搜索 → 返回上一级 → 隐藏。主界面收到文件时：先清空文字，再清掉文件，然后隐藏 |
 | `Ctrl+,` | 打开设置 |
+| 按住鼠标中键 | 打开操作环；然后按 `1`–`8` 选择操作，`Esc` 关闭 |
 
 选中项自己有 `Ctrl+O` 的动作时，以那个动作为准。
 

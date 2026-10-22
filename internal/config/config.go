@@ -57,6 +57,99 @@ type Config struct {
 	// (docs/keep-view.md): ReturnToRootImmediately, ReturnToRootAfter
 	// (KeepViewsFor; the default, also for "") or ReturnToRootNever.
 	ReturnToRoot string `json:"returnToRoot,omitempty"`
+	// Ring configures the Action Ring, opened by holding the middle mouse
+	// button (docs/action-ring.md).
+	Ring RingConfig `json:"ring"`
+}
+
+// Hold durations of the Action Ring (RingConfig.HoldMS), in milliseconds.
+const (
+	DefaultRingHoldMS = 300
+	MinRingHoldMS     = 150
+	MaxRingHoldMS     = 1000
+)
+
+// MaxRingFixed is the number of slots of the Action Ring, the most fixed
+// actions it can have.
+const MaxRingFixed = 8
+
+// RingAction is a fixed action of the Action Ring: one of the ring's own
+// (RingLauncher, …), or a root entry of the launcher ("<plugin>/<item id>":
+// a command, "builtin.ai/cmd:chat", or a root item, "builtin.system/system:lock").
+type RingAction struct {
+	Key string `json:"key"`
+	// Title and Icon (a built-in icon name) are shown until the entry is
+	// found again; Title is also the search text that finds a root item.
+	Title string `json:"title,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+}
+
+// The Action Ring's own actions (RingAction.Key).
+const (
+	RingLauncher   = "ring:launcher"   // show golauncher
+	RingAskAI      = "ring:askai"      // an AI chat, about the selected text if any
+	RingScreenshot = "ring:screenshot" // the system's screenshot tool
+	// RingLock is the system plugin's Lock Screen item.
+	RingLock = "builtin.system/system:lock"
+)
+
+// DefaultRingFixed returns the fixed actions of a new configuration.
+func DefaultRingFixed() []RingAction {
+	// The lock's title comes from the system plugin, in the UI language.
+	return []RingAction{{Key: RingLauncher}, {Key: RingAskAI}, {Key: RingScreenshot}, {Key: RingLock, Icon: "lock"}}
+}
+
+// DefaultRingExceptions are the apps where the middle button is never taken:
+// remote desktops, virtual machines, Blender and other apps where it is the
+// main way to move around (Windows executable names and macOS bundle
+// identifiers in one list; each system matches its own).
+var DefaultRingExceptions = []string{
+	// Remote desktops.
+	"mstsc.exe", "msrdc.exe", "msrdcw.exe", "Windows365.exe", "vncviewer.exe", "TeamViewer.exe", "AnyDesk.exe", "parsecd.exe",
+	"com.microsoft.rdc.macos", "com.microsoft.WindowsApp", "com.realvnc.vncviewer", "com.teamviewer.TeamViewer",
+	"com.philandro.anydesk", "tv.parsec.www",
+	// Virtual machines.
+	"vmware.exe", "vmplayer.exe", "vmware-vmx.exe", "vmconnect.exe", "VirtualBoxVM.exe",
+	"com.vmware.fusion", "org.virtualbox.app.VirtualBoxVM", "com.parallels.desktop.console", "com.utmapp.UTM",
+	// 3D and CAD.
+	"blender.exe", "org.blenderfoundation.blender",
+}
+
+// RingConfig configures the Action Ring (docs/action-ring.md). Enabled and
+// Context are on by default.
+type RingConfig struct {
+	Enabled bool `json:"enabled"`
+	// HoldMS is how long the middle button is held before the ring opens; 0
+	// is DefaultRingHoldMS.
+	HoldMS int `json:"holdMs,omitzero"`
+	// Fixed are the actions always shown, in order, at most MaxRingFixed.
+	Fixed []RingAction `json:"fixed"`
+	// Context fills the other slots with actions for the selected text and
+	// the folder under the pointer.
+	Context bool `json:"context"`
+	// Exceptions are the apps (executable names, macOS bundle identifiers
+	// or app names) where the middle button is left alone.
+	Exceptions []string `json:"exceptions"`
+}
+
+// DefaultRing returns the Action Ring settings of a new configuration.
+func DefaultRing() RingConfig {
+	return RingConfig{Enabled: true, Fixed: DefaultRingFixed(), Context: true, Exceptions: slices.Clone(DefaultRingExceptions)}
+}
+
+// EffectiveHoldMS returns HoldMS within its bounds, or its default.
+func (r RingConfig) EffectiveHoldMS() int {
+	if r.HoldMS == 0 {
+		return DefaultRingHoldMS
+	}
+	return min(max(r.HoldMS, MinRingHoldMS), MaxRingHoldMS)
+}
+
+// Clone returns a deep copy of r.
+func (r RingConfig) Clone() RingConfig {
+	r.Fixed = slices.Clone(r.Fixed)
+	r.Exceptions = slices.Clone(r.Exceptions)
+	return r
 }
 
 // Values of Config.ReturnToRoot.
@@ -367,6 +460,7 @@ func Default() Config {
 		HideOnBlur:    true,
 		ContextAware:  true,
 		Selection:     DefaultSelection(),
+		Ring:          DefaultRing(),
 	}
 }
 
@@ -375,6 +469,7 @@ func (c Config) Clone() Config {
 	out := c
 	out.Appearance = c.Appearance.Clone()
 	out.Selection = c.Selection.Clone()
+	out.Ring = c.Ring.Clone()
 	out.Plugins = make(map[string]PluginConfig, len(c.Plugins))
 	for id, p := range c.Plugins {
 		p.Preferences = maps.Clone(p.Preferences)
