@@ -25,15 +25,19 @@ func noActivate(uintptr) {}
 
 // placeRing puts the ring's window centred on pt (points, as the event tap
 // reports it, from the top left of the main display, as MyGo's screen
-// coordinates are) inside the work area of the display there. Points are
-// the hook's units: one per DIP.
-func placeRing(w *mygo.Window, pt ring.Point) (ring.Rect, float64) {
+// coordinates are) with its ring inside the work area of the display
+// there; a window width×height, larger than the ring for the arc of a
+// folder, may stick out of it (ring.PlaceAround). Points are the hook's
+// units: one per DIP. It returns the window's rectangle, the scale and the
+// work area.
+func placeRing(w *mygo.Window, pt ring.Point, width, height int) (ring.Rect, float64, ring.Rect) {
 	d := mygo.Screen.DisplayNearestPoint(mygo.Point{X: int(pt.X), Y: int(pt.Y)})
 	wa := d.WorkArea
-	r := ring.Place(pt, ui.RingWidth, ui.RingHeight, ring.Rect{X: float64(wa.X), Y: float64(wa.Y), W: float64(wa.Width), H: float64(wa.Height)})
-	w.SetBounds(mygo.Rectangle{X: int(r.X), Y: int(r.Y), Width: ui.RingWidth, Height: ui.RingHeight})
-	r = ring.Rect{X: float64(int(r.X)), Y: float64(int(r.Y)), W: ui.RingWidth, H: ui.RingHeight}
-	return r, 1
+	work := ring.Rect{X: float64(wa.X), Y: float64(wa.Y), W: float64(wa.Width), H: float64(wa.Height)}
+	r := ring.PlaceAround(pt, ui.RingWidth, ui.RingHeight, float64(width), float64(height), work)
+	w.SetBounds(mygo.Rectangle{X: int(r.X), Y: int(r.Y), Width: width, Height: height})
+	r = ring.Rect{X: float64(int(r.X)), Y: float64(int(r.Y)), W: float64(width), H: float64(height)}
+	return r, 1, work
 }
 
 // screenshot opens macOS's Screenshot app: the toolbar of ⌘⇧5, which

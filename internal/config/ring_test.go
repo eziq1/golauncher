@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -59,5 +60,116 @@ func TestRingDefaults(t *testing.T) {
 	back, err := Load(p)
 	if err != nil || back.Ring.HoldMS != 450 || len(back.Ring.Fixed) != 2 {
 		t.Errorf("round trip %+v, %v", back.Ring, err)
+	}
+}
+
+func act(key string) RingAction { return RingAction{Key: key} }
+
+func slotKeys(slots []RingSlot) []string {
+	var out []string
+	for _, s := range slots {
+		switch {
+		case s.IsFolder():
+			k := s.Name + "["
+			for i, a := range s.Actions {
+				if i > 0 {
+					k += " "
+				}
+				k += a.Key
+			}
+			out = append(out, k+"]")
+		case s.IsEmpty():
+			out = append(out, "-")
+		default:
+			out = append(out, s.Key)
+		}
+	}
+	return out
+}
+
+// TestRingFolders: an older list of up to eight actions reads as slots,
+// the ones past the fourth in a folder in the last slot; folders are
+// checked as they are read (empty ones dropped, one of a single action
+// turned into it, at most six, keys once); a folder is written and read
+// back; Clone copies the folders.
+func TestRingFolders(t *testing.T) {
+	dir := t.TempDir()
+	load := func(body string) Config {
+		t.Helper()
+		p := filepath.Join(dir, "c.json")
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		c, err := Load(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c
+	}
+	// The old format: an action list.
+	c := load(`{"schemaVersion": 1, "ring": {"fixed": [{"key": "a", "title": "A", "icon": "x"}, {"key": "b"}]}}`)
+	if got := slotKeys(c.Ring.Fixed); !slices.Equal(got, []string{"a", "b"}) || c.Ring.Fixed[0].Title != "A" || c.Ring.Fixed[0].Icon != "x" {
+		t.Errorf("old list %q %+v", got, c.Ring.Fixed)
+	}
+	c = load(`{"schemaVersion": 1, "ring": {"fixed": [{"key": "a"}, {"key": "b"}, {"key": "c"}, {"key": "d"}, {"key": "e"}, {"key": "f"}, {"key": "g"}, {"key": "h"}]}}`)
+	if got := slotKeys(c.Ring.Fixed); !slices.Equal(got, []string{"a", "b", "c", "[d e f g h]"}) || c.Ring.Fixed[3].Name != "" {
+		t.Errorf("eight actions %q", got)
+	}
+	c = load(`{"schemaVersion": 1, "ring": {"fixed": [{"key": "a"}, {"key": "b"}, {"key": "c"}, {}, {"key": "e"}]}}`)
+	if got := slotKeys(c.Ring.Fixed); !slices.Equal(got, []string{"a", "b", "c", "e"}) {
+		t.Errorf("five with a gap %q", got)
+	}
+
+	// Validated.
+	for _, tc := range []struct {
+		in   []RingSlot
+		want []string
+	}{
+		{[]RingSlot{FolderSlot("Empty"), {Key: "a"}}, []string{"-", "a"}},
+		{[]RingSlot{FolderSlot("One", act("a")), {Key: "b"}}, []string{"a", "b"}},
+		{[]RingSlot{FolderSlot("Many", act("1"), act("2"), act("3"), act("4"), act("5"), act("6"), act("7"))}, []string{"Many[1 2 3 4 5 6]"}},
+		{[]RingSlot{{Key: "a"}, FolderSlot("Dup", act("a"), act("b"), act("b"), act(""))}, []string{"a", "b"}},
+		{[]RingSlot{{Key: "a", Name: "stray"}, {}, {}, {}}, []string{"a"}},
+		{[]RingSlot{{}, {Key: "x"}}, []string{"-", "x"}},
+		{[]RingSlot{{Key: "a", Actions: []RingAction{act("b"), act("c")}, Name: "F"}}, []string{"F[b c]"}},
+	} {
+		got := NormalizeRingFixed(tc.in)
+		if !slices.Equal(slotKeys(got), tc.want) {
+			t.Errorf("%+v: %q, want %q", tc.in, slotKeys(got), tc.want)
+		}
+		if len(got) > 0 && got[0].Key == "a" && got[0].Name != "" {
+			t.Errorf("an action keeps a folder's name: %+v", got[0])
+		}
+	}
+	if NormalizeRingFixed(nil) == nil || len(NormalizeRingFixed(nil)) != 0 {
+		t.Error("nil")
+	}
+
+	// Written and read back, folders and an empty slot in the middle.
+	p := filepath.Join(dir, "folders.json")
+	cfg := Default()
+	cfg.Ring.Fixed = []RingSlot{{Key: RingLauncher}, {}, FolderSlot("Tools", RingAction{Key: "p/x", Title: "X", Icon: "app"}, act(RingScreenshot)), {Key: RingLock}}
+	if err := Save(p, cfg); err != nil {
+		t.Fatal(err)
+	}
+	back, err := Load(p)
+	if err != nil || !slices.Equal(slotKeys(back.Ring.Fixed), []string{RingLauncher, "-", "Tools[p/x ring:screenshot]", RingLock}) ||
+		back.Ring.Fixed[2].Actions[0].Title != "X" {
+		t.Errorf("round trip %+v, %v", back.Ring.Fixed, err)
+	}
+	data, _ := os.ReadFile(p)
+	if !strings.Contains(string(data), `"name": "Tools"`) || strings.Contains(string(data), `"key": ""`) {
+		t.Errorf("written:\n%s", data)
+	}
+	b := cfg.Clone()
+	b.Ring.Fixed[2].Actions[0].Key = "changed"
+	if cfg.Ring.Fixed[2].Actions[0].Key != "p/x" {
+		t.Error("Clone shares a folder's actions")
+	}
+	// Restore Defaults: four actions, no folder.
+	for _, s := range DefaultRingFixed() {
+		if s.IsFolder() || s.IsEmpty() {
+			t.Errorf("default %+v", s)
+		}
 	}
 }

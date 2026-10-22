@@ -20,6 +20,19 @@ const PageRing = "ring"
 // fixed action, and the names of the fixed actions found for the page.
 // UI thread only, except titles and results (Settings.asyncMu).
 type ringSettingsState struct {
+	// The ring editor: the slot selected (-1 for none) and the action of
+	// its folder (-1 for the slot itself), the folder open below the ring
+	// (-1 for none), the press or drag in progress, why the last edit was
+	// refused, and the dialogs.
+	sel, item, open int
+	drag            ringDrag
+	hint            string
+	rename          bool   // the open folder's name takes the focus
+	choosing        string // "move" or "into": the dialog of the selection's choices
+	chooseTitle     string
+	deleting        bool // "Delete Folder" asks first
+	addTo           int  // where "Add Action" adds (-1: the first empty slot)
+
 	adding    bool
 	query     string
 	want      string // the query the results are wanted for (asyncMu)
@@ -38,6 +51,8 @@ type ringChoice struct {
 // openRingPage reads the names of the fixed actions in the background
 // (finding a plugin's item asks the plugin) and, on macOS, the permission.
 func (s *Settings) openRingPage() {
+	st := &s.ring
+	st.sel, st.item, st.open, st.hint, st.drag, st.choosing = -1, -1, -1, "", ringDrag{}, ""
 	if _, ok := s.permissionsHost(); ok {
 		s.checkPermissions()
 	}
@@ -46,10 +61,17 @@ func (s *Settings) openRingPage() {
 
 // refreshRingTitles finds the fixed actions again for their names.
 func (s *Settings) refreshRingTitles() {
-	fixed := s.env.Config.Get().Ring.Fixed
+	var actions []config.RingAction
+	for _, sl := range s.env.Config.Get().Ring.Fixed {
+		if sl.IsFolder() {
+			actions = append(actions, sl.Actions...)
+		} else if sl.Key != "" {
+			actions = append(actions, sl.Action())
+		}
+	}
 	s.async(func() {
 		got := map[string]ringChoice{}
-		for _, a := range fixed {
+		for _, a := range actions {
 			if ring.IsOwn(a.Key) {
 				continue
 			}
@@ -155,53 +177,90 @@ func (s *Settings) ringPermission(c *mui.Context) {
 	})
 }
 
-// ringFixed lists the fixed actions, in the order of their number keys,
-// with ↑, ↓ and Remove; "Add Action" and "Restore Defaults" above.
+// ringFixed is the ring editor of the fixed slots (ringEditor), the open
+// folder's name, the buttons for what is selected, and "Add Action" and
+// "Restore Defaults" above.
 func (s *Settings) ringFixed(c *mui.Context, rc config.RingConfig, setRing func(func(*config.RingConfig))) {
 	t := c.Theme()
 	st := &s.ring
-	list := rc.Fixed
-	save := func(fn func(out []config.RingAction) []config.RingAction) {
-		setRing(func(r *config.RingConfig) { r.Fixed = fn(slices.Clone(list)) })
+	f := ring.FixedOf(rc.Fixed)
+	save := func(g ring.Fixed) {
+		setRing(func(r *config.RingConfig) { r.Fixed = g.Slots() })
+	}
+	// Where "Add Action" adds: the slot selected when it is empty or a
+	// folder with room (or the folder of the action selected), else the
+	// first empty slot.
+	addTo := -1
+	if i := st.sel; i >= 0 && (f[i].IsEmpty() || f[i].IsFolder() && len(f[i].Actions) < config.MaxRingFolder) {
+		addTo = i
 	}
 	s.subheading(c, s.loc.T("settings.ring.fixed"))
 	mui.Row(c).Gap(8).AlignItems(mui.Center).Children(func() {
 		mui.Text(c, s.loc.T("settings.ring.fixed.intro")).FontSize(12).TextColor(t.TextMuted).Grow(1).Shrink(1)
-		if mui.Button(c.Key("ring:add"), s.loc.T("settings.ring.add")).Disabled(len(list) >= config.MaxRingFixed).Clicked() {
-			st.adding, st.query = true, ""
+		if mui.Button(c.Key("ring:add"), s.loc.T("settings.ring.add")).Disabled(addTo < 0 && f.FirstEmpty() < 0).Clicked() {
+			st.adding, st.query, st.addTo = true, "", addTo
 			s.searchRingChoices("")
 		}
 		if mui.Button(c.Key("ring:restore"), s.loc.T("settings.ring.restore")).Clicked() {
 			st.confirm = true
 		}
 	})
-	if len(list) == 0 {
-		mui.Text(c, s.loc.T("settings.ring.fixed.none")).FontSize(12).TextColor(t.TextMuted)
+	s.ringEditor(c, f, save)
+	if st.hint != "" {
+		mui.Text(c, st.hint).FontSize(12).TextColor(t.Warning)
 	}
-	for i, a := range list {
-		ch := s.ringChoiceOf(a)
-		mui.Row(c.Key("ring:fixed:"+a.Key)).Gap(8).Padding(8, 0).AlignItems(mui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Children(func() {
-			mui.Text(c, strconv.Itoa(i+1)).FontSize(11).TextColor(t.TextMuted).Padding(0, 5).Radius(4).Background(t.Text.Alpha(0.08))
-			mui.Icon(c, builtinIcon(ch.Icon)).FontSize(16)
-			mui.Column(c).Grow(1).Shrink(1).Gap(2).Children(func() {
-				mui.Text(c, ch.Title).Shrink(1)
-				if ch.Subtitle != "" {
-					mui.Text(c, ch.Subtitle).FontSize(12).TextColor(t.TextMuted)
-				}
-			})
-			if mui.Button(c, "↑").Label(s.loc.T("settings.ring.upOf", "name", ch.Title)).Disabled(i == 0).Clicked() {
-				save(func(out []config.RingAction) []config.RingAction { out[i-1], out[i] = out[i], out[i-1]; return out })
+	// The open folder's name.
+	if i := st.open; i >= 0 && f[i].IsFolder() {
+		mui.Field(c.Key("ring:folder"), s.loc.T("settings.ring.folderName"), func() {
+			b := s.buf(ringFolderNameKey, cmpOr(f[i].Name, s.loc.T("ring.folder")))
+			in := mui.TextInput(c.Key("ring:folder:name:"+strconv.Itoa(i)), b).Width(240).Label(s.loc.T("settings.ring.folderName"))
+			if st.rename {
+				in.AutoFocus()
 			}
-			if mui.Button(c, "↓").Label(s.loc.T("settings.ring.downOf", "name", ch.Title)).Disabled(i == len(list)-1).Clicked() {
-				save(func(out []config.RingAction) []config.RingAction { out[i+1], out[i] = out[i], out[i+1]; return out })
-			}
-			if mui.Button(c, s.loc.T("settings.ring.remove")).Label(s.loc.T("settings.ring.removeOf", "name", ch.Title)).Clicked() {
-				save(func(out []config.RingAction) []config.RingAction { return slices.Delete(out, i, i+1) })
+			if in.Changed() {
+				g := f
+				g.Rename(i, strings.TrimSpace(*b))
+				save(g)
 			}
 		})
+		st.rename = false
 	}
+	s.ringSelectionButtons(c, f, save)
+
 	if st.adding {
-		mui.Modal(c.Key("ring:dialog"), &st.adding, func() { s.ringAddDialog(c, list, save) })
+		mui.Modal(c.Key("ring:dialog"), &st.adding, func() {
+			s.ringAddDialog(c, f, func(a config.RingAction) {
+				g := f
+				if err := g.Add(a, st.addTo); err != nil {
+					s.ringHint(err)
+					return
+				}
+				save(g)
+			})
+		})
+	}
+	if st.deleting && st.sel >= 0 && f[st.sel].IsFolder() {
+		i := st.sel
+		name, _ := s.ringSlotName(i, f[i])
+		mui.Modal(c.Key("ring:delete"), &st.deleting, func() {
+			mui.Column(c).Gap(12).Padding(20).Width(420).Children(func() {
+				mui.Text(c, s.loc.T("settings.ring.deleteFolder.title", "name", name)).Bold().Level(2)
+				mui.Text(c, s.loc.T("settings.ring.deleteFolder.message", "fit", f.Empties()+1, "n", len(f[i].Actions)))
+				mui.Row(c).Gap(8).Children(func() {
+					mui.Spacer(c)
+					if button(c, s.loc.T("settings.ring.cancel")) {
+						st.deleting = false
+					}
+					if mui.PrimaryButton(c, s.loc.T("settings.ring.deleteFolder.confirm")).Clicked() {
+						st.deleting = false
+						g := f
+						g.DeleteFolder(i)
+						st.open, st.sel = -1, -1
+						save(g)
+					}
+				})
+			})
+		})
 	}
 	if st.confirm {
 		mui.Modal(c.Key("ring:confirm"), &st.confirm, func() {
@@ -215,6 +274,7 @@ func (s *Settings) ringFixed(c *mui.Context, rc config.RingConfig, setRing func(
 					}
 					if mui.PrimaryButton(c, s.loc.T("settings.ring.restore.confirm")).Clicked() {
 						st.confirm = false
+						st.sel, st.item, st.open, st.hint = -1, -1, -1, ""
 						setRing(func(r *config.RingConfig) { r.Fixed = config.DefaultRingFixed() })
 						s.refreshRingTitles()
 					}
@@ -227,7 +287,7 @@ func (s *Settings) ringFixed(c *mui.Context, rc config.RingConfig, setRing func(
 // ringAddDialog searches the commands and actions of the launcher (as the
 // root search finds them) and the ring's own actions, and adds the one
 // clicked.
-func (s *Settings) ringAddDialog(c *mui.Context, list []config.RingAction, save func(func([]config.RingAction) []config.RingAction)) {
+func (s *Settings) ringAddDialog(c *mui.Context, f ring.Fixed, add func(config.RingAction)) {
 	t := c.Theme()
 	st := &s.ring
 	mui.Column(c).Gap(12).Padding(20).Width(560).Children(func() {
@@ -242,7 +302,7 @@ func (s *Settings) ringAddDialog(c *mui.Context, list []config.RingAction, save 
 		mui.Scroll(c.Key("ring:results")).MaxHeight(320).Children(func() {
 			mui.Column(c).Gap(2).Children(func() {
 				for _, r := range results {
-					taken := slices.ContainsFunc(list, func(a config.RingAction) bool { return a.Key == r.Key })
+					taken := f.Has(r.Key)
 					row := mui.Row(c.Key("ring:result:"+r.Key)).Gap(8).Padding(6, 8).Radius(6).AlignItems(mui.Center).Label(r.Title)
 					if !taken {
 						row.Cursor(mui.CursorPointer)
@@ -255,7 +315,7 @@ func (s *Settings) ringAddDialog(c *mui.Context, list []config.RingAction, save 
 								a.Title, a.Icon = "", ""
 							}
 							st.adding = false
-							save(func(out []config.RingAction) []config.RingAction { return append(out, a) })
+							add(a)
 							s.refreshRingTitles()
 						}
 					}

@@ -22,7 +22,24 @@ import (
 type ringHost struct{ calls []string }
 
 func (h *ringHost) Choose(i int) { h.calls = append(h.calls, "choose "+string(rune('0'+i))) }
-func (h *ringHost) Close()       { h.calls = append(h.calls, "close") }
+func (h *ringHost) ChooseIn(i, j int) {
+	h.calls = append(h.calls, "choose "+string(rune('0'+i))+"/"+string(rune('0'+j)))
+}
+func (h *ringHost) Close() { h.calls = append(h.calls, "close") }
+
+// arrange lays out slots: the fixed ones in order on the main directions,
+// the others on the diagonals.
+func arrange(slots []ring.Slot) ring.Layout {
+	var fixed, context []ring.Slot
+	for _, s := range slots {
+		if s.Fixed {
+			fixed = append(fixed, s)
+		} else {
+			context = append(context, s)
+		}
+	}
+	return ring.Arrange(fixed, context)
+}
 
 func (h *ringHost) take() []string {
 	c := h.calls
@@ -45,7 +62,7 @@ func newRingView(t *testing.T, locale string, slots []ring.Slot) (*ui.Ring, *mui
 	env, _ := newEnv(t, locale)
 	host := &ringHost{}
 	r := ui.NewRing(env, host)
-	r.Show(ring.Arrange(slots))
+	r.Show(arrange(slots))
 	tt := mui.NewTester(r.View, ui.RingWidth, ui.RingHeight)
 	tt.SetLocale(locale)
 	tt.Frame()
@@ -377,5 +394,204 @@ func TestRingOwn(t *testing.T) {
 		if _, _, ok := own("builtin.system/system:lock"); ok {
 			t.Error("an entry taken for the ring's own")
 		}
+	}
+}
+
+// folderRing is a ring with a folder of three on the right (position 2).
+func folderRing(t *testing.T, locale string) (*ui.Ring, *mui.Tester, *ringHost) {
+	t.Helper()
+	env, _ := newEnv(t, locale)
+	host := &ringHost{}
+	r := ui.NewRing(env, host)
+	folder := ring.Slot{Key: "folder:1", Title: "Tools", Fixed: true, Folder: []ring.Slot{
+		{Key: "a", Title: "Screenshot", Icon: plugin.Icon{Name: "scissors"}, Fixed: true},
+		{Key: "b", Title: "Lock", Icon: plugin.Icon{Name: "lock"}, Fixed: true},
+		{Key: "c", Title: "Shell", Icon: plugin.Icon{Name: "terminal"}, Fixed: true}}}
+	l := ring.Arrange([]ring.Slot{ringSlots[0], folder, ringSlots[1]}, []ring.Slot{ringSlots[4]})
+	r.Show(l)
+	if w, h := ui.RingSize(l); w != ui.RingFolderWidth || h != ui.RingFolderHeight {
+		t.Fatalf("size %dx%d", w, h)
+	}
+	tt := mui.NewTester(r.View, ui.RingFolderWidth, ui.RingFolderHeight)
+	tt.SetLocale(locale)
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	return r, tt, host
+}
+
+// folderSlotCenter is the centre of slot i in a folder ring's window.
+func folderSlotCenter(i int) (float32, float32) {
+	dx, dy := ring.SlotOffset(i, ui.RingRadius)
+	return float32(ui.RingFolderWidth/2 + dx), float32(ui.RingFolderHeight/2 + dy)
+}
+
+// subPoint is the centre of sub-slot j of n of the arc of the folder at
+// position 2, from the ring's centre (the arc is not turned).
+func subPoint(j, n int) ring.Point {
+	a := ring.ArcAngles(ring.SlotAngle(2), n, math.Pi/6)[j]
+	return ring.Point{X: 170 * math.Cos(a), Y: 170 * math.Sin(a)}
+}
+
+// TestRingFolderHover: a folder shows its name with ▸; hovered for 150ms
+// (not before) it opens its arc, every action with its pill; a click on
+// one runs it; hovering another slot closes the arc; a click on the folder
+// opens it at once.
+func TestRingFolderHover(t *testing.T) {
+	r, tt, host := folderRing(t, "en")
+	if !tt.HasText("Tools") || !tt.HasText("▸") || tt.HasText("Shell") {
+		t.Fatalf("texts %q", tt.Texts())
+	}
+	tt.Move(folderSlotCenter(2))
+	tt.Frame()
+	tt.Advance(100 * time.Millisecond)
+	tt.Frame()
+	if r.Arc() != -1 {
+		t.Fatal("opened before 150ms")
+	}
+	tt.Advance(60 * time.Millisecond)
+	tt.Frame()
+	if r.Arc() != 2 {
+		t.Fatal("not opened after 150ms")
+	}
+	for _, want := range []string{"Screenshot", "Lock", "Shell"} {
+		if count(tt, want) != 2 { // the circle's name and the pill
+			t.Errorf("%q shows %d times: %q", want, count(tt, want), tt.Texts())
+		}
+	}
+	// The pills of the arc are in the window and clear of one another and
+	// of the disc.
+	var boxes []mui.Rect
+	for j, title := range []string{"Screenshot", "Lock", "Shell"} {
+		n, _ := tt.Find(title) // the circle
+		boxes = append(boxes, n)
+		lbl, ok := tt.Find(strconv.Itoa(j+1) + "")
+		_ = lbl
+		if !ok {
+			t.Errorf("no number key %d", j+1)
+		}
+	}
+	for i := range boxes {
+		for j := i + 1; j < len(boxes); j++ {
+			a, b := boxes[i], boxes[j]
+			if a.X < b.X+b.W && b.X < a.X+a.W && a.Y < b.Y+b.H && b.Y < a.Y+a.H {
+				t.Errorf("sub-slots %d %+v and %d %+v overlap", i, a, j, b)
+			}
+		}
+	}
+	// Hovering another slot closes it.
+	tt.Move(folderSlotCenter(0))
+	tt.Frame()
+	if r.Arc() != -1 {
+		t.Fatal("still open over another slot")
+	}
+	// A click on the folder opens it at once; a click on an action runs it.
+	tt.ClickAt(folderSlotCenter(2))
+	tt.Frame()
+	if r.Arc() != 2 || len(host.take()) != 0 {
+		t.Fatal("a click on the folder")
+	}
+	if err := tt.Click("Lock"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if got := host.take(); !slices.Equal(got, []string{"choose 2/1"}) {
+		t.Errorf("click: %q", got)
+	}
+}
+
+// TestRingFolderKeys: the folder's number key opens its arc, then 1–6
+// choose in it; Escape closes the arc, then the ring.
+func TestRingFolderKeys(t *testing.T) {
+	r, tt, host := folderRing(t, "en")
+	if !r.Key(mui.Key3) || r.Arc() != 2 || len(host.take()) != 0 {
+		t.Fatal("3 did not open the folder")
+	}
+	tt.Frame()
+	if r.Key(mui.Key5) {
+		t.Error("5 of 3 actions")
+	}
+	if !r.Key(mui.Key3) {
+		t.Fatal("3 in the arc")
+	}
+	if got := host.take(); !slices.Equal(got, []string{"choose 2/2"}) {
+		t.Errorf("keys: %q", got)
+	}
+	r.Key(mui.KeyEscape)
+	if r.Arc() != -1 || len(host.take()) != 0 {
+		t.Fatal("Escape did not close the arc first")
+	}
+	tt.Frame()
+	if r.Arc() != -1 {
+		t.Fatal("reopened after Escape")
+	}
+	r.Key(mui.KeyEscape)
+	if got := host.take(); !slices.Equal(got, []string{"close"}) {
+		t.Errorf("Escape: %q", got)
+	}
+	// Keys the view itself gets.
+	tt.Key(0, mui.Key3)
+	tt.Frame()
+	tt.Key(0, mui.Key1)
+	tt.Frame()
+	if got := host.take(); !slices.Equal(got, []string{"choose 2/0"}) {
+		t.Errorf("view keys: %q", got)
+	}
+}
+
+// TestRingFolderDrag: the middle button dragged to the folder opens its
+// arc after 150ms; on along to an action, let go: it runs; let go on the
+// folder itself, the ring stays with the arc open; back into the ring,
+// toward another slot, the arc closes.
+func TestRingFolderDrag(t *testing.T) {
+	r, tt, host := folderRing(t, "en")
+	toward := ring.Point{X: 100, Y: 0}
+	r.Track(toward)
+	tt.Frame()
+	tt.Advance(100 * time.Millisecond)
+	tt.Frame()
+	if r.Arc() != -1 {
+		t.Fatal("opened before 150ms")
+	}
+	tt.Advance(50 * time.Millisecond)
+	tt.Frame()
+	if r.Arc() != 2 {
+		t.Fatal("not opened after 150ms of dragging to the folder")
+	}
+	r.Track(subPoint(0, 3))
+	tt.Frame()
+	r.Release(subPoint(0, 3))
+	if got := host.take(); !slices.Equal(got, []string{"choose 2/0"}) {
+		t.Errorf("released on the first action: %q", got)
+	}
+
+	// Let go on the folder: the ring stays, the arc opens.
+	r.Show(r.Layout())
+	tt.Frame()
+	r.Track(toward)
+	r.Release(toward)
+	tt.Frame()
+	if r.Arc() != 2 || len(host.take()) != 0 {
+		t.Fatalf("released on the folder: arc %d", r.Arc())
+	}
+	// Then dragging toward another slot closes it.
+	r.Track(ring.Point{X: 0, Y: -100})
+	tt.Frame()
+	if r.Arc() != -1 {
+		t.Error("still open toward another slot")
+	}
+	// A middle click on an action of the open arc runs it (the ring stays
+	// after a press that did not move); past the ring elsewhere, it closes
+	// the ring.
+	r.EndDrag()
+	tt.Move(folderSlotCenter(0)) // the pointer rests on another slot
+	tt.Frame()
+	r.Key(mui.Key3)
+	tt.Frame()
+	tt.Frame()
+	r.Press(subPoint(2, 3), ui.RingRadius+2*ui.RingDeadZone)
+	r.Press(ring.Point{X: -300, Y: 0}, ui.RingRadius+2*ui.RingDeadZone)
+	if got := host.take(); !slices.Equal(got, []string{"choose 2/2", "close"}) {
+		t.Errorf("middle clicks: %q", got)
 	}
 }

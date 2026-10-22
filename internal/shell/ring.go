@@ -44,7 +44,8 @@ type ringState struct {
 	rect   ring.Rect
 	center ring.Point
 	scale  float64
-	gen    int // a new ring, or closed: the context of an older one is dropped
+	work   ring.Rect // the work area of its display
+	gen    int       // a new ring, or closed: the context of an older one is dropped
 	cap    ringCapture
 	keys   bool // Escape and 1–8 are registered
 
@@ -300,24 +301,21 @@ func (s *Shell) openRing(pt ring.Point) {
 	r.cap = ringCapture{fg: fg}
 
 	// The fixed actions, as stored, until they are found again.
-	var quick []ring.Slot
-	own := ui.RingOwn(s.loc)
-	for _, a := range cfg.Ring.Fixed[:min(len(cfg.Ring.Fixed), ring.Slots)] {
-		if title, icon, ok := own(a.Key); ok {
-			quick = append(quick, ring.Slot{Key: a.Key, Title: title, Icon: plugin.Icon{Name: icon}, Fixed: true})
-		} else if !ring.IsOwn(a.Key) {
-			quick = append(quick, ring.Slot{Key: a.Key, Title: a.Title, Icon: plugin.Icon{Name: a.Icon}, Fixed: true})
-		}
-	}
-	r.view.Show(ring.Arrange(quick))
+	quick := ring.Arrange(ring.FixedSlots(s.ctx, nil, cfg.Ring.Fixed, ui.RingOwn(s.loc)), nil)
+	r.view.Show(quick)
+	// Larger with a folder: room for its arc.
+	width, height := ui.RingSize(quick)
 	w := s.ringWindow()
-	r.rect, r.scale = placeRing(w, pt)
-	r.center = r.rect.Center()
+	r.rect, r.scale, r.work = placeRing(w, pt, width, height)
 	w.ShowInactive()
-	if rect, scale := placeRing(w, pt); rect != r.rect {
+	if rect, scale, work := placeRing(w, pt, width, height); rect != r.rect {
 		// Shown on a display of another scale: placed again in its pixels.
-		r.rect, r.scale, r.center = rect, scale, rect.Center()
+		r.rect, r.scale, r.work = rect, scale, work
 	}
+	r.center = r.rect.Center()
+	// An arc fits in the part of the window on the screen.
+	vis := r.rect.Intersect(r.work)
+	r.view.SetBounds(ring.Rect{X: (vis.X - r.center.X) / r.scale, Y: (vis.Y - r.center.Y) / r.scale, W: vis.W / r.scale, H: vis.H / r.scale})
 	w.Invalidate()
 	s.registerRingKeys()
 
@@ -358,13 +356,13 @@ func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending 
 		wg.Wait()
 	}
 	fixed := ring.FixedSlots(s.ctx, s.env.Engine, cfg.Ring.Fixed, ui.RingOwn(s.loc))
-	slots := ring.Content(s.ctx, s.env.Engine, cfg.Ring, fixed, c, sel)
+	layout := ring.Content(s.ctx, s.env.Engine, cfg.Ring, fixed, c, sel)
 	s.post(func() {
 		if s.ring.gen != gen || s.ring.machine == nil || !s.ring.machine.Open() {
 			return
 		}
 		s.ring.cap.ctx, s.ring.cap.sel = c, sel
-		s.ring.view.SetLayout(ring.Arrange(slots))
+		s.ring.view.SetLayout(layout)
 		if s.ring.win != nil {
 			s.ring.win.Invalidate()
 		}
@@ -384,25 +382,36 @@ func (s *Shell) ringTrack(pt ring.Point) {
 		if p == nil || s.ring.win == nil || !s.ring.win.IsVisible() {
 			return
 		}
-		if s.ring.view.SetHighlight(ring.SlotAt(s.ring.center, *p, ui.RingDeadZone*s.ring.scale, 0)) {
+		if s.ring.view.Track(s.ringLocal(*p)) {
 			s.ring.win.Invalidate()
 		}
 	})
 }
 
+// ringLocal returns pt, in the hook's units, in DIPs from the ring's
+// centre.
+func (s *Shell) ringLocal(pt ring.Point) ring.Point {
+	r := &s.ring
+	return ring.Point{X: (pt.X - r.center.X) / r.scale, Y: (pt.Y - r.center.Y) / r.scale}
+}
+
 // ringReleased handles the button let go while it held the ring open:
-// without moving, the ring stays; after a drag, the slot in its direction
-// runs (none in the middle: the ring closes). Main thread only.
+// without moving, the ring stays; after a drag, the slot (or the open
+// arc's action) in its direction runs; on a folder, the ring stays with
+// its arc; in the middle, the ring closes. Main thread only.
 func (s *Shell) ringReleased(pt ring.Point, moved bool) {
 	if s.ring.win == nil || !s.ring.win.IsVisible() {
 		return
 	}
 	if !moved {
-		s.ring.view.SetHighlight(-1)
+		s.ring.view.EndDrag()
 		s.ring.win.Invalidate()
 		return
 	}
-	s.chooseRingAt(pt, 0)
+	s.ring.view.Release(s.ringLocal(pt))
+	if s.ring.win.IsVisible() {
+		s.ring.win.Invalidate()
+	}
 }
 
 // ringPressed handles a button going down while the ring stays open: the
@@ -415,30 +424,34 @@ func (s *Shell) ringPressed(pt ring.Point, middle bool) {
 	}
 	switch {
 	case middle:
-		s.chooseRingAt(pt, (ui.RingRadius+2*ui.RingDeadZone)*s.ring.scale)
+		s.ring.view.Press(s.ringLocal(pt), ui.RingRadius+2*ui.RingDeadZone)
+		if s.ring.win.IsVisible() {
+			s.ring.win.Invalidate()
+		}
 	case !s.ring.rect.Contains(pt):
 		s.closeRing()
 	}
 }
 
-// chooseRingAt runs the slot in the direction of pt, or closes the ring.
-func (s *Shell) chooseRingAt(pt ring.Point, max float64) {
-	if i := ring.SlotAt(s.ring.center, pt, ui.RingDeadZone*s.ring.scale, max); i >= 0 && s.ring.view.Layout()[i] != nil {
-		s.chooseRing(i)
-		return
-	}
-	s.closeRing()
-}
-
-// chooseRing hides the ring, then runs slot i. Main thread only.
-func (s *Shell) chooseRing(i int) {
+// chooseRing hides the ring, then runs slot i (j of its folder, j >= 0).
+// Main thread only.
+func (s *Shell) chooseRing(i, j int) {
 	slot := s.ring.view.Layout()[i]
+	if slot != nil && j >= 0 {
+		if j >= len(slot.Folder) {
+			return
+		}
+		slot = &slot.Folder[j]
+	}
+	if slot.IsFolder() {
+		return // a folder opens its arc: the view does that
+	}
 	cap := s.ring.cap
 	s.closeRing()
 	if slot == nil {
 		return
 	}
-	s.log.Info("action ring", "slot", i, "key", slot.Key)
+	s.log.Info("action ring", "slot", i, "sub", j, "key", slot.Key)
 	// After the ring's window is gone: the action runs in the window
 	// that was active.
 	s.post(func() { s.runRingSlot(*slot, cap) })
@@ -468,7 +481,11 @@ func (s *Shell) registerRingKeys() {
 	}
 	s.ring.keys = true
 	for _, k := range ringKeys {
-		if err := mygo.GlobalShortcut.Register(k.acc, func() { s.ring.view.Key(k.key) }); err != nil {
+		if err := mygo.GlobalShortcut.Register(k.acc, func() {
+			if s.ring.view.Key(k.key) && s.ring.win != nil && s.ring.win.IsVisible() {
+				s.ring.win.Invalidate() // an arc opened or closed
+			}
+		}); err != nil {
 			s.log.Debug("action ring key", "key", k.acc, "err", err)
 		}
 	}
@@ -487,8 +504,9 @@ func (s *Shell) unregisterRingKeys() {
 // ringHost is the ring view's window.
 type ringHost struct{ s *Shell }
 
-func (h ringHost) Choose(i int) { h.s.chooseRing(i) }
-func (h ringHost) Close()       { h.s.closeRing() }
+func (h ringHost) Choose(i int)      { h.s.chooseRing(i, -1) }
+func (h ringHost) ChooseIn(i, j int) { h.s.chooseRing(i, j) }
+func (h ringHost) Close()            { h.s.closeRing() }
 
 // runRingSlot runs a slot of the ring in the window that was active.
 // Main thread only.

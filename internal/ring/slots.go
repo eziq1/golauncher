@@ -10,18 +10,33 @@ import (
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
-// Slot is an action of the ring.
+// Slot is an action of the ring, or a folder of actions.
 type Slot struct {
-	// Key is a ring action's (config.RingLauncher, …) or the entry's key.
-	Key   string
+	// Key is a ring action's (config.RingLauncher, …) or the entry's key;
+	// a folder's is FolderKey and its position.
+	Key string
+	// Title is the action's name, or the folder's ("" for the default
+	// one, which the view shows in its language).
 	Title string
 	Icon  plugin.Icon
-	// Fixed marks one of the user's fixed actions.
+	// Fixed marks one of the user's fixed actions or folders.
 	Fixed bool
 	// Entry is the root entry the slot runs (nil for the ring's own
-	// actions, and for a fixed entry not found again).
+	// actions, for a fixed entry not found again, and for a folder).
 	Entry *core.Entry
+	// Folder holds a folder's actions (nil for an action): pointed at, the
+	// folder opens an arc of them.
+	Folder []Slot
 }
+
+// FolderKey starts the key of a folder slot.
+const FolderKey = "folder:"
+
+// IsFolder reports whether s is a folder.
+func (s *Slot) IsFolder() bool { return s != nil && s.Folder != nil }
+
+// empty reports whether s is an empty fixed slot.
+func (s Slot) empty() bool { return s.Key == "" && s.Folder == nil }
 
 // Layout is the ring's slots by position (0 at the top, clockwise); nil
 // where a position is empty.
@@ -38,19 +53,39 @@ func (l Layout) Count() int {
 	return n
 }
 
-// positions is the order the slots are filled in: the fixed actions take
-// the four main directions first (up, right, down, left), so that they
-// stay where the hand expects them; the context ones the diagonals.
-var positions = [Slots]int{0, 2, 4, 6, 1, 3, 5, 7}
+// HasFolder reports whether a slot of l is a folder.
+func (l Layout) HasFolder() bool {
+	return slices.ContainsFunc(l[:], func(s *Slot) bool { return s.IsFolder() })
+}
 
-// Arrange lays out list, the fixed slots first, by positions.
-func Arrange(list []Slot) Layout {
+// FixedPosition returns the position of fixed slot i: the fixed slots take
+// the four main directions (up, right, down, left), so that they stay where
+// the hand expects them.
+func FixedPosition(i int) int { return 2 * i }
+
+// contextPositions is the order the context slots are filled in: the
+// diagonals, then the main directions no fixed slot takes.
+var contextPositions = [Slots]int{1, 3, 5, 7, 0, 2, 4, 6}
+
+// Arrange lays out the fixed slots by position (fixed[i] at
+// FixedPosition(i); an empty one leaves its place) and the context slots
+// around them.
+func Arrange(fixed, context []Slot) Layout {
 	var l Layout
-	for i, s := range list {
-		if i == Slots {
+	for i, s := range fixed[:min(len(fixed), config.MaxRingFixed)] {
+		if !s.empty() {
+			l[FixedPosition(i)] = &s
+		}
+	}
+	next := 0
+	for _, s := range context {
+		for next < Slots && l[contextPositions[next]] != nil {
+			next++
+		}
+		if next == Slots {
 			break
 		}
-		l[positions[i]] = &s
+		l[contextPositions[next]] = &s
 	}
 	return l
 }
@@ -66,23 +101,34 @@ var sameAs = map[string][]string{
 // preview row (it shows the text, it acts on nothing).
 var skipped = map[string]bool{"builtin.selection/preview": true}
 
-// Assemble picks the context slots for the fixed ones: candidates are the
+// Assemble picks the context slots for the fixed ones (by position, as
+// FixedSlots returns them) and lays them all out: candidates are the
 // entries of the selection and context providers (core.Engine.RingEntries),
 // fallback what to show when none fits (recently used entries). The most
 // relevant come first (highest Score, else in the providers' order);
-// duplicates of a fixed action, destructive actions and entries that need
-// an argument are left out. The result has at most Slots slots, the fixed
-// ones first.
-func Assemble(fixed []Slot, candidates, fallback []core.Entry) []Slot {
-	out := slices.Clone(fixed[:min(len(fixed), Slots)])
+// duplicates of a fixed action (also one in a folder), destructive actions
+// and entries that need an argument are left out.
+func Assemble(fixed []Slot, candidates, fallback []core.Entry) Layout {
+	fixed = fixed[:min(len(fixed), config.MaxRingFixed)]
 	seen := map[string]bool{}
-	for _, s := range out {
+	mark := func(s Slot) {
 		seen[s.Key] = true
 		for _, k := range sameAs[s.Key] {
 			seen[k] = true
 		}
 		if s.Entry != nil {
 			seen[s.Entry.Key] = true
+		}
+	}
+	taken := 0
+	for _, s := range fixed {
+		if s.empty() {
+			continue
+		}
+		taken++
+		mark(s)
+		for _, a := range s.Folder {
+			mark(a)
 		}
 	}
 	pick := func(list []core.Entry) []Slot {
@@ -98,15 +144,12 @@ func Assemble(fixed []Slot, candidates, fallback []core.Entry) []Slot {
 		}
 		return got
 	}
-	free := Slots - len(out)
-	if free <= 0 {
-		return out
-	}
+	free := Slots - taken
 	more := pick(candidates)
 	if len(more) == 0 {
 		more = pick(fallback)
 	}
-	return append(out, more[:min(len(more), free)]...)
+	return Arrange(fixed, more[:min(len(more), free)])
 }
 
 // fits reports whether entry e can be a slot: it has an action that runs

@@ -28,8 +28,20 @@ func ownSlot(key string) Slot { return Slot{Key: key, Title: key, Fixed: true} }
 
 var defaultFixed = []Slot{ownSlot(config.RingLauncher), ownSlot(config.RingAskAI), ownSlot(config.RingScreenshot), ownSlot(config.RingLock)}
 
-// TestAssemble: the fixed slots first, then the context entries by Score,
-// without duplicates of a fixed action ("Ask AI…" is the ring's own Ask AI),
+// lkeys returns the keys of l by position, "" where empty.
+func lkeys(l Layout) []string {
+	out := make([]string, Slots)
+	for i, s := range l {
+		if s != nil {
+			out[i] = s.Key
+		}
+	}
+	return out
+}
+
+// TestAssemble: the fixed slots take the main directions, the context
+// entries by Score the diagonals, without duplicates of a fixed action
+// ("Ask AI…" is the ring's own Ask AI, an action in a folder counts too),
 // the selected text's preview, destructive entries or entries that need an
 // argument; at most 8 slots.
 func TestAssemble(t *testing.T) {
@@ -54,33 +66,33 @@ func TestAssemble(t *testing.T) {
 		optionalArg,
 		entry("builtin.system", "system:lock", 0), // the fixed Lock Screen
 	}
-	got := Assemble(defaultFixed, candidates, []core.Entry{entry("recent", "x", 0)})
-	wantKeys := []string{config.RingLauncher, config.RingAskAI, config.RingScreenshot, config.RingLock,
-		"builtin.quicklinks/open-url", "builtin.ai/translate", "builtin.ai/explain", "builtin.files/terminal"}
-	if !slices.Equal(keys(got), wantKeys) {
-		t.Fatalf("slots %q, want %q", keys(got), wantKeys)
+	l := Assemble(defaultFixed, candidates, []core.Entry{entry("recent", "x", 0)})
+	want := []string{config.RingLauncher, "builtin.quicklinks/open-url", config.RingAskAI, "builtin.ai/translate",
+		config.RingScreenshot, "builtin.ai/explain", config.RingLock, "builtin.files/terminal"}
+	if !slices.Equal(lkeys(l), want) {
+		t.Fatalf("slots %q, want %q", lkeys(l), want)
 	}
-	if got[4].Fixed || got[4].Entry == nil || got[4].Entry.Key != "builtin.quicklinks/open-url" || !got[0].Fixed {
-		t.Errorf("slots %+v", got)
+	if l[1].Fixed || l[1].Entry == nil || l[1].Entry.Key != "builtin.quicklinks/open-url" || !l[0].Fixed {
+		t.Errorf("slots %+v", l)
 	}
 
-	// Room for everything: the optional argument is fine.
-	got = Assemble(defaultFixed[:1], candidates, nil)
-	if !slices.Contains(keys(got), "p/optional") || len(got) != 8 {
-		t.Errorf("slots %q", keys(got))
+	// Room for everything: the optional argument is fine; the context
+	// takes the diagonals first, then the main directions left empty.
+	l = Assemble(defaultFixed[:1], candidates, nil)
+	if !slices.Contains(lkeys(l), "p/optional") || l.Count() != 8 || l[1].Key != "builtin.quicklinks/open-url" || l[2].Key != "builtin.files/terminal" {
+		t.Errorf("slots %q", lkeys(l))
 	}
 
 	// No fixed actions: the context fills the ring.
-	if got := Assemble(nil, candidates, nil); len(got) != 8 || got[0].Key != "builtin.quicklinks/open-url" {
-		t.Errorf("slots %q", keys(got))
+	if l := Assemble(nil, candidates, nil); l.Count() != 8 || l[1].Key != "builtin.quicklinks/open-url" {
+		t.Errorf("slots %q", lkeys(l))
 	}
-	// Eight fixed ones: no room.
-	var eight []Slot
-	for i := range 9 {
-		eight = append(eight, ownSlot(string(rune('a'+i))))
-	}
-	if got := Assemble(eight, candidates, nil); len(got) != 8 || got[7].Key != "h" {
-		t.Errorf("slots %q", keys(got))
+	// A folder: its actions are not offered again; an empty fixed slot
+	// stays a place for the context.
+	folder := Slot{Key: FolderKey + "1", Fixed: true, Folder: []Slot{ownSlot("x"), {Key: "builtin.ai/translate", Fixed: true}}}
+	l = Assemble([]Slot{ownSlot(config.RingLauncher), folder, {}, ownSlot(config.RingLock)}, candidates, nil)
+	if got := lkeys(l); slices.Contains(got, "builtin.ai/translate") || got[2] != FolderKey+"1" || got[4] == "" || l.Count() != 8 {
+		t.Errorf("with a folder %q", got)
 	}
 }
 
@@ -88,37 +100,36 @@ func TestAssemble(t *testing.T) {
 // entries, by the same rules.
 func TestAssembleFallback(t *testing.T) {
 	recent := []core.Entry{entry("builtin.apps", "notepad", 0), entry("builtin.system", "system:lock", 0), entry("builtin.apps", "paint", 0)}
-	got := Assemble(defaultFixed, nil, recent)
-	if want := []string{config.RingLauncher, config.RingAskAI, config.RingScreenshot, config.RingLock, "builtin.apps/notepad", "builtin.apps/paint"}; !slices.Equal(keys(got), want) {
-		t.Errorf("slots %q, want %q", keys(got), want)
+	l := Assemble(defaultFixed, nil, recent)
+	if want := []string{config.RingLauncher, "builtin.apps/notepad", config.RingAskAI, "builtin.apps/paint", config.RingScreenshot, "", config.RingLock, ""}; !slices.Equal(lkeys(l), want) {
+		t.Errorf("slots %q, want %q", lkeys(l), want)
 	}
 	// Only unfit candidates: the fallback too.
 	preview := entry("builtin.selection", "preview", 1)
-	if got := Assemble(defaultFixed, []core.Entry{preview}, recent); len(got) != 6 {
-		t.Errorf("slots %q", keys(got))
+	if l := Assemble(defaultFixed, []core.Entry{preview}, recent); l.Count() != 6 {
+		t.Errorf("slots %q", lkeys(l))
 	}
 	// Nothing at all: the fixed ones.
-	if got := Assemble(defaultFixed, nil, nil); len(got) != 4 {
-		t.Errorf("slots %q", keys(got))
+	if l := Assemble(defaultFixed, nil, nil); l.Count() != 4 {
+		t.Errorf("slots %q", lkeys(l))
 	}
 }
 
-// TestArrange: the fixed slots take up, right, down and left; the context
-// ones the diagonals.
+// TestArrange: the fixed slots take up, right, down and left by their
+// index, an empty one leaving its place; the context ones the diagonals,
+// then the free main directions.
 func TestArrange(t *testing.T) {
-	list := []Slot{ownSlot("f1"), ownSlot("f2"), ownSlot("f3"), ownSlot("f4"), {Key: "c1"}, {Key: "c2"}}
-	l := Arrange(list)
-	got := make([]string, Slots)
-	for i, s := range l {
-		if s != nil {
-			got[i] = s.Key
-		}
+	l := Arrange([]Slot{ownSlot("f1"), ownSlot("f2"), ownSlot("f3"), ownSlot("f4")}, []Slot{{Key: "c1"}, {Key: "c2"}})
+	if want := []string{"f1", "c1", "f2", "c2", "f3", "", "f4", ""}; !slices.Equal(lkeys(l), want) {
+		t.Errorf("layout %q, want %q", lkeys(l), want)
 	}
-	if want := []string{"f1", "c1", "f2", "c2", "f3", "", "f4", ""}; !slices.Equal(got, want) {
-		t.Errorf("layout %q, want %q", got, want)
-	}
-	if l.Count() != 6 {
+	if l.Count() != 6 || l.HasFolder() {
 		t.Errorf("count %d", l.Count())
+	}
+	ctx := []Slot{{Key: "c1"}, {Key: "c2"}, {Key: "c3"}, {Key: "c4"}, {Key: "c5"}, {Key: "c6"}}
+	l = Arrange([]Slot{{}, {Key: "folder:1", Folder: []Slot{{Key: "a"}, {Key: "b"}}}}, ctx)
+	if want := []string{"c5", "c1", "folder:1", "c2", "c6", "c3", "", "c4"}; !slices.Equal(lkeys(l), want) || !l.HasFolder() || !l[2].IsFolder() {
+		t.Errorf("layout %q, want %q", lkeys(l), want)
 	}
 }
 
@@ -191,25 +202,45 @@ func own(key string) (string, string, bool) {
 	return "", "", false
 }
 
+// contextKeys returns the keys of the context slots of l, in the order
+// they are filled.
+func contextKeys(l Layout) []string {
+	var out []string
+	for _, p := range contextPositions {
+		if s := l[p]; s != nil && !s.Fixed {
+			out = append(out, s.Key)
+		}
+	}
+	return out
+}
+
 // TestFixedSlots: the ring's own actions by name, root entries found
 // again, one not found keeping its stored title; an unknown ring action is
-// left out.
+// left out, its slot empty; a folder of the actions found, one left with a
+// single action is that action; without a source, nothing is looked up.
 func TestFixedSlots(t *testing.T) {
 	lock := entry("builtin.system", "system:lock", 0)
 	lock.Title = "Lock Screen"
 	src := &fakeSource{entries: map[string]core.Entry{config.RingLock: lock}}
-	actions := append(config.DefaultRingFixed(), config.RingAction{Key: "ring:future"},
-		config.RingAction{Key: "gone/x", Title: "Gone", Icon: "trash"})
-	got := FixedSlots(t.Context(), src, actions, own)
-	if want := []string{config.RingLauncher, config.RingAskAI, config.RingScreenshot, config.RingLock, "gone/x"}; !slices.Equal(keys(got), want) {
+	slots := []config.RingSlot{{Key: config.RingLauncher}, {Key: "ring:future"},
+		config.FolderSlot("Tools", config.RingAction{Key: config.RingLock}, config.RingAction{Key: "gone/x", Title: "Gone", Icon: "trash"}, config.RingAction{Key: "ring:future"}),
+		config.FolderSlot("", config.RingAction{Key: config.RingScreenshot}, config.RingAction{Key: "ring:future2"})}
+	got := FixedSlots(t.Context(), src, slots, own)
+	if want := []string{config.RingLauncher, "", FolderKey + "2", config.RingScreenshot}; !slices.Equal(keys(got), want) {
 		t.Fatalf("slots %q", keys(got))
 	}
-	if got[0].Title != "Open golauncher" || got[0].Icon.Name != "command" || got[3].Title != "Lock Screen" || got[3].Entry == nil ||
-		got[4].Title != "Gone" || got[4].Icon.Name != "trash" || got[4].Entry != nil {
+	f := got[2]
+	if got[0].Title != "Open golauncher" || got[0].Icon.Name != "command" || f.Title != "Tools" || len(f.Folder) != 2 ||
+		f.Folder[0].Title != "Lock Screen" || f.Folder[0].Entry == nil || f.Folder[1].Title != "Gone" || f.Folder[1].Icon.Name != "trash" ||
+		f.Folder[1].Entry != nil || got[3].IsFolder() || !f.IsFolder() {
 		t.Errorf("slots %+v", got)
 	}
 	if !slices.Equal(src.searched, []string{config.RingLock + "|", "gone/x|Gone"}) {
 		t.Errorf("searched %q", src.searched)
+	}
+	quick := FixedSlots(t.Context(), nil, slots, own)
+	if quick[2].Folder[0].Title != config.RingLock || quick[2].Folder[0].Entry != nil {
+		t.Errorf("quick %+v", quick[2])
 	}
 }
 
@@ -223,29 +254,29 @@ func TestContent(t *testing.T) {
 	recent := []core.Entry{entry("builtin.apps", "calculator", 0)}
 
 	src := &fakeSource{recent: recent}
-	if got := keys(Content(t.Context(), src, cfg, fixed, nil, sel)); !slices.Equal(got[3:], []string{"builtin.ai/translate"}) || src.sel != sel {
+	if got := contextKeys(Content(t.Context(), src, cfg, fixed, nil, sel)); !slices.Equal(got, []string{"builtin.ai/translate"}) || src.sel != sel {
 		t.Errorf("selection: %q", got)
 	}
 	src = &fakeSource{recent: recent}
-	if got := keys(Content(t.Context(), src, cfg, fixed, explorer, nil)); !slices.Equal(got[3:], []string{"builtin.files/terminal", "builtin.files/vscode", "builtin.files/copy-path"}) {
+	if got := contextKeys(Content(t.Context(), src, cfg, fixed, explorer, nil)); !slices.Equal(got, []string{"builtin.files/terminal", "builtin.files/vscode", "builtin.files/copy-path"}) {
 		t.Errorf("explorer: %q", got)
 	}
 	src = &fakeSource{recent: recent}
-	if got := keys(Content(t.Context(), src, cfg, fixed, explorer, sel)); len(got) != 7 || got[3] != "builtin.ai/translate" {
+	if got := contextKeys(Content(t.Context(), src, cfg, fixed, explorer, sel)); len(got) != 4 || got[0] != "builtin.ai/translate" {
 		t.Errorf("both: %q", got)
 	}
 	src = &fakeSource{recent: recent}
-	if got := keys(Content(t.Context(), src, cfg, fixed, nil, nil)); !slices.Equal(got[3:], []string{"builtin.apps/calculator"}) || src.calls != 0 {
+	if got := contextKeys(Content(t.Context(), src, cfg, fixed, nil, nil)); !slices.Equal(got, []string{"builtin.apps/calculator"}) || src.calls != 0 {
 		t.Errorf("no context: %q (%d calls)", got, src.calls)
 	}
 	// A context nothing answers for (a plain app): the fallback.
 	src = &fakeSource{recent: recent}
-	if got := keys(Content(t.Context(), src, cfg, fixed, &plugin.Context{App: plugin.AppInfo{Name: "game.exe"}}, nil)); !slices.Equal(got[3:], []string{"builtin.apps/calculator"}) {
+	if got := contextKeys(Content(t.Context(), src, cfg, fixed, &plugin.Context{App: plugin.AppInfo{Name: "game.exe"}}, nil)); !slices.Equal(got, []string{"builtin.apps/calculator"}) {
 		t.Errorf("plain app: %q", got)
 	}
 	cfg.Context = false
 	src = &fakeSource{recent: recent}
-	if got := Content(t.Context(), src, cfg, fixed, explorer, sel); len(got) != 3 || src.calls != 0 {
-		t.Errorf("context off: %q", keys(got))
+	if got := Content(t.Context(), src, cfg, fixed, explorer, sel); got.Count() != 3 || src.calls != 0 {
+		t.Errorf("context off: %q", lkeys(got))
 	}
 }

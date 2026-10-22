@@ -69,9 +69,13 @@ const (
 	MaxRingHoldMS     = 1000
 )
 
-// MaxRingFixed is the number of slots of the Action Ring, the most fixed
-// actions it can have.
-const MaxRingFixed = 8
+// MaxRingFixed is the number of fixed slots of the Action Ring: the top,
+// the right, the bottom and the left (docs/action-ring-folders.md); the
+// diagonals are the context actions'.
+const MaxRingFixed = 4
+
+// MaxRingFolder is the most actions a folder of the Action Ring holds.
+const MaxRingFolder = 6
 
 // RingAction is a fixed action of the Action Ring: one of the ring's own
 // (RingLauncher, …), or a root entry of the launcher ("<plugin>/<item id>":
@@ -84,6 +88,117 @@ type RingAction struct {
 	Icon  string `json:"icon,omitempty"`
 }
 
+// RingSlot is a fixed slot of the Action Ring: an action (Key, Title,
+// Icon, as a RingAction), a folder (Actions, at least two and at most
+// MaxRingFolder, with its Name; folders hold actions only), or empty
+// (neither). An action is stored as a RingAction was before folders, so
+// that a list of actions of an older version reads as a list of slots.
+type RingSlot struct {
+	Key   string `json:"key,omitempty"`
+	Title string `json:"title,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+	// Name is a folder's name; "" shows the default one ("Folder").
+	Name    string       `json:"name,omitempty"`
+	Actions []RingAction `json:"actions,omitempty"`
+}
+
+// ActionSlot returns the slot holding action a.
+func ActionSlot(a RingAction) RingSlot { return RingSlot{Key: a.Key, Title: a.Title, Icon: a.Icon} }
+
+// FolderSlot returns a folder named name holding actions.
+func FolderSlot(name string, actions ...RingAction) RingSlot {
+	return RingSlot{Name: name, Actions: actions}
+}
+
+// IsFolder reports whether s is a folder.
+func (s RingSlot) IsFolder() bool { return len(s.Actions) > 0 }
+
+// IsEmpty reports whether s holds nothing.
+func (s RingSlot) IsEmpty() bool { return s.Key == "" && len(s.Actions) == 0 }
+
+// Action returns the action of an action slot.
+func (s RingSlot) Action() RingAction { return RingAction{Key: s.Key, Title: s.Title, Icon: s.Icon} }
+
+// Clone returns a deep copy of s.
+func (s RingSlot) Clone() RingSlot {
+	s.Actions = slices.Clone(s.Actions)
+	return s
+}
+
+// NormalizeRingFixed returns slots as they are kept: at most MaxRingFixed
+// slots, without the empty ones at the end. Slots past MaxRingFixed (a list
+// of up to 8 actions written before folders) go into a folder in the last
+// slot, with the action there, so that none is lost while there is room. A
+// folder keeps at most MaxRingFolder actions; one left with a single action
+// becomes that action, an empty one an empty slot. An action without a key
+// and the second of two equal keys are left out. Actions this version does
+// not know stay: the ring leaves them out when it shows (ring.FixedSlots).
+func NormalizeRingFixed(slots []RingSlot) []RingSlot {
+	out := make([]RingSlot, 0, MaxRingFixed)
+	for i, s := range slots {
+		if i < MaxRingFixed {
+			out = append(out, s.Clone())
+			continue
+		}
+		// Past the last slot: into a folder there.
+		last := &out[MaxRingFixed-1]
+		var more []RingAction
+		if s.IsFolder() {
+			more = s.Actions
+		} else if s.Key != "" {
+			more = []RingAction{s.Action()}
+		}
+		if len(more) == 0 {
+			continue
+		}
+		switch {
+		case last.IsFolder():
+		case last.Key != "":
+			*last = FolderSlot("", last.Action())
+		default:
+			*last = RingSlot{}
+		}
+		last.Actions = append(last.Actions, more...)
+	}
+	seen := map[string]bool{}
+	keep := func(a RingAction) bool {
+		if a.Key == "" || seen[a.Key] {
+			return false
+		}
+		seen[a.Key] = true
+		return true
+	}
+	for i := range out {
+		s := &out[i]
+		if !s.IsFolder() {
+			if s.Key == "" || !keep(s.Action()) {
+				*s = RingSlot{}
+			} else {
+				s.Name = ""
+			}
+			continue
+		}
+		var acts []RingAction
+		for _, a := range s.Actions {
+			if len(acts) < MaxRingFolder && keep(a) {
+				acts = append(acts, a)
+			}
+		}
+		switch len(acts) {
+		case 0:
+			*s = RingSlot{}
+		case 1:
+			*s = ActionSlot(acts[0])
+		default:
+			*s = RingSlot{Name: s.Name, Actions: acts}
+		}
+	}
+	for len(out) > 0 && out[len(out)-1].IsEmpty() {
+		out = out[:len(out)-1]
+	}
+	return out
+}
+
 // The Action Ring's own actions (RingAction.Key).
 const (
 	RingLauncher   = "ring:launcher"   // show golauncher
@@ -93,10 +208,11 @@ const (
 	RingLock = "builtin.system/system:lock"
 )
 
-// DefaultRingFixed returns the fixed actions of a new configuration.
-func DefaultRingFixed() []RingAction {
+// DefaultRingFixed returns the fixed slots of a new configuration: four
+// actions, no folder.
+func DefaultRingFixed() []RingSlot {
 	// The lock's title comes from the system plugin, in the UI language.
-	return []RingAction{{Key: RingLauncher}, {Key: RingAskAI}, {Key: RingScreenshot}, {Key: RingLock, Icon: "lock"}}
+	return []RingSlot{{Key: RingLauncher}, {Key: RingAskAI}, {Key: RingScreenshot}, {Key: RingLock, Icon: "lock"}}
 }
 
 // DefaultRingExceptions are the apps where the middle button is never taken:
@@ -122,8 +238,10 @@ type RingConfig struct {
 	// HoldMS is how long the middle button is held before the ring opens; 0
 	// is DefaultRingHoldMS.
 	HoldMS int `json:"holdMs,omitzero"`
-	// Fixed are the actions always shown, in order, at most MaxRingFixed.
-	Fixed []RingAction `json:"fixed"`
+	// Fixed are the slots always shown: the top, the right, the bottom and
+	// the left (at most MaxRingFixed; NormalizeRingFixed), each an action,
+	// a folder of actions or empty.
+	Fixed []RingSlot `json:"fixed"`
 	// Context fills the other slots with actions for the selected text and
 	// the folder under the pointer.
 	Context bool `json:"context"`
@@ -147,7 +265,13 @@ func (r RingConfig) EffectiveHoldMS() int {
 
 // Clone returns a deep copy of r.
 func (r RingConfig) Clone() RingConfig {
-	r.Fixed = slices.Clone(r.Fixed)
+	if r.Fixed != nil {
+		fixed := make([]RingSlot, len(r.Fixed))
+		for i, s := range r.Fixed {
+			fixed[i] = s.Clone()
+		}
+		r.Fixed = fixed
+	}
 	r.Exceptions = slices.Clone(r.Exceptions)
 	return r
 }
@@ -530,6 +654,10 @@ func migrate(cfg Config) (Config, error) {
 		cfg.Appearance = AppearanceFromTheme(cfg.Theme)
 	}
 	cfg.Appearance.normalize()
+	if cfg.Ring.Fixed != nil {
+		// Folders came after lists of up to 8 actions (R118).
+		cfg.Ring.Fixed = NormalizeRingFixed(cfg.Ring.Fixed)
+	}
 	return cfg, nil
 }
 
