@@ -129,10 +129,83 @@ func fit(w, h, edge int) (int, int) {
 	return max(1, int((int64(w)*int64(edge)+int64(h)/2)/int64(h))), edge
 }
 
+// scale shrinks img to w×h (never larger: fit) by area averaging: each
+// pixel is the mean of the source pixels it covers, those at its edges
+// weighted by how much of them it covers. It reads the source a row at a
+// time and keeps one row of sums: x/image/draw's kernels keep a float64
+// pixel for every column of the result times every row of the source, about
+// 190 MB for a 12-megapixel photo (R124).
 func scale(img image.Image, w, h int) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, w, h))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Src, nil)
+	b := img.Bounds()
+	sw, sh := b.Dx(), b.Dy()
+	cols := spans(sw, w)
+	// A source row, converted (premultiplied, so that averaging keeps the
+	// colors of translucent pixels), and reduced to w columns.
+	src := image.NewRGBA(image.Rect(0, 0, sw, 1))
+	row := make([]float32, 4*w)
+	sum := make([]float32, 4*w)
+	rowOf := -1
+	area := float32(sw) / float32(w) * float32(sh) / float32(h)
+	for y, s := range spans(sh, h) {
+		clear(sum)
+		for i, wy := range s.weights {
+			sy := s.first + i
+			if sy != rowOf {
+				draw.Draw(src, src.Rect, img, image.Pt(b.Min.X, b.Min.Y+sy), draw.Src)
+				reduceRow(row, src.Pix, cols)
+				rowOf = sy
+			}
+			for j, v := range row {
+				sum[j] += wy * v
+			}
+		}
+		out := dst.Pix[y*dst.Stride : y*dst.Stride+4*w]
+		for j, v := range sum {
+			out[j] = uint8(min(255, v/area+0.5))
+		}
+	}
 	return dst
+}
+
+// span is the source pixels an output pixel covers: from first, each with
+// the part of it covered.
+type span struct {
+	first   int
+	weights []float32
+}
+
+// spans returns, for n output pixels over src source pixels (n <= src),
+// the source pixels each covers.
+func spans(src, n int) []span {
+	out := make([]span, n)
+	step := float64(src) / float64(n)
+	for i := range out {
+		lo, hi := float64(i)*step, float64(i+1)*step
+		first := int(lo)
+		s := span{first: first}
+		for p := first; float64(p) < hi && p < src; p++ {
+			s.weights = append(s.weights, float32(min(float64(p+1), hi)-max(float64(p), lo)))
+		}
+		out[i] = s
+	}
+	return out
+}
+
+// reduceRow sums the RGBA pixels pix of a source row into row, one weighted
+// sum per output column.
+func reduceRow(row []float32, pix []uint8, cols []span) {
+	for x, c := range cols {
+		var r, g, b, a float32
+		for i, wx := range c.weights {
+			p := pix[4*(c.first+i):]
+			r += wx * float32(p[0])
+			g += wx * float32(p[1])
+			b += wx * float32(p[2])
+			a += wx * float32(p[3])
+		}
+		row[4*x], row[4*x+1], row[4*x+2], row[4*x+3] = r, g, b, a
+	}
 }
 
 func encode(img image.Image, asPNG bool) ([]byte, error) {

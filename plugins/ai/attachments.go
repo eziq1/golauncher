@@ -7,6 +7,7 @@ import (
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -157,8 +158,16 @@ type prepared struct {
 func (p *Plugin) prepareFiles(paths []string, image []byte) []prepared {
 	lim := attach.DefaultLimits()
 	var out []prepared
+	images := len(image) > 0
 	for _, path := range paths {
-		out = append(out, prepared{name: filepath.Base(path), p: attach.PrepareFile(path, lim)})
+		pr := attach.PrepareFile(path, lim)
+		images = images || pr.Kind == backend.AttachImage
+		out = append(out, prepared{name: filepath.Base(path), p: pr})
+	}
+	if images {
+		// A decoded image is tens of megabytes the runtime would keep for
+		// minutes after it is garbage (R124): give them back now.
+		defer p.h.Go(debug.FreeOSMemory)
 	}
 	if len(image) > 0 {
 		pi := attach.PrepareImage(image, lim)

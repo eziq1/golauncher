@@ -13,6 +13,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -531,4 +532,60 @@ func TestFit(t *testing.T) {
 			t.Errorf("fit(%d, %d, %d) = %d, %d, want %d, %d", tt.w, tt.h, tt.edge, w, h, tt.ww, tt.wh)
 		}
 	}
+}
+
+// TestScaleAverages: scale gives each pixel the mean of the source pixels
+// it covers: a checkerboard becomes gray, a solid color stays itself at any
+// ratio, translucent pixels keep their color (premultiplied averaging), and
+// the result has the size asked for.
+func TestScaleAverages(t *testing.T) {
+	checker := image.NewRGBA(image.Rect(0, 0, 4, 4))
+	for y := range 4 {
+		for x := range 4 {
+			if (x+y)%2 == 0 {
+				checker.Set(x, y, color.RGBA{255, 255, 255, 255})
+			} else {
+				checker.Set(x, y, color.RGBA{0, 0, 0, 255})
+			}
+		}
+	}
+	if got := scale(checker, 2, 2).RGBAAt(1, 1); got != (color.RGBA{128, 128, 128, 255}) {
+		t.Errorf("checkerboard: %v, want gray", got)
+	}
+	solid := image.NewNRGBA(image.Rect(10, 20, 10+997, 20+601)) // odd ratios, an offset origin
+	for i := range solid.Pix {
+		solid.Pix[i] = []uint8{30, 140, 220, 255}[i%4]
+	}
+	out := scale(solid, 160, 97)
+	if out.Bounds() != image.Rect(0, 0, 160, 97) {
+		t.Fatalf("bounds %v", out.Bounds())
+	}
+	for _, pt := range []image.Point{{0, 0}, {159, 96}, {80, 48}} {
+		if got := out.RGBAAt(pt.X, pt.Y); got != (color.RGBA{30, 140, 220, 255}) {
+			t.Errorf("solid at %v: %v", pt, got)
+		}
+	}
+	// Half transparent red next to fully transparent pixels: the mean is a
+	// more transparent red, never a darkened one.
+	half := image.NewNRGBA(image.Rect(0, 0, 2, 1))
+	half.SetNRGBA(0, 0, color.NRGBA{255, 0, 0, 128})
+	got := color.NRGBAModel.Convert(scale(half, 1, 1).At(0, 0)).(color.NRGBA)
+	if got.R < 250 || got.G != 0 || got.A < 60 || got.A > 68 {
+		t.Errorf("translucent: %v, want red at about 64 alpha", got)
+	}
+}
+
+// TestScaleMemory (R124): shrinking a 12-megapixel photo allocates about
+// the result and a few rows, not x/image/draw's buffer of float64 pixels
+// (about 190 MB).
+func TestScaleMemory(t *testing.T) {
+	src := image.NewYCbCr(image.Rect(0, 0, 4032, 3024), image.YCbCrSubsampleRatio420) // a decoded JPEG
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	out := scale(src, 2000, 1500)
+	runtime.ReadMemStats(&after)
+	if n := after.TotalAlloc - before.TotalAlloc; n > 20<<20 {
+		t.Errorf("allocated %d MB, want about the 12 MB result", n>>20)
+	}
+	runtime.KeepAlive(out)
 }
