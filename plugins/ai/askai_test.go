@@ -42,4 +42,16 @@ func TestAskAI(t *testing.T) {
 	if r, _ := p.AskAI(t.Context(), plugin.AskAI{}); r.Push != nil {
 		t.Errorf("empty %+v", r)
 	}
+	// Files alone (the Action Ring's Ask AI on a file, R123): a new chat
+	// with them in its draft, nothing sent until the user asks.
+	txt := writeFile(t, t.TempDir(), "notes.txt", []byte("hello\n"))
+	r, _ = p.AskAI(t.Context(), plugin.AskAI{Files: []string{txt}})
+	if r.Push == nil {
+		t.Fatalf("files only %+v", r)
+	}
+	before := len(fake.Sends())
+	v, err = p.View(t.Context(), plugin.ViewRequest{ID: viewChat, Instance: "v2", Payload: r.Push.Payload})
+	if err != nil || len(fake.Sends()) != before || len(v.Chips) != 1 {
+		t.Fatalf("files only: sends %q, chips %+v, %v", fake.Sends(), v.Chips, err)
+	}
 }

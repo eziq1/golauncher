@@ -3,6 +3,7 @@ package translator
 import (
 	"context"
 	"encoding/json/v2"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -177,7 +178,7 @@ func TestTranslateWithAI(t *testing.T) {
 	if a.Do.Kind != plugin.ActionAskAI || json.Unmarshal(a.Do.Payload, &q) != nil {
 		t.Fatalf("ai %+v", a)
 	}
-	if q != (plugin.AskAI{Instruction: "Translate the quoted text into Japanese. Output only the translation.", Text: "good morning",
+	if !reflect.DeepEqual(q, plugin.AskAI{Instruction: "Translate the quoted text into Japanese. Output only the translation.", Text: "good morning",
 		Title: "Translate: good morning"}) {
 		t.Errorf("payload %+v", q)
 	}

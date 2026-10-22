@@ -2,6 +2,7 @@ package shell
 
 import (
 	"context"
+	"encoding/json/v2"
 	"log/slog"
 	"slices"
 	"strings"
@@ -157,7 +158,7 @@ func TestRingSelectionLazy(t *testing.T) {
 			t.Errorf("%s: read with context awareness off", tc.name)
 		}
 		// Ask AI: a chat about the text, else a blank chat.
-		e, ok := ringAskAIEntry(got.sel)
+		e, ok := ringAskAIEntry(got.sel, nil)
 		if ok != (tc.text != "") {
 			t.Errorf("%s: Ask AI with a selection %v", tc.name, ok)
 		}
@@ -217,5 +218,29 @@ func TestRingNeedsSelection(t *testing.T) {
 		if got := ringNeedsSelection(tc.slot); got != tc.want {
 			t.Errorf("%q: %v", tc.slot.Key, got)
 		}
+	}
+}
+
+// TestRingAskAIFiles: Ask AI on a file in a folder view opens a chat with
+// the file attached (R123), with the selected text as a quote when there is
+// one too; without either, a blank chat.
+func TestRingAskAIFiles(t *testing.T) {
+	files := []string{`C:\work\report.pdf`}
+	ctx := &plugin.Context{Kind: plugin.ContextExplorer, Folder: `C:\work`, Selected: files}
+	e, ok := ringAskAIEntry(nil, ringFiles(ctx))
+	if !ok || e.Selection {
+		t.Fatalf("Ask AI on a file: %v %+v", ok, e)
+	}
+	var q plugin.AskAI
+	if err := json.Unmarshal(e.Actions[0].Do.Payload, &q); err != nil || e.Actions[0].Do.Kind != plugin.ActionAskAI ||
+		!slices.Equal(q.Files, files) || q.Text != "" {
+		t.Fatalf("Ask AI on a file: %+v %v", q, err)
+	}
+	e, _ = ringAskAIEntry(&plugin.Selection{Text: "abc"}, files)
+	if err := json.Unmarshal(e.Actions[0].Do.Payload, &q); err != nil || !e.Selection || q.Text != "abc" || !slices.Equal(q.Files, files) {
+		t.Fatalf("Ask AI with text and a file: %+v %v", q, err)
+	}
+	if _, ok := ringAskAIEntry(nil, ringFiles(nil)); ok {
+		t.Fatal("Ask AI without text or files is not a blank chat")
 	}
 }
