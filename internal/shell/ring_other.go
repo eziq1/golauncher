@@ -11,6 +11,8 @@ import (
 	"github.com/eziq1/golauncher/internal/ui"
 )
 
+const ringUsesFlyout = false
+
 func noActivate(uintptr) {}
 
 // placeRing centres the ring's window on pt (the ring does not run here:

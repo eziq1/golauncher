@@ -120,7 +120,7 @@ func tools(l plugin.Localizer) []tool {
 		{id: "msconfig", title: l.T("tool.msconfig.title"), keywords: l.T("tool.msconfig.keywords"), target: "msconfig.exe", shown: "msconfig", icon: "wrench"},
 		{id: "msinfo32", title: l.T("tool.msinfo32.title"), keywords: l.T("tool.msinfo32.keywords"), target: "msinfo32.exe", shown: "msinfo32", icon: "info"},
 		{id: "cleanmgr", title: l.T("tool.cleanmgr.title"), keywords: l.T("tool.cleanmgr.keywords"), target: "cleanmgr.exe", shown: "cleanmgr", icon: "trash"},
-		{id: "cmdAdmin", title: l.T("tool.cmdAdmin.title"), keywords: l.T("tool.cmdAdmin.keywords"), target: "cmd.exe", shown: "cmd", admin: true, icon: "terminal"},
+		{id: "cmdAdmin", title: l.T("tool.cmdAdmin.title"), keywords: l.T("tool.cmdAdmin.keywords"), target: "cmd.exe", shown: "cmd", admin: true, icon: "square-terminal"},
 	}
 }
 

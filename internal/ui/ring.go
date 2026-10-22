@@ -18,28 +18,41 @@ import (
 )
 
 // The Action Ring's window (docs/action-ring.md): icon circles around the
-// pointer, the hovered one's name in a pill outside the ring, a close
-// button in the middle. The window never takes the focus; the shell feeds
-// it the pointer while the middle button drags (SetHighlight) and the
-// number keys (Key).
+// pointer, each with its name in a pill outside the ring (as Logitech
+// Options+ shows them), a close button in the middle. The slot the pointer
+// or the drag points at is highlighted, its pill too. The window never
+// takes the focus; the shell feeds it the pointer while the middle button
+// drags (SetHighlight) and the number keys (Key).
 
 // Ring window size and geometry, in DIPs.
 const (
-	RingWidth  = 600
-	RingHeight = 340
 	// RingRadius is the distance from the centre to the slots' centres.
 	RingRadius = 88
 	// RingDeadZone is the distance from the centre within which a drag
 	// chooses nothing.
 	RingDeadZone = 28
-	ringSlot     = 52  // a slot's diameter
-	ringCenter   = 36  // the close button's diameter
-	ringLabelMax = 170 // the widest a name pill gets
-	ringOpen     = 120 * time.Millisecond
+	ringSlot     = 52 // a slot's diameter
+	ringCenter   = 36 // the close button's diameter
+	// ringDiscR is the radius of the ring's background.
+	ringDiscR = RingRadius + ringSlot/2 + 12
+	// The name pills: their height, the widest they get (longer names end
+	// with an ellipsis), and their distance from the disc.
+	ringLabelH   = 26
+	ringLabelMax = 180
+	ringLabelGap = 8
+	// ringMargin keeps the disc's and the pills' shadows in the window.
+	ringMargin = 12
+
+	// RingWidth and RingHeight are the window's size: the disc, and the
+	// pills on its sides, above and below it.
+	RingWidth  = 2 * (ringDiscR + ringLabelGap + ringLabelMax + ringMargin)
+	RingHeight = 2 * (ringDiscR + ringLabelGap + ringLabelH + ringMargin)
+
+	ringOpen = 120 * time.Millisecond
 )
 
 // ringDisc is the diameter of the ring's background.
-const ringDisc = 2 * (RingRadius + ringSlot/2 + 12)
+const ringDisc = 2 * ringDiscR
 
 // RingHost is what the ring view asks of its window. Its methods are called
 // on the UI thread and must return at once.
@@ -185,6 +198,12 @@ func (r *Ring) View(c *mui.Context) {
 			d := float32(ringDisc)
 			mui.Box(c.Key("ring:disc")).Absolute().Left(cx-d/2).Top(cy-d/2).Size(d, d).Radius(d/2).
 				Background(t.Background.Alpha(0.96)).Border(1, t.Border).Shadow(0, 6, 24, 0, mui.RGBA(0, 0, 0, 0.28))
+			// Every slot's name, outside the ring.
+			for i, s := range l {
+				if s != nil && r.label(c, i, s.Title, i == active) {
+					hover = i
+				}
+			}
 			for i, s := range l {
 				if s == nil {
 					continue
@@ -215,14 +234,11 @@ func (r *Ring) View(c *mui.Context) {
 				r.host.Close()
 			}
 			cb.Children(func() { mui.Icon(c, builtinIcon("x")).FontSize(16).TextColor(t.TextMuted) })
-			if active >= 0 && l[active] != nil {
-				r.label(c, active, l[active].Title)
-			}
 		})
 	})
 	if hover != r.hover {
 		r.hover = hover
-		c.Invalidate() // the label follows the pointer
+		c.Invalidate() // the highlight follows the pointer
 	}
 }
 
@@ -235,33 +251,99 @@ func (r *Ring) slotIcon(c *mui.Context, ic plugin.Icon, fg mui.Color) {
 	mui.Icon(c, builtinIcon(name)).FontSize(22).TextColor(fg)
 }
 
+// The name pill's content: padding on each side, the gap between the
+// number key and the name, their font sizes.
+const (
+	ringLabelPad   = 10
+	ringLabelInner = 6
+	ringLabelKey   = 11
+	ringLabelText  = 13
+)
+
 // label shows the name of slot i in a pill outside the ring, in the slot's
-// direction, with its number key.
-func (r *Ring) label(c *mui.Context, i int, title string) {
+// direction (ringLabelAt), with its number key: on is the slot pointed at,
+// whose pill stands out. A name too long for the pill ends with an
+// ellipsis, and shows whole in the pill's tooltip. The pill is a part of
+// its slot: pointing at it highlights the slot, a click runs it. It
+// reports whether the pointer is on the pill.
+func (r *Ring) label(c *mui.Context, i int, title string, on bool) bool {
 	t := c.Theme()
-	const cx, cy = RingWidth / 2, RingHeight / 2
-	const far = RingRadius + ringSlot/2 + 14
-	a := ring.SlotAngle(i)
-	ax, ay := float32(cx+far*math.Cos(a)), float32(cy+far*math.Sin(a))
-	const h = 28
-	box := mui.Row(c.Key("ring:label")).Absolute().Width(ringLabelMax).Height(h).AlignItems(mui.Center).PassThrough()
-	switch cos := math.Cos(a); {
-	case cos > 0.3: // right: the pill starts at the anchor
-		box.Left(ax).Top(ay - h/2).Justify(mui.Start)
-	case cos < -0.3: // left: it ends there
-		box.Left(ax - ringLabelMax).Top(ay - h/2).Justify(mui.End)
-	case math.Sin(a) < 0: // top
-		box.Left(ax - ringLabelMax/2).Top(ay - h).Justify(mui.Center)
-	default: // bottom
-		box.Left(ax - ringLabelMax/2).Top(ay).Justify(mui.Center)
+	weight := 400
+	if on {
+		weight = 600
 	}
-	box.Children(func() {
-		mui.Row(c).Gap(6).Padding(4, 10).Radius(h/2).AlignItems(mui.Center).Background(t.Background.Alpha(0.97)).
-			Border(1, t.Border).Shadow(0, 2, 8, 0, mui.RGBA(0, 0, 0, 0.18)).Shrink(1).MinWidth(0).Children(func() {
-			mui.Text(c, strconv.Itoa(i+1)).FontSize(11).TextColor(t.TextMuted).Padding(0, 4).Radius(4).Background(t.Text.Alpha(0.08))
-			mui.Text(c, title).FontSize(13).TextColor(t.Text).SingleLine().Shrink(1).MinWidth(0)
-		})
+	key := strconv.Itoa(i + 1)
+	keyW, _ := c.MeasureText(0, mui.Span{Text: key, Size: ringLabelKey})
+	textW, _ := c.MeasureText(0, mui.Span{Text: title, Size: ringLabelText, Weight: weight})
+	w, cut := ringLabelWidth(keyW, textW)
+	x, y := ringLabelAt(i, w)
+
+	bg, border, keyBg, keyFg := t.Background.Alpha(0.96), t.Border, t.Text.Alpha(0.08), t.TextMuted
+	if on {
+		border, keyBg, keyFg = t.Accent, t.Accent, t.AccentText
+	}
+	p := mui.Row(c.Key("ring:label:"+key)).Absolute().Left(x).Top(y).Width(w).Height(ringLabelH).
+		Padding(0, ringLabelPad).Gap(ringLabelInner).AlignItems(mui.Center).Radius(ringLabelH/2).
+		Background(bg).Border(1, border).Shadow(0, 2, 8, 0, mui.RGBA(0, 0, 0, 0.16)).Cursor(mui.CursorPointer)
+	if cut {
+		p.Tooltip(title)
+	}
+	if p.Clicked() {
+		r.host.Choose(i)
+	}
+	p.Children(func() {
+		mui.Text(c, key).FontSize(ringLabelKey).TextColor(keyFg).Padding(0, 4).Radius(4).Background(keyBg)
+		mui.Text(c, title).FontSize(ringLabelText).FontWeight(weight).TextColor(t.Text).SingleLine().Shrink(1).MinWidth(0)
 	})
+	return p.Hovered()
+}
+
+// ringLabelWidth returns the width of a name pill whose number key and
+// name measure keyW and textW, and whether the name is cut to fit
+// ringLabelMax.
+func ringLabelWidth(keyW, textW float32) (float32, bool) {
+	w := 2 + 2*ringLabelPad + (keyW + 8) + ringLabelInner + float32(math.Ceil(float64(textW))) + 1
+	if w > ringLabelMax {
+		return ringLabelMax, true
+	}
+	return w, false
+}
+
+// ringLabelAt returns the top left corner, in the ring's window, of the
+// name pill of slot i, w wide, outside the disc in the slot's direction:
+// on the right, it starts next to the disc; on the left, it ends there;
+// above and below, it is centred.
+func ringLabelAt(i int, w float32) (x, y float32) {
+	const cx, cy = RingWidth / 2, RingHeight / 2
+	dx, dy := ring.SlotOffset(i, RingRadius)
+	top := float32(dy) - ringLabelH/2 // beside the slot
+	switch {
+	case dx > 1:
+		return cx + ringLabelClear(top), cy + top
+	case dx < -1:
+		return cx - ringLabelClear(top) - w, cy + top
+	case dy < 0:
+		return cx - w/2, cy - ringDiscR - ringLabelGap - ringLabelH
+	default:
+		return cx - w/2, cy + ringDiscR + ringLabelGap
+	}
+}
+
+// ringLabelClear returns how far sideways from the centre a pill going
+// from top to top+ringLabelH (from the centre) starts, to clear the disc
+// by ringLabelGap.
+func ringLabelClear(top float32) float32 {
+	var near float32 // the pill's nearest height to the centre's
+	switch {
+	case top > 0:
+		near = top
+	case top+ringLabelH < 0:
+		near = -(top + ringLabelH)
+	}
+	if near >= ringDiscR {
+		return ringLabelGap
+	}
+	return float32(math.Sqrt(float64(ringDiscR*ringDiscR-near*near))) + ringLabelGap
 }
 
 // RingOwn returns the title and icon of the ring's own actions in the

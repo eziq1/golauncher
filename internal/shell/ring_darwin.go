@@ -11,6 +11,13 @@ import (
 	"github.com/eziq1/golauncher/internal/ui"
 )
 
+// ringUsesFlyout keeps the ring's window a panel on macOS: it is clear
+// there already (a transparent window is not opaque, its background clear),
+// borderless, without shadow, and shows on whichever Space is current,
+// full-screen ones included (canJoinAllSpaces), which MyGo's flyouts do
+// not ask for.
+const ringUsesFlyout = false
+
 // noActivate does nothing on macOS: the ring is a panel, which shows
 // without activating golauncher (Window.ShowInactive), so the app the user
 // works in stays active.
