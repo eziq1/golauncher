@@ -123,3 +123,45 @@ func TestDetectRealFinder(t *testing.T) {
 	kind, folder, sel, ok := finderResult(out)
 	t.Logf("kind %q folder %q selected %q ok %v", kind, folder, sel, ok)
 }
+
+// TestDetectFinderPointer: the Action Ring's pointer on an unselected item
+// reports it alone, on empty space no item; Finder's folder stays.
+func TestDetectFinderPointer(t *testing.T) {
+	fakeMac(t, FinderBundleID, window{title: "Documents"}, true, "window\n/Users/a/Documents/\n/Users/a/Documents/r.pdf\n", nil)
+	c, _ := DetectAt(t.Context(), 4242, &Pointer{hit{Kind: hitItem, Path: "/Users/a/Documents/s.pdf"}})
+	if c.Folder != "/Users/a/Documents" || !slices.Equal(c.Selected, []string{"/Users/a/Documents/s.pdf"}) {
+		t.Errorf("unselected item: %+v", c)
+	}
+	c, _ = DetectAt(t.Context(), 4242, &Pointer{hit{Kind: hitEmpty}})
+	if c.Folder != "/Users/a/Documents" || len(c.Selected) != 0 {
+		t.Errorf("empty space: %+v", c)
+	}
+	c, _ = DetectAt(t.Context(), 4242, &Pointer{hit{Kind: hitItem, Path: "/Users/a/Documents/r.pdf"}})
+	if !slices.Equal(c.Selected, []string{"/Users/a/Documents/r.pdf"}) {
+		t.Errorf("selected item: %+v", c)
+	}
+}
+
+// TestFinderPointer: only Finder is looked at, and a late answer is
+// dropped.
+func TestFinderPointer(t *testing.T) {
+	fakeMac(t, FinderBundleID, window{}, true, "", nil)
+	old := finderHitAt
+	t.Cleanup(func() { finderHitAt = old })
+	finderHitAt = func(pid int, x, y float64) (hit, bool) {
+		return hit{Kind: hitItem, Path: "/Users/a/x"}, pid == 4242 && x == 1 && y == 2
+	}
+	if h, ok := finderPointer(4242, 1, 2, time.Second); !ok || h.Path != "/Users/a/x" {
+		t.Errorf("finderPointer = %+v, %v", h, ok)
+	}
+	block := make(chan struct{})
+	defer close(block)
+	finderHitAt = func(int, float64, float64) (hit, bool) { <-block; return hit{Kind: hitItem}, true }
+	if _, ok := finderPointer(4242, 1, 2, 10*time.Millisecond); ok {
+		t.Error("a late answer must be dropped")
+	}
+	fakeMac(t, "com.apple.Safari", window{}, true, "", nil)
+	if _, ok := finderPointer(4242, 1, 2, time.Second); ok {
+		t.Error("only Finder is looked at")
+	}
+}

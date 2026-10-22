@@ -17,6 +17,7 @@ func init() {
 	windowFacts = windowFactsOf
 	processFacts = processInfo
 	focusProbe = uiaFocusProbe
+	listProbe = uiaListProbe
 	uia.init = uiaThreadInit
 }
 
@@ -44,6 +45,7 @@ var (
 	iidIUIAutomationTextPattern = mustGUID("{32EBA289-3583-42C9-9C59-3B6D9A1E9B6A}")
 	iidIUIAutomationTextPat2    = mustGUID("{506A921A-FCC9-409F-B23B-37EB74106872}")
 	iidIUIAutomationValuePat    = mustGUID("{A94CD8B1-0844-4CD6-9D2D-640537AB39E9}")
+	iidIUIAutomationSelItemPat  = mustGUID("{A8EFA66A-0FDA-421A-9194-38021F3578EA}")
 )
 
 func mustGUID(s string) windows.GUID {
@@ -61,14 +63,22 @@ const (
 	vtAddRef         = 1
 	vtRelease        = 2
 
+	vtAutomationElementFromPoint  = 7  // IUIAutomation::ElementFromPoint
 	vtAutomationGetFocusedElement = 8  // IUIAutomation::GetFocusedElement
+	vtAutomationControlViewWalker = 14 // IUIAutomation::get_ControlViewWalker
 	vtAutomation2PutConnTimeout   = 61 // IUIAutomation2::put_ConnectionTimeout
 	vtAutomation2PutTransTimeout  = 63 // IUIAutomation2::put_TransactionTimeout
+
+	vtWalkerGetParentElement = 3 // IUIAutomationTreeWalker::GetParentElement
 
 	vtElementGetCurrentPatternAs = 14 // IUIAutomationElement::GetCurrentPatternAs
 	vtElementCurrentProcessID    = 20 // IUIAutomationElement::get_CurrentProcessId
 	vtElementCurrentControlType  = 21 // IUIAutomationElement::get_CurrentControlType
+	vtElementCurrentName         = 23 // IUIAutomationElement::get_CurrentName
+	vtElementCurrentClassName    = 30 // IUIAutomationElement::get_CurrentClassName
 	vtElementCurrentIsPassword   = 35 // IUIAutomationElement::get_CurrentIsPassword
+
+	vtSelectionItemIsSelected = 6 // IUIAutomationSelectionItemPattern::get_CurrentIsSelected
 
 	vtTextPatternGetSelection = 5  // IUIAutomationTextPattern::GetSelection
 	vtRangeArrayLength        = 3  // IUIAutomationTextRangeArray::get_Length
@@ -79,11 +89,12 @@ const (
 
 // UI Automation identifiers.
 const (
-	uiaValuePatternID        = 10002
-	uiaTextPatternID         = 10014
-	uiaTextPattern2ID        = 10024
-	uiaEditControlTypeID     = 50004
-	uiaDocumentControlTypeID = 50030
+	uiaValuePatternID         = 10002
+	uiaSelectionItemPatternID = 10010
+	uiaTextPatternID          = 10014
+	uiaTextPattern2ID         = 10024
+	uiaEditControlTypeID      = 50004
+	uiaDocumentControlTypeID  = 50030
 )
 
 // uiaTimeout bounds how long UI Automation waits for an unresponsive
@@ -238,6 +249,87 @@ func patternAs(el uintptr, id int, iid *windows.GUID) uintptr {
 		return 0
 	}
 	return p
+}
+
+var errNoPointElement = errors.New("winselection: no element at the point")
+
+// uiaListProbe reads the list hit at the screen point (x, y) on the UI
+// Automation thread: the element there (ElementFromPoint), walked up in the
+// control view to its list (listHitOf). An element of this process is
+// never queried.
+func uiaListProbe(x, y int) (ListHit, error) {
+	a, err := automation()
+	if err != nil {
+		return ListHit{}, err
+	}
+	var el uintptr
+	// POINT goes by value: in one register on amd64 and arm64.
+	pt := uintptr(uint32(int32(x))) | uintptr(uint32(int32(y)))<<32
+	if hr := comCall(a, vtAutomationElementFromPoint, pt, uintptr(unsafe.Pointer(&el))); failed(hr) || el == 0 {
+		if failed(hr) {
+			return ListHit{}, hresultError(hr)
+		}
+		return ListHit{}, errNoPointElement
+	}
+	var pid int32
+	comCall(el, vtElementCurrentProcessID, uintptr(unsafe.Pointer(&pid)))
+	if int(pid) == ownPID {
+		release(el)
+		return ListHit{}, nil
+	}
+	var walker uintptr
+	if hr := comCall(a, vtAutomationControlViewWalker, uintptr(unsafe.Pointer(&walker))); failed(hr) || walker == 0 {
+		release(el)
+		return ListHit{}, hresultError(hr)
+	}
+	defer release(walker)
+	return listHitOf(&uiaNode{el: el, walker: walker}), nil
+}
+
+// uiaNode is a UI Automation element walked by listHitOf.
+type uiaNode struct{ el, walker uintptr }
+
+func (n *uiaNode) controlType() int {
+	var ct int32
+	comCall(n.el, vtElementCurrentControlType, uintptr(unsafe.Pointer(&ct)))
+	return int(ct)
+}
+
+func (n *uiaNode) bstrProperty(vt int) string {
+	var b uintptr
+	if failed(comCall(n.el, vt, uintptr(unsafe.Pointer(&b)))) {
+		return ""
+	}
+	return bstrText(b)
+}
+
+func (n *uiaNode) className() string { return n.bstrProperty(vtElementCurrentClassName) }
+func (n *uiaNode) name() string      { return n.bstrProperty(vtElementCurrentName) }
+
+func (n *uiaNode) selected() bool {
+	p := patternAs(n.el, uiaSelectionItemPatternID, &iidIUIAutomationSelItemPat)
+	if p == 0 {
+		return false
+	}
+	defer release(p)
+	var v int32
+	if failed(comCall(p, vtSelectionItemIsSelected, uintptr(unsafe.Pointer(&v)))) {
+		return false
+	}
+	return v != 0
+}
+
+func (n *uiaNode) parent() listNode {
+	var p uintptr
+	if failed(comCall(n.walker, vtWalkerGetParentElement, n.el, uintptr(unsafe.Pointer(&p)))) || p == 0 {
+		return nil
+	}
+	return &uiaNode{el: p, walker: n.walker}
+}
+
+func (n *uiaNode) release() {
+	release(n.el)
+	n.el = 0
 }
 
 // uiaElem is a focused element with its TextPattern (IUIAutomationTextPattern

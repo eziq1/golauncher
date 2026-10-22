@@ -95,8 +95,8 @@ func eachShellWindow(fn func(disp, browser, w uintptr) bool) bool {
 func withExplorerOf(t *testing.T, dir string, fn func(disp, browser, top uintptr)) bool {
 	t.Helper()
 	return eachShellWindow(func(disp, b, w uintptr) bool {
-		folder, _, ok := browserView(b)
-		if !ok || !strings.EqualFold(longPath(folder), dir) {
+		v, ok := browserView(t.Context(), b, "")
+		if !ok || !strings.EqualFold(longPath(v.Folder), dir) {
 			return false
 		}
 		top, _, _ := procGetAncestor.Call(w, 2)

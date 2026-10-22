@@ -2,21 +2,25 @@ package wincontext
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 
+	winselection "github.com/eziq1/golauncher/internal/winapi/selection"
 	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 func init() {
 	explorerView = explorerFolderView
 	desktopView = desktopFolderView
+	pointerProbe = shellPointer
 	statPath = func(p string) (bool, bool) {
 		st, err := os.Stat(p)
 		if err != nil {
@@ -83,6 +87,7 @@ const (
 	vtGetWindow                = 3  // IOleWindow::GetWindow (IShellBrowser)
 	vtQueryActiveShellView     = 15 // IShellBrowser::QueryActiveShellView
 	vtFolderViewGetFolder      = 5  // IFolderView::GetFolder
+	vtFolderViewItemCount      = 7  // IFolderView::ItemCount
 	vtFolderViewItems          = 8  // IFolderView::Items
 	vtGetCurFolder             = 5  // IPersistFolder2::GetCurFolder
 	vtItemArrayGetCount        = 7  // IShellItemArray::GetCount
@@ -92,6 +97,10 @@ const (
 
 // maxSelected bounds the selected items read from a view.
 const maxSelected = 500
+
+// maxViewItems bounds the items of a view looked through for the item under
+// the pointer; a larger view keeps the selection.
+const maxViewItems = 20000
 
 // variant is VARIANT: 16 bytes on 32-bit Windows, 24 on 64-bit.
 type variant struct {
@@ -153,6 +162,13 @@ func withCOM(fn func()) {
 // window captured before the launcher took the focus. It reports false for
 // no window and for the launcher's own windows.
 func Detect(ctx context.Context, hwnd uintptr) (plugin.Context, bool) {
+	return DetectAt(ctx, hwnd, nil)
+}
+
+// DetectAt is Detect with what was under the mouse pointer (PointerAt, for
+// the Action Ring): in a folder view the reported items follow the item
+// under it (R120). A nil pointer is Detect.
+func DetectAt(ctx context.Context, hwnd uintptr, p *Pointer) (plugin.Context, bool) {
 	if hwnd == 0 {
 		return plugin.Context{}, false
 	}
@@ -163,7 +179,7 @@ func Detect(ctx context.Context, hwnd uintptr) (plugin.Context, bool) {
 	if _, err := windows.GetWindowThreadProcessId(windows.HWND(hwnd), &pid); err != nil || pid == 0 || int(pid) == os.Getpid() {
 		return plugin.Context{}, false
 	}
-	w := Window{HWND: hwnd, Class: className(hwnd), Title: windowText(hwnd)}
+	w := Window{HWND: hwnd, Class: className(hwnd), Title: windowText(hwnd), Pointer: p}
 	if w.Class == ClassWorkerW {
 		w.Desktop = findChild(hwnd, "SHELLDLL_DefView") != 0
 	}
@@ -250,7 +266,7 @@ func processInfo(pid uint32) plugin.AppInfo {
 // z-order), and the browser whose IShellBrowser::GetWindow is that tab is
 // the one shown. Without tabs, the browser whose window belongs to hwnd is
 // taken.
-func explorerFolderView(ctx context.Context, hwnd uintptr) (folder string, selected []string, ok bool) {
+func explorerFolderView(ctx context.Context, hwnd uintptr, name string) (v folderView, ok bool) {
 	activeTab := uintptr(0)
 	for tab := findChild(hwnd, "ShellTabWindowClass"); tab != 0; tab = findChild(hwnd, "ShellTabWindowClass", tab) {
 		if r, _, _ := procIsWindowVisible.Call(tab); r != 0 {
@@ -284,17 +300,17 @@ func explorerFolderView(ctx context.Context, hwnd uintptr) (folder string, selec
 			return
 		}
 		defer release(browser)
-		folder, selected, ok = browserView(browser)
+		v, ok = browserView(ctx, browser, name)
 	})
-	return folder, selected, ok
+	return v, ok
 }
 
 // desktopFolderView reads the desktop's folder and selected icons through
 // IShellWindows::FindWindowSW(SWC_DESKTOP).
-func desktopFolderView(ctx context.Context) (folder string, selected []string, ok bool) {
+func desktopFolderView(ctx context.Context, name string) (v folderView, ok bool) {
 	desk, err := windows.KnownFolderPath(windows.FOLDERID_Desktop, 0)
 	if err != nil {
-		return "", nil, false
+		return folderView{}, false
 	}
 	withCOM(func() {
 		windowsObj := shellWindows()
@@ -321,9 +337,10 @@ func desktopFolderView(ctx context.Context) (folder string, selected []string, o
 			return
 		}
 		defer release(b)
-		_, selected, _ = browserView(b)
+		v, _ = browserView(ctx, b, name)
 	})
-	return desk, selected, ctx.Err() == nil
+	v.Folder = desk
+	return v, ctx.Err() == nil
 }
 
 // shellWindows creates the IShellWindows collection of the shell's windows.
@@ -391,45 +408,90 @@ func topLevelBrowser(disp uintptr) uintptr {
 }
 
 // browserView reads the folder path (empty for virtual folders) and the
-// selected items' paths of a shell browser's active view.
-func browserView(browser uintptr) (folder string, selected []string, ok bool) {
+// selected items' paths of a shell browser's active view and, when name is
+// not empty, the items shown with that name (namedItems).
+func browserView(ctx context.Context, browser uintptr, name string) (v folderView, ok bool) {
 	var view uintptr
 	if failed(comCall(browser, vtQueryActiveShellView, uintptr(unsafe.Pointer(&view)))) || view == 0 {
-		return "", nil, false
+		return folderView{}, false
 	}
 	defer release(view)
 	fv := queryInterface(view, &iidIFolderView)
 	if fv == 0 {
-		return "", nil, false
+		return folderView{}, false
 	}
 	defer release(fv)
 	var pf uintptr
 	if !failed(comCall(fv, vtFolderViewGetFolder, uintptr(unsafe.Pointer(&iidIPersistFolder2)), uintptr(unsafe.Pointer(&pf)))) && pf != 0 {
 		var pidl uintptr
 		if !failed(comCall(pf, vtGetCurFolder, uintptr(unsafe.Pointer(&pidl)))) && pidl != 0 {
-			folder = pathOfIDList(pidl)
+			v.Folder = pathOfIDList(pidl)
 			procCoTaskMemFree.Call(pidl)
 		}
 		release(pf)
 	}
 	const svgioSelection = 1
-	var arr uintptr
-	if !failed(comCall(fv, vtFolderViewItems, svgioSelection, uintptr(unsafe.Pointer(&iidIShellItemArray)), uintptr(unsafe.Pointer(&arr)))) && arr != 0 {
-		defer release(arr)
-		var n uint32
-		comCall(arr, vtItemArrayGetCount, uintptr(unsafe.Pointer(&n)))
-		for i := range min(n, maxSelected) {
-			var item uintptr
-			if failed(comCall(arr, vtItemArrayGetItemAt, uintptr(i), uintptr(unsafe.Pointer(&item)))) || item == 0 {
-				continue
-			}
-			if p := fileSysPath(item); p != "" {
-				selected = append(selected, p)
-			}
-			release(item)
+	// The selection is read whole, as it always was: no deadline.
+	forEachViewItem(context.Background(), fv, svgioSelection, maxSelected, func(item uintptr) {
+		if p := fileSysPath(item); p != "" {
+			v.Selected = append(v.Selected, p)
 		}
+	})
+	if name != "" {
+		v.Named, v.NamedOK = namedItems(ctx, fv, name)
 	}
-	return folder, selected, true
+	return v, true
+}
+
+// namedItems returns the items of folder view fv shown as name, with their
+// exact paths. name is the one UI Automation reads for the item under the
+// pointer: the display name (SIGDN_NORMALDISPLAY), with the extension
+// hidden or a folder's name localized ("文档" for Documents) as the view
+// shows it. complete is false when the view holds more than maxViewItems
+// items or ctx ended first.
+func namedItems(ctx context.Context, fv uintptr, name string) (items []viewItem, complete bool) {
+	const svgioAllView = 2
+	var count int32
+	if failed(comCall(fv, vtFolderViewItemCount, svgioAllView, uintptr(unsafe.Pointer(&count)))) || count > maxViewItems {
+		return nil, false
+	}
+	complete = forEachViewItem(ctx, fv, svgioAllView, maxViewItems, func(item uintptr) {
+		// The path is asked only of the items bearing the name: one call
+		// per item to Explorer otherwise.
+		if shown := shellItemName(item, sigdnNormalDisplay); strings.EqualFold(shown, name) {
+			items = append(items, viewItem{Display: shown, Path: fileSysPath(item)})
+		}
+	})
+	if !complete {
+		return nil, false
+	}
+	return items, true
+}
+
+// forEachViewItem calls fn with the items of folder view fv that svgio
+// names (the selection, all items), at most limit of them. It reports false
+// when the items could not be read, there were more than limit or ctx
+// ended first.
+func forEachViewItem(ctx context.Context, fv uintptr, svgio uint32, limit uint32, fn func(item uintptr)) bool {
+	var arr uintptr
+	if failed(comCall(fv, vtFolderViewItems, uintptr(svgio), uintptr(unsafe.Pointer(&iidIShellItemArray)), uintptr(unsafe.Pointer(&arr)))) || arr == 0 {
+		return false
+	}
+	defer release(arr)
+	var n uint32
+	comCall(arr, vtItemArrayGetCount, uintptr(unsafe.Pointer(&n)))
+	for i := range min(n, limit) {
+		if ctx.Err() != nil {
+			return false
+		}
+		var item uintptr
+		if failed(comCall(arr, vtItemArrayGetItemAt, uintptr(i), uintptr(unsafe.Pointer(&item)))) || item == 0 {
+			continue
+		}
+		fn(item)
+		release(item)
+	}
+	return n <= limit
 }
 
 // pathOfIDList returns the file system path of an ID list, or "" for a
@@ -442,14 +504,40 @@ func pathOfIDList(pidl uintptr) string {
 	return windows.UTF16ToString(buf)
 }
 
+// IShellItem::GetDisplayName forms.
+const (
+	sigdnNormalDisplay = 0x00000000
+	sigdnFileSysPath   = 0x80058000
+)
+
 // fileSysPath returns the file system path of an IShellItem, or "".
-func fileSysPath(item uintptr) string {
-	const sigdnFileSysPath = 0x80058000
+func fileSysPath(item uintptr) string { return shellItemName(item, sigdnFileSysPath) }
+
+// shellItemName returns the name of an IShellItem in form sigdn, or "".
+func shellItemName(item uintptr, sigdn uint32) string {
 	var p uintptr
-	if failed(comCall(item, vtShellItemGetDisplayName, sigdnFileSysPath, uintptr(unsafe.Pointer(&p)))) || p == 0 {
+	if failed(comCall(item, vtShellItemGetDisplayName, uintptr(sigdn), uintptr(unsafe.Pointer(&p)))) || p == 0 {
 		return ""
 	}
 	s := windows.UTF16PtrToString((*uint16)(native(p)))
 	procCoTaskMemFree.Call(p)
 	return s
+}
+
+// shellPointer reads what is under the screen point (x, y), in physical
+// pixels, when window target is File Explorer or the desktop: the item or
+// the empty space of its items view, through UI Automation on the
+// selection's thread (winselection.ListItemAt).
+func shellPointer(target uintptr, x, y float64, budget time.Duration) (hit, bool) {
+	switch cls := className(target); {
+	case cls == ClassExplorer, cls == ClassProgman:
+	case cls == ClassWorkerW && findChild(target, "SHELLDLL_DefView") != 0:
+	default:
+		return hit{}, false
+	}
+	l, ok := winselection.ListItemAt(int(math.Round(x)), int(math.Round(y)), budget)
+	if !ok {
+		return hit{}, false
+	}
+	return hitOfList(l), true
 }

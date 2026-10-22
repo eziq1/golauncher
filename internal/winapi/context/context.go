@@ -37,6 +37,9 @@ type Window struct {
 	Title string
 	// Desktop is set for a WorkerW window that hosts the desktop's view.
 	Desktop bool
+	// Pointer is what was under the mouse pointer (the Action Ring, R120);
+	// nil for the launcher's hotkey.
+	Pointer *Pointer
 }
 
 // Detector recognizes a kind of window and describes its context.
@@ -87,11 +90,13 @@ func run(ctx context.Context, ds []Detector, w Window, c *plugin.Context) string
 	return ""
 }
 
-// shellView reads the folder and the selection of a shell view (File
-// Explorer or the desktop); set per platform, replaced in tests.
+// explorerView and desktopView read the folder and the selection of a
+// shell view (File Explorer or the desktop) and, when name is not empty,
+// the items bearing that name (the item under the pointer); set per
+// platform, replaced in tests.
 var (
-	explorerView func(ctx context.Context, hwnd uintptr) (folder string, selected []string, ok bool)
-	desktopView  func(ctx context.Context) (folder string, selected []string, ok bool)
+	explorerView func(ctx context.Context, hwnd uintptr, name string) (v folderView, ok bool)
+	desktopView  func(ctx context.Context, name string) (v folderView, ok bool)
 	// statPath reports whether path exists and is a directory.
 	statPath func(path string) (isDir, ok bool)
 	homeDir  func() string
@@ -107,12 +112,13 @@ func (explorerDetector) Detect(ctx context.Context, w Window, c *plugin.Context)
 	if w.Class != ClassExplorer || explorerView == nil {
 		return false
 	}
-	folder, selected, ok := explorerView(ctx, w.HWND)
+	h := w.Pointer.target()
+	v, ok := explorerView(ctx, w.HWND, h.lookup())
 	if !ok {
 		return false
 	}
 	// A virtual folder (This PC, Recycle Bin) has no path: Kind only.
-	c.Kind, c.Folder, c.Selected = plugin.ContextExplorer, folder, selected
+	c.Kind, c.Folder, c.Selected = plugin.ContextExplorer, v.Folder, pointerSelection(v, h)
 	return true
 }
 
@@ -125,11 +131,12 @@ func (desktopDetector) Detect(ctx context.Context, w Window, c *plugin.Context) 
 	if (w.Class != ClassProgman && !(w.Class == ClassWorkerW && w.Desktop)) || desktopView == nil {
 		return false
 	}
-	folder, selected, ok := desktopView(ctx)
+	h := w.Pointer.target()
+	v, ok := desktopView(ctx, h.lookup())
 	if !ok {
 		return false
 	}
-	c.Kind, c.Folder, c.Selected = plugin.ContextDesktop, folder, selected
+	c.Kind, c.Folder, c.Selected = plugin.ContextDesktop, v.Folder, pointerSelection(v, h)
 	return true
 }
 

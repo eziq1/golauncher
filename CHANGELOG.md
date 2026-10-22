@@ -61,6 +61,13 @@ Before 1.0.0, minor versions may contain breaking changes.
   it is chosen (and the middle button is up) it uses the copy fallback the
   selection settings allow; Ask AI always opens a chat: about the selected
   text, or a blank one.
+- **Action Ring: the item under the pointer** (R120): over File Explorer, the
+  desktop or Finder, the ring's context actions now follow the item under
+  the pointer, as the right-click menu does: an item that is not selected is
+  acted on alone, an item of the selection brings the whole selection, and
+  empty space means the folder itself. Before, only the items already
+  selected counted, so a file had to be clicked first. The selection is
+  never changed; the launcher's hotkey keeps using the selection.
 ## [0.11.0] - 2026-10-20
 
 ### Added

@@ -42,6 +42,7 @@ type funcs struct {
 	setAttributeValue  func(elem, attr, value uintptr) int32
 	setTimeout         func(elem uintptr, seconds float32) int32
 	getPid             func(elem uintptr, pid *int32) int32
+	elementAtPosition  func(app uintptr, x, y float32, elem *uintptr) int32
 	retain             func(ref uintptr) uintptr
 	release            func(ref uintptr)
 	getTypeID          func(ref uintptr) uint
@@ -68,6 +69,7 @@ var load = sync.OnceValues(func() (*funcs, error) {
 	purego.RegisterLibFunc(&f.setAttributeValue, lib, "AXUIElementSetAttributeValue")
 	purego.RegisterLibFunc(&f.setTimeout, lib, "AXUIElementSetMessagingTimeout")
 	purego.RegisterLibFunc(&f.getPid, lib, "AXUIElementGetPid")
+	purego.RegisterLibFunc(&f.elementAtPosition, lib, "AXUIElementCopyElementAtPosition")
 	purego.RegisterLibFunc(&f.retain, lib, "CFRetain")
 	purego.RegisterLibFunc(&f.release, lib, "CFRelease")
 	purego.RegisterLibFunc(&f.getTypeID, lib, "CFGetTypeID")
@@ -269,6 +271,27 @@ func (e Element) SetBool(attr string, v bool) error {
 		err = check(f.setAttributeValue(e.ref, uintptr(ns.String(attr)), uintptr(num)))
 	})
 	return err
+}
+
+// ElementAt returns the element at the screen point (x, y), in points from
+// the top left of the main display (as CGEventGetLocation reports the
+// pointer), of whatever app is there when e is the system-wide element
+// (AXUIElementCopyElementAtPosition).
+func (e Element) ElementAt(x, y float64) (Element, error) {
+	f, err := load()
+	if err != nil {
+		return Element{}, err
+	}
+	var ref uintptr
+	if err := check(f.elementAtPosition(e.ref, float32(x), float32(y), &ref)); err != nil {
+		return Element{}, err
+	}
+	if ref == 0 {
+		return Element{}, errNoValue
+	}
+	out := Element{ref}
+	f.setTimeout(out.ref, messagingTimeout)
+	return out, nil
 }
 
 // PID returns the process identifier of the app e belongs to.

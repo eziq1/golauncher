@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -96,6 +97,81 @@ func fileURLPath(s string) (string, bool) {
 	}
 	p := cleanPOSIX(u.Path)
 	return p, p != ""
+}
+
+// finderNode is an Accessibility element seen while walking up from the
+// element under the pointer in Finder (R120); the Accessibility one is in
+// detect_darwin.go, tests use fakes.
+type finderNode interface {
+	role() string
+	subrole() string
+	identifier() string
+	url() string      // AXURL, "" for none
+	filename() string // AXFilename, "" for none
+	parent() finderNode
+	release()
+}
+
+// maxFinderDepth bounds the walk from the element under the pointer up to
+// its window.
+const maxFinderDepth = 12
+
+// finderSpaceRoles are the roles of a Finder view's background: a list or
+// column view (AXOutline, AXBrowser), an icon view (AXList, AXGroup) or the
+// scroll area around it.
+var finderSpaceRoles = []string{"AXOutline", "AXTable", "AXBrowser", "AXList", "AXGroup", "AXScrollArea"}
+
+// finderHitOf walks up from n, the element under the pointer, to its window
+// and describes the pointer: on an item when an element on the way names a
+// file (AXURL, else AXFilename); on the view's empty space when the element
+// itself is a view's background inside a scroll area; else hitOther, and
+// always hitOther in the sidebar or the toolbar. Every node is released.
+// This is best effort: Finder's Accessibility tree is not documented.
+func finderHitOf(n finderNode) hit {
+	var h hit
+	first := ""
+	scroll := false
+	for depth := 0; n != nil; depth++ {
+		if depth == maxFinderDepth {
+			n.release()
+			return hit{}
+		}
+		role := n.role()
+		if depth == 0 {
+			first = role
+		}
+		if role == "AXWindow" || role == "AXApplication" || role == "AXSheet" {
+			n.release()
+			break
+		}
+		if role == "AXToolbar" || slices.Contains(finderSpaceRoles, role) && sidebar(n) {
+			n.release()
+			return hit{}
+		}
+		scroll = scroll || role == "AXScrollArea"
+		if h.Kind != hitItem {
+			if p, ok := fileURLPath(n.url()); ok {
+				h = hit{Kind: hitItem, Path: p}
+			} else if name := n.filename(); name != "" {
+				h = hit{Kind: hitItem, Name: name}
+			}
+		}
+		p := n.parent()
+		n.release()
+		n = p
+	}
+	switch {
+	case h.Kind == hitItem:
+		return h
+	case scroll && slices.Contains(finderSpaceRoles, first):
+		return hit{Kind: hitEmpty}
+	}
+	return hit{}
+}
+
+// sidebar reports whether n is Finder's sidebar (a source list).
+func sidebar(n finderNode) bool {
+	return n.subrole() == "AXSourceList" || strings.Contains(strings.ToLower(n.identifier()), "sidebar")
 }
 
 // ErrNotAuthorized means that macOS did not let golauncher control another
