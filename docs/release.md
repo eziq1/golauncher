@@ -202,3 +202,9 @@
 - **本地验证**：`gofmt -l .` 为空，`go vet ./...`，`go test -p 2 ./...`（74 个包）、`go test -p 2 -race ./internal/... ./plugins/...`（67 个包）通过，`scripts/windows/build.ps1 -Zip` 成功。
 - **CI**：第一次推送 `main` 时 Windows 测试失败：R125 新加的 `TestRealIdleHeap` 默认就会运行，CI 的 winget 包目录为空（0 个包），“索引至少占 1 MB”的断言失败。改为 winget 的这个测试需要 `GOLAUNCHER_WINGET_TESTS=1`（和同文件其他真机测试一致），两个插件的这个测试在包少于 1000 个时跳过（`82cedf9`），第二次 CI 通过。
 - **结果**：2026-10-22 在 `82cedf9` 上打了 `v0.12.0`，发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.8MB）、`windows_arm64`（20.9MB）、`darwin_amd64`（23.3MB）、`darwin_arm64`（21.3MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.12.0`（`c6676c1`），SHA-256 和 `checksums.txt` 一致；Homebrew cask 任务（`brew style`、`brew audit`）通过。<https://github.com/eziq1/golauncher/releases/tag/v0.12.0>
+
+## 20. v0.13.0（2026-10-22，R128）
+
+- **内容**：Mac 触控板三指轻点打开 Action Ring（R127，[action-ring.md §10](action-ring.md)）：私有 MultitouchSupport 框架读触点（purego），三指 80 ms 内落下、300 ms 内抬起、几乎不移动、无物理按下才算；圆环在指针处打开并停留；设置页有开关，默认开启。**发布时尚未在真机 Mac 上测过**（开发机是 Windows，只做了交叉编译和合成触点的单元测试）；框架不可用时手势自动关闭，中键不受影响。
+- **版本号**：新功能，按语义化版本升次版本号。
+- **本地验证**：`gofmt -l .` 为空，`go vet ./...`，`go test -p 2 ./...`（75 个包）、`go test -p 2 -race ./internal/... ./plugins/...`（68 个包）通过，`scripts/windows/build.ps1 -Zip` 成功。

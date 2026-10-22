@@ -8,6 +8,23 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-22
+
+### Added
+
+- **Action Ring on a Mac trackpad** (R127, docs/action-ring.md §10): a
+  trackpad has no middle button, so a three-finger tap (three fingers
+  touching and lifting together, without pressing) now opens the ring at
+  the pointer. It stays open as after a short middle click: click an
+  action, press `1`–`8`, or `Esc` and a click outside close it. Three-finger
+  swipes (Mission Control, Spaces) and three-finger drags do not open it;
+  the exceptions and full-screen apps apply as for the middle button. A
+  Magic Trackpad connected later works too. On by default, with a switch in
+  *Settings › Action Ring*; if macOS's "Look up & data detectors: Tap with
+  three fingers" is on, both respond to the gesture. It reads the touches
+  through macOS's private MultitouchSupport framework; where it is missing,
+  the gesture stays off and the middle button works as before.
+
 ## [0.12.0] - 2026-10-22
 
 ### Added
@@ -1014,7 +1031,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/eziq1/golauncher/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/eziq1/golauncher/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/eziq1/golauncher/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/eziq1/golauncher/compare/v0.10.0...v0.10.1
