@@ -194,3 +194,20 @@ func TestLazyClose(t *testing.T) {
 		t.Error("a load that ended after Close was kept")
 	}
 }
+
+// TestLazyLoadPanics: a load that panics ends as an error, so that callers
+// do not wait for it forever; the value is dropped and loaded again later.
+func TestLazyLoadPanics(t *testing.T) {
+	e := newLazy(t)
+	e.l.Load = func() (int, error) { panic("bad cache") }
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	if _, err := e.l.Get(ctx); err == nil || errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Get after a panicking load: %v", err)
+	}
+	e.l.Drop()
+	e.l.Load = func() (int, error) { return 7, nil }
+	if v, err := e.l.Get(ctx); err != nil || v != 7 {
+		t.Fatalf("Get after the drop: %d %v", v, err)
+	}
+}

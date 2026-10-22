@@ -3,6 +3,7 @@ package bg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -148,7 +149,7 @@ func (l *Lazy[T]) startLocked() chan struct{} {
 	}
 	ch := make(chan struct{})
 	started := l.Group.Go(l.Host, func() {
-		v, err := l.Load()
+		v, err := l.load()
 		l.mu.Lock()
 		l.loading = nil
 		late := l.late
@@ -169,6 +170,17 @@ func (l *Lazy[T]) startLocked() chan struct{} {
 	}
 	l.loading = ch
 	return ch
+}
+
+// load runs Load, turning a panic into an error: the load must end, or
+// every later Get would wait for it.
+func (l *Lazy[T]) load() (v T, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("bg: load panicked: %v", r)
+		}
+	}()
+	return l.Load()
 }
 
 // startTimerLocked starts the idle timer unless it runs.
