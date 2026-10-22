@@ -249,3 +249,31 @@ COM 在锁定的 OS 线程上以 STA 初始化，用完即释放，和 `internal
 ## 11. 选中的文字（R64、R65）
 
 第二阶段里的“选中文字”已经单独设计并实现，见 [selected-text.md](selected-text.md)。它跟随本文的“情境感知”开关（关掉时不读取选中的文字），和目录环境共用“每次呼出一代”的状态（`core.contextState`）以及 §9、§10 的晚到规则；但选中的文字**不放进 `plugin.Context`**，只通过新的 `SelectionProvider` 交给声明了 `PermSelection` 的内置插件。
+
+## 12. 动作环：指针下的项目（R120，2026-10-22）
+
+**问题**：情境识别读的是资源管理器 / 访达里"已选中的项目"。动作环在鼠标所在处弹出，指着一个没选中的文件按住中键时，情境操作不针对它，必须先左键选中。
+
+**规则**（只用于动作环，和 Windows 右键菜单一致；用快捷键呼出启动器时完全不变）：
+
+| 弹出时指针在 | 报告的项目（`Context.Selected`） |
+|---|---|
+| 没选中的文件或文件夹 | 只有它（文件夹仍是当前文件夹） |
+| 当前选中集合里的项目 | 整个选中集合（和以前一样） |
+| 文件夹视图的空白处 | 没有项目：针对当前文件夹本身，即使有选中项 |
+| 其他地方（导航窗格、功能区、地址栏、别的 App） | 和以前一样 |
+
+只读，不改动真实的选中状态，不模拟点击和按键。桌面同理：指着桌面图标是那个项目、文件夹是桌面；空白处是桌面文件夹。
+
+**一条代码路径**：`wincontext.Detect(ctx, target)` 变成 `DetectAt(ctx, target, ptr *Pointer)` 的薄包装（`ptr` 为 nil）。识别器拿到的 `Window` 多了 `Pointer` 字段；资源管理器和桌面的识别器仍是同一个 `browserView` 读文件夹和选中项，指针只决定报告哪些项目（`pointer.go` 的 `pointerSelection`，纯逻辑）。macOS 的 `DetectAt` 同样在原来的访达读取之后套用这张表。
+
+**先读指针再弹圆环**：圆环窗口以指针为中心，弹出后 `ElementFromPoint` 只会碰到圆环自己。所以 `openRing` 在显示窗口之前调用 `wincontext.PointerAt(target, x, y)`，最多等 `PointerBudget`（100ms），只在资源管理器、桌面（按窗口类名，本地判断）或访达（前台 App 的 bundle id）上读，其他 App 不花时间；超时或读不到就是 nil，即以前的行为。结果交给 `ringContent`，和以前一样在 `ringContextBudget` 内调用 `DetectAt`。
+
+**Windows**：
+- 复用选中文字（R63）的 UI Automation 线程和客户端：`winselection.ListItemAt` 在那个线程上调用 `IUIAutomation::ElementFromPoint`，沿 Control View 向上走到列表（`listHitOf`，纯逻辑）：经过的第一个 ListItem/DataItem 是项目（UIA Name 和 SelectionItemPattern 的选中状态）；直接落在列表上（中间只有 Group/Pane）是空白处；表头、滚动条、导航树等都算"其他"。只认资源管理器的 `UIItemsView` 和桌面的 `SysListView32`。不碰本进程的元素。
+- UIA 给的是显示名（隐藏扩展名后的 "report"、本地化的 "文档"）。在同一个 `IFolderView` 上枚举所有项（`Items(SVGIO_ALLVIEW)`），比较 `SIGDN_NORMALDISPLAY`，只对同名的项取 `SIGDN_FILESYSPATH`，得到准确路径（`namedItems`）；超过 2 万项或超时就放弃，保持选中集合。两项显示名相同（扩展名隐藏时的 a.txt 和 a.jpg）时用 UIA 的选中状态区分，仍分不清就保持选中集合。回收站等虚拟项目没有路径：没选中时报告"没有项目"。
+- UIA 说项目已选中时直接用选中集合，不枚举。
+
+**macOS**（尽力而为，没有 Mac 实测）：在访达上用系统级元素的 `AXUIElementCopyElementAtPosition`（新增 `ax.Element.ElementAt`），确认元素属于访达进程，沿 `AXParent` 向上找 `AXURL`（其次 `AXFilename`，再在文件夹里按文件名或去掉扩展名的名字匹配）；指针下就是视图背景（AXOutline/AXList/AXGroup 等，且在滚动区域里）算空白处；侧边栏（`AXSourceList` 或标识含 sidebar）和工具栏算"其他"。项目必须在当前文件夹里或在选中集合里，否则保持以前的行为（例如访达窗口在前、指针却在桌面图标上）。任何一步失败都退回以前的行为。
+
+**测试**：`pointer_test.go`（表格、显示名匹配：隐藏扩展名、本地化名、同名区分、枚举不完整；识别器按指针报告、无指针时不查名字；`PointerAt`；访达元素链；按名字匹配本地文件）、`selection/listhit_test.go`（UIA 元素链，假的节点）、`detect_darwin_test.go`（访达 + 指针）、`shell/ring_test.go`（圆环把指针交给检测函数，假的检测函数）。不自动操作真实的资源管理器。

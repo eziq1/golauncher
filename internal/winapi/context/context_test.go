@@ -108,7 +108,26 @@ func TestParentDir(t *testing.T) {
 func withPlatform(t *testing.T, explorer func(context.Context, uintptr) (string, []string, bool), desktop func(context.Context) (string, []string, bool), fs fakeFS) {
 	oldE, oldD, oldS, oldH := explorerView, desktopView, statPath, homeDir
 	t.Cleanup(func() { explorerView, desktopView, statPath, homeDir = oldE, oldD, oldS, oldH })
-	explorerView, desktopView, statPath = explorer, desktop, fs.stat
+	explorerView, desktopView = nil, nil
+	if explorer != nil {
+		explorerView = func(ctx context.Context, hwnd uintptr, name string) (folderView, bool) {
+			if name != "" {
+				t.Errorf("a name looked up without a pointer: %q", name)
+			}
+			f, s, ok := explorer(ctx, hwnd)
+			return folderView{Folder: f, Selected: s}, ok
+		}
+	}
+	if desktop != nil {
+		desktopView = func(ctx context.Context, name string) (folderView, bool) {
+			if name != "" {
+				t.Errorf("a name looked up without a pointer: %q", name)
+			}
+			f, s, ok := desktop(ctx)
+			return folderView{Folder: f, Selected: s}, ok
+		}
+	}
+	statPath = fs.stat
 	homeDir = func() string { return `C:\Users\ann` }
 }
 

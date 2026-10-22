@@ -1,6 +1,7 @@
 // Package ax is a minimal wrapper of the macOS Accessibility API
 // (AXUIElement) for reading other apps: the permission check and prompt,
-// the focused element, string, boolean and URL attributes. It uses purego,
+// the focused element, the element at a point, string, boolean and URL
+// attributes. It uses purego,
 // no cgo (docs/macos-port.md §10). On other platforms only ErrNotTrusted,
 // Trusted and RequestTrust exist, and report no permission.
 //

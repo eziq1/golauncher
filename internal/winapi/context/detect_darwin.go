@@ -96,9 +96,18 @@ var appOf = func(pid int) (plugin.AppInfo, string) {
 	return a, bundle
 }
 
+func init() { pointerProbe = finderPointer }
+
 // Detect describes the context of the app with process identifier pid (0
 // or this process: nothing).
 func Detect(ctx context.Context, pid uintptr) (plugin.Context, bool) {
+	return DetectAt(ctx, pid, nil)
+}
+
+// DetectAt is Detect with what was under the mouse pointer (PointerAt, for
+// the Action Ring): in Finder the reported items follow the item under it
+// (R120). A nil pointer is Detect.
+func DetectAt(ctx context.Context, pid uintptr, ptr *Pointer) (plugin.Context, bool) {
 	if pid == 0 || int(pid) == os.Getpid() {
 		return plugin.Context{}, false
 	}
@@ -110,7 +119,7 @@ func Detect(ctx context.Context, pid uintptr) (plugin.Context, bool) {
 	w, axOK := focusedWindow(int(pid))
 	c.Title = w.title
 	if bundle == FinderBundleID {
-		if detectFinder(ctx, &c, axOK && w.none) {
+		if detectFinder(ctx, &c, axOK && w.none, ptr.target()) {
 			return c, true
 		}
 	}
@@ -133,8 +142,9 @@ func Detect(ctx context.Context, pid uintptr) (plugin.Context, bool) {
 	return c, true
 }
 
-// detectFinder fills in c from Finder's front window or the desktop.
-func detectFinder(ctx context.Context, c *plugin.Context, desktop bool) bool {
+// detectFinder fills in c from Finder's front window or the desktop, the
+// items following h, the pointer's.
+func detectFinder(ctx context.Context, c *plugin.Context, desktop bool, h hit) bool {
 	ctx, cancel := context.WithTimeout(ctx, finderTimeout)
 	defer cancel()
 	arg := "window"
@@ -152,6 +162,86 @@ func detectFinder(ctx context.Context, c *plugin.Context, desktop bool) bool {
 	if !ok {
 		return false
 	}
-	c.Kind, c.Folder, c.Selected = kind, folder, selected
+	v := folderView{Folder: folder, Selected: selected}
+	if name := h.lookup(); name != "" && folder != "" {
+		v.Named, v.NamedOK = localNamed(folder, name)
+	}
+	c.Kind, c.Folder, c.Selected = kind, folder, pointerSelection(v, h)
 	return true
+}
+
+// finderPointer reads what is under the screen point (x, y) when the
+// frontmost app pid is Finder (finderHitAt), within budget.
+func finderPointer(pid uintptr, x, y float64, budget time.Duration) (hit, bool) {
+	if pid == 0 || int(pid) == os.Getpid() {
+		return hit{}, false
+	}
+	if _, bundle := appOf(int(pid)); bundle != FinderBundleID {
+		return hit{}, false
+	}
+	type result struct {
+		h  hit
+		ok bool
+	}
+	at := finderHitAt
+	ch := make(chan result, 1) // a late answer is dropped
+	go func() {
+		h, ok := at(int(pid), x, y)
+		ch <- result{h, ok}
+	}()
+	t := time.NewTimer(budget)
+	defer t.Stop()
+	select {
+	case r := <-ch:
+		return r.h, r.ok
+	case <-t.C:
+		return hit{}, false
+	}
+}
+
+// finderHitAt reads the Accessibility element at (x, y) and, when it is
+// Finder's (process pid), walks up from it (finderHitOf). Tests replace
+// it.
+var finderHitAt = func(pid int, x, y float64) (hit, bool) {
+	sys, err := ax.SystemWide()
+	if err != nil {
+		return hit{}, false
+	}
+	defer sys.Release()
+	el, err := sys.ElementAt(x, y)
+	if err != nil {
+		return hit{}, false
+	}
+	if p, err := el.PID(); err != nil || p != pid {
+		el.Release()
+		return hit{}, false // another app's window is under the pointer
+	}
+	return finderHitOf(axNode{el}), true
+}
+
+// axNode is an Accessibility element walked by finderHitOf.
+type axNode struct{ e ax.Element }
+
+func (n axNode) str(attr string) string {
+	s, _ := n.e.String(attr)
+	return s
+}
+
+func (n axNode) role() string       { return n.str("AXRole") }
+func (n axNode) subrole() string    { return n.str("AXSubrole") }
+func (n axNode) identifier() string { return n.str("AXIdentifier") }
+func (n axNode) filename() string   { return n.str("AXFilename") }
+func (n axNode) release()           { n.e.Release() }
+
+func (n axNode) url() string {
+	s, _ := n.e.URL("AXURL")
+	return s
+}
+
+func (n axNode) parent() finderNode {
+	p, err := n.e.Element("AXParent")
+	if err != nil || !p.Valid() {
+		return nil
+	}
+	return axNode{p}
 }

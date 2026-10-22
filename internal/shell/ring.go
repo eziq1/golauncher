@@ -304,6 +304,12 @@ func (s *Shell) openRing(pt ring.Point) {
 	// The selected text is the focused window's: read only when the
 	// pointer is on it.
 	r.cap = ringCapture{fg: fg, selHere: fg != 0 && (target == mousehook.RootOwner(fg) || runtime.GOOS == "darwin")}
+	// The item under the pointer (R120), read before the ring's window
+	// covers it: only in a folder view, within wincontext.PointerBudget.
+	var ptr *wincontext.Pointer
+	if cfg.ContextAware && cfg.Ring.Context && target != 0 {
+		ptr = ringPointer(target, pt)
+	}
 
 	// The fixed actions, as stored, until they are found again.
 	quick := ring.Arrange(ring.FixedSlots(s.ctx, nil, cfg.Ring.Fixed, ui.RingOwn(s.loc)), nil)
@@ -332,8 +338,18 @@ func (s *Shell) openRing(pt ring.Point) {
 	if cfg.Ring.Context && r.cap.selHere {
 		sel = s.ringOpenSelection(fg)
 	}
-	go s.ringContent(gen, cfg, target, sel)
+	go s.ringContent(gen, cfg, target, ptr, sel)
 }
+
+// ringPointer reads what is under the pointer at pt in window target, and
+// ringDetect the context of target with it: the same detection as the
+// launcher's (wincontext.Detect), given the pointer. Replaced in tests.
+var (
+	ringPointer = func(target uintptr, pt ring.Point) *wincontext.Pointer {
+		return wincontext.PointerAt(target, pt.X, pt.Y)
+	}
+	ringDetect = wincontext.DetectAt
+)
 
 // ringOpenSelection starts capturing the text selected in window fg as the
 // ring opens: the launcher's path, without a copy (the button is held).
@@ -345,29 +361,10 @@ func (s *Shell) ringOpenSelection(fg uintptr) selCapture {
 
 // ringContent reads the context and the selected text for the ring gen,
 // finds its actions, and shows them if it still shows. Off the main thread.
-func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending selCapture) {
+func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending selCapture) {
 	ctx, cancel := context.WithTimeout(s.ctx, ringContextBudget)
 	defer cancel()
-	var c *plugin.Context
-	var sel *plugin.Selection
-	if cfg.ContextAware && cfg.Ring.Context {
-		var wg sync.WaitGroup
-		if target != 0 {
-			wg.Go(func() {
-				if v, ok := wincontext.Detect(ctx, target); ok {
-					c = &v
-				}
-			})
-		}
-		if pending != nil && pending.Err() == nil {
-			wg.Go(func() {
-				if v, ok := pending.Read(ctx); ok {
-					sel = &v
-				}
-			})
-		}
-		wg.Wait()
-	}
+	c, sel := ringRead(ctx, cfg, target, ptr, pending)
 	fixed := ring.FixedSlots(s.ctx, s.env.Engine, cfg.Ring.Fixed, ui.RingOwn(s.loc))
 	layout := ring.Content(s.ctx, s.env.Engine, cfg.Ring, fixed, c, sel)
 	s.post(func() {
@@ -380,6 +377,32 @@ func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, pending 
 			s.ring.win.Invalidate()
 		}
 	})
+}
+
+// ringRead reads, side by side within ctx, the context of window target
+// with what was under the pointer (ptr) and the selected text pending
+// captured; nil for what is not known or turned off.
+func ringRead(ctx context.Context, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending selCapture) (c *plugin.Context, sel *plugin.Selection) {
+	if !cfg.ContextAware || !cfg.Ring.Context {
+		return nil, nil
+	}
+	var wg sync.WaitGroup
+	if target != 0 {
+		wg.Go(func() {
+			if v, ok := ringDetect(ctx, target, ptr); ok {
+				c = &v
+			}
+		})
+	}
+	if pending != nil && pending.Err() == nil {
+		wg.Go(func() {
+			if v, ok := pending.Read(ctx); ok {
+				sel = &v
+			}
+		})
+	}
+	wg.Wait()
+	return c, sel
 }
 
 // ringTrack follows the pointer while the button holds the ring open, on

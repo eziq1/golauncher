@@ -9,4 +9,11 @@ import (
 )
 
 // Detect reports nothing on platforms other than Windows.
-func Detect(context.Context, uintptr) (plugin.Context, bool) { return plugin.Context{}, false }
+func Detect(ctx context.Context, target uintptr) (plugin.Context, bool) {
+	return DetectAt(ctx, target, nil)
+}
+
+// DetectAt reports nothing either.
+func DetectAt(context.Context, uintptr, *Pointer) (plugin.Context, bool) {
+	return plugin.Context{}, false
+}

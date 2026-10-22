@@ -1,12 +1,16 @@
 package shell
 
 import (
+	"context"
 	"runtime"
 	"testing"
 
 	"github.com/egoist/mygo"
 
+	"github.com/eziq1/golauncher/internal/config"
 	"github.com/eziq1/golauncher/internal/ui"
+	wincontext "github.com/eziq1/golauncher/internal/winapi/context"
+	"github.com/eziq1/golauncher/pkg/plugin"
 )
 
 // TestRingWindowOptions: on Windows the ring's window is a flyout of the
@@ -36,5 +40,42 @@ func TestRingWindowOptions(t *testing.T) {
 	}
 	if p.Width != ui.RingWidth || p.Height != ui.RingHeight {
 		t.Errorf("panel size %dx%d", p.Width, p.Height)
+	}
+}
+
+// TestRingReadPassesPointer: the ring's context is read by the launcher's
+// detection, given what was under the pointer (R120); with context
+// awareness or the ring's context off, nothing is read.
+func TestRingReadPassesPointer(t *testing.T) {
+	old := ringDetect
+	t.Cleanup(func() { ringDetect = old })
+	var (
+		calls     int
+		gotTarget uintptr
+		gotPtr    *wincontext.Pointer
+	)
+	ringDetect = func(_ context.Context, target uintptr, p *wincontext.Pointer) (plugin.Context, bool) {
+		calls++
+		gotTarget, gotPtr = target, p
+		return plugin.Context{Kind: plugin.ContextExplorer, Folder: `C:\Users\someone\Downloads`, Selected: []string{`C:\Users\someone\Downloads\a.zip`}}, true
+	}
+	cfg := config.Default()
+	cfg.ContextAware, cfg.Ring.Context = true, true
+	ptr := &wincontext.Pointer{}
+	c, sel := ringRead(t.Context(), cfg, 42, ptr, nil)
+	if calls != 1 || gotTarget != 42 || gotPtr != ptr {
+		t.Fatalf("detect called %d times with %d, %p; want once with 42, %p", calls, gotTarget, gotPtr, ptr)
+	}
+	if c == nil || c.Folder != `C:\Users\someone\Downloads` || len(c.Selected) != 1 || sel != nil {
+		t.Errorf("context %+v, selection %v", c, sel)
+	}
+
+	ringRead(t.Context(), cfg, 0, ptr, nil)
+	cfg.Ring.Context = false
+	ringRead(t.Context(), cfg, 42, ptr, nil)
+	cfg.Ring.Context, cfg.ContextAware = true, false
+	ringRead(t.Context(), cfg, 42, ptr, nil)
+	if calls != 1 {
+		t.Errorf("detect called %d times; want no call without a window or with the context off", calls)
 	}
 }
