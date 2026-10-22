@@ -2,7 +2,9 @@ package ui_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	mui "github.com/egoist/mygo/ui"
 
@@ -46,12 +48,215 @@ func typeIntoField(t *testing.T, tt *mui.Tester, label, text string) {
 	tt.Frame()
 }
 
+// fixedKeys shows the fixed slots: an action's key, a folder as
+// name[keys], "-" for an empty slot.
 func fixedKeys(env *app.Env) []string {
 	var out []string
-	for _, a := range env.Config.Get().Ring.Fixed {
-		out = append(out, a.Key)
+	for _, s := range env.Config.Get().Ring.Fixed {
+		switch {
+		case s.IsFolder():
+			var ks []string
+			for _, a := range s.Actions {
+				ks = append(ks, a.Key)
+			}
+			out = append(out, s.Name+"["+strings.Join(ks, " ")+"]")
+		case s.IsEmpty():
+			out = append(out, "-")
+		default:
+			out = append(out, s.Key)
+		}
 	}
 	return out
+}
+
+// centerOf returns the centre of the element showing or labeled label.
+func centerOf(t *testing.T, tt *mui.Tester, label string) (float32, float32) {
+	t.Helper()
+	r, ok := tt.Find(label)
+	if !ok {
+		t.Fatalf("no %q in %q", label, tt.Texts())
+	}
+	return r.X + r.W/2, r.Y + r.H/2
+}
+
+// dragTo drags the element labeled from onto the one labeled to, holds it
+// there for hold, and lets go.
+func dragTo(t *testing.T, tt *mui.Tester, from, to string, hold time.Duration) {
+	t.Helper()
+	fx, fy := centerOf(t, tt, from)
+	tx, ty := centerOf(t, tt, to)
+	tt.Press(fx, fy)
+	tt.Frame()
+	tt.Move(fx+8, fy+8)
+	tt.Frame()
+	tt.Move(tx, ty)
+	tt.Frame()
+	if hold > 0 {
+		tt.Advance(hold)
+		tt.Frame()
+	}
+	tt.Release(tx, ty)
+	tt.Frame()
+}
+
+// setFixed stores the fixed slots, then shows them.
+func setFixed(t *testing.T, env *app.Env, tt *mui.Tester, slots ...config.RingSlot) {
+	t.Helper()
+	if err := env.Config.Update(func(c *config.Config) { c.Ring.Fixed = slots }); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+}
+
+func acts(keys ...string) []config.RingAction {
+	var out []config.RingAction
+	for _, k := range keys {
+		out = append(out, config.RingAction{Key: k, Title: strings.ToUpper(k)})
+	}
+	return out
+}
+
+// TestSettingsRingEditor: the ring editor's drags: an action onto an empty
+// slot moves; held over another for half a second it makes a folder, which
+// opens to be named, and let go earlier the two trade places; onto a
+// folder it goes in, unless the folder is full; a folder's action dragged
+// to an empty slot moves out (refused with no empty slot), and a folder
+// left with one action is that action; actions reordered in the folder.
+func TestSettingsRingEditor(t *testing.T) {
+	env, _, tt := newRingSettings(t, "en", &fakeHost{})
+	editor, ok := tt.Find("Fixed slots")
+	if !ok || editor.W != 600 {
+		t.Fatalf("no editor in %q", tt.Texts())
+	}
+	setFixed(t, env, tt, config.RingSlot{Key: "a", Title: "Alpha"}, config.RingSlot{Key: "b", Title: "Beta"}, config.RingSlot{}, config.RingSlot{Key: "d", Title: "Delta"})
+	for _, want := range []string{"Alpha", "Beta", "Empty slot, Bottom", "Delta", "Context"} {
+		if !tt.HasText(want) {
+			t.Fatalf("no %q in %q", want, tt.Texts())
+		}
+	}
+	// Onto an empty slot: moved.
+	dragTo(t, tt, "Alpha", "Empty slot, Bottom", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "b", "a", "d"}) {
+		t.Fatalf("moved: %q", got)
+	}
+	// Onto another action, let go before half a second: they trade places.
+	dragTo(t, tt, "Beta", "Delta", 300*time.Millisecond)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "d", "a", "b"}) {
+		t.Fatalf("let go early: %q", got)
+	}
+	// Held there half a second: a folder, opened, its name to edit.
+	dragTo(t, tt, "Delta", "Alpha", 600*time.Millisecond)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "Folder[a d]", "b"}) {
+		t.Fatalf("merged: %q", got)
+	}
+	if !tt.HasText("Folder ▸") || !tt.HasText("1 Alpha") || !tt.HasText("2 Delta") {
+		t.Fatalf("the folder is not open: %q", tt.Texts())
+	}
+	typeIntoField(t, tt, "Folder name", "Tools")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "Tools[a d]", "b"}) {
+		t.Fatalf("renamed: %q", got)
+	}
+	// Onto the folder: in it.
+	dragTo(t, tt, "Beta", "Tools", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "Tools[a d b]"}) {
+		t.Fatalf("into the folder: %q", got)
+	}
+	// Reordered in the folder (open below the ring).
+	dragTo(t, tt, "Beta", "Alpha", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "Tools[b a d]"}) {
+		t.Fatalf("reordered: %q", got)
+	}
+	// Dragged out to an empty slot.
+	dragTo(t, tt, "Delta", "Empty slot, Top", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"d", "-", "Tools[b a]"}) {
+		t.Fatalf("out: %q", got)
+	}
+	// Out again: the folder of one left is that action.
+	dragTo(t, tt, "Beta", "Empty slot, Right", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"d", "b", "a"}) {
+		t.Fatalf("dissolved: %q", got)
+	}
+	if tt.HasText("Folder name") {
+		t.Errorf("a folder still open: %q", tt.Texts())
+	}
+
+	// A full folder refuses, with a hint.
+	setFixed(t, env, tt, config.RingSlot{Key: "x", Title: "Extra"}, config.FolderSlot("Six", acts("1", "2", "3", "4", "5", "6")...))
+	dragTo(t, tt, "Extra", "Six", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"x", "Six[1 2 3 4 5 6]"}) || !tt.HasText("This folder is full: a folder holds at most 6 actions.") {
+		t.Fatalf("full: %q %q", got, tt.Texts())
+	}
+	// Out of a folder with no empty slot: refused, with a hint.
+	setFixed(t, env, tt, config.RingSlot{Key: "x", Title: "Extra"}, config.FolderSlot("Two", acts("p", "q")...), config.RingSlot{Key: "y", Title: "Why"}, config.RingSlot{Key: "z", Title: "Zed"})
+	clickText(t, tt, "Two")
+	dragTo(t, tt, "P", "Extra", 0)
+	if got := fixedKeys(env); !slices.Equal(got, []string{"x", "Two[p q]", "y", "z"}) || !tt.HasText("There is no empty slot. Remove or move an action first.") {
+		t.Fatalf("no room: %q %q", got, tt.Texts())
+	}
+}
+
+// TestSettingsRingEditorButtons: without dragging: the selected action
+// moved to a position, put in a new folder and in a folder; a folder's
+// action moved out and removed; a folder deleted, its actions to the empty
+// slots, asking first when they do not all fit.
+func TestSettingsRingEditorButtons(t *testing.T) {
+	env, _, tt := newRingSettings(t, "en", &fakeHost{})
+	setFixed(t, env, tt, config.RingSlot{Key: "a", Title: "Alpha"}, config.RingSlot{Key: "b", Title: "Beta"}, config.RingSlot{}, config.RingSlot{Key: "d", Title: "Delta"})
+	clickText(t, tt, "Alpha")
+	clickText(t, tt, "Move Alpha…")
+	if !tt.HasText("Move Alpha to") {
+		t.Fatalf("no dialog: %q", tt.Texts())
+	}
+	clickText(t, tt, "Bottom")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "b", "a", "d"}) {
+		t.Fatalf("moved: %q", got)
+	}
+	clickText(t, tt, "Beta")
+	clickText(t, tt, "Move Beta into a folder…")
+	clickText(t, tt, "A new folder with Delta")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "a", "Folder[d b]"}) {
+		t.Fatalf("new folder: %q", got)
+	}
+	clickText(t, tt, "Alpha")
+	clickText(t, tt, "Move Alpha into a folder…")
+	clickText(t, tt, "Into Folder")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"-", "-", "-", "Folder[d b a]"}) {
+		t.Fatalf("into the folder: %q", got)
+	}
+	// The folder's actions (open below the ring).
+	clickText(t, tt, "Delta")
+	clickText(t, tt, "Move Delta out of the folder")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"d", "-", "-", "Folder[b a]"}) {
+		t.Fatalf("out: %q", got)
+	}
+	clickText(t, tt, "Beta")
+	clickText(t, tt, "Move Beta…")
+	clickText(t, tt, "Position 2")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"d", "-", "-", "Folder[a b]"}) {
+		t.Fatalf("reordered: %q", got)
+	}
+	clickText(t, tt, "Remove Beta")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"d", "-", "-", "a"}) {
+		t.Fatalf("removed, dissolved: %q", got)
+	}
+	// Deleted: its actions to the empty slots.
+	setFixed(t, env, tt, config.FolderSlot("F", acts("p", "q")...), config.RingSlot{Key: "x", Title: "Extra"})
+	clickText(t, tt, "F")
+	clickText(t, tt, "Delete the folder F")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"p", "x", "q"}) {
+		t.Fatalf("deleted: %q", got)
+	}
+	// Not all fit: asked first.
+	setFixed(t, env, tt, config.FolderSlot("G", acts("p", "q", "r")...), config.RingSlot{Key: "x", Title: "Extra"}, config.RingSlot{Key: "y", Title: "Why"})
+	clickText(t, tt, "G")
+	clickText(t, tt, "Delete the folder G")
+	if !tt.HasText("Only 2 of its 3 actions fit in the empty slots; the others are removed.") {
+		t.Fatalf("not asked: %q", tt.Texts())
+	}
+	clickText(t, tt, "Delete")
+	if got := fixedKeys(env); !slices.Equal(got, []string{"p", "x", "y", "q"}) {
+		t.Fatalf("deleted: %q", got)
+	}
 }
 
 // TestSettingsRing: the Action Ring page: on and off, the hold duration
@@ -86,13 +291,15 @@ func TestSettingsRing(t *testing.T) {
 		t.Fatalf("hold 450: %d", env.Config.Get().Ring.HoldMS)
 	}
 
-	// Moved and removed.
-	clickText(t, tt, "Move Ask AI up")
+	// Removed, with the selected slot's button.
+	clickText(t, tt, "Screenshot")
 	clickText(t, tt, "Remove Screenshot")
-	if got := fixedKeys(env); !slices.Equal(got, []string{config.RingAskAI, config.RingLauncher, config.RingLock}) {
+	if got := fixedKeys(env); !slices.Equal(got, []string{config.RingLauncher, config.RingAskAI, "-", config.RingLock}) {
 		t.Fatalf("fixed %q", got)
 	}
-	// Added: one of the ring's own, then a launcher item found by a search.
+	// Added: one of the ring's own (to the empty slot selected), then a
+	// launcher item found by a search, to the first empty slot.
+	clickText(t, tt, "Empty slot, Bottom")
 	clickText(t, tt, "Add Action")
 	settle(s, tt)
 	if !tt.HasText("Add an Action") || !tt.HasText("Added") {
@@ -100,6 +307,8 @@ func TestSettingsRing(t *testing.T) {
 	}
 	clickText(t, tt, "Screenshot")
 	settle(s, tt)
+	clickText(t, tt, "Open golauncher")
+	clickText(t, tt, "Remove Open golauncher")
 	clickText(t, tt, "Add Action")
 	settle(s, tt)
 	tt.Type("terminal")
@@ -107,8 +316,8 @@ func TestSettingsRing(t *testing.T) {
 	clickText(t, tt, "Windows Terminal")
 	settle(s, tt)
 	ring := env.Config.Get().Ring
-	if got := fixedKeys(env); !slices.Equal(got, []string{config.RingAskAI, config.RingLauncher, config.RingLock, config.RingScreenshot, "test/term"}) ||
-		ring.Fixed[3].Title != "" || ring.Fixed[4].Title != "Windows Terminal" || ring.Fixed[4].Icon != "app" {
+	if got := fixedKeys(env); !slices.Equal(got, []string{"test/term", config.RingAskAI, config.RingScreenshot, config.RingLock}) ||
+		ring.Fixed[2].Title != "" || ring.Fixed[0].Title != "Windows Terminal" || ring.Fixed[0].Icon != "app" {
 		t.Fatalf("fixed %+v", ring.Fixed)
 	}
 	if !tt.HasText("Windows Terminal") || tt.HasText("Add an Action") {
@@ -123,7 +332,6 @@ func TestSettingsRing(t *testing.T) {
 	if got := fixedKeys(env); !slices.Equal(got, []string{config.RingLauncher, config.RingAskAI, config.RingScreenshot, config.RingLock}) {
 		t.Fatalf("restored %q", got)
 	}
-
 	// Context actions off.
 	clickText(t, tt, "Fill the other slots with actions for what you are doing")
 	if env.Config.Get().Ring.Context {
@@ -172,7 +380,7 @@ func TestSettingsRingPermission(t *testing.T) {
 // TestSettingsRingChinese: the page in Chinese.
 func TestSettingsRingChinese(t *testing.T) {
 	_, _, tt := newRingSettings(t, "zh-CN", &fakeHost{})
-	for _, want := range []string{"按住鼠标中键打开操作环", "按住时长（毫秒）", "固定操作", "打开 golauncher", "问 AI", "截图", "情境操作", "例外名单", "隐私", "添加操作", "恢复默认"} {
+	for _, want := range []string{"按住鼠标中键打开操作环", "按住时长（毫秒）", "固定操作", "打开 golauncher", "问 AI", "截图", "情境", "固定格子", "情境操作", "例外名单", "隐私", "添加操作", "恢复默认"} {
 		if !tt.HasText(want) {
 			t.Errorf("no %q in %q", want, tt.Texts())
 		}

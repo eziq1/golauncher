@@ -25,6 +25,20 @@ Before 1.0.0, minor versions may contain breaking changes.
   the context actions and the exceptions. On macOS it needs the
   Accessibility permission (the page says so; nothing is asked at startup).
 
+- **Action Ring folders** (R118, docs/action-ring-folders.md): each of the
+  four fixed slots (top, right, bottom, left) holds an action or a folder of
+  up to six actions. A folder shows its first icons two by two and its name
+  with ▸; point at it (or drag the middle button to it) for 150 ms and an
+  arc of its actions opens outside the ring, each with its name, turning or
+  flipping to stay on the screen. Drag on to an action and let go, click
+  one, or press the folder's number and then `1`–`6`; `Esc` closes the arc
+  first. *Settings › Action Ring* edits the fixed slots on a drawing of the
+  ring: drag an action to an empty slot to move it, hold it over another
+  action for half a second to make a folder of the two, drop it on a folder
+  to add it; click a folder to rename it, reorder its actions or drag them
+  out. Buttons do the same without dragging. A list of fixed actions of an
+  older version is read as slots (actions past the fourth go into a folder
+  in the left slot).
 ### Changed
 
 - **Action Ring** (R117): every action now shows its name in a pill outside
@@ -40,7 +54,13 @@ Before 1.0.0, minor versions may contain breaking changes.
 - **Action Ring on Windows** (R117): the ring no longer sits on a black box
   with rounded corners and a border: its window is now a transparent
   flyout, so that the desktop shows around the ring.
-
+- **Action Ring: Ask AI** (R119): in apps whose selected text UI Automation
+  cannot read (Chrome's pages), choosing Ask AI showed golauncher's root with
+  the "Selected Text" section instead of the AI chat. The ring now reads the
+  selection through the launcher's own path, and once an action that needs
+  it is chosen (and the middle button is up) it uses the copy fallback the
+  selection settings allow; Ask AI always opens a chat: about the selected
+  text, or a blank one.
 ## [0.11.0] - 2026-10-20
 
 ### Added

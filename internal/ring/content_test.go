@@ -58,6 +58,17 @@ func own(key string) (string, string, bool) {
 	return "", "", false
 }
 
+// ordered returns the slots of l: the main directions, then the diagonals.
+func ordered(l ring.Layout) []ring.Slot {
+	var out []ring.Slot
+	for _, p := range []int{0, 2, 4, 6, 1, 3, 5, 7} {
+		if l[p] != nil {
+			out = append(out, *l[p])
+		}
+	}
+	return out
+}
+
 func slotKeys(list []ring.Slot) []string {
 	var out []string
 	for _, s := range list {
@@ -87,7 +98,7 @@ func TestContentFromProviders(t *testing.T) {
 
 	folder := &plugin.Context{App: plugin.AppInfo{Name: "explorer.exe"}, Kind: plugin.ContextExplorer, Folder: t.TempDir()}
 	sel := &plugin.Selection{Text: "some text", App: plugin.AppInfo{Name: "explorer.exe"}, Source: plugin.SelectionUIA}
-	slots := ring.Content(t.Context(), e.Engine, cfg, fixed, folder, sel)
+	slots := ordered(ring.Content(t.Context(), e.Engine, cfg, fixed, folder, sel))
 	got := slotKeys(slots)
 	if len(got) != 8 || slices.Contains(got, "builtin.selection/preview") {
 		t.Fatalf("slots %q", got)
@@ -101,7 +112,7 @@ func TestContentFromProviders(t *testing.T) {
 		t.Errorf("folder actions in the providers' order: %q", got)
 	}
 	// With one fixed action, more of them; never a destructive one.
-	slots = ring.Content(t.Context(), e.Engine, cfg, fixed[3:], folder, sel)
+	slots = ordered(ring.Content(t.Context(), e.Engine, cfg, fixed[3:], folder, sel))
 	got = slotKeys(slots)
 	if len(got) != 7 || !slices.Contains(got, "builtin.files/copy-path") || slices.Contains(got, "builtin.files/terminal-admin") {
 		t.Errorf("slots %q", got)
@@ -132,7 +143,7 @@ func TestContentFallback(t *testing.T) {
 	e := newRingEnv(t)
 	cfg := e.Config.Get().Ring
 	fixed := ring.FixedSlots(t.Context(), e.Engine, cfg.Fixed, own)
-	if got := ring.Content(t.Context(), e.Engine, cfg, fixed, nil, nil); len(got) != 4 {
+	if got := ordered(ring.Content(t.Context(), e.Engine, cfg, fixed, nil, nil)); len(got) != 4 {
 		t.Fatalf("nothing used yet: %q", slotKeys(got))
 	}
 	// Used from the root search: Empty Recycle Bin is destructive (left out),
@@ -147,7 +158,7 @@ func TestContentFallback(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got := slotKeys(ring.Content(t.Context(), e.Engine, cfg, fixed, &plugin.Context{App: plugin.AppInfo{Name: "game.exe"}}, nil))
+	got := slotKeys(ordered(ring.Content(t.Context(), e.Engine, cfg, fixed, &plugin.Context{App: plugin.AppInfo{Name: "game.exe"}}, nil)))
 	if !slices.Equal(got[4:], []string{"builtin.system/system:darkMode"}) {
 		t.Errorf("fallback %q (Lock Screen is a fixed one already)", got)
 	}

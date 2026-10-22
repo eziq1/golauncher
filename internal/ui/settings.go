@@ -108,6 +108,7 @@ func NewSettings(env *app.Env, host SettingsHost, version string) *Settings {
 		stored:  map[string]bool{},
 		options: map[string]optionsResult{},
 		buttons: map[string]buttonResult{},
+		ring:    ringSettingsState{sel: -1, item: -1, open: -1},
 	}
 }
 
