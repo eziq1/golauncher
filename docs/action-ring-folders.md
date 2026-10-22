@@ -1,6 +1,6 @@
 # Action Ring 目录方案
 
-> 状态：方案 v1 · 待你 review · 2026-10-22 · 对应需求 R118（见 [requirements.md](requirements.md)）
+> 状态：方案 v1 · 已确认（§3 四项都按建议执行），开发中 · 2026-10-22 · 对应需求 R118（见 [requirements.md](requirements.md)）
 >
 > 需求：增加 Action 目录：拖动一个 Action 叠到另一个上面，组成目录；鼠标移到目录上时，展开一个小的圆弧菜单。
 
