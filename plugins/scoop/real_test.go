@@ -143,6 +143,9 @@ func TestRealIdleHeap(t *testing.T) {
 	dropped := heapMB() - base
 	t.Logf("heap above the start: %.1f MB after Init and the refresh, %.1f MB with the index (%d packages, loaded in %v), %.1f MB after it is dropped",
 		idle, loaded, n, took, dropped)
+	if n < 1000 {
+		t.Skipf("only %d packages: too few to measure", n)
+	}
 	if loaded-idle < 1 {
 		t.Errorf("the index took only %.1f MB", loaded-idle)
 	}
