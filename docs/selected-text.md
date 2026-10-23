@@ -509,3 +509,12 @@ type SelectionProvider interface {
    - 用 VS Code 写进剪贴板的 `vscode-editor-data` 元数据（`isFromEmptySelection`）丢弃整行复制。
 
    这两点都需要先用一个只读的诊断命令在真机上确认。
+## R130：浏览器里第二次读不到选中文字（2026-10-23）
+
+**现象**：开着复制兜底，在浏览器里选中文字后打开 Action Ring 或启动器，第一次读到了，第二次读不到。
+
+**原因**：第一段先用 UIA 找焦点控件（最多等 `FocusBudget` 50 ms），控件支持 TextPattern 就用 UIA 读，读到空就当作没有选中，不会退回复制。Chromium（Chrome、Edge、Electron 应用）和 Firefox 第一次被 UIA 查询时才建立无障碍树（§2 已记下这个风险）：第一次查询超时，于是走了复制，读到了；之后无障碍树已经建好，查询很快找到 TextPattern，改走 UIA，而网页里的选区 UIA 常常读不出来，结果为空。
+
+**修法**：只针对这些 UIA 不可靠的窗口（`uiaUnsureClasses`：顶层窗口类 `Chrome_WidgetWin_*`、`MozillaWindowClass`，macOS 上 Chrome、Edge、Brave、Firefox 的 bundle identifier），在复制兜底开启、并且可以复制时（不是终端、Excel，不是没选中就复制整行的编辑器如 Electron 版 VS Code，不是提权窗口、密码框），第一段就用 UIA 读一次选区（最多 `uiaCheckBudget` 150 ms，此时窗口还有焦点）：读到文字就用它；读到空、出错或超时，改用复制。记事本、Word 等 UIA 可靠的程序，UIA 读到空仍然当作没有选中，不复制（§3 不选“每次都 Ctrl+C”的理由不变）。启动器和 Action Ring 都经 `selectionReader` 走同一个 `Begin`，两边一起修好。
+
+**测试**：`TestBeginUIAEmptyInBrowser`：Chrome 窗口 UIA 读空 → 复制并读到复制的文字；Firefox 窗口 UIA 读到文字 → 不复制；复制兜底关、VS Code、记事本 → 不复制。在改前的代码上失败。
