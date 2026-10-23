@@ -82,12 +82,13 @@ type ringCapture struct {
 }
 
 // ringContextBudget bounds reading the context and the selection for a
-// ring (Finder is asked with AppleScript on macOS).
+// ring (Finder is asked with AppleScript on macOS; the copy fallback takes
+// up to a few hundred milliseconds, R131).
 var ringContextBudget = func() time.Duration {
 	if runtime.GOOS == "darwin" {
 		return time.Second
 	}
-	return 400 * time.Millisecond
+	return 800 * time.Millisecond
 }()
 
 // ringKeys are the keys taken while the ring shows.
@@ -500,11 +501,13 @@ func (s *Shell) openRing(pt ring.Point) {
 	w.Invalidate()
 	s.registerRingKeys()
 
-	// The selected text, through the launcher's path (selectionReader):
-	// UI Automation or Accessibility only, never a simulated copy while
-	// the button is held (an action that needs the text copies it once
-	// chosen: ringSelection).
-	var sel selCapture
+	// The selected text, through the launcher's path (selectionReader),
+	// with the user's copy fallback as the launcher's show has it (R131):
+	// the ring never takes the focus and the held button never reached
+	// the app, so a simulated Ctrl+C goes to the window as it would without
+	// the ring. Its actions then follow the text as they do where UI
+	// Automation reads it.
+	var sel func(context.Context) selCapture
 	if cfg.Ring.Context && r.cap.selHere {
 		sel = s.ringOpenSelection(fg)
 	}
@@ -522,19 +525,28 @@ var (
 )
 
 // ringOpenSelection starts capturing the text selected in window fg as the
-// ring opens: the launcher's path, without a copy (the button is held).
-func (s *Shell) ringOpenSelection(fg uintptr) selCapture {
-	var sel selCapture
-	s.sel.Capture(fg, false, func(c selCapture) { sel = c })
-	return sel
+// ring opens, through the launcher's path with its copy fallback, and
+// returns how to wait for the capture (nil when ctx ends first): a copy
+// runs off the main thread and ends there.
+func (s *Shell) ringOpenSelection(fg uintptr) func(context.Context) selCapture {
+	ch := make(chan selCapture, 1)
+	s.sel.Capture(fg, true, func(c selCapture) { ch <- c })
+	return func(ctx context.Context) selCapture {
+		select {
+		case c := <-ch:
+			return c
+		case <-ctx.Done():
+			return nil
+		}
+	}
 }
 
 // ringContent reads the context and the selected text for the ring gen,
 // finds its actions, and shows them if it still shows. Off the main thread.
-func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending selCapture) {
+func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending func(context.Context) selCapture) {
 	ctx, cancel := context.WithTimeout(s.ctx, ringContextBudget)
 	defer cancel()
-	c, sel := ringRead(ctx, cfg, target, ptr, pending)
+	c, sel, copied := ringRead(ctx, cfg, target, ptr, pending)
 	fixed := ring.FixedSlots(s.ctx, s.env.Engine, cfg.Ring.Fixed, ui.RingOwn(s.loc))
 	layout := ring.Content(s.ctx, s.env.Engine, cfg.Ring, fixed, c, sel)
 	s.post(func() {
@@ -542,6 +554,8 @@ func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, ptr *win
 			return
 		}
 		s.ring.cap.ctx, s.ring.cap.sel = c, sel
+		// Copied already: a chosen action does not copy again.
+		s.ring.cap.read = s.ring.cap.read || copied
 		s.ring.view.SetLayout(layout)
 		if s.ring.win != nil {
 			s.ring.win.Invalidate()
@@ -551,10 +565,11 @@ func (s *Shell) ringContent(gen int, cfg config.Config, target uintptr, ptr *win
 
 // ringRead reads, side by side within ctx, the context of window target
 // with what was under the pointer (ptr) and the selected text pending
-// captured; nil for what is not known or turned off.
-func ringRead(ctx context.Context, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending selCapture) (c *plugin.Context, sel *plugin.Selection) {
+// captures (it waits for the capture, copy included); nil for what is not
+// known or turned off. copied reports that the capture used the clipboard.
+func ringRead(ctx context.Context, cfg config.Config, target uintptr, ptr *wincontext.Pointer, pending func(context.Context) selCapture) (c *plugin.Context, sel *plugin.Selection, copied bool) {
 	if !cfg.ContextAware || !cfg.Ring.Context {
-		return nil, nil
+		return nil, nil, false
 	}
 	var wg sync.WaitGroup
 	if target != 0 {
@@ -564,15 +579,20 @@ func ringRead(ctx context.Context, cfg config.Config, target uintptr, ptr *winco
 			}
 		})
 	}
-	if pending != nil && pending.Err() == nil {
+	if pending != nil {
 		wg.Go(func() {
-			if v, ok := pending.Read(ctx); ok {
+			got := pending(ctx)
+			if got == nil || got.Err() != nil {
+				return
+			}
+			copied = got.NeedsCopy()
+			if v, ok := got.Read(ctx); ok {
 				sel = &v
 			}
 		})
 	}
 	wg.Wait()
-	return c, sel
+	return c, sel, copied
 }
 
 // ringTrack follows the pointer while the button holds the ring open, on
