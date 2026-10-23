@@ -518,3 +518,17 @@ type SelectionProvider interface {
 **修法**：只针对这些 UIA 不可靠的窗口（`uiaUnsureClasses`：顶层窗口类 `Chrome_WidgetWin_*`、`MozillaWindowClass`，macOS 上 Chrome、Edge、Brave、Firefox 的 bundle identifier），在复制兜底开启、并且可以复制时（不是终端、Excel，不是没选中就复制整行的编辑器如 Electron 版 VS Code，不是提权窗口、密码框），第一段就用 UIA 读一次选区（最多 `uiaCheckBudget` 150 ms，此时窗口还有焦点）：读到文字就用它；读到空、出错或超时，改用复制。记事本、Word 等 UIA 可靠的程序，UIA 读到空仍然当作没有选中，不复制（§3 不选“每次都 Ctrl+C”的理由不变）。启动器和 Action Ring 都经 `selectionReader` 走同一个 `Begin`，两边一起修好。
 
 **测试**：`TestBeginUIAEmptyInBrowser`：Chrome 窗口 UIA 读空 → 复制并读到复制的文字；Firefox 窗口 UIA 读到文字 → 不复制；复制兜底关、VS Code、记事本 → 不复制。在改前的代码上失败。
+
+## R132：VS Code 里 Claude Code 面板的选中文字（2026-10-23）
+
+**现象**：在 VS Code 的 Claude Code 插件面板里选中文字，打开圆环或启动器，读不到。
+
+**原因**：Claude Code 面板是网页视图（webview），里面的选区 UI Automation 读不到；而 `Code.exe` 在“没选中时 Ctrl+C 复制整行”的编辑器名单（`lineCopyApps`）里，一律不用复制，两头落空。
+
+**修法**：用前面“VS Code 编辑区为什么读不到”里提过的办法：VS Code 在没选中、复制整行时，会在剪贴板写 `vscode-editor-data`，其中 `"isFromEmptySelection":true`（Electron 把它放在 Chromium 的 web custom data 里：Windows 的剪贴板格式 `Chromium Web Custom MIME Data Format`、macOS 的粘贴板类型 `org.chromium.web-custom-data`，UTF-16 JSON）。
+- `clip.CopyOptions.LineMark`：复制后再读这份数据（只在要求时读，别的程序不碰其他格式），带标记就设 `CopyResult.FromEmptySelection`；Windows 和 macOS 共用 `emptySelectionMarked`。
+- `lineMarkApps`/`lineMarkBundles`（VS Code、VS Code Insiders、Cursor、VSCodium）：允许复制，复制结果带标记就当作没有选中。JetBrains、Visual Studio、Sublime、Notepad++ 不打标记，仍然不复制。
+- **安全约束**：VS Code 的代码编辑区和**内置终端**都把焦点放在隐藏的输入框里；终端里没选中时 Ctrl+C 会**中断正在运行的程序**。所以焦点探测顺带读控件类型（`focusInfo.Edit`，UIA 的 Edit），在这些编辑器里焦点是输入框时仍按“会复制整行的编辑器”处理，任何路径都不复制（包括 R130 的“浏览器类窗口 UIA 读空就复制”）。网页面板里的内容（Claude Code 的对话等）才复制。macOS 上复制是 ⌘C，终端里不会中断程序。
+- 局限：Claude Code 面板**输入框里**选中的文字（也是输入框）读不到。
+
+**测试**：`TestCopyLineMark`、`TestPBCopyLineMark`（两个平台：带标记 → `FromEmptySelection`、真选区 → 否、没要求 → 不读）；`TestBeginLineMark`（VS Code 网页面板：复制并要求标记，带标记 → 没有选中、不带 → 读到）；`TestVSCodeTextFieldNeverCopied` 和 `TestDecide` 新用例（焦点在输入框 → 不复制；去掉这道保护时都会失败）。

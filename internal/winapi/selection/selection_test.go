@@ -44,7 +44,9 @@ func TestDecide(t *testing.T) {
 		{"clipboard app forces copy", probe{App: "Chat.exe", Element: true, TextPattern: true}, Options{Clipboard: true, ClipboardApps: []string{`D:\apps\chat.exe`}}, methodCopy, "clipboard-app"},
 		{"clipboard app ignored when off", probe{App: "chat.exe", Element: true, TextPattern: true}, Options{ClipboardApps: []string{"chat.exe"}}, methodUIA, "text-pattern"},
 		{"clipboard app, elevated", probe{App: "chat.exe", Elevated: true}, Options{Clipboard: true, ClipboardApps: []string{"chat.exe"}}, methodNone, "elevated"},
-		{"line-copy editor skipped", probe{App: "Code.exe", Element: true}, on, methodNone, "line-copy-editor"},
+		{"line-copy editor skipped", probe{App: "idea64.exe", Element: true}, on, methodNone, "line-copy-editor"},
+		{"line-marking editor copied", probe{App: "Code.exe", Element: true}, on, methodCopy, "fallback"},
+		{"line-marking editor, text field", probe{App: "Code.exe", Element: true, Edit: true}, on, methodNone, "line-copy-editor"},
 		{"line-copy editor, other case", probe{App: "NOTEPAD++.EXE"}, on, methodNone, "line-copy-editor"},
 		{"line-copy editor listed", probe{App: "Code.exe", Element: true}, Options{Clipboard: true, ClipboardApps: []string{"code.exe"}}, methodCopy, "clipboard-app"},
 		{"line-copy editor with text pattern", probe{App: "Code.exe", Element: true, TextPattern: true}, on, methodUIA, "text-pattern"},
@@ -593,7 +595,8 @@ func TestMacBundles(t *testing.T) {
 		want   method
 		reason string
 	}{
-		{"com.microsoft.VSCode", methodNone, "line-copy-editor"},
+		{"com.microsoft.VSCode", methodCopy, "fallback"}, // marks the copy of its line (R132)
+		{"com.sublimetext.4", methodNone, "line-copy-editor"},
 		{"com.jetbrains.goland", methodNone, "line-copy-editor"},
 		{"com.jetbrainsx", methodCopy, "fallback"},
 		{"com.microsoft.Excel", methodNone, "never-copy"},
@@ -646,12 +649,65 @@ func TestBeginUIAEmptyInBrowser(t *testing.T) {
 		o                Options
 	}{
 		{"clipboard off", "msedge.exe", "Chrome_WidgetWin_1", Options{}},
-		{"VS Code", "Code.exe", "Chrome_WidgetWin_1", Options{Clipboard: true}},
+		{"an editor copying the line", "notepad++.exe", "Chrome_WidgetWin_1", Options{Clipboard: true}},
 		{"elsewhere", "notepad.exe", "Notepad", Options{Clipboard: true}},
 	} {
 		f := browser(tc.app, tc.class, nil)
 		if p := Begin(1, tc.o); p.NeedsCopy() || f.copies.Load() != 0 {
 			t.Errorf("%s: fell back to the clipboard", tc.name)
 		}
+	}
+}
+
+// TestBeginLineMark (R132): in VS Code (a panel showing a web page, such as
+// Claude Code's, where UI Automation reads nothing), the clipboard method
+// runs with the line mark asked for: a marked copy (the current line, made
+// with nothing selected) is no selection, an unmarked one is the selection.
+func TestBeginLineMark(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		fromEmpty bool
+		want      bool
+	}{{"a selection", false, true}, {"the current line", true, false}} {
+		f := newEnv("Code.exe")
+		f.window.Class = "Chrome_WidgetWin_1"
+		f.focus = focusInfo{PID: targetPID} // no TextPattern: a webview's
+		f.copyRes = clip.CopyResult{Text: "copied", Restored: true, FromEmptySelection: tc.fromEmpty}
+		f.install(t)
+		var asked bool
+		copySelection = func(hwnd uintptr, o clip.CopyOptions) (clip.CopyResult, error) {
+			asked = o.LineMark
+			return f.copyRes, nil
+		}
+		p := Begin(1, Options{Clipboard: true})
+		if !p.NeedsCopy() {
+			t.Fatalf("%s: VS Code was not copied from", tc.name)
+		}
+		p.Copy()
+		sel, ok := p.Read(t.Context())
+		if !asked || ok != tc.want || ok && sel.Text != "copied" {
+			t.Errorf("%s: line mark asked %v, Read = %+v %v", tc.name, asked, sel, ok)
+		}
+	}
+}
+
+// TestVSCodeTextFieldNeverCopied (R132): in VS Code, a focus in a text
+// field (the code editor's or the terminal's hidden text area) is never
+// sent Ctrl+C, also where an empty UI Automation read would otherwise fall
+// back to the clipboard (R130): in the terminal, with nothing selected, it
+// would interrupt the running program.
+func TestVSCodeTextFieldNeverCopied(t *testing.T) {
+	f := newEnv("Code.exe")
+	f.window.Class = "Chrome_WidgetWin_1"
+	f.focus = focusInfo{PID: targetPID, TextPattern: true, Edit: true, elem: &fakeElem{}}
+	f.install(t)
+	p := Begin(1, Options{Clipboard: true})
+	if p.NeedsCopy() {
+		t.Fatal("VS Code's text field chose the clipboard")
+	}
+	p.Copy()
+	p.Read(t.Context())
+	if f.copies.Load() != 0 {
+		t.Fatal("Ctrl+C was sent to VS Code's text field")
 	}
 }

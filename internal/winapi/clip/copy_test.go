@@ -3,6 +3,7 @@ package clip
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -134,6 +135,16 @@ func (f *fakeClip) set(format uint32, data []byte) error {
 }
 
 func (f *fakeClip) seq() uint32 { return f.seqNo }
+
+// fmtWebCustom is the fake number of Chromium's web custom data format.
+const fmtWebCustom = 0xC0FF
+
+func (f *fakeClip) format(name string) uint32 {
+	if name == webCustomFormat {
+		return fmtWebCustom
+	}
+	return 0
+}
 
 func (f *fakeClip) markers() []uint32 { return []uint32{fmtExclude, fmtHistory, fmtCloud} }
 
@@ -753,4 +764,44 @@ func TestDebouncerHold(t *testing.T) {
 	case <-time.After(40 * time.Millisecond):
 	}
 	d.stop()
+}
+
+// vscodeData is Chromium's web custom data as VS Code leaves it after a
+// copy in its editor: its "vscode-editor-data" JSON among other bytes, in
+// UTF-16.
+func vscodeData(empty bool) []byte {
+	b := append([]byte{0x40, 0, 0, 0}, utf16Bytes("vscode-editor-data")...)
+	return append(b, utf16Bytes(fmt.Sprintf(`{"version":1,"isFromEmptySelection":%v,"multicursorText":null,"mode":"go"}`, empty))...)
+}
+
+// TestCopyLineMark (R132): with LineMark, a copy VS Code marks as made with
+// nothing selected (the current line) is reported as such; a marked
+// selection is not; without LineMark the data is not looked at.
+func TestCopyLineMark(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		lineMark  bool
+		data      []byte
+		fromEmpty bool
+	}{
+		{"the current line", true, vscodeData(true), true},
+		{"a selection", true, vscodeData(false), false},
+		{"no editor data", true, nil, false},
+		{"not asked", false, vscodeData(true), false},
+	} {
+		f := newFake(t, text("original"))
+		f.onCopy = func() {
+			f.after(5*time.Millisecond, func() {
+				fs := []savedFormat{{cfUnicodeText, utf16Bytes("func main() {}\r\n")}}
+				if tc.data != nil {
+					fs = append(fs, savedFormat{fmtWebCustom, tc.data})
+				}
+				f.write(fs...)
+			})
+		}
+		res, err := f.run(CopyOptions{LineMark: tc.lineMark})
+		if err != nil || res.Text != "func main() {}\r\n" || res.FromEmptySelection != tc.fromEmpty {
+			t.Errorf("%s: %+v %v", tc.name, res, err)
+		}
+	}
 }
