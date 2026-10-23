@@ -8,6 +8,38 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-23
+
+### Changed
+
+- **The Action Ring is hollow** (R129): its background is a band around the
+  actions, with a thin line on each edge, and clear inside around the close
+  button, so that what is under the ring shows through; the ring editor in
+  *Settings › Action Ring* draws the same.
+
+### Fixed
+
+- **Selected text in browsers, the second time** (R130): with the copy
+  fallback on, the first time golauncher or the Action Ring opened over a
+  page in Chrome, Edge, an Electron app or Firefox it read the selected
+  text, and the next times it did not: once the browser's accessibility
+  tree was built, UI Automation took over and read nothing from the page.
+  In those windows an empty UI Automation read now falls back to the copy;
+  other apps are unchanged.
+- **The Action Ring's context actions in browsers** (R131): where only a
+  copy reads the selected text (a browser's page), the ring opened without
+  it and showed recently used actions instead of the actions for the text.
+  The ring now copies as it opens, as the launcher does (the copy fallback
+  setting applies); its fixed actions show at once and the others follow.
+- **Selected text in VS Code's panels** (R132): in a panel showing a web
+  page, such as Claude Code's, nothing was read, since VS Code was never
+  copied from (it copies the current line when nothing is selected). VS Code
+  marks that copy, so it is now copied from and a copy of the line counts
+  as no selection; the same for Cursor, VS Code Insiders and VSCodium. The
+  code editor and the terminal are still never sent Ctrl+C (in the
+  terminal it would interrupt the running program). Text selected in the
+  input box of such a panel is not read.
+
 ## [0.13.0] - 2026-10-22
 
 ### Added
@@ -1031,7 +1063,8 @@ WebView2).
 - No auto-update yet: download a new release and run it to upgrade.
 - The executables are not code-signed, so SmartScreen may warn on first run.
 
-[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/eziq1/golauncher/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/eziq1/golauncher/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/eziq1/golauncher/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/eziq1/golauncher/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/eziq1/golauncher/compare/v0.10.1...v0.11.0
