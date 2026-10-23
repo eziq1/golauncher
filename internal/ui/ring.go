@@ -81,10 +81,10 @@ const (
 // returns the band, to add a shadow to (it shows outside the circle only).
 func hollowRing(c *mui.Context, key string, cx, cy, r, w float32, fill, line mui.Color) mui.Element {
 	d := 2 * r
-	band := mui.Box(c.Key(key)).Absolute().Left(cx - r).Top(cy - r).Size(d, d).Radius(r).Border(w, fill)
-	mui.Box(c.Key(key+":outer")).Absolute().Left(cx - r).Top(cy - r).Size(d, d).Radius(r).Border(1, line)
+	band := mui.Box(c.Key(key)).Absolute().Left(cx-r).Top(cy-r).Size(d, d).Radius(r).Border(w, fill)
+	mui.Box(c.Key(key+":outer")).Absolute().Left(cx-r).Top(cy-r).Size(d, d).Radius(r).Border(1, line)
 	in := d - 2*w
-	mui.Box(c.Key(key+":inner")).Absolute().Left(cx - in/2).Top(cy - in/2).Size(in, in).Radius(in / 2).Border(1, line)
+	mui.Box(c.Key(key+":inner")).Absolute().Left(cx-in/2).Top(cy-in/2).Size(in, in).Radius(in/2).Border(1, line)
 	return band
 }
 
