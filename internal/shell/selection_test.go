@@ -82,9 +82,9 @@ func selectionShell(t *testing.T, fake *fakeSelection, aware bool, sc config.Sel
 }
 
 // TestSelectionOnePath: the launcher's show and the Action Ring read the
-// selected text through the same reader, with the same settings: the ring
-// opening without the copy fallback, the ring's action chosen and the
-// launcher with it.
+// selected text through the same reader, with the same settings, copy
+// fallback included: the ring opening (R131), the ring's action chosen and
+// the launcher.
 func TestSelectionOnePath(t *testing.T) {
 	fake := &fakeSelection{app: fakeApp{name: "chrome.exe", clip: "copied"}}
 	sc := config.DefaultSelection()
@@ -95,20 +95,19 @@ func TestSelectionOnePath(t *testing.T) {
 	if !s.launcherSelection(1, func(c selCapture) { got = c }) || got == nil {
 		t.Fatal("the launcher did not copy")
 	}
-	if sel := s.ringOpenSelection(1); sel == nil || sel.NeedsCopy() {
-		t.Fatal("the ring opening would copy")
+	if sel := s.ringOpenSelection(1)(t.Context()); sel == nil || !sel.NeedsCopy() {
+		t.Fatal("the ring opening did not copy")
 	}
 	var lazy ringCapture
 	s.ringSelection(ringCapture{fg: 1, selHere: true}, func(c ringCapture) { lazy = c })
 	if lazy.sel == nil || lazy.sel.Text != "copied" || !lazy.read {
 		t.Fatalf("lazy read %+v", lazy)
 	}
-	if len(fake.begins) != 3 || fake.copies != 2 {
+	if len(fake.begins) != 3 || fake.copies != 3 {
 		t.Fatalf("%d begins, %d copies", len(fake.begins), fake.copies)
 	}
 	for i, o := range fake.begins {
-		wantCopy := i != 1 // the ring opening never copies
-		if o.Clipboard != wantCopy || slices.Equal(o.ClipboardApps, sc.ClipboardApps) != wantCopy ||
+		if !o.Clipboard || !slices.Equal(o.ClipboardApps, sc.ClipboardApps) ||
 			!slices.Equal(o.ExcludeApps, sc.ExcludeApps) || o.MaxChars != 1234 {
 			t.Errorf("begin %d: %+v", i, o)
 		}
@@ -242,5 +241,31 @@ func TestRingAskAIFiles(t *testing.T) {
 	}
 	if _, ok := ringAskAIEntry(nil, ringFiles(nil)); ok {
 		t.Fatal("Ask AI without text or files is not a blank chat")
+	}
+}
+
+// TestRingOpenCopies (R131): where only a copy reads the selected text (a
+// browser's page), the ring opening copies it, as the launcher's show
+// does, so that its context actions follow the text; the capture counts as
+// read, so that a chosen action does not copy again. The fallback off,
+// nothing is copied.
+func TestRingOpenCopies(t *testing.T) {
+	fake := &fakeSelection{app: fakeApp{name: "chrome.exe", clip: "copied"}}
+	sc := config.DefaultSelection()
+	sc.Clipboard = true
+	s := selectionShell(t, fake, true, sc)
+	cfg := config.Default()
+	cfg.ContextAware, cfg.Ring.Context = true, true
+
+	_, sel, copied := ringRead(t.Context(), cfg, 0, nil, s.ringOpenSelection(1))
+	if sel == nil || sel.Text != "copied" || !copied || fake.copies != 1 {
+		t.Fatalf("selection %+v, copied %v, %d copies", sel, copied, fake.copies)
+	}
+
+	fake = &fakeSelection{app: fakeApp{name: "chrome.exe", clip: "copied"}}
+	sc.Clipboard = false
+	s = selectionShell(t, fake, true, sc)
+	if _, sel, copied := ringRead(t.Context(), cfg, 0, nil, s.ringOpenSelection(1)); sel != nil || copied || fake.copies != 0 {
+		t.Fatalf("fallback off: selection %+v, copied %v, %d copies", sel, copied, fake.copies)
 	}
 }

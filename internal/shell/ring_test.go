@@ -62,7 +62,7 @@ func TestRingReadPassesPointer(t *testing.T) {
 	cfg := config.Default()
 	cfg.ContextAware, cfg.Ring.Context = true, true
 	ptr := &wincontext.Pointer{}
-	c, sel := ringRead(t.Context(), cfg, 42, ptr, nil)
+	c, sel, _ := ringRead(t.Context(), cfg, 42, ptr, nil)
 	if calls != 1 || gotTarget != 42 || gotPtr != ptr {
 		t.Fatalf("detect called %d times with %d, %p; want once with 42, %p", calls, gotTarget, gotPtr, ptr)
 	}
