@@ -67,8 +67,26 @@ const (
 	ringOpen = 120 * time.Millisecond
 )
 
-// ringDisc is the diameter of the ring's background.
-const ringDisc = 2 * ringDiscR
+// ringDisc is the diameter of the ring's background; ringBand the width
+// of its band, the slots and a margin on each side: inside it, the ring is
+// hollow (R129).
+const (
+	ringDisc = 2 * ringDiscR
+	ringBand = ringSlot + 24
+)
+
+// hollowRing draws a band w wide on the inside of the circle of radius r
+// around (cx, cy), hollow within (R129): a circle whose thick border is the
+// band, filled with fill, and a thin line of line on each of its edges. It
+// returns the band, to add a shadow to (it shows outside the circle only).
+func hollowRing(c *mui.Context, key string, cx, cy, r, w float32, fill, line mui.Color) mui.Element {
+	d := 2 * r
+	band := mui.Box(c.Key(key)).Absolute().Left(cx - r).Top(cy - r).Size(d, d).Radius(r).Border(w, fill)
+	mui.Box(c.Key(key+":outer")).Absolute().Left(cx - r).Top(cy - r).Size(d, d).Radius(r).Border(1, line)
+	in := d - 2*w
+	mui.Box(c.Key(key+":inner")).Absolute().Left(cx - in/2).Top(cy - in/2).Size(in, in).Radius(in / 2).Border(1, line)
+	return band
+}
 
 // ringArcMetrics are the sizes of a folder's arc.
 var ringArcMetrics = ring.ArcMetrics{Radius: ringArcRadius, Step: math.Pi / 6, SlotR: ringSubSlot / 2, LabelGap: ringArcGap, LabelH: ringLabelH}
@@ -435,9 +453,8 @@ func (r *Ring) View(c *mui.Context) {
 		}
 		scale := 0.85 + 0.15*p
 		mui.Box(c.Key("ring:body")).Absolute().Left(0).Top(0).Size(w, h).Opacity(p).Scale(scale, scale).PassThrough().Children(func() {
-			d := float32(ringDisc)
-			mui.Box(c.Key("ring:disc")).Absolute().Left(cx-d/2).Top(cy-d/2).Size(d, d).Radius(d/2).
-				Background(t.Background.Alpha(0.96)).Border(1, t.Border).Shadow(0, 6, 24, 0, mui.RGBA(0, 0, 0, 0.28))
+			hollowRing(c, "ring:disc", cx, cy, ringDiscR, ringBand, t.Background.Alpha(0.96), t.Border).
+				Shadow(0, 6, 24, 0, mui.RGBA(0, 0, 0, 0.28))
 			// Every slot's name, outside the ring (but where the arc is).
 			for i, s := range l {
 				if s == nil {
