@@ -1,6 +1,7 @@
 package clip
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"slices"
@@ -40,6 +41,11 @@ type CopyOptions struct {
 	Timeout time.Duration
 	// MaxChars truncates the text, in characters (0: no limit).
 	MaxChars int
+	// LineMark: the window may copy its current line when nothing is
+	// selected and then marks the copy, as VS Code does ("isFromEmptySelection"
+	// in Chromium's web custom data, R132). Such a copy is reported in
+	// CopyResult.FromEmptySelection.
+	LineMark bool
 }
 
 // CopyResult is the outcome of CopySelection. It never holds anything but
@@ -48,6 +54,9 @@ type CopyResult struct {
 	// Text is the copied text, truncated to CopyOptions.MaxChars.
 	Text      string
 	Truncated bool
+	// FromEmptySelection (with CopyOptions.LineMark): the window copied its
+	// current line because nothing was selected; Text is not a selection.
+	FromEmptySelection bool
 	// Restored reports that the saved clipboard content was put back. It is
 	// false when nothing needed restoring, or when another program wrote the
 	// clipboard after the copy (its content is then left alone).
@@ -105,6 +114,27 @@ const (
 	vkRWin    = 0x5C
 )
 
+// The clipboard format (Windows) and pasteboard type (macOS) in which
+// Chromium, and so Electron apps such as VS Code, keep the data a page put
+// on the clipboard under its own types: VS Code's "vscode-editor-data" goes
+// there, a JSON in UTF-16 among the other types.
+const (
+	webCustomFormat = "Chromium Web Custom MIME Data Format"
+	webCustomType   = "org.chromium.web-custom-data"
+)
+
+// emptySelectionMark is how VS Code marks the copy of the current line made
+// with nothing selected, in its editor data (JSON.stringify: no spaces), in
+// UTF-16 without the terminating NUL.
+var emptySelectionMark = func() []byte {
+	b := utf16Bytes(`"isFromEmptySelection":true`)
+	return b[:len(b)-2]
+}()
+
+// emptySelectionMarked reports whether web custom data b holds VS Code's
+// mark of a copy made with nothing selected.
+func emptySelectionMarked(b []byte) bool { return len(b) > 0 && bytes.Contains(b, emptySelectionMark) }
+
 // Errors of copyAPI.get.
 var (
 	errTooLarge = errors.New("clip: clipboard data too large")
@@ -127,6 +157,8 @@ type copyAPI interface {
 	empty() error
 	set(f uint32, data []byte) error
 	seq() uint32
+	// format returns the number of the registered format name (0 if none).
+	format(name string) uint32
 	// markers are the registered formats that ask monitors, clipboard
 	// history and cloud clipboard to ignore the content (0 when missing).
 	markers() []uint32
@@ -385,8 +417,12 @@ func (c copier) copy(hwnd uintptr, o CopyOptions) (CopyResult, error) {
 	}
 
 	// 5. Read only the text: other formats could make the window render
-	// them (delayed rendering).
+	// them (delayed rendering). An editor that marks the copy of its line
+	// (LineMark) is asked for its web custom data too.
 	text, readErr := c.readText()
+	if o.LineMark {
+		res.FromEmptySelection = c.lineMarked()
+	}
 
 	// 6. Restore, unless someone else wrote the clipboard meanwhile.
 	t = a.now()
@@ -488,6 +524,22 @@ func (c copier) readText() (string, error) {
 		return "", nil
 	}
 	return utf16String(b), nil
+}
+
+// lineMarked reports whether the clipboard's web custom data marks a copy
+// made with nothing selected (CopyOptions.LineMark).
+func (c copier) lineMarked() bool {
+	a := c.api
+	f := a.format(webCustomFormat)
+	if f == 0 {
+		return false
+	}
+	if err := a.open(); err != nil {
+		return false
+	}
+	defer a.close()
+	b, err := a.get(f, 1<<20)
+	return err == nil && emptySelectionMarked(b)
 }
 
 // suppressor hides clipboard changes made by CopySelection from Watch: every

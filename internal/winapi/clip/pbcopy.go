@@ -3,6 +3,7 @@ package clip
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -24,6 +25,8 @@ type pbAPI interface {
 	restore(items [][]pbData) error
 	// text returns the plain text on the pasteboard and its types.
 	text() (string, []string)
+	// data returns the data of type typ on the pasteboard (nil for none).
+	data(typ string) []byte
 	// postCopy posts ⌘C (with no other modifier) to the frontmost app.
 	postCopy() error
 	now() time.Time
@@ -88,10 +91,14 @@ func pbCopy(a pbAPI, sup *suppressor, pid int, o CopyOptions) (CopyResult, error
 	}
 	res.Wait = a.now().Sub(sent)
 
-	// 5. Read the text.
+	// 5. Read the text, and the web custom data of an editor that marks the
+	// copy of its line (LineMark).
 	text, types := a.text()
 	if excludedTypes(types) {
 		text = ""
+	}
+	if o.LineMark && slices.Contains(types, webCustomType) {
+		res.FromEmptySelection = emptySelectionMarked(a.data(webCustomType))
 	}
 
 	// 6. Restore, unless someone else wrote the pasteboard meanwhile.

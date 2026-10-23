@@ -226,6 +226,9 @@ func uiaFocusProbe() (focusInfo, error) {
 	if fi.Password = pw != 0; fi.Password {
 		return fi, nil
 	}
+	var ct int32
+	comCall(el, vtElementCurrentControlType, uintptr(unsafe.Pointer(&ct)))
+	fi.Edit = ct == uiaEditControlTypeID
 	tp := patternAs(el, uiaTextPattern2ID, &iidIUIAutomationTextPat2)
 	if tp == 0 {
 		tp = patternAs(el, uiaTextPatternID, &iidIUIAutomationTextPattern)

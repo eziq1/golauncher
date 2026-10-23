@@ -101,6 +101,16 @@ func (macPB) restore(items [][]pbData) error {
 	return err
 }
 
+func (macPB) data(typ string) []byte {
+	var b []byte
+	ns.Pool(func() {
+		if d := ns.Send(pasteboard(), "dataForType:", ns.String(typ)); d != 0 {
+			b = ns.Bytes(d)
+		}
+	})
+	return b
+}
+
 func (macPB) text() (string, []string) {
 	var (
 		s     string

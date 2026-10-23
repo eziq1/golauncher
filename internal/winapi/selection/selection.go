@@ -107,6 +107,8 @@ type probe struct {
 	Password bool
 	// TextPattern: the focused element supports the TextPattern.
 	TextPattern bool
+	// Edit: the focused element is a text field (Windows; false on macOS).
+	Edit bool
 	// Class is the window class of the top-level window (on macOS, the
 	// app's bundle identifier).
 	Class string
@@ -143,6 +145,22 @@ var lineCopyApps = []string{
 var lineCopyBundles = []string{
 	"com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.todesktop.230313mzl4w4u92", // Cursor
 	"com.sublimetext.3", "com.sublimetext.4", "com.jetbrains.", "com.google.android.studio",
+}
+
+// lineMarkApps and lineMarkBundles are the editors of lineCopyApps and
+// lineCopyBundles that mark the copy of their line (VS Code and its forks:
+// "isFromEmptySelection" in their editor data, R132): they are copied from,
+// and a marked copy counts as no selection. Their panels that show web
+// pages (Claude Code's, a Markdown preview) keep UI Automation from the
+// selection, so the clipboard is the only way there.
+var (
+	lineMarkApps    = []string{"Code.exe", "Code - Insiders.exe", "Cursor.exe", "VSCodium.exe"}
+	lineMarkBundles = []string{"com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.todesktop.230313mzl4w4u92", "com.vscodium"}
+)
+
+// marksLine reports whether p's app marks the copy of its line.
+func marksLine(p probe) bool {
+	return listed(p.App, lineMarkApps) || p.Class != "" && slices.Contains(lineMarkBundles, p.Class)
 }
 
 // lineCopyBundle reports whether bundle is one of lineCopyBundles.
@@ -237,9 +255,19 @@ func neverCopies(p probe) bool {
 	return listed(p.App, neverCopyApps) || slices.Contains(neverCopyClasses, p.Class)
 }
 
-// copiesLine reports whether p's app copies the current line when nothing
-// is selected.
-func copiesLine(p probe) bool { return listed(p.App, lineCopyApps) || lineCopyBundle(p.Class) }
+// copiesLine reports whether a Ctrl+C in p's app may take more than the
+// selection when nothing is selected: an editor of lineCopyApps, unless it
+// marks the copy of its line (marksLine) and the focus is not in a text
+// field. VS Code's code editor and terminal take the focus in hidden text
+// fields: with nothing selected, Ctrl+C copies the line in the editor and
+// interrupts the running program in the terminal, so neither is copied
+// from; its panels showing web pages (Claude Code's) are.
+func copiesLine(p probe) bool {
+	if !listed(p.App, lineCopyApps) && !lineCopyBundle(p.Class) {
+		return false
+	}
+	return !marksLine(p) || p.Edit
+}
 
 // copyFallback reports whether the clipboard method may stand in for an
 // empty UI Automation read in p's window (R130): it is on, keys reach the
@@ -310,7 +338,9 @@ type focusInfo struct {
 	PID         int
 	Password    bool
 	TextPattern bool
-	elem        element
+	// Edit: the element is a text field (UI Automation's Edit control type).
+	Edit bool
+	elem element
 }
 
 // element is the focused element kept from phase 1 for phase 2. Its
@@ -355,6 +385,9 @@ type Pending struct {
 	method method
 	app    plugin.AppInfo
 	elem   element // methodUIA only
+	// lineMark: the app marks the copy of its line (marksLine), which Copy
+	// then does not take for a selection.
+	lineMark bool
 
 	err error // permission() of Begin
 
@@ -400,6 +433,7 @@ func Begin(hwnd uintptr, o Options) *Pending {
 	if ok {
 		pr.Element = true
 		pr.Password = fi.Password
+		pr.Edit = fi.Edit
 		pr.TextPattern = fi.TextPattern && fi.elem != nil
 		if fi.PID == ownPID {
 			pr.Own = true
@@ -410,6 +444,7 @@ func Begin(hwnd uintptr, o Options) *Pending {
 	}
 	var reason string
 	p.method, reason = decide(pr, o)
+	p.lineMark = marksLine(pr)
 	if p.method == methodUIA {
 		p.elem = fi.elem
 	} else if fi.elem != nil {
@@ -491,9 +526,15 @@ func (p *Pending) Copy() {
 	p.copied = true
 	start := time.Now()
 	limit := p.opts.maxChars()
-	r, err := copySelection(p.hwnd, clip.CopyOptions{Timeout: copyTimeout, MaxChars: limit})
+	r, err := copySelection(p.hwnd, clip.CopyOptions{Timeout: copyTimeout, MaxChars: limit, LineMark: p.lineMark})
 	took := time.Since(start)
 	p.copyErr = err
+	if r.FromEmptySelection {
+		// The editor copied its current line: nothing was selected.
+		p.done = true
+		p.log.Debug("selection empty", "reason", "line-copy", "method", methodCopy, "app", p.app.Name, "took", took)
+		return
+	}
 	if err != nil {
 		p.log.Debug("selection copy error", "reason", copyErrorKind(err), "method", methodCopy, "app", p.app.Name, "took", took)
 		if r.Text == "" {

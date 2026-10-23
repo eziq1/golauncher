@@ -23,7 +23,8 @@ type fakePB struct {
 	copyAt   time.Time
 	posted   int
 	restored [][]pbData
-	stolen   bool // another app writes after the copy
+	stolen   bool   // another app writes after the copy
+	custom   []byte // the copy's web custom data
 }
 
 func (f *fakePB) frontmost() int { return f.front }
@@ -45,6 +46,13 @@ func (f *fakePB) restore(items [][]pbData) error {
 	return nil
 }
 func (f *fakePB) text() (string, []string) { return f.text_, f.types }
+
+func (f *fakePB) data(typ string) []byte {
+	if typ == webCustomType {
+		return f.custom
+	}
+	return nil
+}
 func (f *fakePB) postCopy() error {
 	f.posted++
 	if f.copyText != "" {
@@ -120,5 +128,21 @@ func TestPBCopyStolen(t *testing.T) {
 	// later would be kept (res.Restored false).
 	if !res.Restored {
 		t.Error("not restored")
+	}
+}
+
+// TestPBCopyLineMark (R132): on macOS too, with LineMark, VS Code's mark of
+// a copy made with nothing selected is reported; without it, ignored.
+func TestPBCopyLineMark(t *testing.T) {
+	for _, tc := range []struct {
+		lineMark, empty, want bool
+	}{{true, true, true}, {true, false, false}, {false, true, false}} {
+		f := newPB()
+		f.copyText, f.delay = "func main() {}\n", 10*time.Millisecond
+		f.extra, f.custom = []string{webCustomType}, vscodeData(tc.empty)
+		res, err := pbCopy(f, &suppressor{}, 42, CopyOptions{LineMark: tc.lineMark})
+		if err != nil || res.FromEmptySelection != tc.want {
+			t.Errorf("%+v: res %+v, err %v", tc, res, err)
+		}
 	}
 }

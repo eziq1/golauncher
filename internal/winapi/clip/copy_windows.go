@@ -75,6 +75,8 @@ func (winCopyAPI) set(f uint32, data []byte) error { return setData(uintptr(f), 
 
 func (winCopyAPI) seq() uint32 { return sequenceNumber() }
 
+func (winCopyAPI) format(name string) uint32 { return uint32(registerFormat(name)) }
+
 func (winCopyAPI) markers() []uint32 {
 	f := formats()
 	return []uint32{uint32(f.exclude), uint32(f.history), uint32(f.cloud)}
