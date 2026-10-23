@@ -155,6 +155,29 @@ func lineCopyBundle(bundle string) bool {
 	})
 }
 
+// uiaUnsureClasses are the windows, by top-level class or macOS bundle
+// identifier (prefixes), whose UI Automation may report an empty selection
+// over selected text: the web pages of Chromium (Chrome, Edge, Electron
+// apps) and Firefox, whose accessibility tree is built late and often
+// leaves the page's selection out. The first capture there fell back to
+// the clipboard (the focus probe timed out while the tree was built), the
+// next ones found a TextPattern and read nothing (R130). There an empty
+// UI Automation read falls back to the clipboard method when it is on.
+var uiaUnsureClasses = []string{
+	"Chrome_WidgetWin_", "MozillaWindowClass",
+	"com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser", "org.mozilla.firefox",
+}
+
+// uiaUnsure reports whether class is one of uiaUnsureClasses.
+func uiaUnsure(class string) bool {
+	return class != "" && slices.ContainsFunc(uiaUnsureClasses, func(c string) bool { return strings.HasPrefix(class, c) })
+}
+
+// uiaCheckBudget bounds reading the UI Automation selection in phase 1 for
+// a window of uiaUnsureClasses, to fall back to the clipboard before the
+// launcher takes the focus.
+const uiaCheckBudget = 150 * time.Millisecond
+
 // baseName returns the file name of an executable name or path, for
 // case-insensitive comparison.
 func baseName(s string) string {
@@ -186,7 +209,7 @@ func decide(p probe, o Options) (method, string) {
 	case p.Password:
 		return methodNone, "password"
 	}
-	neverCopy := listed(p.App, neverCopyApps) || slices.Contains(neverCopyClasses, p.Class)
+	neverCopy := neverCopies(p)
 	copyAllowed := !neverCopy && !p.Elevated && !p.Password
 	if o.Clipboard && copyAllowed && listed(p.App, o.ClipboardApps) {
 		return methodCopy, "clipboard-app"
@@ -203,10 +226,26 @@ func decide(p probe, o Options) (method, string) {
 		return methodNone, "never-copy"
 	case p.Elevated:
 		return methodNone, "elevated"
-	case listed(p.App, lineCopyApps) || lineCopyBundle(p.Class):
+	case copiesLine(p):
 		return methodNone, "line-copy-editor"
 	}
 	return methodCopy, "fallback"
+}
+
+// neverCopies reports whether p's app never gets a simulated Ctrl+C.
+func neverCopies(p probe) bool {
+	return listed(p.App, neverCopyApps) || slices.Contains(neverCopyClasses, p.Class)
+}
+
+// copiesLine reports whether p's app copies the current line when nothing
+// is selected.
+func copiesLine(p probe) bool { return listed(p.App, lineCopyApps) || lineCopyBundle(p.Class) }
+
+// copyFallback reports whether the clipboard method may stand in for an
+// empty UI Automation read in p's window (R130): it is on, keys reach the
+// app, and a Ctrl+C there copies a selection only.
+func copyFallback(p probe, o Options) bool {
+	return o.Clipboard && !neverCopies(p) && !p.Elevated && !p.Password && !copiesLine(p)
 }
 
 // elevatedThan reports whether a target process of integrity level
@@ -376,6 +415,19 @@ func Begin(hwnd uintptr, o Options) *Pending {
 	} else if fi.elem != nil {
 		elem := fi.elem
 		uia.do(elem.release)
+	}
+	if p.method == methodUIA && uiaUnsure(pr.Class) && copyFallback(pr, o) {
+		// Read the selection now, while the window still has the focus: if
+		// UI Automation finds none, the clipboard method looks (R130).
+		ctx, cancel := context.WithTimeout(context.Background(), uiaCheckBudget)
+		_, ok := p.Read(ctx)
+		cancel()
+		if !ok {
+			p.mu.Lock()
+			p.method, p.done = methodCopy, false
+			p.mu.Unlock()
+			reason = "uia-empty"
+		}
 	}
 	p.log.Debug("selection begin", "method", p.method, "reason", reason, "app", pr.App,
 		"element", pr.Element, "took", time.Since(start))

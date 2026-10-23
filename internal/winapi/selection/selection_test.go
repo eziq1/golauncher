@@ -605,3 +605,53 @@ func TestMacBundles(t *testing.T) {
 		}
 	}
 }
+
+// TestBeginUIAEmptyInBrowser (R130): in a browser's window (Chromium,
+// Firefox), whose UI Automation may miss a page's selection, an empty UI
+// Automation read in phase 1 falls back to the clipboard method when it is
+// on; a selection UI Automation finds is used as is. Never without the
+// clipboard method, nor in an editor that copies the line, nor elsewhere
+// (Notepad: TestBeginUIAEmptySelection).
+func TestBeginUIAEmptyInBrowser(t *testing.T) {
+	browser := func(app, class string, ranges []string) *fakeEnv {
+		f := newEnv(app)
+		f.window.Class = class
+		f.focus = focusInfo{PID: targetPID, TextPattern: true, elem: &fakeElem{ranges: ranges}}
+		f.copyRes = clip.CopyResult{Text: "copied text", Restored: true}
+		f.install(t)
+		return f
+	}
+
+	f := browser("chrome.exe", "Chrome_WidgetWin_1", nil)
+	p := Begin(1, Options{Clipboard: true})
+	if !p.NeedsCopy() {
+		t.Fatal("Chrome: an empty UI Automation read did not fall back to the clipboard")
+	}
+	p.Copy()
+	if sel, ok := p.Read(t.Context()); !ok || sel.Text != "copied text" || sel.Source != plugin.SelectionClipboard || f.copies.Load() != 1 {
+		t.Fatalf("Chrome: Read = %+v %v, copies %d", sel, ok, f.copies.Load())
+	}
+
+	f = browser("firefox.exe", "MozillaWindowClass", []string{"from the page"})
+	p = Begin(1, Options{Clipboard: true})
+	if p.NeedsCopy() {
+		t.Fatal("Firefox: UI Automation found the selection, yet the clipboard was chosen")
+	}
+	if sel, ok := p.Read(t.Context()); !ok || sel.Text != "from the page" || sel.Source != plugin.SelectionUIA || f.copies.Load() != 0 {
+		t.Fatalf("Firefox: Read = %+v %v, copies %d", sel, ok, f.copies.Load())
+	}
+
+	for _, tc := range []struct {
+		name, app, class string
+		o                Options
+	}{
+		{"clipboard off", "msedge.exe", "Chrome_WidgetWin_1", Options{}},
+		{"VS Code", "Code.exe", "Chrome_WidgetWin_1", Options{Clipboard: true}},
+		{"elsewhere", "notepad.exe", "Notepad", Options{Clipboard: true}},
+	} {
+		f := browser(tc.app, tc.class, nil)
+		if p := Begin(1, tc.o); p.NeedsCopy() || f.copies.Load() != 0 {
+			t.Errorf("%s: fell back to the clipboard", tc.name)
+		}
+	}
+}
