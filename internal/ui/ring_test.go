@@ -595,3 +595,33 @@ func TestRingFolderDrag(t *testing.T) {
 		t.Errorf("middle clicks: %q", got)
 	}
 }
+
+// TestRingHollow (R129): the ring is a band around the slots, hollow inside:
+// between the close button and the band the window is clear, while the
+// band shows where no slot is. RING_PNG names a file to draw it to.
+func TestRingHollow(t *testing.T) {
+	_, tt, _ := newRingView(t, "en", ringSlots)
+	img := tt.Image()
+	if path := os.Getenv("RING_PNG"); path != "" {
+		f, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if err := png.Encode(f, img); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cx, cy := ui.RingWidth/2, ui.RingHeight/2
+	// Halfway between the close button (radius 18) and the band's inside.
+	for _, p := range [][2]int{{cx + 34, cy}, {cx - 34, cy}, {cx, cy + 34}, {cx + 24, cy - 24}} {
+		if a := img.RGBAAt(p[0], p[1]).A; a > 8 {
+			t.Errorf("inside the ring at %v: alpha %d, want clear", p, a)
+		}
+	}
+	// The band, in the direction of slot 6, which is empty.
+	dx, dy := ring.SlotOffset(6, ui.RingRadius)
+	if a := img.RGBAAt(cx+int(dx), cy+int(dy)).A; a < 200 {
+		t.Errorf("the band where no slot is: alpha %d, want it drawn", a)
+	}
+}

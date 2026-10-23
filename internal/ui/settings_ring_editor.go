@@ -163,9 +163,7 @@ func (s *Settings) ringEditor(c *mui.Context, f ring.Fixed, save func(ring.Fixed
 		return false
 	})
 	box.Children(func() {
-		disc := float32(2 * edDiscR)
-		mui.Box(c).Absolute().Left(edCX-disc/2).Top(edCY-disc/2).Size(disc, disc).Radius(disc/2).
-			Background(t.Surface).Border(1, t.Border)
+		hollowRing(c, "ring-editor:disc", edCX, edCY, edDiscR, edSlotD+32, t.Surface, t.Border)
 		// The diagonals: the context actions'.
 		for _, p := range []int{1, 3, 5, 7} {
 			dx, dy := ring.SlotOffset(p, edR)
