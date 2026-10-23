@@ -215,3 +215,4 @@
 - **内容**：圆环中间镂空（R129）；浏览器里第二次读不到选中文字（R130）；圆环弹出时也用复制兜底，浏览器里的情境操作跟着选中文字（R131）；VS Code 网页面板（Claude Code）的选中文字靠复制读取、代码编辑区和内置终端绝不发 Ctrl+C（R132）。
 - **版本号**：只有调整和修复，没有新功能，按语义化版本升补丁号。
 - **本地验证**：`gofmt -l .` 为空，`go vet ./...`，`go test -p 2 ./...`（75 个包）、`go test -p 2 -race ./internal/... ./plugins/...`（68 个包）通过，`scripts/windows/build.ps1 -Zip` 成功。
+- **结果**：2026-10-23 在 `03f0757` 上打了 `v0.13.1`，CI 和发布工作流一次通过，Release 为正式版并标为 Latest。产物：`windows_amd64`（22.8MB）、`windows_arm64`（20.9MB）、`darwin_amd64`（23.3MB）、`darwin_arm64`（21.3MB）和 `checksums.txt`。tap 自动推送 `golauncher 0.13.1`（`78ffec8`），SHA-256 和 `checksums.txt` 一致；Homebrew cask 任务（`brew style`、`brew audit`）通过。<https://github.com/eziq1/golauncher/releases/tag/v0.13.1>
