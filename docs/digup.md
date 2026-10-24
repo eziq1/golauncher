@@ -77,7 +77,7 @@ DigUp 运行时有两个 `digup.exe` 子进程：`search-service`（**不带参�
 - 启动：第一次需要时启动 `digup.exe search-service --encoder-idle 60`，环境变量 `DIGUP_MODELS=<安装目录>\Models`；放进 golauncher 已有的作业对象（`proc.NewKillOnCloseJob`，R122 抽出的那个），golauncher 退出或崩溃它都会结束；`CREATE_NO_WINDOW`；标准错误写到 golauncher 的日志目录 `digup.log`。
 - 启动后立刻发 `folders`：文件夹**跟随 DigUp 自己的设置**（读 `settings.json` 的 `folders`、`skipped`、`skipTypes`，有代码文件夹时也带上）；设置文件变化时（启动器显示时比较修改时间）重发。
 - 进程挂了：下一次请求时重启一次；再挂就在这次会话里停用并提示，不反复重启（和 R122 钩子进程的做法一致）。
-- 复用：用 `internal/extproc` 现有的“逐行 JSON 子进程”管道代码，不另写一份。
+- 复用：`internal/extproc` 管外部插件进程（按需启动、崩溃后退避重启、频繁崩溃就停用、卡住就结束、空闲停止、作业对象），但它说的是 JSON-RPC 2.0，DigUp 是自己的 `{"id","op"}` 格式。做法：把 extproc 里与协议无关的进程管理抽成共用的一层，extproc 和 DigUp 插件都用它，只是各自的编解码不同；不另写一套进程管理。
 
 ### 5.2 搜索
 
