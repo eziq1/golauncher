@@ -41,9 +41,11 @@ type monitorInfo struct {
 }
 
 // ringUsesFlyout makes the ring's window a flyout of the tray icon
-// (ringFlyoutOptions): MyGo creates flyouts without a redirection bitmap,
-// which a transparent panel keeps, so that what the ring leaves clear
-// would show black, in a box Windows 11 rounds as it rounds tool windows.
+// (ringFlyoutOptions): MyGo creates flyouts without a redirection bitmap
+// and, without a shadow, square. A panel is a box Windows 11 rounds and
+// outlines as it does tool windows, and before MyGo 0.7.2 a transparent
+// one kept its redirection bitmap, so that what the ring leaves clear
+// showed black.
 const ringUsesFlyout = true
 
 // noActivate keeps the ring's window from ever being activated, also by a

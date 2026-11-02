@@ -95,6 +95,26 @@ func (l *Launcher) back() {
 	})
 }
 
+// pointerSeen is where the pointer was over the launcher in the last frame.
+type pointerSeen struct {
+	known, over bool // known: seen since showing; over: over the window
+	x, y        float32
+}
+
+// notePointer arms hovering (armed) once the pointer moves over the window
+// after showing: to another place in it, or into it. Rows moving under a
+// resting pointer do not arm it, also over the frames MyGo takes to hover
+// the row now under the pointer rather than the one that moved away (MyGo
+// keys rows by their key, so the hovered row follows it for a frame).
+func (l *Launcher) notePointer(root mui.Element) {
+	x, y, over := root.PointerPosition()
+	p := pointerSeen{known: true, over: over, x: x, y: y}
+	if over && l.pointer.known && (!l.pointer.over || x != l.pointer.x || y != l.pointer.y) {
+		l.armed = true
+	}
+	l.pointer = p
+}
+
 // hoverRowSelect selects the row under the pointer (Controller.Hover: not a
 // deliberate choice, see moved in core).
 func (l *Launcher) hoverRowSelect(i int) {

@@ -8,6 +8,11 @@ Before 1.0.0, minor versions may contain breaking changes.
 
 ## [Unreleased]
 
+- Dependencies (R136, docs/deps-2026-11.md): MyGo v0.5.5 → v0.7.4,
+  `modernc.org/sqlite` v1.60.1 → v1.61.1 and `ebitengine/purego` v0.11.1 →
+  v0.11.2; hovering a result now selects it only after the pointer moves, so
+  rows moving under a resting pointer keep the first row selected.
+
 ## [0.13.1] - 2026-10-23
 
 ### Changed

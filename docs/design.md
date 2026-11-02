@@ -2,7 +2,7 @@
 
 > 状态：v0.3 · 2026-10-15（v0.1.0 已实现；§12 里程碑和 §15 状态已更新；需求台账见 [requirements.md](requirements.md)）
 > 目标平台：Windows 10/11（x64 / arm64）
-> 技术栈：Go 1.27+、[MyGo](https://github.com/egoist/mygo) v0.5.x（原生 UI 模式）
+> 技术栈：Go 1.27+、[MyGo](https://github.com/egoist/mygo) v0.7.x（原生 UI 模式）
 
 ## 1. 目标与范围
 
