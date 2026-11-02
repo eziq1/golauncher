@@ -85,6 +85,7 @@ type Launcher struct {
 	lastPanelSel  int
 	hoverRow      int  // flat index of the row last hovered, -1 for none
 	armed         bool // hovering selects only once the pointer moved after showing
+	pointer       pointerSeen
 
 	// The inputs of the open form and of the selected entry's arguments.
 	fields, args inputs
@@ -180,6 +181,7 @@ func (l *Launcher) View(c *mui.Context) {
 	l.md.CopyAsMarkdown = l.loc.T("ui.markdown.copyAsMarkdown")
 	// After SetTheme, which gives the root the theme's background.
 	c.Root().Background(l.res.Background)
+	l.notePointer(c.Root())
 	// Whether edits are on their way, asked before the snapshot is taken: it
 	// may otherwise miss edits that were made in between.
 	l.pending = l.work.Pending()

@@ -18,7 +18,7 @@ import (
 // thread.
 func (l *Launcher) ShownWith(o core.ShowOptions) {
 	l.text, l.sent, l.panelText, l.panelSent = "", "", "", ""
-	l.hoverRow, l.armed = -1, false
+	l.hoverRow, l.armed, l.pointer = -1, false, pointerSeen{}
 	l.input.Focus()
 	l.work.Do(func(ctx context.Context) {
 		l.ctrl.Show(ctx, o)

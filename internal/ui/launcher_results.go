@@ -117,12 +117,13 @@ func (l *Launcher) row(c *mui.Context, s core.Snapshot, r launcherRow) {
 		row.Background(tk.RowHover)
 	}
 	if row.Hovered() && r.flat != l.hoverRow {
-		// The first row under the pointer after showing does not take the
-		// choice: the pointer may just be resting there.
+		// A row under the pointer takes the choice only once the pointer
+		// moved (notePointer): not the row it rests on after showing, nor
+		// one that came under it as the rows moved.
 		if l.armed && !selected {
 			l.hoverRowSelect(r.flat)
 		}
-		l.hoverRow, l.armed = r.flat, true
+		l.hoverRow = r.flat
 	}
 	if row.Clicked() {
 		l.activate(r.flat)
